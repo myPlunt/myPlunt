@@ -1,11 +1,12 @@
-import iconDrop from '../assets/icons/drop.svg'
-import iconKey from '../assets/icons/key.svg'
-import iconRain from '../assets/icons/rain.svg'
+import type { ComponentType, SVGProps } from 'react'
+import DropIcon from '../assets/icons/drop.svg?react'
+import KeyIcon from '../assets/icons/key.svg?react'
+import RainIcon from '../assets/icons/rain.svg?react'
 import PhoneMockup from './PhoneMockup'
 import StoreBadges from './StoreBadges'
 
 type NotificationCardProps = {
-  icon: string
+  Icon: ComponentType<SVGProps<SVGSVGElement>>
   iconSize: { width: number; height: number }
   iconBg: string
   title: string
@@ -13,13 +14,13 @@ type NotificationCardProps = {
   className: string
 }
 
-function NotificationCard({ icon, iconSize, iconBg, title, body, className }: NotificationCardProps) {
+function NotificationCard({ Icon, iconSize, iconBg, title, body, className }: NotificationCardProps) {
   return (
     <div
       className={`absolute flex items-center gap-3 rounded-[18px] bg-white py-3.5 pr-5 pl-4 shadow-card ${className}`}
     >
-      <div className={`flex size-10 shrink-0 items-center justify-center rounded-full ${iconBg}`}>
-        <img src={icon} alt="" {...iconSize} />
+      <div className={`flex size-10 shrink-0 items-center justify-center rounded-full text-white ${iconBg}`}>
+        <Icon {...iconSize} />
       </div>
       <div className="flex w-[220px] flex-col gap-0.5">
         <p className="text-[15px] font-semibold text-green">{title}</p>
@@ -29,6 +30,7 @@ function NotificationCard({ icon, iconSize, iconBg, title, body, className }: No
   )
 }
 
+// Icons are drawn on a 24px grid; the card bubbles show them at 22px (×22/24).
 // Fixed 620×660 composition from Figma, scaled down as a whole on small screens.
 function HeroVisual() {
   return (
@@ -40,7 +42,7 @@ function HeroVisual() {
         <PhoneMockup size="lg" className="absolute top-[30px] left-[120px]" />
 
         <NotificationCard
-          icon={iconDrop}
+          Icon={DropIcon}
           iconSize={{ width: 12.8333, height: 17.4167 }}
           iconBg="bg-leaf"
           title="Time to water"
@@ -48,7 +50,7 @@ function HeroVisual() {
           className="top-[200px] left-[20px]"
         />
         <NotificationCard
-          icon={iconRain}
+          Icon={RainIcon}
           iconSize={{ width: 17.8411, height: 16.3641 }}
           iconBg="bg-green"
           title="Frost tonight"
@@ -56,7 +58,7 @@ function HeroVisual() {
           className="top-[420px] left-[340px]"
         />
         <NotificationCard
-          icon={iconKey}
+          Icon={KeyIcon}
           iconSize={{ width: 15.5833, height: 15.5833 }}
           iconBg="bg-soil"
           title="Tom has the keys"

@@ -1,5 +1,7 @@
 import Hero from './components/Hero'
+import HighlightsStrip from './components/HighlightsStrip'
 import Navigation from './components/Navigation'
+import Problem from './components/Problem'
 
 function App() {
   return (
@@ -7,6 +9,8 @@ function App() {
       <Navigation />
       <main>
         <Hero />
+        <HighlightsStrip />
+        <Problem />
       </main>
     </div>
   )
