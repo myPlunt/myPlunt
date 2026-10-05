@@ -1,16 +1,53 @@
+:root {
+  /* Colors (from Figma: myPlunt Landing / V2) */
+  --color-cream: #eae4d7;
+  --color-green: #3b5232;
+  --color-white: #ffffff;
+
+  /* Typography */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+
+  /* Layout */
+  --page-max-width: 1440px;
+  --page-gutter: 120px;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --page-gutter: 48px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --page-gutter: 20px;
+  }
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
-  height: 100%;
+html {
+  scroll-behavior: smooth;
 }
 
-.landing {
-  min-height: 100%;
-  background: #3b5232;
+body {
+  font-family: var(--font-body);
+  font-variation-settings: 'opsz' 14;
+  color: var(--color-green);
+  background: var(--color-cream);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
 }

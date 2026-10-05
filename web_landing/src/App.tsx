@@ -1,5 +1,12 @@
+import Navigation from './components/Navigation'
+
 function App() {
-  return <main className="landing" />
+  return (
+    <div id="top">
+      <Navigation />
+      <main />
+    </div>
+  )
 }
 
 export default App

@@ -1,0 +1,78 @@
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: 28px var(--page-gutter);
+  background: var(--color-cream);
+}
+
+.nav__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.nav__wordmark {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 28px;
+  font-variation-settings: 'SOFT' 0, 'WONK' 1;
+  color: var(--color-green);
+  white-space: nowrap;
+}
+
+.nav__links {
+  display: flex;
+  gap: 40px;
+  font-weight: 500;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.nav__links a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.nav__cta {
+  flex-shrink: 0;
+  padding: 14px 24px;
+  border-radius: 999px;
+  background: var(--color-green);
+  color: var(--color-white);
+  font-weight: 600;
+  font-size: 16px;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+}
+
+.nav__cta:hover {
+  opacity: 0.9;
+}
+
+/* No mobile design in Figma yet: hide the section links on small screens. */
+@media (max-width: 860px) {
+  .nav {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  .nav__links {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .nav__wordmark {
+    font-size: 24px;
+  }
+
+  .nav__cta {
+    padding: 12px 18px;
+    font-size: 15px;
+  }
+}
