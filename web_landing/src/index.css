@@ -1,53 +1,48 @@
-:root {
-  /* Colors (from Figma: myPlunt Landing / V2) */
+@import 'tailwindcss';
+
+/*
+ * Design tokens (from Figma: myPlunt Landing / V2).
+ * Every color used on the site must be defined here and referenced via its
+ * Tailwind utility (bg-cream, text-green, ...). Never hard-code a color.
+ */
+@theme {
+  --color-*: initial;
   --color-cream: #eae4d7;
   --color-green: #3b5232;
   --color-white: #ffffff;
+  --color-transparent: transparent;
+  --color-current: currentColor;
 
-  /* Typography */
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'DM Sans', system-ui, sans-serif;
 
-  /* Layout */
-  --page-max-width: 1440px;
-  --page-gutter: 120px;
+  --container-page: 1440px;
 }
 
-@media (max-width: 1024px) {
-  :root {
-    --page-gutter: 48px;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-cream font-body text-green antialiased;
+    font-variation-settings: 'opsz' 14;
   }
 }
 
-@media (max-width: 640px) {
-  :root {
-    --page-gutter: 20px;
+@utility font-wonk {
+  font-variation-settings: 'SOFT' 0, 'WONK' 1;
+}
+
+/* Horizontal page padding: 120px desktop, matching the Figma frames. */
+@utility px-page {
+  padding-inline: 20px;
+
+  @variant sm {
+    padding-inline: 48px;
   }
-}
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  font-family: var(--font-body);
-  font-variation-settings: 'opsz' 14;
-  color: var(--color-green);
-  background: var(--color-cream);
-  -webkit-font-smoothing: antialiased;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-img {
-  display: block;
+  @variant lg {
+    padding-inline: 120px;
+  }
 }
