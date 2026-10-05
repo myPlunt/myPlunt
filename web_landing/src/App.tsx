@@ -1,3 +1,4 @@
+import Features from './components/Features'
 import Hero from './components/Hero'
 import HighlightsStrip from './components/HighlightsStrip'
 import Navigation from './components/Navigation'
@@ -11,6 +12,7 @@ function App() {
         <Hero />
         <HighlightsStrip />
         <Problem />
+        <Features />
       </main>
     </div>
   )

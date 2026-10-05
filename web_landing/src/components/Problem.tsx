@@ -1,4 +1,4 @@
-import BookIcon from '../assets/icons/book.svg?react'
+import BookOpenIcon from '../assets/icons/book-open.svg?react'
 import ClockIcon from '../assets/icons/clock.svg?react'
 import HandHeartIcon from '../assets/icons/hand-heart.svg?react'
 import logoMyPlunt from '../assets/logo-myplunt.svg'
@@ -18,7 +18,7 @@ const problems = [
   {
     title: 'Tools stop at information',
     body: 'Care apps tell you how often to water. Social media turns plants into pretty photos. Neither helps keep them alive.',
-    Icon: BookIcon,
+    Icon: BookOpenIcon,
   },
 ]
 

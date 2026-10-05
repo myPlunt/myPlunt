@@ -7,20 +7,19 @@ import StoreBadges from './StoreBadges'
 
 type NotificationCardProps = {
   Icon: ComponentType<SVGProps<SVGSVGElement>>
-  iconSize: { width: number; height: number }
   iconBg: string
   title: string
   body: string
   className: string
 }
 
-function NotificationCard({ Icon, iconSize, iconBg, title, body, className }: NotificationCardProps) {
+function NotificationCard({ Icon, iconBg, title, body, className }: NotificationCardProps) {
   return (
     <div
       className={`absolute flex items-center gap-3 rounded-[18px] bg-white py-3.5 pr-5 pl-4 shadow-card ${className}`}
     >
       <div className={`flex size-10 shrink-0 items-center justify-center rounded-full text-white ${iconBg}`}>
-        <Icon {...iconSize} />
+        <Icon width={22} height={22} />
       </div>
       <div className="flex w-[220px] flex-col gap-0.5">
         <p className="text-[15px] font-semibold text-green">{title}</p>
@@ -30,8 +29,6 @@ function NotificationCard({ Icon, iconSize, iconBg, title, body, className }: No
   )
 }
 
-// Icons are drawn on a 24px grid; the card bubbles show them at 22px (×22/24).
-// Fixed 620×660 composition from Figma, scaled down as a whole on small screens.
 function HeroVisual() {
   return (
     <div className="relative h-[370px] w-[347px] shrink-0 sm:h-[660px] sm:w-[620px]">
@@ -43,7 +40,6 @@ function HeroVisual() {
 
         <NotificationCard
           Icon={DropIcon}
-          iconSize={{ width: 12.8333, height: 17.4167 }}
           iconBg="bg-leaf"
           title="Time to water"
           body="Your Monstera is thirsty. It's been 7 days."
@@ -51,7 +47,6 @@ function HeroVisual() {
         />
         <NotificationCard
           Icon={RainIcon}
-          iconSize={{ width: 17.8411, height: 16.3641 }}
           iconBg="bg-green"
           title="Frost tonight"
           body="Bring your Basil inside before 22:00."
@@ -59,7 +54,6 @@ function HeroVisual() {
         />
         <NotificationCard
           Icon={KeyIcon}
-          iconSize={{ width: 15.5833, height: 15.5833 }}
           iconBg="bg-soil"
           title="Tom has the keys"
           body="He's watering your plants while you're away."
