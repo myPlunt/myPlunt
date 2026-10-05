@@ -1,10 +1,13 @@
+import Hero from './components/Hero'
 import Navigation from './components/Navigation'
 
 function App() {
   return (
     <div id="top">
       <Navigation />
-      <main />
+      <main>
+        <Hero />
+      </main>
     </div>
   )
 }

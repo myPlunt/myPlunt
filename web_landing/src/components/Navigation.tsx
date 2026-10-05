@@ -1,4 +1,4 @@
-import logoMark from '../assets/logo-mark.svg'
+import logoMyPlunt from '../assets/logo-myplunt.svg'
 
 const links = [
   { label: 'Why myPlunt', href: '#why' },
@@ -11,13 +11,15 @@ function Navigation() {
   return (
     <header className="mx-auto flex max-w-page items-center justify-between gap-6 bg-cream py-5 px-page md:py-7">
       <a className="flex shrink-0 items-center gap-3" href="#top" aria-label="myPlunt home">
-        <img src={logoMark} alt="" width={42.2041} height={44} />
-        <span className="font-display font-wonk text-2xl font-semibold whitespace-nowrap text-green min-[401px]:text-[28px]">
+        <img src={logoMyPlunt} alt="" width={42.2041} height={44} />
+        <span className="font-primary text-[30px] leading-none font-semibold whitespace-nowrap text-green min-[401px]:text-[36px]">
           myPlunt
         </span>
       </a>
 
-      {/* No mobile design in Figma yet: section links are hidden on small screens. */}
+
+      {/* No mobile design yet: section links are hidden on small screens. */}
+      {/* TODO: Add mobile design for small screens. */}
       <nav className="hidden gap-10 text-base font-medium whitespace-nowrap lg:flex" aria-label="Main">
         {links.map((link) => (
           <a key={link.href} href={link.href} className="hover:underline hover:underline-offset-4">

@@ -1,20 +1,34 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens (from Figma: myPlunt Landing / V2).
+ * Design (from Figma: myPlunt Landing / V2).
  * Every color used on the site must be defined here and referenced via its
- * Tailwind utility (bg-cream, text-green, ...). Never hard-code a color.
  */
+ 
 @theme {
   --color-*: initial;
+
+  /* Brand main colors */
   --color-cream: #eae4d7;
+  --color-sand: #e7dcc5;
   --color-green: #3b5232;
+  --color-leaf: #527246;
+  --color-soil: #8d7250;
+
+  /* Neutral colors */
+  --color-ink: #4b5046;
+  --color-charcoal: #1c1f1a;
+  --color-shadow: #1f291a;
   --color-white: #ffffff;
   --color-transparent: transparent;
   --color-current: currentColor;
 
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'DM Sans', system-ui, sans-serif;
+  /* Primary: headlines. Secondary: subtitles, body, UI & buttons. */
+  --font-primary: 'Lateef', Georgia, serif;
+  --font-secondary: 'DM Sans', system-ui, sans-serif;
+
+  --shadow-phone: 0 24px 48px 0 color-mix(in srgb, var(--color-shadow) 20%, transparent);
+  --shadow-card: 0 12px 32px 0 color-mix(in srgb, var(--color-shadow) 14%, transparent);
 
   --container-page: 1440px;
 }
@@ -25,16 +39,11 @@
   }
 
   body {
-    @apply bg-cream font-body text-green antialiased;
+    @apply bg-cream font-secondary text-green antialiased;
     font-variation-settings: 'opsz' 14;
   }
 }
 
-@utility font-wonk {
-  font-variation-settings: 'SOFT' 0, 'WONK' 1;
-}
-
-/* Horizontal page padding: 120px desktop, matching the Figma frames. */
 @utility px-page {
   padding-inline: 20px;
 
