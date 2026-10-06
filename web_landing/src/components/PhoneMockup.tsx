@@ -1,8 +1,11 @@
 // TODO: Phone frame is empty, when app is created change the screen prop to the app screenshot
 
+// Keyed by the phone width used in Figma.
 const sizes = {
-  lg: { frame: 'h-[597px] w-[290px] rounded-[44px]', screen: 'rounded-[35px]', island: 'w-[87px]' },
-  md: { frame: 'h-[515px] w-[250px] rounded-[38px]', screen: 'rounded-[30px]', island: 'w-[75px]' },
+  250: { frame: 'h-[515px] w-[250px] rounded-[38px]', screen: 'rounded-[30px]', island: 'w-[75px]' },
+  260: { frame: 'h-[536px] w-[260px] rounded-[39px]', screen: 'rounded-[31px]', island: 'w-[78px]' },
+  290: { frame: 'h-[597px] w-[290px] rounded-[44px]', screen: 'rounded-[35px]', island: 'w-[87px]' },
+  300: { frame: 'h-[618px] w-[300px] rounded-[45px]', screen: 'rounded-[36px]', island: 'w-[90px]' },
 }
 
 type PhoneMockupProps = {
@@ -11,7 +14,7 @@ type PhoneMockupProps = {
   className?: string
 }
 
-function PhoneMockup({ size = 'lg', screen, className = '' }: PhoneMockupProps) {
+function PhoneMockup({ size = 290, screen, className = '' }: PhoneMockupProps) {
   const s = sizes[size]
 
   return (

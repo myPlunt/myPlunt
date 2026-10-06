@@ -1,6 +1,8 @@
+import CareTogether from './components/CareTogether'
 import Features from './components/Features'
 import Hero from './components/Hero'
 import HighlightsStrip from './components/HighlightsStrip'
+import LivingGarden from './components/LivingGarden'
 import Navigation from './components/Navigation'
 import Problem from './components/Problem'
 
@@ -13,6 +15,8 @@ function App() {
         <HighlightsStrip />
         <Problem />
         <Features />
+        <LivingGarden />
+        <CareTogether />
       </main>
     </div>
   )

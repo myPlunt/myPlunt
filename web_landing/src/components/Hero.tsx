@@ -35,8 +35,8 @@ function HeroVisual() {
       <div className="absolute top-0 left-0 h-[660px] w-[620px] origin-top-left scale-[0.56] sm:scale-100">
         <div className="absolute top-[70px] left-[50px] size-[540px] rounded-full bg-sand" />
 
-        <PhoneMockup size="md" className="absolute top-[122px] left-[302px] rotate-6" />
-        <PhoneMockup size="lg" className="absolute top-[30px] left-[120px]" />
+        <PhoneMockup size={250} className="absolute top-[122px] left-[302px] rotate-6" />
+        <PhoneMockup size={290} className="absolute top-[30px] left-[120px]" />
 
         <NotificationCard
           Icon={DropIcon}
