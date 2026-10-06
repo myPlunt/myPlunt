@@ -8,3 +8,8 @@ spring:
       ddl-auto: validate
   flyway:
     locations: classpath:db/migration,classpath:db/seed
+    clean-disabled: false
+
+app:
+  ops:
+    reset-secret: ${OPS_RESET_SECRET}
