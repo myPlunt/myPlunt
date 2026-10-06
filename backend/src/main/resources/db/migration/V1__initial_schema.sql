@@ -1,5 +1,3 @@
--- This is for UUID creation
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- This is for case-insensitive unique text (username/email)
 CREATE EXTENSION IF NOT EXISTS "citext";
 
@@ -8,7 +6,7 @@ CREATE TABLE users (
     username          CITEXT NOT NULL CONSTRAINT uq_users_username UNIQUE,
     email             CITEXT NOT NULL CONSTRAINT uq_users_email UNIQUE,
     password_hash     VARCHAR(255) NOT NULL,
-    avatar_url        VARCHAR(255),
+    avatar_url        TEXT,
     city              VARCHAR(255),
     bio               VARCHAR(255),
     watering_streak   INT NOT NULL DEFAULT 0 CONSTRAINT chk_users_watering_streak_non_negative CHECK (watering_streak >= 0),
@@ -46,13 +44,12 @@ CREATE TABLE species (
     common_name               VARCHAR(255) NOT NULL,
     scientific_name           VARCHAR(255) NOT NULL CONSTRAINT uq_species_scientific_name UNIQUE,
     region                    VARCHAR(255),
-    watering_frequency_days   INT,
+    watering_frequency_days   INT CONSTRAINT chk_species_watering_frequency_positive CHECK (watering_frequency_days > 0),
     sunlight_needs            VARCHAR(255),
     notes                     TEXT,
     is_approved               BOOLEAN NOT NULL DEFAULT false,
     submitted_by              UUID CONSTRAINT fk_species_submitted_by REFERENCES users(id) ON DELETE SET NULL,
     approved_by               UUID CONSTRAINT fk_species_approved_by REFERENCES users(id) ON DELETE SET NULL,
-    CONSTRAINT chk_species_approved_by_matches_is_approved CHECK (is_approved = (approved_by IS NOT NULL)),
     updated_at                TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -61,7 +58,7 @@ CREATE TABLE planters (
     owner_id       UUID NOT NULL CONSTRAINT fk_planters_owner_id REFERENCES users(id) ON DELETE CASCADE,
     name           VARCHAR(255) NOT NULL,
     location_type  VARCHAR(255),
-    photo_url      VARCHAR(255),
+    photo_url      TEXT,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -82,8 +79,8 @@ CREATE TABLE plants (
 CREATE TABLE plant_photos (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     plant_id      UUID NOT NULL CONSTRAINT fk_plant_photos_plant_id REFERENCES plants(id) ON DELETE CASCADE,
-    uploaded_by   UUID NOT NULL CONSTRAINT fk_plant_photos_uploaded_by REFERENCES users(id) ON DELETE CASCADE,
-    photo_url     VARCHAR(255) NOT NULL,
+    uploaded_by   UUID CONSTRAINT fk_plant_photos_uploaded_by REFERENCES users(id) ON DELETE SET NULL,
+    photo_url     TEXT NOT NULL,
     taken_at      TIMESTAMPTZ
 );
 
@@ -104,7 +101,9 @@ CREATE TABLE care_delegation (
     active_from    TIMESTAMPTZ,
     active_until   TIMESTAMPTZ,
     CONSTRAINT chk_care_delegation_no_self_delegate CHECK (delegated_by <> delegated_to),
-    CONSTRAINT chk_care_delegation_active_window CHECK (active_from < active_until)
+    CONSTRAINT chk_care_delegation_active_window CHECK (active_from < active_until),
+    CONSTRAINT chk_care_delegation_active_has_window
+        CHECK (status <> 'active' OR (active_from IS NOT NULL AND active_until IS NOT NULL))
 );
 
 CREATE UNIQUE INDEX uq_care_delegation_live_plant_delegate
@@ -115,8 +114,8 @@ CREATE TABLE achievements (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name           VARCHAR(255) NOT NULL CONSTRAINT uq_achievements_name UNIQUE,
     description    TEXT,
-    icon_url       VARCHAR(255),
-    rarity         VARCHAR(255) CONSTRAINT chk_achievements_rarity CHECK (rarity IN ('common', 'rare', 'epic', 'legendary')),
+    icon_url       TEXT,
+    rarity         VARCHAR(255) NOT NULL CONSTRAINT chk_achievements_rarity CHECK (rarity IN ('common', 'rare', 'epic', 'legendary')),
     trigger_type   VARCHAR(255) NOT NULL
 );
 
@@ -129,23 +128,22 @@ CREATE TABLE user_achievements (
 );
 
 CREATE TABLE weather_cache (
-    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    city         VARCHAR(255) NOT NULL CONSTRAINT uq_weather_cache_city UNIQUE,
-    fetched_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    temperature  FLOAT,
-    humidity     FLOAT,
-    condition    VARCHAR(255),
-    raw_json     JSONB
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    city           VARCHAR(255) NOT NULL CONSTRAINT uq_weather_cache_city UNIQUE,
+    fetched_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    temperature_c  REAL,
+    humidity_pct   REAL CONSTRAINT chk_weather_cache_humidity_range CHECK (humidity_pct BETWEEN 0 AND 100),
+    condition      VARCHAR(255),
+    raw_json       JSONB
 );
-
-CREATE TYPE post_kind AS ENUM ('update', 'question', 'photo', 'death');
 
 CREATE TABLE posts (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id       UUID NOT NULL CONSTRAINT fk_posts_user_id REFERENCES users(id) ON DELETE CASCADE,
     plant_id      UUID CONSTRAINT fk_posts_plant_id REFERENCES plants(id) ON DELETE CASCADE,
     photo_id      UUID CONSTRAINT fk_posts_photo_id REFERENCES plant_photos(id) ON DELETE CASCADE,
-    post_type     post_kind NOT NULL,
+    post_type     VARCHAR(255) NOT NULL
+                      CONSTRAINT chk_posts_post_type CHECK (post_type IN ('update', 'question', 'photo', 'death')),
     body          TEXT,
     is_resolved   BOOLEAN,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -173,7 +171,7 @@ CREATE TABLE post_comments (
 );
 
 CREATE INDEX idx_friendships_requester_id ON friendships(requester_id);
-CREATE INDEX idx_friendships_receiver_id ON friendships(receiver_id);
+CREATE INDEX idx_friendships_receiver_id_status ON friendships(receiver_id, status);
 CREATE INDEX idx_species_submitted_by ON species(submitted_by);
 CREATE INDEX idx_species_approved_by ON species(approved_by);
 CREATE INDEX idx_planters_owner_id ON planters(owner_id);
@@ -182,17 +180,16 @@ CREATE INDEX idx_plants_planter_id ON plants(planter_id);
 CREATE INDEX idx_plants_species_id ON plants(species_id);
 CREATE INDEX idx_plant_photos_plant_id ON plant_photos(plant_id);
 CREATE INDEX idx_plant_photos_uploaded_by ON plant_photos(uploaded_by);
-CREATE INDEX idx_watering_logs_plant_id ON watering_logs(plant_id);
+CREATE INDEX idx_watering_logs_plant_id_watered_at ON watering_logs(plant_id, watered_at DESC);
 CREATE INDEX idx_watering_logs_watered_by ON watering_logs(watered_by);
 CREATE INDEX idx_care_delegation_plant_id ON care_delegation(plant_id);
 CREATE INDEX idx_care_delegation_delegated_by ON care_delegation(delegated_by);
 CREATE INDEX idx_care_delegation_delegated_to ON care_delegation(delegated_to);
-CREATE INDEX idx_user_achievements_user_id ON user_achievements(user_id);
 CREATE INDEX idx_user_achievements_achievement_id ON user_achievements(achievement_id);
-CREATE INDEX idx_posts_user_id ON posts(user_id);
+CREATE INDEX idx_posts_user_id_created_at ON posts(user_id, created_at DESC);
 CREATE INDEX idx_posts_plant_id ON posts(plant_id);
 CREATE INDEX idx_posts_photo_id ON posts(photo_id);
-CREATE INDEX idx_post_reactions_post_id ON post_reactions(post_id);
+CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
 CREATE INDEX idx_post_reactions_user_id ON post_reactions(user_id);
-CREATE INDEX idx_post_comments_post_id ON post_comments(post_id);
+CREATE INDEX idx_post_comments_post_id_created_at ON post_comments(post_id, created_at);
 CREATE INDEX idx_post_comments_author_id ON post_comments(author_id);
