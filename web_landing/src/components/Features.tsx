@@ -45,7 +45,7 @@ const features = [
 const count = features.length
 const AUTOPLAY_MS = 3200
 
-// Position of card `index` relative to the active card, wrapped so the carousel loops: -2 … 3.
+// Position of card `index` relative to the active card, wrapped so the carousel loops: 
 function offsetOf(index: number, active: number) {
   const distance = (index - active + count) % count
   return distance > count / 2 ? distance - count : distance

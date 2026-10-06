@@ -2,6 +2,7 @@ import BellIcon from '../assets/icons/bell.svg?react'
 import KeyIcon from '../assets/icons/key.svg?react'
 import LeafIcon from '../assets/icons/leaf.svg?react'
 import SproutIcon from '../assets/icons/sprout.svg?react'
+import LeafShape from './LeafShape'
 import PhoneMockup from './PhoneMockup'
 import SectionHeader from './SectionHeader'
 
@@ -9,14 +10,15 @@ const stories = [
   { text: "Laura just watered your Basil while you're away this weekend.", Icon: KeyIcon, bubble: 'bg-soil' },
   { text: "Your Fern's watering streak broke. Lisa sent you a nudge.", Icon: BellIcon, bubble: 'bg-green' },
   { text: 'Your Monstera just sprouted a new leaf.', Icon: LeafIcon, bubble: 'bg-leaf' },
-  { text: "Alisa's Orchid finally bloomed.", Icon: SproutIcon, bubble: 'bg-clay' },
+  { text: "Alisa's Orchid finally bloomed.", Icon: SproutIcon, bubble: 'bg-soil' },
 ]
 
 function CareTogetherVisual() {
   return (
     <div className="relative h-[429px] w-[338px] shrink-0 sm:h-[660px] sm:w-[520px]">
       <div className="absolute top-0 left-0 h-[660px] w-[520px] origin-top-left scale-[0.65] sm:scale-100">
-        <div className="absolute top-20 left-2.5 size-[500px] rounded-full bg-sand" />
+        <LeafShape direction="right" tone="leaf" className="absolute top-[150px] left-[-70px] size-[380px] rotate-15" />
+        <LeafShape direction="left" tone="leaf" className="absolute top-15 left-[200px] size-[360px] rotate-350" />
         <PhoneMockup size={300} className="absolute top-5 left-[110px]" />
       </div>
     </div>
@@ -25,7 +27,7 @@ function CareTogetherVisual() {
 
 function CareTogether() {
   return (
-    <section className="bg-cream">
+    <section className="overflow-x-clip bg-cream">
       <div className="mx-auto flex max-w-page flex-col items-center gap-12 py-20 px-page xl:flex-row xl:justify-between xl:py-[120px]">
         <div className="flex w-full max-w-[540px] flex-col items-start gap-7">
           <SectionHeader

@@ -2,6 +2,7 @@ import type { ComponentType, SVGProps } from 'react'
 import DropIcon from '../assets/icons/drop.svg?react'
 import KeyIcon from '../assets/icons/key.svg?react'
 import RainIcon from '../assets/icons/rain.svg?react'
+import LeafShape from './LeafShape'
 import PhoneMockup from './PhoneMockup'
 import StoreBadges from './StoreBadges'
 
@@ -33,7 +34,8 @@ function HeroVisual() {
   return (
     <div className="relative h-[370px] w-[347px] shrink-0 sm:h-[660px] sm:w-[620px]">
       <div className="absolute top-0 left-0 h-[660px] w-[620px] origin-top-left scale-[0.56] sm:scale-100">
-        <div className="absolute top-[70px] left-[50px] size-[540px] rounded-full bg-sand" />
+        <LeafShape direction="right" tone="leaf" className="absolute top-[150px] left-[-50px] size-[350px] rotate-15" />
+        <LeafShape direction="left" tone="leaf" className="absolute top-15 left-[320px] size-[400px] rotate-350" />
 
         <PhoneMockup size={250} className="absolute top-[122px] left-[302px] rotate-6" />
         <PhoneMockup size={290} className="absolute top-[30px] left-[120px]" />
@@ -66,7 +68,7 @@ function HeroVisual() {
 
 function Hero() {
   return (
-    <section className="mx-auto flex max-w-page flex-col items-center gap-12 pt-6 pb-20 px-page xl:flex-row xl:justify-between xl:gap-8 xl:pt-10 xl:pb-[104px]">
+    <section className="mx-auto flex max-w-page flex-col overflow-x-clip items-center gap-12 pt-6 pb-20 px-page xl:flex-row xl:justify-between xl:gap-8 xl:pt-10 xl:pb-[104px]">
       <div className="flex w-full flex-col items-start gap-7 xl:w-auto xl:max-w-[600px] xl:flex-1">
         <span className="flex items-center gap-2 rounded-full bg-leaf/14 py-2 pr-4 pl-3.5 text-sm font-semibold">
           <span className="size-2 rounded-full bg-leaf" />
