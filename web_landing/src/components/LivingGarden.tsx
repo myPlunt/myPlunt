@@ -4,7 +4,7 @@ import SectionHeader from './SectionHeader'
 const screens = [
   { title: 'My garden', body: 'Every plant at a glance, with what needs care today.' },
   { title: 'Rainy day', body: 'Your garden changes with the real weather where you are.' },
-  { title: 'Plantdex', body: 'Discover regional plants and identify any species with a photo.' },
+  { title: 'Plantdex', body: 'Discover regional plants that grow well where you live.' },
 ]
 
 function LivingGarden() {

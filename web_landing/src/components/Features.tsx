@@ -27,7 +27,7 @@ const features = [
   },
   {
     title: 'Show your progress',
-    body: 'Snap your plants as they grow and share how far they have come, from first leaf to full jungle.',
+    body: 'Take a picture of your plants as they grow and share how far they have come, from first leaf to full jungle.',
     Icon: CameraIcon,
   },
   {
