@@ -3,37 +3,119 @@ stages:
   - build
   - deploy
 
-test-frontend:
-  stage: test
-  image: node:22
-  script:
-    - cd frontend
-    - npm ci
-    - npm run test:ci
+workflow:
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev")'
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "dev"'
+
+# Rule templates
+.rules-frontend:
+  rules:
+    - changes:
+        - "frontend/**/*"
+
+.rules-backend:
+  rules:
+    - changes:
+        - "backend/**/*"
+
+# .rules-frontend-dev:
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "dev"'
+#       changes:
+#         - "frontend/**/*"
+
+# .rules-frontend-main:
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main"'
+#       changes:
+#         - "frontend/**/*"
+
+.rules-backend-dev:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
       changes:
-        - frontend/**/*
+        - "backend/**/*"
+
+.rules-backend-main:
+  rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
-        - frontend/**/*
+        - "backend/**/*"
+
+.rules-landing-main:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - "web_landing/**/*"
+
+# Job templates
+.node:
+  image: node:22
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - frontend/.npm/
+  before_script:
+    - cd frontend
+    - npm ci --cache .npm --prefer-offline
+
+.docker-build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG" "$BUILD_DIR/"
+    - docker push "$CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG"
+
+.deploy-coolify:
+  stage: deploy
+  image: curlimages/curl
+  script:
+    - 'curl -fsS -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$WEBHOOK_URL"'
+
+# .publish-mobile:
+#   extends: .node
+#   stage: deploy
+#   script:
+#     - npx --yes eas-cli@latest update --branch "$CI_COMMIT_BRANCH" --message "$CI_COMMIT_SHORT_SHA $CI_COMMIT_TITLE" --non-interactive
+#   needs:
+#     - job: test-frontend
+#       optional: true
+#     - job: lint-frontend
+#       optional: true
+#     - job: typecheck-frontend
+#       optional: true
+
+# TEST STAGE
+test-frontend:
+  extends: [.node, .rules-frontend]
+  stage: test
+  script:
+    - npm run test:ci
 
 lint-frontend:
+  extends: [.node, .rules-frontend]
   stage: test
-  image: node:22
   script:
-    - cd frontend
-    - npm ci
     - npm run lint
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
-      changes:
-        - frontend/**/*
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      changes:
-        - frontend/**/*
+
+typecheck-frontend:
+  extends: [.node, .rules-frontend]
+  stage: test
+  script:
+    - npx tsc --noEmit
 
 test-backend:
+  extends: .rules-backend
   stage: test
   image: eclipse-temurin:25-jdk
   services:
@@ -42,75 +124,77 @@ test-backend:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
     TESTCONTAINERS_HOST_OVERRIDE: docker
+    MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  cache:
+    key:
+      files:
+        - backend/pom.xml
+    paths:
+      - .m2/repository/
   script:
     - cd backend
-    - ./mvnw test
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
-      changes:
-        - backend/**/*
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      changes:
-        - backend/**/*
+    - ./mvnw -B test
 
-build-backend:
-  stage: build
-  image: docker:24
-  services:
-    - docker:24-dind
+# BUILD STAGE
+build-backend-staging:
+  extends: [.docker-build, .rules-backend-dev]
   variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: "/certs"
-  script:
-    - docker build -t $CI_REGISTRY_IMAGE/backend:latest backend/
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker push $CI_REGISTRY_IMAGE/backend:latest
-  needs: ["test-backend"]
-  only:
-    refs:
-      - main
-    changes:
-      - backend/**/*
+    BUILD_DIR: backend
+    IMAGE_NAME: backend
+    IMAGE_TAG: staging
+  needs:
+    - job: test-backend
+      optional: true
 
-deploy-backend:
-  stage: deploy
-  image: curlimages/curl
-  script:
-    - 'curl -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_BACKEND_WEBHOOK_URL"'
-  needs: ["build-backend"]
-  only:
-    refs:
-      - main
-    changes:
-      - backend/**/*
+build-backend-prod:
+  extends: [.docker-build, .rules-backend-main]
+  variables:
+    BUILD_DIR: backend
+    IMAGE_NAME: backend
+    IMAGE_TAG: latest
+  needs:
+    - job: test-backend
+      optional: true
 
 build-landing:
-  stage: build
-  image: docker:24
-  services:
-    - docker:24-dind
+  extends: [.docker-build, .rules-landing-main]
   variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: "/certs"
-  script:
-    - docker build -t $CI_REGISTRY_IMAGE/web-landing:latest web_landing/
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker push $CI_REGISTRY_IMAGE/web-landing:latest
+    BUILD_DIR: web_landing
+    IMAGE_NAME: web-landing
+    IMAGE_TAG: latest
   needs: []
-  only:
-    refs:
-      - main
-    changes:
-      - web_landing/**/*
+
+# DEPLOY STAGE
+deploy-backend-staging:
+  extends: [.deploy-coolify, .rules-backend-dev]
+  variables:
+    WEBHOOK_URL: $COOLIFY_BACKEND_STAGING_WEBHOOK_URL
+  environment:
+    name: staging
+  needs: ["build-backend-staging"]
+
+deploy-backend-prod:
+  extends: [.deploy-coolify, .rules-backend-main]
+  variables:
+    WEBHOOK_URL: $COOLIFY_BACKEND_PROD_WEBHOOK_URL
+  environment:
+    name: production
+  needs: ["build-backend-prod"]
 
 deploy-landing:
-  stage: deploy
-  image: curlimages/curl
-  script:
-    - 'curl -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_LANDING_WEBHOOK_URL"'
+  extends: [.deploy-coolify, .rules-landing-main]
+  variables:
+    WEBHOOK_URL: $COOLIFY_LANDING_WEBHOOK_URL
+  environment:
+    name: production
   needs: ["build-landing"]
-  only:
-    refs:
-      - main
-    changes:
-      - web_landing/**/*
+
+# publish-mobile-staging:
+#   extends: [.publish-mobile, .rules-frontend-dev]
+#   variables:
+#     EXPO_PUBLIC_API_URL: $STAGING_API_URL
+
+# publish-mobile-prod:
+#   extends: [.publish-mobile, .rules-frontend-main]
+#   variables:
+#     EXPO_PUBLIC_API_URL: $PROD_API_URL
