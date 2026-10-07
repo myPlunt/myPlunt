@@ -51,7 +51,7 @@ workflow:
 
 # Job templates
 .node:
-  image: node:22
+  image: node:22-alpine
   cache:
     key:
       files:
