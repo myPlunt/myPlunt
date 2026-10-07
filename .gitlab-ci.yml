@@ -19,17 +19,17 @@ workflow:
     - changes:
         - "backend/**/*"
 
-# .rules-frontend-dev:
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "dev"'
-#       changes:
-#         - "frontend/**/*"
+.rules-frontend-dev:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      changes:
+        - "frontend/**/*"
 
-# .rules-frontend-main:
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
-#       changes:
-#         - "frontend/**/*"
+.rules-frontend-main:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - "frontend/**/*"
 
 .rules-backend-dev:
   rules:
@@ -81,6 +81,18 @@ workflow:
   image: curlimages/curl
   script:
     - 'curl -fsS -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$WEBHOOK_URL"'
+
+.build-mobile:
+  extends: .node
+  stage: build
+  script:
+    - npx --yes eas-cli@latest build --platform ios --profile "$EAS_PROFILE" --non-interactive --no-wait
+
+.submit-mobile:
+  extends: .node
+  stage: deploy
+  script:
+    - npx --yes eas-cli@latest submit --platform ios --profile "$EAS_PROFILE" --non-interactive --latest
 
 # .publish-mobile:
 #   extends: .node
@@ -164,6 +176,32 @@ build-landing:
     IMAGE_TAG: latest
   needs: []
 
+build-mobile-staging:
+  extends: [.build-mobile, .rules-frontend-dev]
+  variables:
+    EAS_PROFILE: staging
+    EXPO_PUBLIC_API_URL: $STAGING_API_URL
+  needs:
+    - job: test-frontend
+      optional: true
+    - job: lint-frontend
+      optional: true
+    - job: typecheck-frontend
+      optional: true
+
+build-mobile-prod:
+  extends: [.build-mobile, .rules-frontend-main]
+  variables:
+    EAS_PROFILE: production
+    EXPO_PUBLIC_API_URL: $PROD_API_URL
+  needs:
+    - job: test-frontend
+      optional: true
+    - job: lint-frontend
+      optional: true
+    - job: typecheck-frontend
+      optional: true
+
 # DEPLOY STAGE
 deploy-backend-staging:
   extends: [.deploy-coolify, .rules-backend-dev]
@@ -188,6 +226,24 @@ deploy-landing:
   environment:
     name: production
   needs: ["build-landing"]
+
+submit-mobile-staging:
+  extends: [.submit-mobile, .rules-frontend-dev]
+  variables:
+    EAS_PROFILE: staging
+  environment:
+    name: staging
+  needs: ["build-mobile-staging"]
+  when: manual
+
+submit-mobile-prod:
+  extends: [.submit-mobile, .rules-frontend-main]
+  variables:
+    EAS_PROFILE: production
+  environment:
+    name: production
+  needs: ["build-mobile-prod"]
+  when: manual
 
 # publish-mobile-staging:
 #   extends: [.publish-mobile, .rules-frontend-dev]
