@@ -93,7 +93,7 @@ workflow:
   extends: .node
   stage: deploy
   script:
-    - npx --yes eas-cli@latest submit --platform ios --profile "$EAS_PROFILE" --non-interactive --latest
+    - npx --yes eas-cli@latest submit --platform ios --profile "$EAS_PROFILE" --non-interactive --latest --no-wait
 
 # TEST STAGE
 test-frontend:
@@ -206,6 +206,20 @@ deploy-backend-prod:
   environment:
     name: production
   needs: ["build-backend-prod"]
+
+reset-staging-db:
+  stage: deploy
+  image: curlimages/curl
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: manual
+  variables:
+    GIT_STRATEGY: none
+  environment:
+    name: staging
+    action: access
+  script:
+    - 'curl -fsS -X POST -H "X-Ops-Secret: $OPS_RESET_SECRET" "$STAGING_BACKEND_URL/v1/ops/reset-db"'
 
 deploy-landing:
   extends: [.deploy-coolify, .rules-landing-main]

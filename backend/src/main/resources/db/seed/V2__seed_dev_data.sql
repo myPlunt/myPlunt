@@ -52,7 +52,7 @@ INSERT INTO user_achievements (id, user_id, achievement_id, earned_at)
 VALUES
     ('10000000-0000-0000-0000-000000000021', '10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000019', now() - interval '20 days');
 
-INSERT INTO weather_cache (id, city, fetched_at, temperature, humidity, condition, raw_json)
+INSERT INTO weather_cache (id, city, fetched_at, temperature_c, humidity_pct, condition, raw_json)
 VALUES
     ('10000000-0000-0000-0000-000000000022', 'Deventer', now() - interval '1 hours', 14.5, 78.0, 'Cloudy', '{"source": "seed"}');
 
