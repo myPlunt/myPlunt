@@ -86,7 +86,7 @@ workflow:
   extends: .node
   stage: build
   script:
-    - npx --yes eas-cli@latest build --platform ios --profile "$EAS_PROFILE" --non-interactive --no-wait
+    - npx --yes eas-cli@latest build --platform ios --profile "$EAS_PROFILE" --non-interactive
 
 .submit-mobile:
   extends: .node
