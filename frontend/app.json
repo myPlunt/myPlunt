@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "frontend",
-    "slug": "frontend",
+    "slug": "myplunt",
+    "owner": "my-plunt",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -45,14 +46,14 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "d94cbf3d-e79f-42ab-8604-95505f60e461"
+        "projectId": "9522f12d-5816-4e59-8252-30c84f0000af"
       }
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/d94cbf3d-e79f-42ab-8604-95505f60e461"
+      "url": "https://u.expo.dev/9522f12d-5816-4e59-8252-30c84f0000af"
     }
   }
 }
