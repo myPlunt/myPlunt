@@ -94,19 +94,6 @@ workflow:
   script:
     - npx --yes eas-cli@latest submit --platform ios --profile "$EAS_PROFILE" --non-interactive --latest
 
-# .publish-mobile:
-#   extends: .node
-#   stage: deploy
-#   script:
-#     - npx --yes eas-cli@latest update --branch "$CI_COMMIT_BRANCH" --message "$CI_COMMIT_SHORT_SHA $CI_COMMIT_TITLE" --non-interactive
-#   needs:
-#     - job: test-frontend
-#       optional: true
-#     - job: lint-frontend
-#       optional: true
-#     - job: typecheck-frontend
-#       optional: true
-
 # TEST STAGE
 test-frontend:
   extends: [.node, .rules-frontend]
@@ -244,13 +231,3 @@ submit-mobile-prod:
     name: production
   needs: ["build-mobile-prod"]
   when: manual
-
-# publish-mobile-staging:
-#   extends: [.publish-mobile, .rules-frontend-dev]
-#   variables:
-#     EXPO_PUBLIC_API_URL: $STAGING_API_URL
-
-# publish-mobile-prod:
-#   extends: [.publish-mobile, .rules-frontend-main]
-#   variables:
-#     EXPO_PUBLIC_API_URL: $PROD_API_URL
