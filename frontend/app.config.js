@@ -1,4 +1,4 @@
-const isStaging = process.env.EAS_BUILD_PROFILE === "staging";
+const isStaging = process.env.APP_VARIANT === "staging";
 
 export default {
   expo: {

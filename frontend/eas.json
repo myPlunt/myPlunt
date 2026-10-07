@@ -13,7 +13,10 @@
     },
     "staging": {
       "extends": "production",
-      "channel": "staging"
+      "channel": "staging",
+      "env": {
+        "APP_VARIANT": "staging"
+      }
     },
     "production": {
       "autoIncrement": true,
