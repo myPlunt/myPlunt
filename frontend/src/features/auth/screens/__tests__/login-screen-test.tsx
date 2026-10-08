@@ -33,13 +33,31 @@ describe('LoginScreen', () => {
     );
   });
 
-  it('shows an error message when login is rejected', async () => {
-    login.mockRejectedValue(new ApiError(401, 'irrelevant'));
+  it('shows the backend-provided message when login is rejected', async () => {
+    login.mockRejectedValue(new ApiError(401, 'irrelevant', { detail: 'Invalid credentials' }));
     await render(<LoginScreen />);
 
     await user.press(screen.getByRole('button', { name: 'Log in' }));
 
-    await screen.findByText('Invalid email or password.');
+    await screen.findByText('Invalid credentials');
+  });
+
+  it('falls back to a generic message when the backend sends no detail', async () => {
+    login.mockRejectedValue(new ApiError(500, 'irrelevant'));
+    await render(<LoginScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Log in' }));
+
+    await screen.findByText('Something went wrong. Please try again.');
+  });
+
+  it('shows field-specific validation errors next to the right input', async () => {
+    login.mockRejectedValue(new ApiError(400, 'irrelevant', { fieldErrors: { email: 'must be a well-formed email address' } }));
+    await render(<LoginScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Log in' }));
+
+    await screen.findByText('must be a well-formed email address');
   });
 
   it('disables the submit button while the request is in flight', async () => {

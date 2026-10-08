@@ -41,10 +41,37 @@ describe('publicFetch', () => {
 
     await expect(publicFetch('/v1/auth/register', {})).rejects.toMatchObject({ status: 409 });
   });
+
+  it('carries the backend ProblemDetail detail through to ApiError', async () => {
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(
+      jsonResponse(409, { detail: 'Email already registered' }),
+    );
+
+    await expect(publicFetch('/v1/auth/register', {})).rejects.toMatchObject({
+      status: 409,
+      detail: 'Email already registered',
+    });
+  });
+
+  it('carries field-level validation errors through to ApiError', async () => {
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(
+      jsonResponse(400, { errors: { email: 'must be a well-formed email address' } }),
+    );
+
+    await expect(publicFetch('/v1/auth/register', {})).rejects.toMatchObject({
+      status: 400,
+      fieldErrors: { email: 'must be a well-formed email address' },
+    });
+  });
 });
 
 describe('describeError', () => {
-  it('maps a known status to its message', () => {
+  it('prefers the backend detail over any status fallback', () => {
+    const error = new ApiError(401, 'irrelevant', { detail: 'Invalid credentials' });
+    expect(describeError(error, { 401: 'Fallback message' })).toBe('Invalid credentials');
+  });
+
+  it('falls back to the status map when the backend sent no detail', () => {
     const error = new ApiError(401, 'irrelevant');
     expect(describeError(error, { 401: 'Invalid credentials.' })).toBe('Invalid credentials.');
   });

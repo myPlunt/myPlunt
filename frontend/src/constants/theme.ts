@@ -3,7 +3,7 @@ import '@/global.css';
 import { Platform } from 'react-native';
 
 // Brand palette
-const brand = {
+export const brand = {
   hunterGreen900: '#263521',
   hunterGreen700: '#304329',
   hunterGreen500: '#3B5232',
@@ -33,11 +33,17 @@ const brand = {
 
 const lightTheme = {
   text: brand.grey900,
-  background: brand.white,
+  background: brand.sandDune,
   backgroundElement: brand.softLinen,
   backgroundSelected: brand.fern100,
   textSecondary: brand.grey700,
-  primary: brand.hunterGreen500,
+  // "primary" (Fern) is used for links/wordmark already on screen — kept as-is.
+  // actionPrimary (Hunter Green) is the design study's actual documented
+  // primary color, reserved for the main action button specifically.
+  primary: brand.fern500,
+  actionPrimary: brand.hunterGreen500,
+  accent: brand.oliveWood700,
+  accentMuted: brand.oliveWood900,
   border: brand.grey300,
   error: brand.error500,
 } as const;
@@ -87,6 +93,19 @@ export const Typography = {
   label: { fontFamily: Fonts.body.medium, fontSize: 12, lineHeight: 16, letterSpacing: 0.48 },
   buttonMedium: { fontFamily: Fonts.body.semiBold, fontSize: 14, lineHeight: 18, letterSpacing: 0.14 },
   buttonLarge: { fontFamily: Fonts.body.semiBold, fontSize: 16, lineHeight: 20, letterSpacing: 0.16 },
+} as const;
+
+// From the design study's "Shadow/Level 2" effect (two drop shadows layered;
+// RN only supports one per View, so this uses the subtler of the two layers —
+// the stronger one read as too heavy/distracting on screen.
+export const Shadow = {
+  level2: {
+    shadowColor: '#1F2E1B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;

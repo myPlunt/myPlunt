@@ -5,26 +5,41 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export class ApiError extends Error {
   status: number;
+  /** The backend's ProblemDetail "detail" — a message already written to be user-safe. */
+  detail?: string;
+  /** Per-field bean-validation messages, keyed by field name, when the backend sent any. */
+  fieldErrors?: Record<string, string>;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, options?: { detail?: string; fieldErrors?: Record<string, string> }) {
     super(message);
     this.status = status;
+    this.detail = options?.detail;
+    this.fieldErrors = options?.fieldErrors;
   }
 }
 
-// The backend only gives us a status code, so screens map it to copy themselves.
-export function describeError(error: unknown, statusMessages: Record<number, string>): string {
-  if (error instanceof ApiError && statusMessages[error.status]) {
-    return statusMessages[error.status];
+// Prefers the backend's own message; statusMessages is only a fallback for
+// statuses where the backend doesn't send a useful detail (e.g. 500).
+export function describeError(error: unknown, statusMessages: Record<number, string> = {}): string {
+  if (error instanceof ApiError) {
+    if (error.detail) return error.detail;
+    if (statusMessages[error.status]) return statusMessages[error.status];
   }
   return 'Something went wrong. Please try again.';
 }
 
+interface ProblemDetailBody {
+  detail?: string;
+  errors?: Record<string, string>;
+}
+
 async function parseJsonOrThrow<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    // The backend doesn't echo exception messages in the error body (no
-    // server.error.include-message), so the status code is all we get.
-    throw new ApiError(response.status, `Request failed with status ${response.status}`);
+    const body: ProblemDetailBody | undefined = await response.json().catch(() => undefined);
+    throw new ApiError(response.status, body?.detail ?? `Request failed with status ${response.status}`, {
+      detail: body?.detail,
+      fieldErrors: body?.errors,
+    });
   }
   if (response.status === 204) {
     return undefined as T;

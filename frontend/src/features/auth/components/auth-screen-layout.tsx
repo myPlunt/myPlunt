@@ -22,7 +22,8 @@ export function AuthScreenLayout({ children }: { children: ReactNode }) {
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            <ThemedView style={styles.brand}>
+            <ThemedView
+              style={[styles.brand, { borderColor: theme.accent, backgroundColor: theme.backgroundElement }]}>
               <Image style={styles.logo} source={require('@/assets/images/Logo.png')} contentFit="contain" />
               <ThemedText style={[Typography.h5, { color: theme.primary }]}>MyPlunt</ThemedText>
             </ThemedView>
@@ -41,15 +42,21 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: Spacing.six,
+    paddingTop: Spacing.five,
     paddingHorizontal: Spacing.four,
     paddingBottom: Spacing.four,
-    gap: Spacing.three,
+    // No blanket gap here on purpose — fields, the button and the link each
+    // need different spacing around them (tight within the field group, more
+    // room around the action), set individually where they're rendered.
   },
   brand: {
     alignItems: 'center',
-    gap: Spacing.two,
+    alignSelf: 'center',
+    gap: Spacing.one,
     marginBottom: Spacing.four,
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: Spacing.three,
   },
   logo: {
     width: 72,

@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
 
-import { Spacing, Typography } from '@/constants/theme';
+import { Shadow, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost';
@@ -21,9 +21,9 @@ const sizeStyles: Record<ButtonSize, { height: number; paddingHorizontal: number
 export function Button({ label, variant = 'primary', size = 'medium', loading, disabled, ...rest }: ButtonProps) {
   const theme = useTheme();
   const variantStyles: Record<ButtonVariant, { background: string; border?: string; text: string }> = {
-    primary: { background: theme.primary, text: '#FFFFFF' },
+    primary: { background: theme.actionPrimary, text: theme.backgroundElement },
     secondary: { background: theme.background, border: theme.border, text: theme.text },
-    destructive: { background: theme.error, text: '#FFFFFF' },
+    destructive: { background: theme.error, text: theme.backgroundElement },
     ghost: { background: 'transparent', text: theme.primary },
   };
   const colors = variantStyles[variant];
@@ -37,6 +37,7 @@ export function Button({ label, variant = 'primary', size = 'medium', loading, d
       disabled={isDisabled}
       style={[
         styles.base,
+        variant !== 'ghost' && Shadow.level2,
         {
           backgroundColor: colors.background,
           borderColor: colors.border,
