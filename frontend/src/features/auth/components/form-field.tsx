@@ -22,6 +22,7 @@ export function FormField({ label, style, ...rest }: TextInputProps & { label: s
         placeholderTextColor={theme.textSecondary}
         autoCapitalize="none"
         autoCorrect={false}
+        accessibilityLabel={label}
         {...rest}
       />
     </ThemedView>
