@@ -14,6 +14,13 @@ CREATE TABLE users (
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE refresh_tokens(
+    id                UUID PRIMARY KEY DEFAULT get_random_uuid(),
+    user_id           UUID NOT NULL CONSTRAINT fk_refresh_token_user_id REFERENCES users(id) ON DELETE CASCADE,
+    token             TEXT NOT NULL,
+    expiry_date       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE user_settings (
     user_id                      UUID PRIMARY KEY
                                      CONSTRAINT fk_user_settings_user_id REFERENCES users(id) ON DELETE CASCADE,
