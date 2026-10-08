@@ -15,7 +15,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE refresh_tokens(
-    id                UUID PRIMARY KEY DEFAULT get_random_uuid(),
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id           UUID NOT NULL CONSTRAINT fk_refresh_token_user_id REFERENCES users(id) ON DELETE CASCADE,
     token             TEXT NOT NULL,
     expiry_date       TIMESTAMPTZ NOT NULL DEFAULT now()
