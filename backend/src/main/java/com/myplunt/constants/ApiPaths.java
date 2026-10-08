@@ -9,4 +9,13 @@ public final class ApiPaths {
 
         private Ops() {}
     }
+
+    public static final class Auth {
+        public static final String BASE = "/v1/auth";
+        public static final String REGISTER = BASE + "/register";
+        public static final String LOGIN = BASE + "/login";
+        public static final String LOGOUT = BASE + "/logout";
+
+        private Auth() {}
+    }
 }
