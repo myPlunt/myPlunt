@@ -1,3 +1,6 @@
+import { DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold } from '@expo-google-fonts/dm-sans';
+import { Lateef_500Medium, Lateef_600SemiBold } from '@expo-google-fonts/lateef';
+import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
@@ -9,10 +12,17 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const { status } = useAuthStore();
+  const [fontsLoaded] = useFonts({
+    Lateef_600SemiBold,
+    Lateef_500Medium,
+    DMSans_600SemiBold,
+    DMSans_500Medium,
+    DMSans_400Regular,
+  });
 
   // Splash overlay stays up (it manages its own visibility) until we know
-  // whether there's a stored session.
-  if (status === 'loading') {
+  // whether there's a stored session and the brand fonts are ready.
+  if (status === 'loading' || !fontsLoaded) {
     return null;
   }
 

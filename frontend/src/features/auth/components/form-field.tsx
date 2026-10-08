@@ -2,7 +2,7 @@ import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export function FormField({ label, style, ...rest }: TextInputProps & { label: string }) {
@@ -10,13 +10,13 @@ export function FormField({ label, style, ...rest }: TextInputProps & { label: s
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="small" themeColor="textSecondary">
-        {label}
-      </ThemedText>
+      <ThemedText style={[Typography.label, { color: theme.textSecondary }]}>{label}</ThemedText>
+      {/* No Input component exists as of now */}
       <TextInput
         style={[
           styles.input,
-          { color: theme.text, backgroundColor: theme.backgroundElement },
+          Typography.bodyLarge,
+          { color: theme.text, backgroundColor: theme.background, borderColor: theme.border },
           style,
         ]}
         placeholderTextColor={theme.textSecondary}
@@ -34,9 +34,9 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
   input: {
-    borderRadius: Spacing.two,
+    borderRadius: 10,
+    borderWidth: 1,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    fontSize: 16,
+    height: 40,
   },
 });

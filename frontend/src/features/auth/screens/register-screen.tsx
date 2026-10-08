@@ -1,11 +1,11 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
+import { Spacing, Typography } from '@/constants/theme';
+import { AuthScreenLayout } from '@/features/auth/components/auth-screen-layout';
 import { FormField } from '@/features/auth/components/form-field';
 import { useAuthActions } from '@/features/auth/use-auth-actions';
 import { describeError } from '@/lib/auth/api-client';
@@ -36,71 +36,44 @@ export function RegisterScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedText type="title" style={styles.title}>
-          Create account
+    <AuthScreenLayout>
+      <ThemedText style={[Typography.h3, styles.title]}>Create account</ThemedText>
+
+      <FormField label="Username" value={username} onChangeText={setUsername} />
+      <FormField
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        textContentType="emailAddress"
+      />
+      <FormField
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        textContentType="newPassword"
+      />
+
+      {error && (
+        <ThemedText style={Typography.bodyMedium} themeColor="error">
+          {error}
         </ThemedText>
+      )}
 
-        <FormField label="Username" value={username} onChangeText={setUsername} />
-        <FormField
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          textContentType="emailAddress"
-        />
-        <FormField
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          textContentType="newPassword"
-        />
+      <Button label="Create account" size="large" loading={isSubmitting} onPress={handleSubmit} />
 
-        {error && <ThemedText themeColor="textSecondary">{error}</ThemedText>}
-
-        <Pressable
-          style={styles.button}
-          disabled={isSubmitting}
-          onPress={handleSubmit}
-          accessibilityRole="button">
-          {isSubmitting ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <ThemedText style={styles.buttonText}>Create account</ThemedText>
-          )}
-        </Pressable>
-
-        <Link href="/login">
-          <ThemedText type="link">Already have an account? Log in</ThemedText>
-        </Link>
-      </SafeAreaView>
-    </ThemedView>
+      <Link href="/login">
+        <ThemedText style={Typography.subtitleSmall} themeColor="primary">
+          Already have an account? Log in
+        </ThemedText>
+      </Link>
+    </AuthScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.three,
-  },
   title: {
     marginBottom: Spacing.three,
-  },
-  button: {
-    backgroundColor: '#208AEF',
-    borderRadius: Spacing.two,
-    paddingVertical: Spacing.three,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontWeight: '600',
   },
 });
