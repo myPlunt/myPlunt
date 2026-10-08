@@ -3,6 +3,7 @@ package com.myplunt.auth;
 import com.myplunt.auth.dto.AuthResponse;
 import com.myplunt.auth.dto.LoginRequest;
 import com.myplunt.auth.dto.LogoutRequest;
+import com.myplunt.auth.dto.RefreshRequest;
 import com.myplunt.auth.dto.RegisterRequest;
 import com.myplunt.constants.ApiPaths;
 import jakarta.validation.Valid;
@@ -36,5 +37,10 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@Valid @RequestBody LogoutRequest request) {
         authService.logout(request.refreshToken());
+    }
+
+    @PostMapping(ApiPaths.Auth.REFRESH)
+    public AuthResponse refresh(@Valid @RequestBody RefreshRequest request) {
+        return authService.refresh(request.refreshToken());
     }
 }
