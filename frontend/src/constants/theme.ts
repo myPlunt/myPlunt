@@ -1,55 +1,67 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
+// Brand palette
+const brand = {
+  hunterGreen900: '#263521',
+  hunterGreen700: '#304329',
+  hunterGreen500: '#3B5232',
+  hunterGreen300: '#93A08E',
+  hunterGreen100: '#E2E5E0',
+  fern900: '#354A2E',
+  fern700: '#435D39',
+  fern500: '#527246',
+  fern300: '#A0B199',
+  fern100: '#E5EAE3',
+  oliveWood900: '#5C4A34',
+  oliveWood700: '#745D42',
+  oliveWood500: '#8D7250',
+  oliveWood300: '#C0B19F',
+  oliveWood100: '#EEEAE5',
+  sandDune: '#E7DCC5',
+  softLinen: '#EAE4D7',
+  grey900: '#1F2420',
+  grey700: '#4A504B',
+  grey500: '#7B807C',
+  grey300: '#BFC3BF',
+  grey100: '#F2F2EF',
+  white: '#FFFFFF',
+  // Not in brand palette, but fits
+  error500: '#B3402F',
+} as const;
+
+const lightTheme = {
+  text: brand.grey900,
+  background: brand.white,
+  backgroundElement: brand.softLinen,
+  backgroundSelected: brand.fern100,
+  textSecondary: brand.grey700,
+  primary: brand.hunterGreen500,
+  border: brand.grey300,
+  error: brand.error500,
+} as const;
+
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
+  light: lightTheme,
+  dark: lightTheme,
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+export const Fonts = {
+  headline: {
+    semiBold: 'Lateef_600SemiBold',
+    medium: 'Lateef_500Medium',
   },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+  body: {
+    semiBold: 'DMSans_600SemiBold',
+    medium: 'DMSans_500Medium',
+    regular: 'DMSans_400Regular',
   },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+  // Not part of the brand type scale — used only for dev-tool hint text
+  mono: Platform.select({ ios: 'ui-monospace', android: 'monospace', web: 'var(--font-mono)' }) ?? 'monospace',
+} as const;
 
 export const Spacing = {
   half: 2,
@@ -59,6 +71,22 @@ export const Spacing = {
   four: 24,
   five: 32,
   six: 64,
+} as const;
+
+export const Typography = {
+  h1: { fontFamily: Fonts.headline.semiBold, fontSize: 56, lineHeight: 64 },
+  h2: { fontFamily: Fonts.headline.semiBold, fontSize: 48, lineHeight: 56 },
+  h3: { fontFamily: Fonts.headline.semiBold, fontSize: 40, lineHeight: 48 },
+  h4: { fontFamily: Fonts.headline.medium, fontSize: 32, lineHeight: 40 },
+  h5: { fontFamily: Fonts.headline.medium, fontSize: 26, lineHeight: 32 },
+  subtitleLarge: { fontFamily: Fonts.body.semiBold, fontSize: 18, lineHeight: 26 },
+  subtitleSmall: { fontFamily: Fonts.body.medium, fontSize: 16, lineHeight: 24 },
+  bodyLarge: { fontFamily: Fonts.body.regular, fontSize: 16, lineHeight: 24 },
+  bodyMedium: { fontFamily: Fonts.body.regular, fontSize: 14, lineHeight: 20 },
+  caption: { fontFamily: Fonts.body.regular, fontSize: 12, lineHeight: 16 },
+  label: { fontFamily: Fonts.body.medium, fontSize: 12, lineHeight: 16, letterSpacing: 0.48 },
+  buttonMedium: { fontFamily: Fonts.body.semiBold, fontSize: 14, lineHeight: 18, letterSpacing: 0.14 },
+  buttonLarge: { fontFamily: Fonts.body.semiBold, fontSize: 16, lineHeight: 20, letterSpacing: 0.16 },
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
