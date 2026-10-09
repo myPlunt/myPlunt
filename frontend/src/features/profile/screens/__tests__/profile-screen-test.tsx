@@ -72,6 +72,14 @@ describe('ProfileScreen', () => {
     expect(push).toHaveBeenCalledWith('/edit-profile');
   });
 
+  it('opens the garden from the button under the profile', async () => {
+    await render(<ProfileScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'My garden' }));
+
+    expect(push).toHaveBeenCalledWith('/garden');
+  });
+
   it('opens settings from the header', async () => {
     await render(<ProfileScreen />);
 
