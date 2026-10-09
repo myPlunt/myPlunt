@@ -1,10 +1,8 @@
 import { Link } from 'expo-router';
 import { useRef, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 
-import { ThemedText } from '@/components/ui/themed-text';
 import { Button } from '@/components/ui/button';
-import { Fonts, Spacing, Typography } from '@/constants/theme';
 import { AuthScreenLayout } from '@/features/auth/components/auth-screen-layout';
 import { FormField } from '@/features/auth/components/form-field';
 import { useAuthActions } from '@/features/auth/use-auth-actions';
@@ -38,7 +36,7 @@ export function LoginScreen() {
 
   return (
     <AuthScreenLayout>
-      <ThemedText style={[Typography.h3, styles.title]}>Welcome back!</ThemedText>
+      <Text className="type-h3 mb-6 text-text">Welcome back!</Text>
 
       <FormField
         label="Email"
@@ -64,39 +62,20 @@ export function LoginScreen() {
         onSubmitEditing={handleSubmit}
       />
 
-      {error && (
-        <ThemedText style={Typography.bodyMedium} themeColor="error">
-          {error}
-        </ThemedText>
-      )}
+      {error && <Text className="type-body-medium text-error">{error}</Text>}
 
-      <View style={styles.action}>
+      <View className="mt-6">
         <Button label="Log in" size="large" loading={isSubmitting} onPress={handleSubmit} />
       </View>
 
-      <Link href="/register" style={styles.link}>
-        <ThemedText style={Typography.subtitleSmall} themeColor="textSecondary">
-          Need an account?{' '}
-          <ThemedText
-            style={[Typography.subtitleSmall, { fontFamily: Fonts.body.semiBold }]}
-            themeColor="primary">
-            Register
-          </ThemedText>
-        </ThemedText>
-      </Link>
+      <View className="mt-4 items-center">
+        <Link href="/register">
+          <Text className="type-subtitle-small text-text-secondary">
+            Need an account?{' '}
+            <Text className="font-body-semibold text-primary">Register</Text>
+          </Text>
+        </Link>
+      </View>
     </AuthScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  title: {
-    marginBottom: Spacing.four,
-  },
-  action: {
-    marginTop: Spacing.four,
-  },
-  link: {
-    alignSelf: 'center',
-    marginTop: Spacing.three,
-  },
-});

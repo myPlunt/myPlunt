@@ -1,13 +1,15 @@
 import { Image } from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { Colors } from '@/constants/theme';
-
 const DURATION = 600;
+
+// Background must match the expo-splash-screen backgroundColor in app.config.js
+// (sandDune = bg-background), so the hand-off from the native splash is seamless.
+const OVERLAY_CLASSES = 'absolute inset-0 z-[1000] items-center justify-center bg-background';
 
 export function SplashOverlay() {
   const [animate, setAnimate] = useState(false);
@@ -34,7 +36,8 @@ export function SplashOverlay() {
     },
   });
 
-  const image = <Image style={styles.image} source={require('@/assets/images/Logo.png')} />;
+  // Same size as the native splash image in app.config.js (imageWidth 76).
+  const image = <Image className="h-[84px] w-[76px]" source={require('@/assets/images/Logo.png')} />;
 
   return animate ? (
     <Animated.View
@@ -44,7 +47,7 @@ export function SplashOverlay() {
           scheduleOnRN(setVisible, false);
         }
       })}
-      style={styles.splashOverlay}>
+      className={OVERLAY_CLASSES}>
       {image}
     </Animated.View>
   ) : (
@@ -55,24 +58,8 @@ export function SplashOverlay() {
           setAnimate(true);
         });
       }}
-      style={styles.splashOverlay}>
+      className={OVERLAY_CLASSES}>
       {image}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  // Same width as the native splash image in app.config.js, so the hand-off is seamless.
-  image: {
-    width: 76,
-    height: 84,
-  },
-  splashOverlay: {
-    ...StyleSheet.absoluteFill,
-    // Must match the expo-splash-screen backgroundColor in app.config.js.
-    backgroundColor: Colors.light.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-});

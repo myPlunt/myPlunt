@@ -1,5 +1,5 @@
 import { SymbolView } from 'expo-symbols';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 
@@ -15,16 +15,9 @@ export function UserAvatar({ size = 40 }: UserAvatarProps) {
   return (
     <View
       testID="user-avatar"
-      style={[
-        styles.bubble,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: theme.backgroundSelected,
-          borderColor: theme.primary,
-        },
-      ]}>
+      className="items-center justify-center overflow-hidden border-[1.5px] border-primary bg-background-selected"
+      // Size is a prop, so it can't be a static class.
+      style={{ width: size, height: size, borderRadius: size / 2 }}>
       <SymbolView
         name={{ ios: 'person.fill', android: 'person', web: 'person' }}
         tintColor={theme.actionPrimary}
@@ -33,12 +26,3 @@ export function UserAvatar({ size = 40 }: UserAvatarProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  bubble: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    overflow: 'hidden',
-  },
-});

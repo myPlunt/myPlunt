@@ -1,3 +1,6 @@
+import '@/global.css';
+import '@/lib/styling/css-interop';
+
 import { DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold } from '@expo-google-fonts/dm-sans';
 import { Lateef_500Medium, Lateef_600SemiBold } from '@expo-google-fonts/lateef';
 import { useFonts } from 'expo-font';

@@ -1,59 +1,29 @@
 import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/ui/themed-text';
-import { ThemedView } from '@/components/ui/themed-view';
-import { Spacing, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
-
 export function AuthScreenLayout({ children }: { children: ReactNode }) {
-  const theme = useTheme();
-
   return (
-    <ThemedView style={styles.container}>
+    <View className="flex-1 bg-background">
       <KeyboardAvoidingView
-        style={styles.container}
+        className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.select({ ios: 0, android: 24 })}>
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView className="flex-1">
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerClassName="grow px-6 pb-6 pt-8"
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            <ThemedView style={[styles.brand]}>
-              <Image style={styles.logo} source={require('@/assets/images/Logo.png')} contentFit="contain" />
-              <ThemedText style={[Typography.h5, { color: theme.primary }]}>myPlunt</ThemedText>
-            </ThemedView>
+            <View className="mb-6 items-center gap-1 self-center p-4">
+              <Image className="h-20 w-[72px]" source={require('@/assets/images/Logo.png')} contentFit="contain" />
+              <Text className="type-h5 text-primary">myPlunt</Text>
+            </View>
 
             {children}
           </ScrollView>
         </SafeAreaView>
       </KeyboardAvoidingView>
-    </ThemedView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingTop: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.four,
-  },
-  brand: {
-    alignItems: 'center',
-    alignSelf: 'center',
-    gap: Spacing.one,
-    marginBottom: Spacing.four,
-    padding: Spacing.three,
-  },
-  logo: {
-    width: 72,
-    height: 80,
-  },
-});

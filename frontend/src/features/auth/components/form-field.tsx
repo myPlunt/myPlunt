@@ -1,9 +1,7 @@
 import { forwardRef } from 'react';
-import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
+import { Text, TextInput, View, type TextInputProps } from 'react-native';
 
-import { ThemedText } from '@/components/ui/themed-text';
-import { ThemedView } from '@/components/ui/themed-view';
-import { brand, Shadow, Spacing, Typography } from '@/constants/theme';
+import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface FormFieldProps extends TextInputProps {
@@ -16,59 +14,37 @@ interface FormFieldProps extends TextInputProps {
 }
 
 export const FormField = forwardRef<TextInput, FormFieldProps>(function FormField(
-  { label, error, helperText, helperSuccess, style, ...rest },
+  { label, error, helperText, helperSuccess, className, ...rest },
   ref,
 ) {
   const theme = useTheme();
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText style={[Typography.label, { color: theme.textSecondary }]}>{label}</ThemedText>
+    <View className="mb-2 gap-1">
+      <Text className="type-label text-text-secondary">{label}</Text>
       {/* No Input component exists as of now */}
       <TextInput
         ref={ref}
-        style={[
-          styles.input,
-          Shadow.level2,
-          Typography.bodyLarge,
-          {
-            color: theme.text,
-            backgroundColor: theme.backgroundElement,
-            borderColor: error ? theme.error : brand.oliveWood300,
-          },
-          style,
-        ]}
-        placeholderTextColor={brand.grey500}
+        className={`type-body-large h-10 rounded-[10px] border-[1.5px] bg-background-element px-4 text-text ${
+          error ? 'border-error' : 'border-input-border'
+        } ${className ?? ''}`}
+        style={Shadow.level2}
+        // A colour prop, not a style, so it can't take a class.
+        placeholderTextColor={theme.placeholder}
         autoCapitalize="none"
         autoCorrect={false}
         accessibilityLabel={label}
         {...rest}
       />
       {error ? (
-        <ThemedText style={Typography.caption} themeColor="error">
-          {error}
-        </ThemedText>
+        <Text className="type-caption text-error">{error}</Text>
       ) : (
         helperText && (
-          <ThemedText
-            style={[Typography.caption, { color: helperSuccess ? brand.fern500 : theme.textSecondary }]}>
+          <Text className={`type-caption ${helperSuccess ? 'text-primary' : 'text-text-secondary'}`}>
             {helperText}
-          </ThemedText>
+          </Text>
         )
       )}
-    </ThemedView>
+    </View>
   );
-});
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.one,
-    marginBottom: Spacing.two,
-  },
-  input: {
-    borderRadius: 10,
-    borderWidth: 1.5,
-    paddingHorizontal: Spacing.three,
-    height: 40,
-  },
 });

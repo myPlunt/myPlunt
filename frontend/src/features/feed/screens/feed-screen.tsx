@@ -1,65 +1,37 @@
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
-import { ThemedText } from '@/components/ui/themed-text';
-import { ThemedView } from '@/components/ui/themed-view';
 import { UserAvatar } from '@/components/user/user-avatar';
-import { MaxContentWidth, Spacing, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 
 export function FeedScreen() {
-  const theme = useTheme();
   const router = useRouter();
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <View className="flex-1 bg-background">
+      <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         <AppHeader
           right={
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Open profile"
               onPress={() => router.push('/profile')}
-              style={({ pressed }) => pressed && styles.pressed}>
+              className="active:opacity-70">
               <UserAvatar />
             </Pressable>
           }
         />
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <ThemedView type="backgroundElement" style={styles.emptyState}>
-            <ThemedText style={[Typography.subtitleLarge, { color: theme.text }]}>Your feed is empty</ThemedText>
-            <ThemedText style={[Typography.bodyMedium, { color: theme.textSecondary }]}>
+        <ScrollView contentContainerClassName="w-full max-w-content grow self-center px-6 py-4">
+          <View className="items-center gap-2 rounded-2xl bg-background-element p-6">
+            <Text className="type-subtitle-large text-text">Your feed is empty</Text>
+            <Text className="type-body-medium text-text-secondary">
               Posts from your plants and the people you follow will show up here.
-            </ThemedText>
-          </ThemedView>
+            </Text>
+          </View>
         </ScrollView>
       </SafeAreaView>
-    </ThemedView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
-    width: '100%',
-    maxWidth: MaxContentWidth,
-    alignSelf: 'center',
-  },
-  emptyState: {
-    gap: Spacing.two,
-    padding: Spacing.four,
-    borderRadius: Spacing.three,
-    alignItems: 'center',
-  },
-});

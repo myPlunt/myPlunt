@@ -1,6 +1,6 @@
 const isStaging = process.env.APP_VARIANT === "staging";
 
-// app.config.js can't import src/constants/theme.ts, so these are copies of
+// app.config.js can't import src/constants/tokens.ts, so these are copies of
 // brand values from there. Keep them in sync if the palette changes.
 const SAND_DUNE = "#E7DCC5"; // brand.sandDune, Colors.light.background
 
