@@ -41,7 +41,7 @@ class UserControllerTest {
         ReflectionTestUtils.setField(user, "id", id);
         when(jwtService.parseAndValidate("access-token")).thenReturn(id);
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
-        when(userService.getUser(id)).thenReturn(new UserResponse(id, "jane", "jane@example.com"));
+        when(userService.toResponse(user)).thenReturn(new UserResponse(id, "jane", "jane@example.com"));
 
         restTestClient.get().uri("/v1/users/me")
                 .header("Authorization", "Bearer access-token")

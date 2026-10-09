@@ -18,6 +18,6 @@ public class UserController {
     // JwtAuthFilter sets the authenticated User entity as the principal.
     @GetMapping(ApiPaths.Users.ME)
     public UserResponse me(@AuthenticationPrincipal User principal) {
-        return userService.getUser(principal.getId());
+        return userService.toResponse(principal);
     }
 }
