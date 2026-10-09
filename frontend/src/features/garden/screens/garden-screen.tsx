@@ -40,7 +40,7 @@ export function GardenScreen() {
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         {/* A tab, so no back button; plants are added with the tab bar's + button. */}
-        <AppHeader title="Garden" />
+        <AppHeader />
 
         <ScrollView contentContainerClassName="w-full max-w-content grow gap-8 self-center px-6 pb-8 pt-2">
           {isLoading ? (

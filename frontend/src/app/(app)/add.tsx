@@ -1,5 +1,5 @@
-import { AddScreen } from '@/features/plants/screens/add-screen';
+import { AddPlantScreen } from '@/features/plants/screens/add-plant-screen';
 
 export default function Add() {
-  return <AddScreen />;
+  return <AddPlantScreen />;
 }

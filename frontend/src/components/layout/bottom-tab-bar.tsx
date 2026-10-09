@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { Pressable, Text, View } from 'react-native';
@@ -39,6 +39,9 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
   const theme = useTheme();
   const router = useRouter();
   const activeRoute = state.routes[state.index]?.name;
+  // The Add screen opens above the tabs (a sheet on iOS), so the bar can still be
+  // seen behind it; the button turns Hunter Green like an active tab meanwhile.
+  const addOpen = usePathname() === '/add';
 
   function renderTab({ route, label, icon }: TabConfig) {
     const target = state.routes.find((r) => r.name === route);
@@ -97,9 +100,12 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
         <View className="flex-1 items-center">
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Add plant or planter"
+            accessibilityLabel="Add plant"
+            accessibilityState={{ selected: addOpen }}
             onPress={() => router.push('/add')}
-            className="-mt-6 h-14 w-14 items-center justify-center rounded-full bg-primary active:opacity-80"
+            className={`-mt-6 h-14 w-14 items-center justify-center rounded-full active:opacity-80 ${
+              addOpen ? 'bg-action-primary' : 'bg-primary'
+            }`}
             style={Shadow.card}>
             <SymbolView
               name={{ ios: 'plus', android: 'add', web: 'add' }}

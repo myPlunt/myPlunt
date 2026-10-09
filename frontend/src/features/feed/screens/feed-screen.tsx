@@ -8,7 +8,7 @@ export function FeedScreen() {
     <View className="flex-1 bg-background">
       {/* No bottom edge: the tab bar below already pads for the home indicator. */}
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
-        <AppHeader title="Feed" />
+        <AppHeader />
 
         <ScrollView contentContainerClassName="w-full max-w-content grow self-center px-6 py-4">
           <View className="items-center gap-2 rounded-2xl bg-background-element p-6">

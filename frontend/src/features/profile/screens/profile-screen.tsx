@@ -19,7 +19,6 @@ export function ProfileScreen() {
       {/* No bottom edge: the tab bar below already pads for the home indicator. */}
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         <AppHeader
-          title="Profile"
           right={
             <Pressable
               accessibilityRole="button"
