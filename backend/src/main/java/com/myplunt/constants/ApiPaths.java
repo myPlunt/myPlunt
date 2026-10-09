@@ -10,6 +10,14 @@ public final class ApiPaths {
         private Ops() {}
     }
 
+    public static final class Photos {
+        public static final String BASE = "/v1/photos";
+        public static final String UPLOAD_URL = BASE + "/upload-url";
+        public static final String CONFIRM = BASE + "/confirm";
+
+        private Photos() {}
+    }
+
     public static final class Auth {
         public static final String BASE = "/v1/auth";
         public static final String REGISTER = BASE + "/register";
