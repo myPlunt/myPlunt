@@ -1,0 +1,174 @@
+import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { useRouter } from 'expo-router';
+
+import { useGarden } from '@/features/garden/use-garden';
+import { useGardenActions } from '@/features/garden/use-garden-actions';
+import { ApiError } from '@/lib/auth/api-client';
+import type { Garden, GardenPlant } from '@/lib/garden/types';
+
+import { GardenScreen } from '../garden-screen';
+
+jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
+jest.mock('@/features/garden/use-garden');
+jest.mock('@/features/garden/use-garden-actions');
+
+const mockedUseRouter = jest.mocked(useRouter);
+const mockedUseGarden = jest.mocked(useGarden);
+const mockedUseGardenActions = jest.mocked(useGardenActions);
+const back = jest.fn();
+const retry = jest.fn();
+const refresh = jest.fn();
+const waterPlants = jest.fn();
+const user = userEvent.setup();
+
+// Due dates relative to the real "now", in local time, as the screen reads the clock itself.
+function inDays(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  date.setHours(12, 0, 0, 0);
+  return date.toISOString();
+}
+
+function plant(id: string, name: string, dueInDays: number, speciesName: string | null = null): GardenPlant {
+  return { id, name, speciesName, wateringFrequencyDays: 4, lastWateredAt: null, nextWateringAt: inDays(dueInDays) };
+}
+
+const garden: Garden = {
+  rooms: [
+    { id: 'balcony', name: 'Balcony', plants: [plant('george', 'George', 2, 'Geranium'), plant('pinky', 'Pinky', 0)] },
+    { id: 'living', name: 'Living room', plants: [] },
+    { id: 'kitchen', name: 'Kitchen windowsill', plants: [plant('basil', 'Basil', -1), plant('minty', 'Minty', 1)] },
+  ],
+};
+
+function mockGarden(state: Partial<ReturnType<typeof useGarden>>) {
+  mockedUseGarden.mockReturnValue({ garden, error: null, isLoading: false, retry, refresh, ...state });
+}
+
+beforeEach(() => {
+  mockedUseRouter.mockReturnValue({ back, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
+  mockGarden({});
+  mockedUseGardenActions.mockReturnValue({ waterPlants });
+  waterPlants.mockResolvedValue(undefined);
+  refresh.mockResolvedValue(undefined);
+});
+
+afterEach(() => {
+  jest.resetAllMocks();
+});
+
+describe('GardenScreen', () => {
+  it('shows "Garden" as the page title', async () => {
+    await render(<GardenScreen />);
+
+    expect(screen.getByRole('header', { name: 'Garden' })).toBeOnTheScreen();
+  });
+
+  it('shows an Add plant button in the header', async () => {
+    await render(<GardenScreen />);
+
+    expect(screen.getByRole('button', { name: 'Add plant' })).toBeOnTheScreen();
+  });
+
+  it('summarises how many plants and rooms the garden has', async () => {
+    await render(<GardenScreen />);
+
+    expect(screen.getByText('4 plants in 3 rooms')).toBeOnTheScreen();
+  });
+
+  it('shows every room with how many plants need water', async () => {
+    await render(<GardenScreen />);
+
+    expect(screen.getByRole('header', { name: 'Balcony' })).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Living room' })).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Kitchen windowsill' })).toBeOnTheScreen();
+    expect(screen.getAllByText('2 plants · 1 needs water')).toHaveLength(2);
+    expect(screen.getByText('0 plants')).toBeOnTheScreen();
+    expect(screen.getByText('No plants in this room yet.')).toBeOnTheScreen();
+  });
+
+  it('shows each plant with its species and when it needs water', async () => {
+    await render(<GardenScreen />);
+
+    expect(screen.getByText('George')).toBeOnTheScreen();
+    expect(screen.getByText('Geranium')).toBeOnTheScreen();
+    expect(screen.getByText('In 2 days')).toBeOnTheScreen();
+    expect(screen.getByText('Today')).toBeOnTheScreen();
+    expect(screen.getByText('Overdue')).toBeOnTheScreen();
+    expect(screen.getByText('Tomorrow')).toBeOnTheScreen();
+  });
+
+  it('orders the plants in a room from least to most water', async () => {
+    await render(<GardenScreen />);
+
+    const kitchen = screen.getAllByText(/^(Basil|Minty)$/).map((node) => node.props.children);
+    expect(kitchen).toEqual(['Basil', 'Minty']);
+    const balcony = screen.getAllByText(/^(George|Pinky)$/).map((node) => node.props.children);
+    expect(balcony).toEqual(['Pinky', 'George']);
+  });
+
+  it('lists the plants due today or overdue in the water card', async () => {
+    await render(<GardenScreen />);
+
+    expect(screen.getByText('2 need water today')).toBeOnTheScreen();
+    expect(screen.getByText('Pinky and Basil')).toBeOnTheScreen();
+  });
+
+  it('hides the water card when nothing needs water', async () => {
+    mockGarden({ garden: { rooms: [{ id: 'balcony', name: 'Balcony', plants: [plant('george', 'George', 2, 'Geranium')] }] } });
+    await render(<GardenScreen />);
+
+    expect(screen.queryByText(/need(s)? water today/)).toBeNull();
+  });
+
+  it('waters the due plants and then refreshes the garden', async () => {
+    await render(<GardenScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Water Pinky and Basil' }));
+
+    expect(waterPlants).toHaveBeenCalledWith(['pinky', 'basil']);
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+  });
+
+  it('shows the backend message when watering fails', async () => {
+    waterPlants.mockRejectedValue(new ApiError(404, 'irrelevant', { detail: 'Plant not found' }));
+    await render(<GardenScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Water Pinky and Basil' }));
+
+    expect(await screen.findByText('Plant not found')).toBeOnTheScreen();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it('shows an empty state when the garden has no rooms or plants', async () => {
+    mockGarden({ garden: { rooms: [] } });
+    await render(<GardenScreen />);
+
+    expect(screen.getByText('Your garden is empty')).toBeOnTheScreen();
+  });
+
+  it('shows a loading indicator while the garden loads', async () => {
+    mockGarden({ garden: null, isLoading: true });
+    await render(<GardenScreen />);
+
+    expect(screen.getByLabelText('Loading garden')).toBeOnTheScreen();
+    expect(screen.queryByText('George')).toBeNull();
+  });
+
+  it('shows the error and retries when asked', async () => {
+    mockGarden({ garden: null, error: 'Something went wrong. Please try again.' });
+    await render(<GardenScreen />);
+
+    expect(screen.getByText('Something went wrong. Please try again.')).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Try again' }));
+    expect(retry).toHaveBeenCalled();
+  });
+
+  it('goes back one screen when the logo is pressed', async () => {
+    await render(<GardenScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Go back' }));
+
+    expect(back).toHaveBeenCalled();
+  });
+});

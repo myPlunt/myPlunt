@@ -1,0 +1,51 @@
+import { SymbolView } from 'expo-symbols';
+import { Text, View } from 'react-native';
+
+import { Button } from '@/components/ui/button';
+import { Shadow } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+import type { GardenPlant } from '@/lib/garden/types';
+
+import { listPlantNames } from '../watering';
+
+interface WaterDueCardProps {
+  /** The plants due today or overdue; the card isn't shown when there are none. */
+  plants: GardenPlant[];
+  onWater: () => void;
+  loading: boolean;
+  error: string | null;
+}
+
+export function WaterDueCard({ plants, onWater, loading, error }: WaterDueCardProps) {
+  const theme = useTheme();
+  const title = `${plants.length} ${plants.length === 1 ? 'needs' : 'need'} water today`;
+
+  return (
+    // Shadow goes through style so it sets both iOS shadow* and Android elevation.
+    <View className="gap-2 rounded-2xl bg-background-element p-4" style={Shadow.card}>
+      <View className="flex-row items-center gap-3">
+        <View className="h-12 w-12 items-center justify-center rounded-full bg-background">
+          {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
+          <SymbolView
+            name={{ ios: 'drop', android: 'water_drop', web: 'water_drop' }}
+            tintColor={theme.accent}
+            size={22}
+          />
+        </View>
+        <View className="flex-1">
+          <Text className="type-subtitle-small text-text">{title}</Text>
+          <Text className="type-caption text-text-secondary" numberOfLines={1}>
+            {listPlantNames(plants)}
+          </Text>
+        </View>
+        <Button
+          label="Water"
+          accessibilityLabel={`Water ${listPlantNames(plants)}`}
+          loading={loading}
+          onPress={onWater}
+        />
+      </View>
+      {error && <Text className="type-caption text-error">{error}</Text>}
+    </View>
+  );
+}
