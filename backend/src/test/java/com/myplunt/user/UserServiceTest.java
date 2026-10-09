@@ -1,23 +1,159 @@
 package com.myplunt.user;
 
+import com.myplunt.user.dto.ChangeEmailRequest;
+import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    private final UUID id = UUID.randomUUID();
+    private User jane;
+
+    @BeforeEach
+    void setUp() {
+        jane = new User("jane", "jane@example.com", "hashed");
+        ReflectionTestUtils.setField(jane, "id", id);
+    }
+
+    private UserService userService() {
+        return new UserService(userRepository, passwordEncoder);
+    }
+
     @Test
-    void toResponse_mapsIdUsernameAndEmailOnly() {
-        UUID id = UUID.randomUUID();
-        User user = new User("jane", "jane@example.com", "hashed");
-        ReflectionTestUtils.setField(user, "id", id);
+    void toResponse_mapsIdUsernameEmailAndBioOnly() {
+        jane.setBio("Fern collector");
 
-        UserResponse response = new UserService().toResponse(user);
+        UserResponse response = userService().toResponse(jane);
 
-        assertThat(response).isEqualTo(new UserResponse(id, "jane", "jane@example.com"));
+        assertThat(response).isEqualTo(new UserResponse(id, "jane", "jane@example.com", "Fern collector"));
+    }
+
+    @Test
+    void updateProfile_updatesUsernameAndTrimmedBio() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(userRepository.findByUsername("janey")).thenReturn(Optional.empty());
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService().updateProfile(id, new UpdateProfileRequest("janey", "  Fern collector  "));
+
+        assertThat(response).isEqualTo(new UserResponse(id, "janey", "jane@example.com", "Fern collector"));
+    }
+
+    @Test
+    void updateProfile_storesBlankBioAsNull() {
+        jane.setBio("old bio");
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService().updateProfile(id, new UpdateProfileRequest("jane", "   "));
+
+        assertThat(response.bio()).isNull();
+    }
+
+    @Test
+    void updateProfile_allowsChangingOnlyTheCaseOfTheOwnUsername() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService().updateProfile(id, new UpdateProfileRequest("Jane", null));
+
+        assertThat(response.username()).isEqualTo("Jane");
+        verify(userRepository, never()).findByUsername(any());
+    }
+
+    @Test
+    void updateProfile_rejectsUsernameTakenByAnotherUser() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(userRepository.findByUsername("taken"))
+                .thenReturn(Optional.of(new User("taken", "other@example.com", "x")));
+
+        assertThatThrownBy(() -> userService().updateProfile(id, new UpdateProfileRequest("taken", null)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Username already taken");
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void updateProfile_throwsWhenUserNoLongerExists() {
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService().updateProfile(id, new UpdateProfileRequest("jane", null)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("User not found");
+    }
+
+    @Test
+    void changeEmail_changesEmailWhenCurrentPasswordMatches() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(passwordEncoder.matches("password123", "hashed")).thenReturn(true);
+        when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService().changeEmail(id, new ChangeEmailRequest("new@example.com", "password123"));
+
+        assertThat(response.email()).isEqualTo("new@example.com");
+    }
+
+    @Test
+    void changeEmail_rejectsWrongPassword() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(passwordEncoder.matches("wrong", "hashed")).thenReturn(false);
+
+        assertThatThrownBy(() -> userService().changeEmail(id, new ChangeEmailRequest("new@example.com", "wrong")))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN))
+                .hasMessageContaining("Current password is incorrect");
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void changeEmail_rejectsEmailTakenByAnotherUser() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(passwordEncoder.matches("password123", "hashed")).thenReturn(true);
+        when(userRepository.findByEmail("taken@example.com"))
+                .thenReturn(Optional.of(new User("other", "taken@example.com", "x")));
+
+        assertThatThrownBy(() -> userService().changeEmail(id, new ChangeEmailRequest("taken@example.com", "password123")))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Email already registered");
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void changeEmail_allowsChangingOnlyTheCaseOfTheOwnEmail() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(passwordEncoder.matches("password123", "hashed")).thenReturn(true);
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService().changeEmail(id, new ChangeEmailRequest("Jane@Example.com", "password123"));
+
+        assertThat(response.email()).isEqualTo("Jane@Example.com");
+        verify(userRepository, never()).findByEmail(any());
     }
 }

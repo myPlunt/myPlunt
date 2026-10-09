@@ -25,6 +25,8 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    private String bio;
+
     protected User() {}
 
     public User(String username, String email, String passwordHash) {
@@ -59,5 +61,13 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
     }
 }
