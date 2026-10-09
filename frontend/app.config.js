@@ -1,8 +1,12 @@
 const isStaging = process.env.APP_VARIANT === "staging";
 
+// app.config.js can't import src/constants/tokens.ts, so these are copies of
+// brand values from there. Keep them in sync if the palette changes.
+const SAND_DUNE = "#E7DCC5"; // brand.sandDune, Colors.light.background
+
 export default {
   expo: {
-    name: isStaging ? "MyPlunt (Staging)" : "MyPlunt",
+    name: isStaging ? "myPlunt (Staging)" : "myPlunt",
     slug: "myplunt",
     owner: "my-plunt",
     version: "1.0.0",
@@ -11,7 +15,6 @@ export default {
     scheme: "frontend",
     userInterfaceStyle: "automatic",
     ios: {
-      icon: "./assets/expo.icon",
       bundleIdentifier: isStaging ? "com.myplunt.app.staging" : "com.myplunt.app",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -19,9 +22,8 @@ export default {
     },
     android: {
       adaptiveIcon: {
-        backgroundColor: "#E6F4FE",
+        backgroundColor: SAND_DUNE,
         foregroundImage: "./assets/images/android-icon-foreground.png",
-        backgroundImage: "./assets/images/android-icon-background.png",
         monochromeImage: "./assets/images/android-icon-monochrome.png",
       },
       predictiveBackGestureEnabled: false,
@@ -36,8 +38,8 @@ export default {
       [
         "expo-splash-screen",
         {
-          backgroundColor: "#208AEF",
-          image: "./assets/images/splash-icon.png",
+          backgroundColor: SAND_DUNE,
+          image: "./assets/images/Logo.png",
           imageWidth: 76,
         },
       ],

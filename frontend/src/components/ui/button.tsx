@@ -1,9 +1,9 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
+import { ActivityIndicator, Pressable, Text, type PressableProps } from 'react-native';
 
-import { Shadow, Spacing, Typography } from '@/constants/theme';
+import { Shadow, type ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'subtle' | 'destructive' | 'ghost';
 type ButtonSize = 'medium' | 'large';
 
 interface ButtonProps extends Omit<PressableProps, 'style'> {
@@ -13,54 +13,41 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   loading?: boolean;
 }
 
-const sizeStyles: Record<ButtonSize, { height: number; paddingHorizontal: number; radius: number }> = {
-  medium: { height: 40, paddingHorizontal: Spacing.three + Spacing.one, radius: 10 },
-  large: { height: 48, paddingHorizontal: Spacing.four, radius: 12 },
+// `spinner` is a theme key because ActivityIndicator takes a colour prop, not a class.
+const variantClasses: Record<ButtonVariant, { container: string; text: string; spinner: ThemeColor }> = {
+  primary: { container: 'bg-action-primary', text: 'text-background-element', spinner: 'backgroundElement' },
+  secondary: { container: 'bg-background border border-border', text: 'text-text', spinner: 'text' },
+  // Soft Linen fill without an outline, for low-emphasis actions such as Edit profile.
+  subtle: { container: 'bg-background-element', text: 'text-text', spinner: 'text' },
+  destructive: { container: 'bg-error', text: 'text-background-element', spinner: 'backgroundElement' },
+  ghost: { container: 'bg-transparent', text: 'text-primary', spinner: 'primary' },
+};
+
+const sizeClasses: Record<ButtonSize, { container: string; text: string }> = {
+  medium: { container: 'h-10 px-5 rounded-[10px]', text: 'type-button-medium' },
+  large: { container: 'h-12 px-6 rounded-xl', text: 'type-button-large' },
 };
 
 export function Button({ label, variant = 'primary', size = 'medium', loading, disabled, ...rest }: ButtonProps) {
   const theme = useTheme();
-  const variantStyles: Record<ButtonVariant, { background: string; border?: string; text: string }> = {
-    primary: { background: theme.actionPrimary, text: theme.backgroundElement },
-    secondary: { background: theme.background, border: theme.border, text: theme.text },
-    destructive: { background: theme.error, text: theme.backgroundElement },
-    ghost: { background: 'transparent', text: theme.primary },
-  };
-  const colors = variantStyles[variant];
-  const dimensions = sizeStyles[size];
-  const typography = size === 'large' ? Typography.buttonLarge : Typography.buttonMedium;
+  const colors = variantClasses[variant];
+  const dimensions = sizeClasses[size];
   const isDisabled = disabled || loading;
 
   return (
     <Pressable
       accessibilityRole="button"
       disabled={isDisabled}
-      style={[
-        styles.base,
-        variant !== 'ghost' && Shadow.level2,
-        {
-          backgroundColor: colors.background,
-          borderColor: colors.border,
-          borderWidth: colors.border ? 1 : 0,
-          height: dimensions.height,
-          paddingHorizontal: dimensions.paddingHorizontal,
-          borderRadius: dimensions.radius,
-          opacity: isDisabled ? 0.5 : 1,
-        },
-      ]}
+      className={`items-center justify-center active:opacity-80 ${colors.container} ${dimensions.container} ${
+        isDisabled ? 'opacity-50' : ''
+      }`}
+      style={variant !== 'ghost' ? Shadow.level2 : undefined}
       {...rest}>
       {loading ? (
-        <ActivityIndicator color={colors.text} />
+        <ActivityIndicator color={theme[colors.spinner]} />
       ) : (
-        <Text style={[typography, { color: colors.text }]}>{label}</Text>
+        <Text className={`${dimensions.text} ${colors.text}`}>{label}</Text>
       )}
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
