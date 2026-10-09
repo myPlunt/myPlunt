@@ -1,5 +1,7 @@
 package com.myplunt.plant;
 
+import com.myplunt.plant.dto.CreatePlantRequest;
+import com.myplunt.plant.dto.PlantResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,18 @@ public class PlantService {
     public PlantService(PlantRepository plantRepository, WateringLogRepository wateringLogRepository) {
         this.plantRepository = plantRepository;
         this.wateringLogRepository = wateringLogRepository;
+    }
+
+    @Transactional
+    public PlantResponse create(UUID ownerId, CreatePlantRequest request) {
+        Plant plant = new Plant(ownerId, request.name());
+        plant.setLight(request.light());
+        plant.setWateringEveryDays(request.wateringEveryDays());
+        plant.setNotes(request.notes() == null || request.notes().isBlank() ? null : request.notes().strip());
+
+        Plant saved = plantRepository.save(plant);
+        return new PlantResponse(
+                saved.getId(), saved.getName(), saved.getLight(), saved.getWateringEveryDays(), saved.getNotes());
     }
 
     // The owner's living plants, oldest first, with their species already loaded.

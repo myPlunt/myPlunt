@@ -1,11 +1,14 @@
 package com.myplunt.plant;
 
+import com.myplunt.plant.dto.CreatePlantRequest;
+import com.myplunt.plant.dto.PlantResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -35,6 +38,48 @@ class PlantServiceTest {
 
     private PlantService plantService() {
         return new PlantService(plantRepository, wateringLogRepository);
+    }
+
+    // Gives the saved plant an id, as the database would.
+    private void saveAssignsId() {
+        when(plantRepository.save(any())).thenAnswer(invocation -> {
+            Plant plant = invocation.getArgument(0);
+            ReflectionTestUtils.setField(plant, "id", plantId);
+            return plant;
+        });
+    }
+
+    @Test
+    void create_savesThePlantForTheOwnerAndReturnsIt() {
+        saveAssignsId();
+
+        PlantResponse response = plantService().create(
+                userId, new CreatePlantRequest("Vera", "bright_indirect", 7, "Found at a flea market"));
+
+        assertThat(response).isEqualTo(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market"));
+        ArgumentCaptor<Plant> saved = ArgumentCaptor.forClass(Plant.class);
+        verify(plantRepository).save(saved.capture());
+        assertThat(saved.getValue().getOwnerId()).isEqualTo(userId);
+        assertThat(saved.getValue().isAlive()).isTrue();
+    }
+
+    @Test
+    void create_keepsOptionalFieldsEmptyWhenLeftOut() {
+        saveAssignsId();
+
+        PlantResponse response = plantService().create(userId, new CreatePlantRequest("Vera", null, null, null));
+
+        assertThat(response).isEqualTo(new PlantResponse(plantId, "Vera", null, null, null));
+    }
+
+    @Test
+    void create_trimsNotesAndStoresBlankNotesAsNull() {
+        saveAssignsId();
+
+        assertThat(plantService().create(userId, new CreatePlantRequest("Vera", null, null, "  Repotted  ")).notes())
+                .isEqualTo("Repotted");
+        assertThat(plantService().create(userId, new CreatePlantRequest("Vera", null, null, "   ")).notes())
+                .isNull();
     }
 
     @Test
