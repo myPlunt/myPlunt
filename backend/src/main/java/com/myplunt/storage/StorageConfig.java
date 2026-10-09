@@ -50,21 +50,9 @@ public class StorageConfig {
 
     // StorageService tags every presigned upload "pending=true" and strips it on confirm, so
     // this rule sweeps up objects whose uploader never confirmed (abandoned/forgotten uploads).
-    // Dev-only, same as ensureDevBucketExists: staging/prod buckets are provisioned externally,
+    // Dev-only, same as the rest of this runner: staging/prod buckets are provisioned externally,
     // and PutLifecycleConfiguration is a bucket-admin permission the app has no other need for.
     private static final int PENDING_UPLOAD_EXPIRATION_DAYS = 1;
-
-    @Bean
-    @Profile("dev")
-    public ApplicationRunner ensurePendingUploadLifecycleRule(S3Client s3Client, @Value("${app.storage.bucket}") String bucket) {
-        return args -> s3Client.putBucketLifecycleConfiguration(r -> r
-                .bucket(bucket)
-                .lifecycleConfiguration(c -> c.rules(rule -> rule
-                        .id("expire-unconfirmed-uploads")
-                        .status(ExpirationStatus.ENABLED)
-                        .filter(f -> f.tag(t -> t.key("pending").value("true")))
-                        .expiration(e -> e.days(PENDING_UPLOAD_EXPIRATION_DAYS)))));
-    }
 
     // A 1x1 transparent PNG - real bytes aren't needed, the seed objects just have to
     // exist so createReadUrl(key) has something real to presign against in dev.
@@ -88,6 +76,14 @@ public class StorageConfig {
             } catch (BucketAlreadyOwnedByYouException ignored) {
                 // already set up from a previous run
             }
+
+            s3Client.putBucketLifecycleConfiguration(r -> r
+                    .bucket(bucket)
+                    .lifecycleConfiguration(c -> c.rules(rule -> rule
+                            .id("expire-unconfirmed-uploads")
+                            .status(ExpirationStatus.ENABLED)
+                            .filter(f -> f.tag(t -> t.key("pending").value("true")))
+                            .expiration(e -> e.days(PENDING_UPLOAD_EXPIRATION_DAYS)))));
 
             for (String key : SEED_AVATAR_KEYS) {
                 putSeedImage(s3Client, bucket, key);
