@@ -25,12 +25,6 @@ afterEach(() => {
 });
 
 describe('ProfileScreen', () => {
-  it('shows "Profile" as the page title', async () => {
-    await render(<ProfileScreen />);
-
-    expect(screen.getByRole('header', { name: 'Profile' })).toBeOnTheScreen();
-  });
-
   it("shows the signed-in user's username, email and bio", async () => {
     await render(<ProfileScreen />);
 

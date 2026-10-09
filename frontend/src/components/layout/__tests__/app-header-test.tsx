@@ -21,16 +21,16 @@ afterEach(() => {
 });
 
 describe('AppHeader', () => {
-  it('shows the page name as the header, without the app name', async () => {
-    await render(<AppHeader title="Settings" />);
+  it('shows no page name and no app name, only the logo', async () => {
+    await render(<AppHeader />);
 
-    expect(screen.getByRole('header', { name: 'Settings' })).toBeOnTheScreen();
+    expect(screen.queryByRole('header')).toBeNull();
     expect(screen.queryByText('myPlunt')).toBeNull();
   });
 
   it('goes back one screen when the logo is pressed', async () => {
     canGoBack.mockReturnValue(true);
-    await render(<AppHeader title="Settings" showBack />);
+    await render(<AppHeader showBack />);
 
     await user.press(screen.getByRole('button', { name: 'Go back' }));
 
@@ -40,7 +40,7 @@ describe('AppHeader', () => {
 
   it('falls back to the feed when there is no screen to go back to', async () => {
     canGoBack.mockReturnValue(false);
-    await render(<AppHeader title="Settings" showBack />);
+    await render(<AppHeader showBack />);
 
     await user.press(screen.getByRole('button', { name: 'Go back' }));
 
@@ -49,13 +49,13 @@ describe('AppHeader', () => {
   });
 
   it('shows the logo as plain content without showBack', async () => {
-    await render(<AppHeader title="Feed" />);
+    await render(<AppHeader />);
 
     expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
   });
 
   it('renders the right-hand content', async () => {
-    await render(<AppHeader title="Feed" right={<Text>Right side</Text>} />);
+    await render(<AppHeader right={<Text>Right side</Text>} />);
 
     expect(screen.getByText('Right side')).toBeOnTheScreen();
   });

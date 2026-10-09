@@ -1,12 +1,13 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 
 import { BottomTabBar } from '../bottom-tab-bar';
 
-jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
+jest.mock('expo-router', () => ({ usePathname: jest.fn(), useRouter: jest.fn() }));
 
 const mockedUseRouter = jest.mocked(useRouter);
+const mockedUsePathname = jest.mocked(usePathname);
 const push = jest.fn();
 const navigate = jest.fn();
 const emit = jest.fn();
@@ -25,6 +26,7 @@ function tabBarProps(activeIndex: number) {
 
 beforeEach(() => {
   mockedUseRouter.mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
+  mockedUsePathname.mockReturnValue('/');
   emit.mockReturnValue({ defaultPrevented: false });
 });
 
@@ -39,7 +41,7 @@ describe('BottomTabBar', () => {
     const labels = screen
       .getAllByRole(/^(tab|button)$/)
       .map((element) => element.props.accessibilityLabel);
-    expect(labels).toEqual(['Feed', 'Plantdex', 'Add plant or planter', 'Garden', 'Profile']);
+    expect(labels).toEqual(['Feed', 'Plantdex', 'Add plant', 'Garden', 'Profile']);
   });
 
   it('marks only the current tab as selected', async () => {
@@ -90,9 +92,22 @@ describe('BottomTabBar', () => {
   it('opens the add screen from the middle button', async () => {
     await render(<BottomTabBar {...tabBarProps(0)} />);
 
-    await user.press(screen.getByRole('button', { name: 'Add plant or planter' }));
+    await user.press(screen.getByRole('button', { name: 'Add plant' }));
 
     expect(push).toHaveBeenCalledWith('/add');
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('shows the Add button as selected while the add screen is open', async () => {
+    mockedUsePathname.mockReturnValue('/add');
+    await render(<BottomTabBar {...tabBarProps(0)} />);
+
+    expect(screen.getByRole('button', { name: 'Add plant' })).toBeSelected();
+  });
+
+  it('does not show the Add button as selected on the tabs', async () => {
+    await render(<BottomTabBar {...tabBarProps(0)} />);
+
+    expect(screen.getByRole('button', { name: 'Add plant' })).not.toBeSelected();
   });
 });

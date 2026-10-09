@@ -53,12 +53,6 @@ afterEach(() => {
 });
 
 describe('GardenScreen', () => {
-  it('shows "Garden" as the page title', async () => {
-    await render(<GardenScreen />);
-
-    expect(screen.getByRole('header', { name: 'Garden' })).toBeOnTheScreen();
-  });
-
   it('has no back button or add button of its own, because Garden is a tab', async () => {
     await render(<GardenScreen />);
 
