@@ -3,10 +3,8 @@ package com.myplunt.garden;
 import com.myplunt.garden.dto.GardenPlantResponse;
 import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.garden.dto.RoomResponse;
-import com.myplunt.plant.LastWatering;
 import com.myplunt.plant.Plant;
-import com.myplunt.plant.PlantRepository;
-import com.myplunt.plant.WateringLogRepository;
+import com.myplunt.plant.PlantService;
 import com.myplunt.species.Species;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class GardenService {
@@ -26,27 +23,19 @@ public class GardenService {
     static final String UNASSIGNED_ROOM_NAME = "Other plants";
 
     private final PlanterRepository planterRepository;
-    private final PlantRepository plantRepository;
-    private final WateringLogRepository wateringLogRepository;
+    private final PlantService plantService;
 
-    public GardenService(
-            PlanterRepository planterRepository,
-            PlantRepository plantRepository,
-            WateringLogRepository wateringLogRepository) {
+    public GardenService(PlanterRepository planterRepository, PlantService plantService) {
         this.planterRepository = planterRepository;
-        this.plantRepository = plantRepository;
-        this.wateringLogRepository = wateringLogRepository;
+        this.plantService = plantService;
     }
 
     // The user's living plants grouped by room, in the order the rooms were created.
     // Empty rooms are included; plants without a room come last, in their own group.
     @Transactional(readOnly = true)
     public GardenResponse getGarden(UUID ownerId) {
-        List<Plant> plants = plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(ownerId);
-        Map<UUID, Instant> lastWatered = plants.isEmpty()
-                ? Map.of()
-                : wateringLogRepository.findLastWateredAt(plants.stream().map(Plant::getId).toList()).stream()
-                        .collect(Collectors.toMap(LastWatering::plantId, LastWatering::wateredAt));
+        List<Plant> plants = plantService.getLivingPlants(ownerId);
+        Map<UUID, Instant> lastWatered = plantService.getLastWateredAt(plants.stream().map(Plant::getId).toList());
 
         // LinkedHashMap allows the null key used for plants without a room.
         Map<UUID, List<GardenPlantResponse>> plantsByRoom = new LinkedHashMap<>();

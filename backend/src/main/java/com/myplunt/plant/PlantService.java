@@ -6,7 +6,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class PlantService {
@@ -17,6 +20,22 @@ public class PlantService {
     public PlantService(PlantRepository plantRepository, WateringLogRepository wateringLogRepository) {
         this.plantRepository = plantRepository;
         this.wateringLogRepository = wateringLogRepository;
+    }
+
+    // The owner's living plants, oldest first, with their species already loaded.
+    @Transactional(readOnly = true)
+    public List<Plant> getLivingPlants(UUID ownerId) {
+        return plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(ownerId);
+    }
+
+    // When each plant was last watered. Plants that were never watered are left out of the map.
+    @Transactional(readOnly = true)
+    public Map<UUID, Instant> getLastWateredAt(List<UUID> plantIds) {
+        if (plantIds.isEmpty()) {
+            return Map.of();
+        }
+        return wateringLogRepository.findLastWateredAt(plantIds).stream()
+                .collect(Collectors.toMap(LastWatering::plantId, LastWatering::wateredAt));
     }
 
     @Transactional

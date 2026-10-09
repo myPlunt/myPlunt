@@ -3,10 +3,8 @@ package com.myplunt.garden;
 import com.myplunt.garden.dto.GardenPlantResponse;
 import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.garden.dto.RoomResponse;
-import com.myplunt.plant.LastWatering;
 import com.myplunt.plant.Plant;
-import com.myplunt.plant.PlantRepository;
-import com.myplunt.plant.WateringLogRepository;
+import com.myplunt.plant.PlantService;
 import com.myplunt.species.Species;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,12 +15,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,16 +28,13 @@ class GardenServiceTest {
     private PlanterRepository planterRepository;
 
     @Mock
-    private PlantRepository plantRepository;
-
-    @Mock
-    private WateringLogRepository wateringLogRepository;
+    private PlantService plantService;
 
     private final UUID ownerId = UUID.randomUUID();
     private final Instant addedAt = Instant.parse("2026-09-01T10:00:00Z");
 
     private GardenService gardenService() {
-        return new GardenService(planterRepository, plantRepository, wateringLogRepository);
+        return new GardenService(planterRepository, plantService);
     }
 
     private Planter planter(String name) {
@@ -67,8 +60,7 @@ class GardenServiceTest {
         Plant george = plant("George", balcony, 4);
         Plant minty = plant("Minty", kitchen, 3);
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony, kitchen));
-        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(basil, george, minty));
-        when(wateringLogRepository.findLastWateredAt(any())).thenReturn(List.of());
+        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(basil, george, minty));
 
         GardenResponse garden = gardenService().getGarden(ownerId);
 
@@ -81,12 +73,11 @@ class GardenServiceTest {
     void getGarden_includesEmptyRooms() {
         Planter balcony = planter("Balcony");
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
-        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(ownerId)).thenReturn(List.of());
+        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of());
 
         GardenResponse garden = gardenService().getGarden(ownerId);
 
         assertThat(garden.rooms()).containsExactly(new RoomResponse(balcony.getId(), "Balcony", List.of()));
-        verify(wateringLogRepository, never()).findLastWateredAt(any());
     }
 
     @Test
@@ -95,8 +86,7 @@ class GardenServiceTest {
         Plant george = plant("George", balcony, 4);
         Plant stray = plant("Stray", null, 4);
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
-        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(stray, george));
-        when(wateringLogRepository.findLastWateredAt(any())).thenReturn(List.of());
+        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(stray, george));
 
         GardenResponse garden = gardenService().getGarden(ownerId);
 
@@ -112,9 +102,8 @@ class GardenServiceTest {
         Plant george = plant("George", balcony, 4);
         Instant wateredAt = Instant.parse("2026-10-07T08:00:00Z");
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
-        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(george));
-        when(wateringLogRepository.findLastWateredAt(List.of(george.getId())))
-                .thenReturn(List.of(new LastWatering(george.getId(), wateredAt)));
+        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(george));
+        when(plantService.getLastWateredAt(List.of(george.getId()))).thenReturn(Map.of(george.getId(), wateredAt));
 
         GardenPlantResponse response = gardenService().getGarden(ownerId).rooms().get(0).plants().get(0);
 
@@ -127,8 +116,7 @@ class GardenServiceTest {
         Planter balcony = planter("Balcony");
         Plant george = plant("George", balcony, 4);
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
-        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(george));
-        when(wateringLogRepository.findLastWateredAt(any())).thenReturn(List.of());
+        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(george));
 
         GardenPlantResponse response = gardenService().getGarden(ownerId).rooms().get(0).plants().get(0);
 
@@ -143,8 +131,7 @@ class GardenServiceTest {
         Plant noSpecies = plant("Nameless", balcony, 4);
         noSpecies.setSpecies(null);
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
-        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(unknown, noSpecies));
-        when(wateringLogRepository.findLastWateredAt(any())).thenReturn(List.of());
+        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(unknown, noSpecies));
 
         List<GardenPlantResponse> plants = gardenService().getGarden(ownerId).rooms().get(0).plants();
 

@@ -9,11 +9,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -33,6 +35,31 @@ class PlantServiceTest {
 
     private PlantService plantService() {
         return new PlantService(plantRepository, wateringLogRepository);
+    }
+
+    @Test
+    void getLivingPlants_returnsTheOwnersLivingPlants() {
+        Plant george = new Plant(userId, "George");
+        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(userId)).thenReturn(List.of(george));
+
+        assertThat(plantService().getLivingPlants(userId)).containsExactly(george);
+    }
+
+    @Test
+    void getLastWateredAt_mapsEachWateredPlantToItsLastWatering() {
+        UUID neverWatered = UUID.randomUUID();
+        Instant wateredAt = Instant.parse("2026-10-07T08:00:00Z");
+        when(wateringLogRepository.findLastWateredAt(List.of(plantId, neverWatered)))
+                .thenReturn(List.of(new LastWatering(plantId, wateredAt)));
+
+        assertThat(plantService().getLastWateredAt(List.of(plantId, neverWatered)))
+                .containsExactly(entry(plantId, wateredAt));
+    }
+
+    @Test
+    void getLastWateredAt_skipsTheQueryWithoutPlants() {
+        assertThat(plantService().getLastWateredAt(List.of())).isEmpty();
+        verify(wateringLogRepository, never()).findLastWateredAt(any());
     }
 
     @Test
