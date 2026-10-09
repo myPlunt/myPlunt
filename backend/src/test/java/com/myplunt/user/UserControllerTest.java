@@ -116,6 +116,61 @@ class UserControllerTest {
     }
 
     @Test
+    void updateMe_stripsSurroundingWhitespaceFromUsername() {
+        UUID id = authenticateAsJane();
+        when(userService.updateProfile(eq(id), eq(new UpdateProfileRequest("janey", null))))
+                .thenReturn(new UserResponse(id, "janey", "jane@example.com", null));
+
+        restTestClient.put().uri("/v1/users/me")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"username\": \"  janey  \", \"bio\": null}")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(UserResponse.class)
+                .isEqualTo(new UserResponse(id, "janey", "jane@example.com", null));
+    }
+
+    @Test
+    void updateMe_rejectsUsernameShorterThan3Characters() {
+        authenticateAsJane();
+
+        restTestClient.put().uri("/v1/users/me")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new UpdateProfileRequest("ja", null))
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void updateMe_rejectsUsernameLongerThan30Characters() {
+        authenticateAsJane();
+
+        restTestClient.put().uri("/v1/users/me")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new UpdateProfileRequest("j".repeat(31), null))
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void updateMe_rejectsUsernameWithDisallowedCharacters() {
+        authenticateAsJane();
+
+        // Inner space, and a Cyrillic "а" that looks like a Latin "a".
+        for (String username : new String[] {"jane doe", "j\u0430ne"}) {
+            restTestClient.put().uri("/v1/users/me")
+                    .header("Authorization", "Bearer access-token")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new UpdateProfileRequest(username, null))
+                    .exchange()
+                    .expectStatus().isBadRequest();
+        }
+    }
+
+    @Test
     void updateMe_rejectsRequestsWithoutAToken() {
         restTestClient.put().uri("/v1/users/me")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -135,6 +190,22 @@ class UserControllerTest {
                 .header("Authorization", "Bearer access-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(UserResponse.class)
+                .isEqualTo(new UserResponse(id, "jane", "new@example.com", null));
+    }
+
+    @Test
+    void changeEmail_stripsSurroundingWhitespaceFromEmail() {
+        UUID id = authenticateAsJane();
+        when(userService.changeEmail(eq(id), eq(new ChangeEmailRequest("new@example.com", "password123"))))
+                .thenReturn(new UserResponse(id, "jane", "new@example.com", null));
+
+        restTestClient.put().uri("/v1/users/me/email")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"email\": \"  new@example.com \", \"currentPassword\": \"password123\"}")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(UserResponse.class)
