@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -81,20 +82,34 @@ class StorageServiceTest {
 
     @Test
     void confirmUpload_throwsNotFoundWhenKeyMissing() {
+        UUID userId = UUID.randomUUID();
         when(s3Client.headObject(any(java.util.function.Consumer.class))).thenThrow(NoSuchKeyException.builder().build());
 
-        assertThatThrownBy(() -> storageService().confirmUpload("avatars/some/missing.jpg"))
+        assertThatThrownBy(() -> storageService().confirmUpload(userId, "avatars/" + userId + "/missing.jpg"))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("404");
     }
 
     @Test
+    void confirmUpload_throwsNotFoundWhenKeyBelongsToDifferentUser() {
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> storageService().confirmUpload(userId, "avatars/" + otherUserId + "/file.jpg"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("404");
+
+        verifyNoInteractions(s3Client);
+    }
+
+    @Test
     void confirmUpload_deletesAndThrowsWhenTooLarge() {
+        UUID userId = UUID.randomUUID();
         when(s3Client.headObject(any(java.util.function.Consumer.class)))
                 .thenReturn(HeadObjectResponse.builder().contentLength(10_000_000L).build());
         when(s3Client.deleteObject(any(java.util.function.Consumer.class))).thenReturn(DeleteObjectResponse.builder().build());
 
-        assertThatThrownBy(() -> storageService().confirmUpload("avatars/some/big.jpg"))
+        assertThatThrownBy(() -> storageService().confirmUpload(userId, "avatars/" + userId + "/big.jpg"))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("exceeds");
 
@@ -102,11 +117,14 @@ class StorageServiceTest {
     }
 
     @Test
-    void confirmUpload_succeedsWhenWithinLimit() {
+    void confirmUpload_succeedsAndClearsPendingTagWhenWithinLimit() {
+        UUID userId = UUID.randomUUID();
         when(s3Client.headObject(any(java.util.function.Consumer.class)))
                 .thenReturn(HeadObjectResponse.builder().contentLength(1_000L).build());
 
-        storageService().confirmUpload("avatars/some/fine.jpg");
+        storageService().confirmUpload(userId, "avatars/" + userId + "/fine.jpg");
+
+        verify(s3Client).deleteObjectTagging(any(java.util.function.Consumer.class));
     }
 
     @Test

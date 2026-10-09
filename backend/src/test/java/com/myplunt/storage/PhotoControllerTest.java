@@ -78,26 +78,29 @@ class PhotoControllerTest {
 
     @Test
     void confirmUpload_returnsNoContentWhenKeyValid() {
-        authenticateAs(UUID.randomUUID());
+        UUID userId = UUID.randomUUID();
+        authenticateAs(userId);
 
         restTestClient.post().uri("/v1/photos/confirm")
                 .header("Authorization", "Bearer valid-token")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new ConfirmUploadRequest("avatars/some/key.jpg"))
+                .body(new ConfirmUploadRequest("avatars/" + userId + "/key.jpg"))
                 .exchange()
                 .expectStatus().isNoContent();
     }
 
     @Test
     void confirmUpload_propagatesNotFoundForMissingKey() {
-        authenticateAs(UUID.randomUUID());
+        UUID userId = UUID.randomUUID();
+        authenticateAs(userId);
+        String key = "avatars/" + userId + "/missing.jpg";
         org.mockito.Mockito.doThrow(new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND))
-                .when(storageService).confirmUpload("missing.jpg");
+                .when(storageService).confirmUpload(userId, key);
 
         restTestClient.post().uri("/v1/photos/confirm")
                 .header("Authorization", "Bearer valid-token")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new ConfirmUploadRequest("missing.jpg"))
+                .body(new ConfirmUploadRequest(key))
                 .exchange()
                 .expectStatus().isNotFound();
     }

@@ -7,11 +7,6 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
-
-  # S3-compatible storage for local dev. MinIO's free image is gated behind their paid
-  # AIStor product now, so this uses LocalStack's S3 emulation instead.
-  # ponytail: pinned to the last known-free community release — :latest demands a
-  # LOCALSTACK_AUTH_TOKEN even for S3-only use, so don't bump this without re-checking.
   localstack:
     image: localstack/localstack:3.8.1
     environment:

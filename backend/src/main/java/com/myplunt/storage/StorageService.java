@@ -25,6 +25,10 @@ public class StorageService {
             "image/jpeg", "jpg",
             "image/png", "png");
 
+    // Signed into the presigned PUT (like contentType already is), so the uploader's PUT
+    // must send this exact header. Lets a bucket lifecycle rule expire anything never confirmed.
+    private static final String PENDING_UPLOAD_TAGGING = "pending=true";
+
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
     private final String bucket;
@@ -62,6 +66,7 @@ public class StorageService {
                 .bucket(bucket)
                 .key(key)
                 .contentType(request.contentType())
+                .tagging(PENDING_UPLOAD_TAGGING)
                 .build();
 
         String url = s3Presigner.presignPutObject(r -> r
@@ -73,7 +78,12 @@ public class StorageService {
         return new UploadUrlResponse(url, key);
     }
 
-    public void confirmUpload(String key) {
+    public void confirmUpload(UUID userId, String key) {
+        if (!belongsToUser(key, userId)) {
+            // Don't distinguish "not yours" from "doesn't exist" - same as a missing key.
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Upload not found for key: " + key);
+        }
+
         HeadObjectResponse head;
         try {
             head = s3Client.headObject(r -> r.bucket(bucket).key(key));
@@ -85,6 +95,15 @@ public class StorageService {
             s3Client.deleteObject(r -> r.bucket(bucket).key(key));
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uploaded file exceeds the size limit.");
         }
+
+        // Clears the pending tag so the lifecycle rule no longer expires this object.
+        s3Client.deleteObjectTagging(r -> r.bucket(bucket).key(key));
+    }
+
+    // Keys are "[prefix/]<category>/<userId>/<file>" - userId is always second to last.
+    private boolean belongsToUser(String key, UUID userId) {
+        String[] segments = key.split("/");
+        return segments.length >= 2 && segments[segments.length - 2].equals(userId.toString());
     }
 
     // Caller (post/profile service) is responsible for checking visibility/ownership

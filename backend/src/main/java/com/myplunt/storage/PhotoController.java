@@ -30,7 +30,7 @@ public class PhotoController {
 
     @PostMapping(ApiPaths.Photos.CONFIRM)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void confirmUpload(@Valid @RequestBody ConfirmUploadRequest request) {
-        storageService.confirmUpload(request.key());
+    public void confirmUpload(@AuthenticationPrincipal User user, @Valid @RequestBody ConfirmUploadRequest request) {
+        storageService.confirmUpload(user.getId(), request.key());
     }
 }
