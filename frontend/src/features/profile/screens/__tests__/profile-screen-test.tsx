@@ -1,32 +1,24 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 
-import { useAuthActions } from '@/features/auth/use-auth-actions';
 import { useProfile } from '@/features/profile/use-profile';
 
 import { ProfileScreen } from '../profile-screen';
 
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
-jest.mock('@/features/auth/use-auth-actions');
 jest.mock('@/features/profile/use-profile');
 
 const mockedUseRouter = jest.mocked(useRouter);
-const mockedUseAuthActions = jest.mocked(useAuthActions);
 const mockedUseProfile = jest.mocked(useProfile);
-const dismissTo = jest.fn();
-const logout = jest.fn();
+const back = jest.fn();
+const push = jest.fn();
 const retry = jest.fn();
 const user = userEvent.setup();
+const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: 'Fern collector' };
 
 beforeEach(() => {
-  mockedUseRouter.mockReturnValue({ dismissTo } as unknown as ReturnType<typeof useRouter>);
-  mockedUseAuthActions.mockReturnValue({ login: jest.fn(), register: jest.fn(), logout });
-  mockedUseProfile.mockReturnValue({
-    user: { id: 'u1', username: 'jane', email: 'jane@example.com' },
-    error: null,
-    isLoading: false,
-    retry,
-  });
+  mockedUseRouter.mockReturnValue({ back, canGoBack: () => true, push } as unknown as ReturnType<typeof useRouter>);
+  mockedUseProfile.mockReturnValue({ user: jane, error: null, isLoading: false, retry });
 });
 
 afterEach(() => {
@@ -34,11 +26,25 @@ afterEach(() => {
 });
 
 describe('ProfileScreen', () => {
-  it("shows the signed-in user's username and email", async () => {
+  it('shows "Profile" as the page title', async () => {
+    await render(<ProfileScreen />);
+
+    expect(screen.getByRole('header', { name: 'Profile' })).toBeOnTheScreen();
+  });
+
+  it("shows the signed-in user's username, email and bio", async () => {
     await render(<ProfileScreen />);
 
     expect(screen.getByText('jane')).toBeOnTheScreen();
     expect(screen.getByText('jane@example.com')).toBeOnTheScreen();
+    expect(screen.getByText('Fern collector')).toBeOnTheScreen();
+  });
+
+  it('leaves the bio out when the user has none', async () => {
+    mockedUseProfile.mockReturnValue({ user: { ...jane, bio: null }, error: null, isLoading: false, retry });
+    await render(<ProfileScreen />);
+
+    expect(screen.queryByText('Fern collector')).toBeNull();
   });
 
   it('shows a loading indicator while the profile loads', async () => {
@@ -58,19 +64,27 @@ describe('ProfileScreen', () => {
     expect(retry).toHaveBeenCalled();
   });
 
-  it('goes back to the feed when the logo and name are pressed', async () => {
+  it('opens Edit profile from the button under the profile', async () => {
     await render(<ProfileScreen />);
 
-    await user.press(screen.getByRole('button', { name: 'Go to feed' }));
+    await user.press(screen.getByRole('button', { name: 'Edit profile' }));
 
-    expect(dismissTo).toHaveBeenCalledWith('/');
+    expect(push).toHaveBeenCalledWith('/edit-profile');
   });
 
-  it('logs the user out', async () => {
+  it('opens settings from the header', async () => {
     await render(<ProfileScreen />);
 
-    await user.press(screen.getByRole('button', { name: 'Log out' }));
+    await user.press(screen.getByRole('button', { name: 'Open settings' }));
 
-    expect(logout).toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith('/settings');
+  });
+
+  it('goes back one screen when the logo is pressed', async () => {
+    await render(<ProfileScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Go back' }));
+
+    expect(back).toHaveBeenCalled();
   });
 });

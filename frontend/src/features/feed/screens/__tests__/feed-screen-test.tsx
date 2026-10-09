@@ -18,6 +18,12 @@ afterEach(() => {
 });
 
 describe('FeedScreen', () => {
+  it('shows "Feed" as the page title', async () => {
+    await render(<FeedScreen />);
+
+    expect(screen.getByRole('header', { name: 'Feed' })).toBeOnTheScreen();
+  });
+
   it('opens the profile when the user bubble is pressed', async () => {
     await render(<FeedScreen />);
 

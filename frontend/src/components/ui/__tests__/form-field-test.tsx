@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
-import { FormField } from '@/features/auth/components/form-field';
+import { FormField } from '../form-field';
 
 describe('FormField', () => {
   it('renders the label and the current value', async () => {

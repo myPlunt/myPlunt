@@ -7,13 +7,18 @@ import { tokenStorage } from '@/lib/auth/token-storage';
 import { AuthStoreProvider, useAuthStore } from '@/stores/auth-store';
 
 jest.mock('@/features/profile/profile-service');
+// No navigator in this test: treat "focused" as "mounted".
+jest.mock('expo-router', () => {
+  const { useEffect } = jest.requireActual('react');
+  return { useFocusEffect: (effect: () => void | (() => void)) => useEffect(effect, [effect]) };
+});
 jest.mock('@/lib/auth/token-storage', () => ({
   tokenStorage: { getTokens: jest.fn() },
 }));
 
 const mockedProfileService = jest.mocked(profileService);
 const mockedTokenStorage = jest.mocked(tokenStorage);
-const jane = { id: 'u1', username: 'jane', email: 'jane@example.com' };
+const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: null };
 
 beforeEach(() => {
   mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
