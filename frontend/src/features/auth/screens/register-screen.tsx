@@ -2,7 +2,7 @@ import { Link } from 'expo-router';
 import { useRef, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/ui/themed-text';
 import { Button } from '@/components/ui/button';
 import { Fonts, Spacing, Typography } from '@/constants/theme';
 import { AuthScreenLayout } from '@/features/auth/components/auth-screen-layout';

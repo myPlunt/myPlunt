@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/ui/themed-text';
+import { ThemedView } from '@/components/ui/themed-view';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -24,7 +24,7 @@ export function AuthScreenLayout({ children }: { children: ReactNode }) {
             showsVerticalScrollIndicator={false}>
             <ThemedView style={[styles.brand]}>
               <Image style={styles.logo} source={require('@/assets/images/Logo.png')} contentFit="contain" />
-              <ThemedText style={[Typography.h5, { color: theme.primary }]}>MyPlunt</ThemedText>
+              <ThemedText style={[Typography.h5, { color: theme.primary }]}>myPlunt</ThemedText>
             </ThemedView>
 
             {children}

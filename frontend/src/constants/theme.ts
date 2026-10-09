@@ -100,7 +100,7 @@ export const Typography = {
 // the stronger one read as too heavy/distracting on screen.
 export const Shadow = {
   level2: {
-    shadowColor: '#1F2E1B',
+    shadowColor: brand.grey900,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 2,
@@ -108,5 +108,4 @@ export const Shadow = {
   },
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
