@@ -25,4 +25,13 @@ export const Shadow = {
     shadowRadius: 2,
     elevation: 1,
   },
+  // For cards (e.g. the forms on Edit profile and Settings): softer and wider than
+  // level2 so a large surface lifts off the background without a hard edge.
+  card: {
+    shadowColor: '#1F2E1B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
 } as const;

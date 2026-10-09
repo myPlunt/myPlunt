@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { User } from '@/lib/user/types';
@@ -11,34 +12,42 @@ export function useProfile() {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [attempt, setAttempt] = useState(0);
 
-  useEffect(() => {
-    // Ignore a response that arrives after unmount or after a newer retry.
-    let cancelled = false;
+  // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
+  const load = useCallback(
+    (isCancelled: () => boolean) => {
+      profileService
+        .getCurrentUser()
+        .then((result) => {
+          if (!isCancelled()) setUser(result);
+        })
+        .catch((err) => {
+          if (isCancelled()) return;
+          // apiFetch already tried a refresh; a 401 here means the session is gone.
+          if (err instanceof ApiError && err.status === 401) {
+            setUnauthenticated();
+            return;
+          }
+          setError(describeError(err));
+        })
+        .finally(() => {
+          if (!isCancelled()) setIsLoading(false);
+        });
+    },
+    [setUnauthenticated],
+  );
 
-    profileService
-      .getCurrentUser()
-      .then((result) => {
-        if (!cancelled) setUser(result);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        // apiFetch already tried a refresh; a 401 here means the session is gone.
-        if (err instanceof ApiError && err.status === 401) {
-          setUnauthenticated();
-          return;
-        }
-        setError(describeError(err));
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [attempt, setUnauthenticated]);
+  // Loads on focus, not just on mount, so coming back from Settings shows the
+  // saved changes. useFocusEffect needs a memoized callback.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      load(() => cancelled);
+      return () => {
+        cancelled = true;
+      };
+    }, [load]),
+  );
 
   return {
     user,
@@ -47,7 +56,7 @@ export function useProfile() {
     retry() {
       setError(null);
       setIsLoading(true);
-      setAttempt((n) => n + 1);
+      load(() => false);
     },
   };
 }

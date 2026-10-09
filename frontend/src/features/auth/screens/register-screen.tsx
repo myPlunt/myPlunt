@@ -4,7 +4,7 @@ import { Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { AuthScreenLayout } from '@/features/auth/components/auth-screen-layout';
-import { FormField } from '@/features/auth/components/form-field';
+import { FormField } from '@/components/ui/form-field';
 import { useAuthActions } from '@/features/auth/use-auth-actions';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 

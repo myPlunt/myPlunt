@@ -37,7 +37,6 @@ export const lightColors = {
   text: brand.grey900,
   background: brand.sandDune,
   backgroundElement: brand.softLinen,
-  backgroundSelected: brand.fern100,
   textSecondary: brand.grey700,
   // "primary" (Fern) is used for links/wordmark already on screen — kept as-is.
   // actionPrimary (Hunter Green) is the design study's actual documented
@@ -67,6 +66,10 @@ export const Fonts = {
 
 // Type scale. Tailwind turns each entry into a `type-<kebab-name>` class that sets
 // font family, size, line height and letter spacing together (type-h3, type-body-medium...).
+// Brand rule: Lateef is the primary typeface and is used only for headlines (h1–h5),
+// where it gives a warm, organic character. DM Sans is the secondary typeface for
+// everything else (subtitles, body, captions, labels, buttons): clean, geometric and
+// readable at small sizes. tokens-test.ts enforces this split.
 export const Typography = {
   h1: { fontFamily: Fonts.headline.semiBold, fontSize: 56, lineHeight: 64 },
   h2: { fontFamily: Fonts.headline.semiBold, fontSize: 48, lineHeight: 56 },

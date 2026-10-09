@@ -1,37 +1,52 @@
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface AppHeaderProps {
-  /** Makes the logo + name a button (e.g. back to the feed). */
-  onBrandPress?: () => void;
+  /** The page name, shown centred. */
+  title: string;
+  /** Makes the logo a back button. Off on the feed, which is the first screen. */
+  showBack?: boolean;
   right?: ReactNode;
 }
 
 // Our own header instead of the native stack header, so both platforms get the
 // same look (the iOS native back button renders as Liquid Glass).
-export function AppHeader({ onBrandPress, right }: AppHeaderProps) {
-  const brand = (
-    <View className="flex-row items-center gap-2">
-      <Image className="h-8 w-7" source={require('@/assets/images/Logo.png')} contentFit="contain" />
-      <Text className="type-h5 text-primary" style={styles.wordmark}>
-        myPlunt
-      </Text>
-    </View>
-  );
+export function AppHeader({ title, showBack, right }: AppHeaderProps) {
+  const router = useRouter();
+  const logo = <Image className="h-10 w-9" source={require('@/assets/images/Logo.png')} contentFit="contain" />;
+
+  function goBack() {
+    // Nothing to go back to when the app was opened straight onto this screen
+    // (e.g. a deep link), so fall back to the feed.
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
+  }
 
   return (
     <View className="w-full max-w-content flex-row items-center justify-between self-center px-6 py-2">
-      {onBrandPress ? (
+      {/* Centred over the whole bar rather than between the side items, so it stays
+          in the middle whatever width the logo and right-hand button have. */}
+      <View pointerEvents="none" className="absolute inset-x-0 items-center">
+        <Text accessibilityRole="header" className="type-h5 text-action-primary" style={styles.title}>
+          {title}
+        </Text>
+      </View>
+
+      {showBack ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Go to feed"
-          onPress={onBrandPress}
+          accessibilityLabel="Go back"
+          onPress={goBack}
           className="active:opacity-70">
-          {brand}
+          {logo}
         </Pressable>
       ) : (
-        brand
+        logo
       )}
       {right}
     </View>
@@ -46,7 +61,7 @@ const styles = StyleSheet.create({
   // extra font padding does the same there. This is a style, not classes: a
   // leading-* class loses to type-h5's own line height (plugin utilities come
   // later in the CSS), and the two Android props have no Tailwind class.
-  wordmark: {
+  title: {
     lineHeight: 38,
     includeFontPadding: false,
     textAlignVertical: 'center',

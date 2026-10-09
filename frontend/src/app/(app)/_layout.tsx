@@ -11,6 +11,8 @@ export default function AppLayout() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="profile" />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="edit-profile" />
     </Stack>
   );
 }

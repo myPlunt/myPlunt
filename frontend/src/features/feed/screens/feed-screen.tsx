@@ -12,6 +12,7 @@ export function FeedScreen() {
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         <AppHeader
+          title="Feed"
           right={
             <Pressable
               accessibilityRole="button"

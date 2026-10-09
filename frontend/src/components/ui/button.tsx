@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, Text, type PressableProps } from 'react-n
 import { Shadow, type ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'subtle' | 'destructive' | 'ghost';
 type ButtonSize = 'medium' | 'large';
 
 interface ButtonProps extends Omit<PressableProps, 'style'> {
@@ -17,6 +17,8 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
 const variantClasses: Record<ButtonVariant, { container: string; text: string; spinner: ThemeColor }> = {
   primary: { container: 'bg-action-primary', text: 'text-background-element', spinner: 'backgroundElement' },
   secondary: { container: 'bg-background border border-border', text: 'text-text', spinner: 'text' },
+  // Soft Linen fill without an outline, for low-emphasis actions such as Edit profile.
+  subtle: { container: 'bg-background-element', text: 'text-text', spinner: 'text' },
   destructive: { container: 'bg-error', text: 'text-background-element', spinner: 'backgroundElement' },
   ghost: { container: 'bg-transparent', text: 'text-primary', spinner: 'primary' },
 };

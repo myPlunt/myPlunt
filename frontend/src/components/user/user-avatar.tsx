@@ -15,7 +15,7 @@ export function UserAvatar({ size = 40 }: UserAvatarProps) {
   return (
     <View
       testID="user-avatar"
-      className="items-center justify-center overflow-hidden border-[1.5px] border-primary bg-background-selected"
+      className="items-center justify-center overflow-hidden border-[1.5px] border-primary bg-background-element"
       // Size is a prop, so it can't be a static class.
       style={{ width: size, height: size, borderRadius: size / 2 }}>
       <SymbolView
