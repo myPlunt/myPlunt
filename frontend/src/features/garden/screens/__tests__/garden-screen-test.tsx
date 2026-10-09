@@ -64,6 +64,12 @@ describe('GardenScreen', () => {
     expect(screen.getByRole('header', { name: 'Garden' })).toBeOnTheScreen();
   });
 
+  it('shows an Add plant button in the header', async () => {
+    await render(<GardenScreen />);
+
+    expect(screen.getByRole('button', { name: 'Add plant' })).toBeOnTheScreen();
+  });
+
   it('summarises how many plants and rooms the garden has', async () => {
     await render(<GardenScreen />);
 
