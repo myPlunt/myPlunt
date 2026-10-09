@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { tokenStorage } from '@/lib/auth/token-storage';
 
@@ -21,13 +21,14 @@ export function AuthStoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // Stable setters, so hooks can list them as effect dependencies without
+  // re-running every time the status changes.
+  const setAuthenticated = useCallback(() => setStatus('authenticated'), []);
+  const setUnauthenticated = useCallback(() => setStatus('unauthenticated'), []);
+
   const value = useMemo<AuthStore>(
-    () => ({
-      status,
-      setAuthenticated: () => setStatus('authenticated'),
-      setUnauthenticated: () => setStatus('unauthenticated'),
-    }),
-    [status],
+    () => ({ status, setAuthenticated, setUnauthenticated }),
+    [status, setAuthenticated, setUnauthenticated],
   );
 
   return <AuthStoreContext.Provider value={value}>{children}</AuthStoreContext.Provider>;

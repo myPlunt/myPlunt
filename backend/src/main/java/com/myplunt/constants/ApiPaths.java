@@ -19,4 +19,12 @@ public final class ApiPaths {
 
         private Auth() {}
     }
+
+    public static final class Users {
+        public static final String BASE = "/v1/users";
+        public static final String ME = BASE + "/me";
+        public static final String ME_EMAIL = ME + "/email";
+
+        private Users() {}
+    }
 }
