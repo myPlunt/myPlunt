@@ -14,7 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,7 +48,6 @@ class AuthServiceTest {
         when(userRepository.findByUsername("jane")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("password123")).thenReturn("hashed");
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(refreshTokenRepository.findAllByUser(any())).thenReturn(List.of());
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtService.generateAccessToken(any())).thenReturn("access-token");
 
@@ -91,7 +89,6 @@ class AuthServiceTest {
         User user = new User("jane", "jane@example.com", "hashed");
         when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password123", "hashed")).thenReturn(true);
-        when(refreshTokenRepository.findAllByUser(user)).thenReturn(List.of());
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtService.generateAccessToken(user)).thenReturn("access-token");
 
@@ -150,7 +147,6 @@ class AuthServiceTest {
         User user = new User("jane", "jane@example.com", "hashed");
         RefreshToken refreshToken = new RefreshToken(user, "refresh-token", Instant.now().plusSeconds(60));
         when(refreshTokenRepository.findByToken("refresh-token")).thenReturn(Optional.of(refreshToken));
-        when(refreshTokenRepository.findAllByUser(user)).thenReturn(List.of(refreshToken));
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtService.generateAccessToken(user)).thenReturn("new-access-token");
 
@@ -158,7 +154,7 @@ class AuthServiceTest {
 
         assertThat(response.accessToken()).isEqualTo("new-access-token");
         assertThat(response.refreshToken()).isNotBlank();
-        verify(refreshTokenRepository).deleteAll(List.of(refreshToken));
+        verify(refreshTokenRepository).delete(refreshToken);
     }
 
     @Test

@@ -71,8 +71,9 @@ public class AuthService {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token"));
 
+        refreshTokenRepository.delete(refreshToken);
+
         if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
-            refreshTokenRepository.delete(refreshToken);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token expired");
         }
 
@@ -80,8 +81,6 @@ public class AuthService {
     }
 
     private AuthResponse issueTokens(User user) {
-        refreshTokenRepository.deleteAll(refreshTokenRepository.findAllByUser(user));
-
         RefreshToken refreshToken = refreshTokenRepository.save(
                 new RefreshToken(user, UUID.randomUUID().toString(), Instant.now().plus(refreshTokenTtl)));
 
