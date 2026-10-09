@@ -52,7 +52,8 @@ export function ProfileScreen() {
                   <Text className="type-h4 text-text">{user.username}</Text>
                   <Text className="type-body-medium text-text-secondary">{user.email}</Text>
                   {user.bio && <Text className="type-body-large mt-3 text-center text-text">{user.bio}</Text>}
-                  <View className="mt-4">
+                  <View className="mt-4 flex-row gap-3">
+                    <Button label="My garden" onPress={() => router.push('/garden')} />
                     <Button label="Edit profile" variant="subtle" onPress={() => router.push('/edit-profile')} />
                   </View>
                 </>
