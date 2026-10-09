@@ -40,7 +40,7 @@ export function RegisterScreen() {
 
   return (
     <AuthScreenLayout>
-      <ThemedText style={[Typography.h3, styles.title]}>Start your plant family</ThemedText>
+      <ThemedText style={[Typography.h3, styles.title]}>Start your plant family!</ThemedText>
 
       <FormField
         label="Username"

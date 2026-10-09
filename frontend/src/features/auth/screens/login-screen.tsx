@@ -38,7 +38,7 @@ export function LoginScreen() {
 
   return (
     <AuthScreenLayout>
-      <ThemedText style={[Typography.h3, styles.title]}>Welcome back</ThemedText>
+      <ThemedText style={[Typography.h3, styles.title]}>Welcome back!</ThemedText>
 
       <FormField
         label="Email"
