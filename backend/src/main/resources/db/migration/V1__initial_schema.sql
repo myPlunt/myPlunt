@@ -6,7 +6,7 @@ CREATE TABLE users (
     username          CITEXT NOT NULL CONSTRAINT uq_users_username UNIQUE,
     email             CITEXT NOT NULL CONSTRAINT uq_users_email UNIQUE,
     password_hash     VARCHAR(255) NOT NULL,
-    avatar_url        TEXT,
+    avatar_key        TEXT,
     city              VARCHAR(255),
     bio               VARCHAR(255),
     watering_streak   INT NOT NULL DEFAULT 0 CONSTRAINT chk_users_watering_streak_non_negative CHECK (watering_streak >= 0),
@@ -65,7 +65,6 @@ CREATE TABLE planters (
     owner_id       UUID NOT NULL CONSTRAINT fk_planters_owner_id REFERENCES users(id) ON DELETE CASCADE,
     name           VARCHAR(255) NOT NULL,
     location_type  VARCHAR(255),
-    photo_url      TEXT,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -87,7 +86,7 @@ CREATE TABLE plant_photos (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     plant_id      UUID NOT NULL CONSTRAINT fk_plant_photos_plant_id REFERENCES plants(id) ON DELETE CASCADE,
     uploaded_by   UUID CONSTRAINT fk_plant_photos_uploaded_by REFERENCES users(id) ON DELETE SET NULL,
-    photo_url     TEXT NOT NULL,
+    photo_key     TEXT NOT NULL,
     taken_at      TIMESTAMPTZ
 );
 
