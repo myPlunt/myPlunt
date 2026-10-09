@@ -29,6 +29,9 @@ export const brand = {
   white: '#FFFFFF',
   // Not in brand palette, but fits
   error500: '#B3402F',
+  // Not in brand palette: approved for water only (the water line in the garden's
+  // plant pots). A muted blue so it sits with the earthy brand colours.
+  waterBlue500: '#4E6F9C',
 } as const;
 
 // Semantic colour roles. Tailwind exposes each key in kebab-case
@@ -50,6 +53,7 @@ export const lightColors = {
   inputBorder: brand.oliveWood300,
   placeholder: brand.grey500,
   error: brand.error500,
+  water: brand.waterBlue500,
 } as const;
 
 export const Fonts = {

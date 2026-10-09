@@ -27,4 +27,17 @@ public final class ApiPaths {
 
         private Users() {}
     }
+
+    public static final class Garden {
+        public static final String BASE = "/v1/garden";
+
+        private Garden() {}
+    }
+
+    public static final class Plants {
+        public static final String BASE = "/v1/plants";
+        public static final String WATERINGS = BASE + "/{plantId}/waterings";
+
+        private Plants() {}
+    }
 }
