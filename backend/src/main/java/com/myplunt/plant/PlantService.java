@@ -5,6 +5,7 @@ import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesRepository;
+import com.myplunt.storage.StorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,16 +24,22 @@ public class PlantService {
     private final WateringLogRepository wateringLogRepository;
     private final PlanterRepository planterRepository;
     private final SpeciesRepository speciesRepository;
+    private final PlantPhotoRepository plantPhotoRepository;
+    private final StorageService storageService;
 
     public PlantService(
             PlantRepository plantRepository,
             WateringLogRepository wateringLogRepository,
             PlanterRepository planterRepository,
-            SpeciesRepository speciesRepository) {
+            SpeciesRepository speciesRepository,
+            PlantPhotoRepository plantPhotoRepository,
+            StorageService storageService) {
         this.plantRepository = plantRepository;
         this.wateringLogRepository = wateringLogRepository;
         this.planterRepository = planterRepository;
         this.speciesRepository = speciesRepository;
+        this.plantPhotoRepository = plantPhotoRepository;
+        this.storageService = storageService;
     }
 
     @Transactional
@@ -48,6 +55,13 @@ public class PlantService {
                 : speciesRepository.findByIdAndApprovedTrue(request.speciesId())
                         .orElseThrow(() -> new IllegalStateException("Species not found"));
 
+        // Confirmed before anything is saved: a key that isn't the owner's, is missing or is too
+        // big fails here (404/400) and no plant is created. Confirming also keeps the bucket's
+        // lifecycle rule from deleting the upload.
+        if (request.photoKey() != null) {
+            storageService.confirmUpload(ownerId, request.photoKey());
+        }
+
         Plant plant = new Plant(ownerId, request.name());
         plant.setPlanterId(request.planterId());
         plant.setSpecies(species);
@@ -56,6 +70,9 @@ public class PlantService {
         plant.setNotes(request.notes() == null || request.notes().isBlank() ? null : request.notes().strip());
 
         Plant saved = plantRepository.save(plant);
+        if (request.photoKey() != null) {
+            plantPhotoRepository.save(new PlantPhoto(saved, ownerId, request.photoKey(), Instant.now()));
+        }
         return new PlantResponse(
                 saved.getId(),
                 saved.getName(),
@@ -63,7 +80,8 @@ public class PlantService {
                 saved.getWateringEveryDays(),
                 saved.getNotes(),
                 saved.getPlanterId(),
-                species == null ? null : species.getId());
+                species == null ? null : species.getId(),
+                request.photoKey() == null ? null : storageService.createReadUrl(request.photoKey()));
     }
 
     // The owner's living plants, oldest first, with their species already loaded.

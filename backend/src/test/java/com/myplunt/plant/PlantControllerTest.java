@@ -68,9 +68,9 @@ class PlantControllerTest {
     @Test
     void create_returnsTheCreatedPlantForTheSignedInUser() {
         UUID ownerId = authenticateAsJane();
-        CreatePlantRequest request = new CreatePlantRequest("Vera", "bright_indirect", 7, "Found at a flea market", null, null);
+        CreatePlantRequest request = new CreatePlantRequest("Vera", "bright_indirect", 7, "Found at a flea market", null, null, null);
         when(plantService.create(eq(ownerId), eq(request)))
-                .thenReturn(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market", null, null));
+                .thenReturn(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market", null, null, null));
 
         restTestClient.post().uri("/v1/plants")
                 .header("Authorization", "Bearer access-token")
@@ -79,14 +79,14 @@ class PlantControllerTest {
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(PlantResponse.class)
-                .isEqualTo(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market", null, null));
+                .isEqualTo(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market", null, null, null));
     }
 
     @Test
     void create_stripsSurroundingWhitespaceFromName() {
         UUID ownerId = authenticateAsJane();
-        when(plantService.create(eq(ownerId), eq(new CreatePlantRequest("Vera", null, null, null, null, null))))
-                .thenReturn(new PlantResponse(plantId, "Vera", null, null, null, null, null));
+        when(plantService.create(eq(ownerId), eq(new CreatePlantRequest("Vera", null, null, null, null, null, null))))
+                .thenReturn(new PlantResponse(plantId, "Vera", null, null, null, null, null, null));
 
         restTestClient.post().uri("/v1/plants")
                 .header("Authorization", "Bearer access-token")
@@ -95,7 +95,7 @@ class PlantControllerTest {
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(PlantResponse.class)
-                .isEqualTo(new PlantResponse(plantId, "Vera", null, null, null, null, null));
+                .isEqualTo(new PlantResponse(plantId, "Vera", null, null, null, null, null, null));
     }
 
     @Test
@@ -106,7 +106,7 @@ class PlantControllerTest {
         restTestClient.post().uri("/v1/plants")
                 .header("Authorization", "Bearer access-token")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new CreatePlantRequest("Vera", null, null, null, UUID.randomUUID(), null))
+                .body(new CreatePlantRequest("Vera", null, null, null, UUID.randomUUID(), null, null))
                 .exchange()
                 .expectStatus().isNotFound();
     }
@@ -149,10 +149,17 @@ class PlantControllerTest {
     }
 
     @Test
+    void create_rejectsPhotoKeyLongerThan512Characters() {
+        authenticateAsJane();
+
+        expectBadRequest("{\"name\": \"Vera\", \"photoKey\": \"" + "a".repeat(513) + "\"}");
+    }
+
+    @Test
     void create_rejectsRequestsWithoutAToken() {
         restTestClient.post().uri("/v1/plants")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new CreatePlantRequest("Vera", null, null, null, null, null))
+                .body(new CreatePlantRequest("Vera", null, null, null, null, null, null))
                 .exchange()
                 .expectStatus().isUnauthorized();
     }

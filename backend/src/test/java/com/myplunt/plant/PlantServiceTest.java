@@ -5,6 +5,7 @@ import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesRepository;
+import com.myplunt.storage.StorageService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -23,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,11 +44,18 @@ class PlantServiceTest {
     @Mock
     private SpeciesRepository speciesRepository;
 
+    @Mock
+    private PlantPhotoRepository plantPhotoRepository;
+
+    @Mock
+    private StorageService storageService;
+
     private final UUID userId = UUID.randomUUID();
     private final UUID plantId = UUID.randomUUID();
 
     private PlantService plantService() {
-        return new PlantService(plantRepository, wateringLogRepository, planterRepository, speciesRepository);
+        return new PlantService(
+                plantRepository, wateringLogRepository, planterRepository, speciesRepository, plantPhotoRepository, storageService);
     }
 
     // Gives the saved plant an id, as the database would.
@@ -63,9 +72,9 @@ class PlantServiceTest {
         saveAssignsId();
 
         PlantResponse response = plantService().create(
-                userId, new CreatePlantRequest("Vera", "bright_indirect", 7, "Found at a flea market", null, null));
+                userId, new CreatePlantRequest("Vera", "bright_indirect", 7, "Found at a flea market", null, null, null));
 
-        assertThat(response).isEqualTo(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market", null, null));
+        assertThat(response).isEqualTo(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market", null, null, null));
         ArgumentCaptor<Plant> saved = ArgumentCaptor.forClass(Plant.class);
         verify(plantRepository).save(saved.capture());
         assertThat(saved.getValue().getOwnerId()).isEqualTo(userId);
@@ -78,7 +87,7 @@ class PlantServiceTest {
         when(planterRepository.existsByIdAndOwnerId(planterId, userId)).thenReturn(true);
         saveAssignsId();
 
-        PlantResponse response = plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, planterId, null));
+        PlantResponse response = plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, planterId, null, null));
 
         assertThat(response.planterId()).isEqualTo(planterId);
     }
@@ -88,7 +97,7 @@ class PlantServiceTest {
         UUID planterId = UUID.randomUUID();
         when(planterRepository.existsByIdAndOwnerId(planterId, userId)).thenReturn(false);
 
-        assertThatThrownBy(() -> plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, planterId, null)))
+        assertThatThrownBy(() -> plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, planterId, null, null)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Planter not found");
         verify(plantRepository, never()).save(any());
@@ -103,7 +112,7 @@ class PlantServiceTest {
         saveAssignsId();
 
         PlantResponse response =
-                plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, speciesId));
+                plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, speciesId, null));
 
         assertThat(response.speciesId()).isEqualTo(speciesId);
         ArgumentCaptor<Plant> saved = ArgumentCaptor.forClass(Plant.class);
@@ -117,28 +126,63 @@ class PlantServiceTest {
         when(speciesRepository.findByIdAndApprovedTrue(speciesId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
-                        plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, speciesId)))
+                        plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, speciesId, null)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Species not found");
         verify(plantRepository, never()).save(any());
     }
 
     @Test
+    void create_confirmsTheUploadedPhotoAndSavesItForThePlant() {
+        saveAssignsId();
+        String key = "plants/" + userId + "/photo.jpg";
+        when(storageService.createReadUrl(key)).thenReturn("https://storage.test/photo.jpg?signed");
+
+        PlantResponse response =
+                plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, null, key));
+
+        assertThat(response.photoUrl()).isEqualTo("https://storage.test/photo.jpg?signed");
+        verify(storageService).confirmUpload(userId, key);
+        ArgumentCaptor<PlantPhoto> photo = ArgumentCaptor.forClass(PlantPhoto.class);
+        verify(plantPhotoRepository).save(photo.capture());
+        assertThat(photo.getValue().getPlant().getId()).isEqualTo(plantId);
+        assertThat(photo.getValue().getUploadedBy()).isEqualTo(userId);
+        assertThat(photo.getValue().getPhotoKey()).isEqualTo(key);
+    }
+
+    @Test
+    void create_savesNothingWhenThePhotoCannotBeConfirmed() {
+        String key = "plants/" + UUID.randomUUID() + "/photo.jpg";
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Upload not found for key: " + key))
+                .when(storageService).confirmUpload(userId, key);
+
+        assertThatThrownBy(() ->
+                        plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, null, key)))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.NOT_FOUND);
+        verify(plantRepository, never()).save(any());
+        verify(plantPhotoRepository, never()).save(any());
+    }
+
+    @Test
     void create_keepsOptionalFieldsEmptyWhenLeftOut() {
         saveAssignsId();
 
-        PlantResponse response = plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, null));
+        PlantResponse response = plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, null, null));
 
-        assertThat(response).isEqualTo(new PlantResponse(plantId, "Vera", null, null, null, null, null));
+        assertThat(response).isEqualTo(new PlantResponse(plantId, "Vera", null, null, null, null, null, null));
+        verify(storageService, never()).confirmUpload(any(), any());
+        verify(plantPhotoRepository, never()).save(any());
     }
 
     @Test
     void create_trimsNotesAndStoresBlankNotesAsNull() {
         saveAssignsId();
 
-        assertThat(plantService().create(userId, new CreatePlantRequest("Vera", null, null, "  Repotted  ", null, null)).notes())
+        assertThat(plantService().create(userId, new CreatePlantRequest("Vera", null, null, "  Repotted  ", null, null, null)).notes())
                 .isEqualTo("Repotted");
-        assertThat(plantService().create(userId, new CreatePlantRequest("Vera", null, null, "   ", null, null)).notes())
+        assertThat(plantService().create(userId, new CreatePlantRequest("Vera", null, null, "   ", null, null, null)).notes())
                 .isNull();
     }
 

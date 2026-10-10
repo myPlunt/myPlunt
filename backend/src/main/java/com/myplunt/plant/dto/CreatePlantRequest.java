@@ -22,7 +22,9 @@ public record CreatePlantRequest(
         // One of the owner's planters; null leaves the plant under "Other plants".
         UUID planterId,
         // An approved species; null when the owner doesn't know or didn't pick one.
-        UUID speciesId) {
+        UUID speciesId,
+        // Key of a photo the owner uploaded via /v1/photos/upload-url; null for no photo.
+        @Size(max = 512, message = "Photo key must be at most 512 characters.") String photoKey) {
 
     // Strip before validation runs, so a name of only spaces counts as blank.
     public CreatePlantRequest {
