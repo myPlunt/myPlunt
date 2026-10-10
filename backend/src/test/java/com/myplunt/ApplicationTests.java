@@ -10,7 +10,13 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest
 @Testcontainers
-@TestPropertySource(properties = "app.jwt.secret=test-only-secret-test-only-secret-32b")
+@TestPropertySource(properties = {
+		"app.jwt.secret=test-only-secret-test-only-secret-32b",
+		"app.storage.endpoint=http://localhost:9000",
+		"app.storage.bucket=myplunt-test",
+		"app.storage.access-key=test",
+		"app.storage.secret-key=test"
+})
 class ApplicationTests {
 
 	@Container

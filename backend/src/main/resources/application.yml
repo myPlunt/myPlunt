@@ -13,3 +13,12 @@ app:
     secret: ${JWT_SECRET}
     access-token-ttl-minutes: 15
     refresh-token-ttl-days: 30
+  storage:
+    endpoint: ${STORAGE_ENDPOINT}
+    bucket: ${STORAGE_BUCKET}
+    access-key: ${STORAGE_ACCESS_KEY}
+    secret-key: ${STORAGE_SECRET_KEY}
+    prefix: ${STORAGE_PREFIX:}
+    upload-url-ttl-minutes: 5
+    read-url-ttl-minutes: 15
+    max-upload-size-bytes: 5242880 # 5MB
