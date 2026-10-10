@@ -2,6 +2,7 @@ import { render, screen, userEvent, waitFor } from '@testing-library/react-nativ
 import { useRouter } from 'expo-router';
 
 import { useGarden } from '@/features/garden/use-garden';
+import { usePlanterActions } from '@/features/planters/use-planter-actions';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { useSpecies } from '@/features/species/use-species';
 
@@ -11,6 +12,7 @@ jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/garden/use-garden');
 jest.mock('@/features/plants/use-plant-actions');
 jest.mock('@/features/species/use-species');
+jest.mock('@/features/planters/use-planter-actions');
 // The real hook loads the native picker; the form's tests cover the photo.
 jest.mock('@/features/photos/use-photo-upload', () => ({
   usePhotoUpload: () => ({ uri: null, key: null, isUploading: false, error: null }),
@@ -27,12 +29,16 @@ const garden = {
   ],
 };
 const back = jest.fn();
+const replace = jest.fn();
+const canGoBack = jest.fn();
 const createPlant = jest.fn();
 const user = userEvent.setup();
 
 beforeEach(() => {
-  mockedUseRouter.mockReturnValue({ back, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
+  canGoBack.mockReturnValue(true);
+  mockedUseRouter.mockReturnValue({ back, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
   mockedUsePlantActions.mockReturnValue({ createPlant });
+  jest.mocked(usePlanterActions).mockReturnValue({ createPlanter: jest.fn() });
   mockedUseSpecies.mockReturnValue({
     species: [{ id: 's1', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7 }],
     error: null,
@@ -79,13 +85,38 @@ describe('AddPlantScreen', () => {
     await waitFor(() => expect(back).toHaveBeenCalled());
   });
 
+  it('goes to the garden once the plant is saved when there is no screen to go back to', async () => {
+    canGoBack.mockReturnValue(false);
+    createPlant.mockResolvedValue({
+      id: 'p1',
+      name: 'Vera',
+      light: null,
+      wateringEveryDays: null,
+      notes: null,
+      planterId: null,
+      speciesId: null,
+      photoUrl: null,
+    });
+    await render(<AddPlantScreen />);
+
+    await user.type(screen.getByLabelText('Name'), 'Vera');
+    await user.press(screen.getByRole('button', { name: 'Next' }));
+    await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/garden'));
+    expect(back).not.toHaveBeenCalled();
+  });
+
   it('offers the garden\'s rooms as planters on step 2, but not the "Other plants" group', async () => {
     await render(<AddPlantScreen />);
     await user.type(screen.getByLabelText('Name'), 'Vera');
     await user.press(screen.getByRole('button', { name: 'Next' }));
 
+    await user.press(screen.getByRole('button', { name: 'Planter' }));
+
     expect(screen.getByRole('radio', { name: 'Balcony' })).toBeOnTheScreen();
-    expect(screen.queryByRole('radio', { name: 'Other plants' })).toBeNull();
+    // Just the dropdown's own "no planter" option, not a second one for the garden group.
+    expect(screen.getAllByRole('radio', { name: 'Other plants' })).toHaveLength(1);
   });
 
   it('shows a loading indicator for the planters while the garden loads', async () => {

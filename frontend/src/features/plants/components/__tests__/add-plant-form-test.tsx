@@ -2,6 +2,7 @@ import { render, screen, userEvent, waitFor } from '@testing-library/react-nativ
 import type { ComponentProps } from 'react';
 
 import { usePhotoUpload, type PhotoUpload } from '@/features/photos/use-photo-upload';
+import { usePlanterActions } from '@/features/planters/use-planter-actions';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { ApiError } from '@/lib/auth/api-client';
 
@@ -9,9 +10,11 @@ import { AddPlantForm } from '../add-plant-form';
 
 jest.mock('@/features/plants/use-plant-actions');
 jest.mock('@/features/photos/use-photo-upload');
+jest.mock('@/features/planters/use-planter-actions');
 
 const mockedUsePlantActions = jest.mocked(usePlantActions);
 const mockedUsePhotoUpload = jest.mocked(usePhotoUpload);
+const createPlanter = jest.fn();
 const noPhoto: PhotoUpload = {
   uri: null,
   key: null,
@@ -48,6 +51,7 @@ const planters = [
 beforeEach(() => {
   mockedUsePlantActions.mockReturnValue({ createPlant });
   mockedUsePhotoUpload.mockReturnValue(noPhoto);
+  jest.mocked(usePlanterActions).mockReturnValue({ createPlanter });
   createPlant.mockResolvedValue(vera);
 });
 
@@ -130,7 +134,7 @@ describe('AddPlantForm', () => {
       expect(screen.getByRole('radio', { name: 'Full sun' })).toBeOnTheScreen();
       expect(screen.getByLabelText('Water every how many days')).toBeOnTheScreen();
       expect(screen.getByLabelText('Notes')).toBeOnTheScreen();
-      expect(screen.getByRole('radio', { name: 'Balcony' })).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Planter' })).toBeOnTheScreen();
       expect(screen.queryByLabelText('Name')).toBeNull();
     });
 
@@ -166,26 +170,30 @@ describe('AddPlantForm', () => {
       expect(screen.getByLabelText('Water every how many days')).toHaveDisplayValue('12');
     });
 
-    it('selects one planter at a time and clears it when the chosen one is tapped again', async () => {
+    it('picks the planter from a dropdown that starts on Other plants', async () => {
       await renderForm();
       await nameAndContinue();
+      expect(screen.getByRole('button', { name: 'Planter' })).toHaveAccessibilityValue({ text: 'Other plants' });
 
-      await user.press(screen.getByRole('radio', { name: 'Balcony' }));
+      await user.press(screen.getByRole('button', { name: 'Planter' }));
       await user.press(screen.getByRole('radio', { name: 'Kitchen windowsill' }));
-      expect(screen.getByRole('radio', { name: 'Kitchen windowsill' })).toBeChecked();
-      expect(screen.getByRole('radio', { name: 'Balcony' })).not.toBeChecked();
-      expect(screen.queryByText('Leave empty to keep it under Other plants.')).toBeNull();
 
-      await user.press(screen.getByRole('radio', { name: 'Kitchen windowsill' }));
-      expect(screen.getByRole('radio', { name: 'Kitchen windowsill' })).not.toBeChecked();
-      expect(screen.getByText('Leave empty to keep it under Other plants.')).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Planter' })).toHaveAccessibilityValue({ text: 'Kitchen windowsill' });
     });
 
-    it('explains where the plant goes when the user has no planters', async () => {
+    it('selects a planter added from the dropdown, even before the garden reloads', async () => {
+      createPlanter.mockResolvedValue({ id: 'shed', name: 'Shed' });
       await renderForm({ planters: [] });
       await nameAndContinue();
 
-      expect(screen.getByText('You have no planters yet, so it goes under Other plants.')).toBeOnTheScreen();
+      await user.press(screen.getByRole('button', { name: 'Planter' }));
+      await user.press(screen.getByRole('button', { name: 'Add a planter' }));
+      await user.type(screen.getByLabelText('New planter name'), 'Shed');
+      await user.press(screen.getByRole('button', { name: 'Add' }));
+
+      expect(await screen.findByRole('button', { name: 'Planter' })).toHaveAccessibilityValue({ text: 'Shed' });
+      await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
+      await waitFor(() => expect(createPlant).toHaveBeenCalledWith(expect.objectContaining({ planterId: 'shed' })));
     });
   });
 
@@ -217,6 +225,7 @@ describe('AddPlantForm', () => {
       await user.press(screen.getByRole('radio', { name: 'Bright indirect' }));
       await user.type(screen.getByLabelText('Water every how many days'), '9');
       await user.type(screen.getByLabelText('Notes'), 'Found at a flea market');
+      await user.press(screen.getByRole('button', { name: 'Planter' }));
       await user.press(screen.getByRole('radio', { name: 'Kitchen windowsill' }));
 
       await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
