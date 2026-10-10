@@ -1,3 +1,5 @@
+import { logError } from '@/lib/logger';
+
 import { tokenStorage, type TokenPair } from './token-storage';
 import type { AuthResponse } from './types';
 
@@ -33,9 +35,22 @@ interface ProblemDetailBody {
   errors?: Record<string, string>;
 }
 
-async function parseJsonOrThrow<T>(response: Response): Promise<T> {
+// status 0 marks "no response at all": the backend is down, or the device is offline.
+const NETWORK_ERROR_DETAIL = "Can't reach myPlunt right now. Check your connection and try again.";
+
+async function send(path: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(`${API_BASE_URL}${path}`, init);
+  } catch (err) {
+    logError(`${init.method} ${path} got no response (is the backend running at ${API_BASE_URL}?)`, err);
+    throw new ApiError(0, 'Network request failed', { detail: NETWORK_ERROR_DETAIL });
+  }
+}
+
+async function parseJsonOrThrow<T>(response: Response, request: string): Promise<T> {
   if (!response.ok) {
     const body: ProblemDetailBody | undefined = await response.json().catch(() => undefined);
+    logError(`${request} failed with ${response.status}`, body);
     throw new ApiError(response.status, body?.detail ?? `Request failed with status ${response.status}`, {
       detail: body?.detail,
       fieldErrors: body?.errors,
@@ -49,12 +64,12 @@ async function parseJsonOrThrow<T>(response: Response): Promise<T> {
 
 /** For endpoints that don't need an access token: register, login, refresh. */
 export async function publicFetch<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await send(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  return parseJsonOrThrow<T>(response);
+  return parseJsonOrThrow<T>(response, `POST ${path}`);
 }
 
 // Multiple requests can 401 at once, so share one 
@@ -91,9 +106,10 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     throw new ApiError(401, 'Not authenticated');
   }
 
+  const method = options.method ?? 'GET';
   const makeRequest = (accessToken: string) =>
-    fetch(`${API_BASE_URL}${path}`, {
-      method: options.method ?? 'GET',
+    send(path, {
+      method,
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
@@ -108,5 +124,5 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     response = await makeRequest(refreshed.accessToken);
   }
 
-  return parseJsonOrThrow<T>(response);
+  return parseJsonOrThrow<T>(response, `${method} ${path}`);
 }

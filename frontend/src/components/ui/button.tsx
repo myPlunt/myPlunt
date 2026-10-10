@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, Text, type PressableProps } from 'react-native';
+import { ActivityIndicator, Pressable, Text, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Shadow, type ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -11,6 +11,8 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  /** Layout overrides a class can't express, e.g. a computed height. Applied after the shadow. */
+  style?: StyleProp<ViewStyle>;
 }
 
 // `spinner` is a theme key because ActivityIndicator takes a colour prop, not a class.
@@ -28,7 +30,7 @@ const sizeClasses: Record<ButtonSize, { container: string; text: string }> = {
   large: { container: 'h-12 px-6 rounded-xl', text: 'type-button-large' },
 };
 
-export function Button({ label, variant = 'primary', size = 'medium', loading, disabled, ...rest }: ButtonProps) {
+export function Button({ label, variant = 'primary', size = 'medium', loading, disabled, style, ...rest }: ButtonProps) {
   const theme = useTheme();
   const colors = variantClasses[variant];
   const dimensions = sizeClasses[size];
@@ -41,7 +43,7 @@ export function Button({ label, variant = 'primary', size = 'medium', loading, d
       className={`items-center justify-center active:opacity-80 ${colors.container} ${dimensions.container} ${
         isDisabled ? 'opacity-50' : ''
       }`}
-      style={variant !== 'ghost' ? Shadow.level2 : undefined}
+      style={[variant !== 'ghost' && Shadow.level2, style]}
       {...rest}>
       {loading ? (
         <ActivityIndicator color={theme[colors.spinner]} />

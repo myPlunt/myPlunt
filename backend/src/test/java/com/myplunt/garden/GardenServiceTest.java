@@ -141,4 +141,32 @@ class GardenServiceTest {
             assertThat(plant.nextWateringAt()).isNull();
         });
     }
+
+    @Test
+    void getGarden_prefersThePlantsOwnWateringPeriodOverTheSpecies() {
+        Plant vera = plant("Vera", null, 4);
+        vera.setWateringEveryDays(10);
+        when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of());
+        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(vera));
+
+        GardenPlantResponse response = gardenService().getGarden(ownerId).rooms().get(0).plants().get(0);
+
+        assertThat(response.wateringFrequencyDays()).isEqualTo(10);
+        assertThat(response.nextWateringAt()).isEqualTo(addedAt.plus(Duration.ofDays(10)));
+    }
+
+    @Test
+    void getGarden_schedulesAPlantWithoutSpeciesFromItsOwnWateringPeriod() {
+        Plant vera = plant("Vera", null, null);
+        vera.setSpecies(null);
+        vera.setWateringEveryDays(7);
+        when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of());
+        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(vera));
+
+        GardenPlantResponse response = gardenService().getGarden(ownerId).rooms().get(0).plants().get(0);
+
+        assertThat(response.speciesName()).isNull();
+        assertThat(response.wateringFrequencyDays()).isEqualTo(7);
+        assertThat(response.nextWateringAt()).isEqualTo(addedAt.plus(Duration.ofDays(7)));
+    }
 }
