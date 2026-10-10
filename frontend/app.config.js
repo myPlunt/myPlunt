@@ -46,6 +46,16 @@ export default {
         },
       ],
       [
+        // Reads the newest photos for the photo menu's grid. Same iOS text as above (both
+        // set NSPhotoLibraryUsageDescription); only photos on Android 13+; we never save.
+        "expo-media-library",
+        {
+          photosPermission: "myPlunt uses your photos so you can add pictures of your plants.",
+          savePhotosPermission: false,
+          granularPermissions: ["photo"],
+        },
+      ],
+      [
         "expo-splash-screen",
         {
           backgroundColor: SAND_DUNE,

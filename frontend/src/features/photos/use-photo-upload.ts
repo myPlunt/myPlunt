@@ -6,6 +6,7 @@ import { describeError } from '@/lib/auth/api-client';
 import type { PhotoCategory } from '@/lib/photo/types';
 
 import { uploadPhoto } from './photo-service';
+import type { LibraryPhoto } from './use-recent-photos';
 
 // Big enough for a full-width photo on any phone, small enough to stay far below the
 // backend's 5 MB limit. Resizing also turns iPhone HEIC photos into JPEG, which the backend accepts.
@@ -28,10 +29,12 @@ export interface PhotoUpload {
   error: string | null;
   takePhoto: () => Promise<void>;
   chooseFromLibrary: () => Promise<void>;
+  /** Uploads a photo the user tapped in the recent-photos grid. */
+  uploadLibraryPhoto: (photo: LibraryPhoto) => Promise<void>;
   remove: () => void;
 }
 
-/** Picks a photo from the camera or the library, shrinks it and uploads it right away. */
+/** Picks a photo from the camera or the library, crops and shrinks it, and uploads it right away. */
 export function usePhotoUpload(category: PhotoCategory): PhotoUpload {
   const [uri, setUri] = useState<string | null>(null);
   const [key, setKey] = useState<string | null>(null);
@@ -57,17 +60,18 @@ export function usePhotoUpload(category: PhotoCategory): PhotoUpload {
 
   async function handlePicked(result: ImagePicker.ImagePickerResult) {
     if (result.canceled) return;
-    const asset = result.assets[0];
+    const [asset] = result.assets;
+    await uploadLibraryPhoto({ uri: asset.uri, width: asset.width, height: asset.height });
+  }
+
+  async function uploadLibraryPhoto(photo: { uri: string; width: number; height: number }) {
     const current = ++attempt.current;
-    setUri(asset.uri);
+    setUri(photo.uri);
     setKey(null);
     setError(null);
     setIsUploading(true);
     try {
-      const context = ImageManipulator.manipulate(asset.uri);
-      if (asset.width > MAX_WIDTH) context.resize({ width: MAX_WIDTH });
-      const image = await (await context.renderAsync()).saveAsync({ format: SaveFormat.JPEG, compress: JPEG_QUALITY });
-      const uploadedKey = await uploadPhoto(image.uri, category);
+      const uploadedKey = await uploadPhoto(await squareJpeg(photo), category);
       if (current === attempt.current) setKey(uploadedKey);
     } catch (err) {
       if (current === attempt.current) {
@@ -87,5 +91,20 @@ export function usePhotoUpload(category: PhotoCategory): PhotoUpload {
     setIsUploading(false);
   }
 
-  return { uri, key, isUploading, error, takePhoto, chooseFromLibrary, remove };
+  return { uri, key, isUploading, error, takePhoto, chooseFromLibrary, uploadLibraryPhoto, remove };
+}
+
+/**
+ * Centre-crops the photo to a square (the picker's own crop already is one; photos from
+ * the recent grid aren't) and shrinks it to at most MAX_WIDTH, as a JPEG file.
+ */
+async function squareJpeg({ uri, width, height }: { uri: string; width: number; height: number }) {
+  const side = Math.min(width, height);
+  const context = ImageManipulator.manipulate(uri);
+  if (width !== height) {
+    context.crop({ originX: (width - side) / 2, originY: (height - side) / 2, width: side, height: side });
+  }
+  if (side > MAX_WIDTH) context.resize({ width: MAX_WIDTH });
+  const image = await (await context.renderAsync()).saveAsync({ format: SaveFormat.JPEG, compress: JPEG_QUALITY });
+  return image.uri;
 }

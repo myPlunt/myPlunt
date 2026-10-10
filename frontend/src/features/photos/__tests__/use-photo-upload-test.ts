@@ -20,6 +20,7 @@ jest.mock('expo-image-manipulator', () => ({
 const mockedPicker = jest.mocked(ImagePicker);
 const mockedUploadPhoto = jest.mocked(uploadPhoto);
 const resize = jest.fn();
+const crop = jest.fn();
 const saveAsync = jest.fn();
 
 function picked(width = 4000): ImagePicker.ImagePickerResult {
@@ -32,6 +33,7 @@ function picked(width = 4000): ImagePicker.ImagePickerResult {
 beforeEach(() => {
   jest.mocked(ImageManipulator.manipulate).mockReturnValue({
     resize,
+    crop,
     renderAsync: () => Promise.resolve({ saveAsync }),
   } as unknown as ReturnType<typeof ImageManipulator.manipulate>);
   saveAsync.mockResolvedValue({ uri: 'file:///small.jpg', width: 1600, height: 1600 });
@@ -48,7 +50,7 @@ afterEach(() => {
 });
 
 describe('usePhotoUpload', () => {
-  it('shrinks a library photo to a JPEG, uploads it and keeps its key', async () => {
+  it('shrinks a picked photo to a JPEG, uploads it and keeps its key', async () => {
     const { result } = await renderHook(() => usePhotoUpload('PLANT'));
 
     await act(() => result.current.chooseFromLibrary());
@@ -61,6 +63,18 @@ describe('usePhotoUpload', () => {
     );
   });
 
+  it('centre-crops a tapped recent photo to a square before uploading it', async () => {
+    const { result } = await renderHook(() => usePhotoUpload('PLANT'));
+
+    await act(() => result.current.uploadLibraryPhoto({ id: 't1', uri: 'file:///tall.jpg', width: 1000, height: 1600 }));
+
+    expect(crop).toHaveBeenCalledWith({ originX: 0, originY: 300, width: 1000, height: 1000 });
+    expect(resize).not.toHaveBeenCalled();
+    expect(mockedUploadPhoto).toHaveBeenCalledWith('file:///small.jpg', 'PLANT');
+    expect(result.current.uri).toBe('file:///tall.jpg');
+    expect(result.current.key).toBe('plants/u1/a.jpg');
+  });
+
   it('leaves photos that are already small at their size', async () => {
     mockedPicker.launchImageLibraryAsync.mockResolvedValue(picked(1200));
     const { result } = await renderHook(() => usePhotoUpload('PLANT'));
@@ -68,6 +82,7 @@ describe('usePhotoUpload', () => {
     await act(() => result.current.chooseFromLibrary());
 
     expect(resize).not.toHaveBeenCalled();
+    expect(crop).not.toHaveBeenCalled();
     expect(mockedUploadPhoto).toHaveBeenCalled();
   });
 

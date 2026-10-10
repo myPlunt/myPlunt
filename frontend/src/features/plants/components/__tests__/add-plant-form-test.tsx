@@ -19,6 +19,7 @@ const noPhoto: PhotoUpload = {
   error: null,
   takePhoto: jest.fn(),
   chooseFromLibrary: jest.fn(),
+  uploadLibraryPhoto: jest.fn(),
   remove: jest.fn(),
 };
 const createPlant = jest.fn();
@@ -80,8 +81,7 @@ describe('AddPlantForm', () => {
 
       expect(screen.getByLabelText('Name')).toBeOnTheScreen();
       expect(screen.getByLabelText('Species')).toBeOnTheScreen();
-      expect(screen.getByRole('button', { name: 'Take photo' })).toBeOnTheScreen();
-      expect(screen.getByRole('button', { name: 'Choose from library' })).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Add a photo' })).toBeOnTheScreen();
       expect(screen.queryByRole('radio', { name: 'Full sun' })).toBeNull();
       expect(screen.queryByLabelText('Notes')).toBeNull();
       expect(screen.queryByRole('button', { name: 'Add to my garden' })).toBeNull();
