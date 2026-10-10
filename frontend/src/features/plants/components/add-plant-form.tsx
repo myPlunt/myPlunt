@@ -13,10 +13,12 @@ import {
   singleLineInputText,
 } from '@/features/plants/components/notebook-paper';
 import { PhotoField } from '@/features/plants/components/photo-field';
+import { PlanterSelect } from '@/features/plants/components/planter-select';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { Light, Plant } from '@/lib/plant/types';
+import type { Planter } from '@/lib/planter/types';
 import type { Species } from '@/lib/species/types';
 
 const NOTES_MAX_LENGTH = 1000;
@@ -36,8 +38,6 @@ const lightOptions: { value: Light; label: string; icon: SymbolViewProps['name']
   { value: 'low_light', label: 'Low light', icon: { ios: 'moon.fill', android: 'dark_mode', web: 'dark_mode' } },
 ];
 
-const planterIcon: SymbolViewProps['name'] = { ios: 'house.fill', android: 'yard', web: 'yard' };
-
 // Fields the backend may reject that live on step 1; an error there sends the user back to it.
 const STEP_1_FIELDS = ['name', 'speciesId', 'photoKey'];
 
@@ -54,7 +54,7 @@ interface AddPlantFormProps {
   species: Species[] | null;
   speciesError: string | null;
   /** The user's planters to pick from; null while they load. */
-  planters: { id: string; name: string }[] | null;
+  planters: Planter[] | null;
   plantersError: string | null;
   onCreated: (plant: Plant) => void;
 }
@@ -74,6 +74,8 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
   const [speciesQuery, setSpeciesQuery] = useState('');
   const [speciesId, setSpeciesId] = useState<string | null>(null);
   const [planterId, setPlanterId] = useState<string | null>(null);
+  // Planters added from the dropdown; the garden (and so `planters`) only reloads later.
+  const [addedPlanters, setAddedPlanters] = useState<Planter[]>([]);
   const [light, setLight] = useState<Light | null>(null);
   const [wateringEveryDays, setWateringEveryDays] = useState('');
   const [notes, setNotes] = useState('');
@@ -81,6 +83,7 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const allPlanters = planters && [...planters, ...addedPlanters];
   const selectedSpecies = species?.find((item) => item.id === speciesId) ?? null;
   const speciesSuggestions =
     speciesQuery.trim() === '' || selectedSpecies || !species
@@ -257,39 +260,18 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
           </RuledLine>
           {plantersError ? (
             <ErrorLine message={plantersError} />
-          ) : planters === null ? (
+          ) : allPlanters === null ? (
             <View className="justify-center" style={oneLine}>
               {/* A colour prop, so it reads the theme instead of a class. */}
               <ActivityIndicator accessibilityLabel="Loading planters" color={theme.primary} className="self-start" />
             </View>
-          ) : planters.length === 0 ? (
-            <RuledLine>
-              <Text className="type-caption text-text-secondary" numberOfLines={1} adjustsFontSizeToFit>
-                You have no planters yet, so it goes under Other plants.
-              </Text>
-            </RuledLine>
           ) : (
-            <>
-              <ChoiceGroup>
-                {planters.map((planter) => (
-                  <ChoiceChip
-                    key={planter.id}
-                    label={planter.name}
-                    icon={planterIcon}
-                    selected={planterId === planter.id}
-                    // Optional, so tapping the chosen planter clears it again.
-                    onPress={() => setPlanterId(planterId === planter.id ? null : planter.id)}
-                  />
-                ))}
-              </ChoiceGroup>
-              {planterId === null && (
-                <RuledLine>
-                  <Text className="type-caption text-text-secondary" numberOfLines={1} adjustsFontSizeToFit>
-                    Leave empty to keep it under Other plants.
-                  </Text>
-                </RuledLine>
-              )}
-            </>
+            <PlanterSelect
+              planters={allPlanters}
+              selectedId={planterId}
+              onSelect={setPlanterId}
+              onAdded={(planter) => setAddedPlanters((current) => [...current, planter])}
+            />
           )}
         </>
       )}

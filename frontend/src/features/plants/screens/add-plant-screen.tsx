@@ -15,6 +15,16 @@ export function AddPlantScreen() {
   // The garden's rooms are the user's planters; the group without an id is "Other plants".
   const { garden, error: plantersError } = useGarden();
   const { species, error: speciesError } = useSpecies();
+  function close() {
+    // Nothing underneath when the app was opened (or reloaded) straight onto this page,
+    // so go to the garden, where the new plant shows up.
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/garden');
+    }
+  }
+
   const planters = garden?.rooms.flatMap((room) => (room.id ? [{ id: room.id, name: room.name }] : [])) ?? null;
 
   return (
@@ -54,13 +64,13 @@ export function AddPlantScreen() {
                   The more we know, the better we&apos;ll remind you.
                 </Text>
               </RuledLine>
-              {/* Closing the sheet refocuses the garden, which reloads and shows the new plant. */}
+              {/* Closing the sheet refocuses the screen below; the garden reloads and shows the new plant. */}
               <AddPlantForm
                 species={species}
                 speciesError={speciesError}
                 planters={planters}
                 plantersError={plantersError}
-                onCreated={() => router.back()}
+                onCreated={close}
               />
             </View>
           </ScrollView>
