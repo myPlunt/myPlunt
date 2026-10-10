@@ -36,6 +36,16 @@ export default {
       "expo-router",
       "expo-secure-store",
       [
+        // Camera and library for photographing your own plants,
+        // photosPermission only matters on iOS; Android's photo picker needs no permission.
+        "expo-image-picker",
+        {
+          photosPermission: "myPlunt uses your photos so you can add pictures of your plants.",
+          cameraPermission: "myPlunt uses your camera so you can take pictures of your plants.",
+          microphonePermission: false,
+        },
+      ],
+      [
         "expo-splash-screen",
         {
           backgroundColor: SAND_DUNE,

@@ -3,15 +3,16 @@ import { Children, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { usePhotoUpload } from '@/features/photos/use-photo-upload';
 import { ChoiceChip } from '@/features/plants/components/choice-chip';
 import {
   boxHeight,
   oneLine,
-  RULE_HEIGHT,
   RuledLine,
   RuledTextField,
   singleLineInputText,
 } from '@/features/plants/components/notebook-paper';
+import { PhotoField } from '@/features/plants/components/photo-field';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
@@ -38,7 +39,7 @@ const lightOptions: { value: Light; label: string; icon: SymbolViewProps['name']
 const planterIcon: SymbolViewProps['name'] = { ios: 'house.fill', android: 'yard', web: 'yard' };
 
 // Fields the backend may reject that live on step 1; an error there sends the user back to it.
-const STEP_1_FIELDS = ['name', 'speciesId'];
+const STEP_1_FIELDS = ['name', 'speciesId', 'photoKey'];
 
 // Suggestions shown under the species search, one per ruled line.
 const MAX_SPECIES_SUGGESTIONS = 3;
@@ -66,6 +67,8 @@ interface AddPlantFormProps {
 export function AddPlantForm({ species, speciesError, planters, plantersError, onCreated }: AddPlantFormProps) {
   const theme = useTheme();
   const { createPlant } = usePlantActions();
+  // Uploads as soon as a photo is picked, so it's usually done by the time the form is.
+  const photo = usePhotoUpload('PLANT');
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState('');
   const [speciesQuery, setSpeciesQuery] = useState('');
@@ -107,6 +110,7 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
         notes: notes.trim() === '' ? null : notes,
         planterId,
         speciesId,
+        photoKey: photo.key,
       });
       onCreated(plant);
     } catch (err) {
@@ -181,24 +185,7 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
             ))
           )}
 
-          <RuledLine>
-            <Text className="type-label text-text-secondary">Photo</Text>
-          </RuledLine>
-          {/* Placeholder, not a button: uploading needs file storage on the backend
-              (TMP-007), and the plant_photos table is waiting for it. */}
-          <View className="justify-center" style={{ height: 3 * RULE_HEIGHT }}>
-            <View
-              className="items-center justify-center gap-1 rounded-[10px] border-[1.5px] border-dashed border-input-border"
-              style={{ height: boxHeight(3) }}>
-              {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
-              <SymbolView
-                name={{ ios: 'camera', android: 'photo_camera', web: 'photo_camera' }}
-                tintColor={theme.accent}
-                size={24}
-              />
-              <Text className="type-caption text-text-secondary">Photos are coming soon</Text>
-            </View>
-          </View>
+          <PhotoField photo={photo} />
         </>
       ) : (
         <>
@@ -337,6 +324,8 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
               <Button
                 label="Add to my garden"
                 loading={isSubmitting}
+                // The photo has to finish uploading first, or it would be left out.
+                disabled={photo.isUploading}
                 onPress={handleSubmit}
                 style={{ height: boxHeight(1) }}
               />

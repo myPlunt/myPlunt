@@ -10,6 +10,8 @@ export interface Plant {
   notes: string | null;
   planterId: string | null;
   speciesId: string | null;
+  /** Short-lived link to the plant's photo; null when it has none. */
+  photoUrl: string | null;
 }
 
 /** Mirrors CreatePlantRequest (POST /v1/plants). */
@@ -22,4 +24,6 @@ export interface CreatePlantRequest {
   planterId: string | null;
   /** An approved species from GET /v1/species; null when none was picked. */
   speciesId: string | null;
+  /** Key from uploading a photo (features/photos); null for no photo. */
+  photoKey: string | null;
 }

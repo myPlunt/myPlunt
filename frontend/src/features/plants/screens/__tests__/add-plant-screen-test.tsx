@@ -11,6 +11,10 @@ jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/garden/use-garden');
 jest.mock('@/features/plants/use-plant-actions');
 jest.mock('@/features/species/use-species');
+// The real hook loads the native picker; the form's tests cover the photo.
+jest.mock('@/features/photos/use-photo-upload', () => ({
+  usePhotoUpload: () => ({ uri: null, key: null, isUploading: false, error: null }),
+}));
 
 const mockedUseRouter = jest.mocked(useRouter);
 const mockedUsePlantActions = jest.mocked(usePlantActions);
@@ -64,6 +68,7 @@ describe('AddPlantScreen', () => {
       notes: null,
       planterId: null,
       speciesId: null,
+      photoUrl: null,
     });
     await render(<AddPlantScreen />);
 

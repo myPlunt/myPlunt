@@ -1,14 +1,26 @@
 import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
 import type { ComponentProps } from 'react';
 
+import { usePhotoUpload, type PhotoUpload } from '@/features/photos/use-photo-upload';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { ApiError } from '@/lib/auth/api-client';
 
 import { AddPlantForm } from '../add-plant-form';
 
 jest.mock('@/features/plants/use-plant-actions');
+jest.mock('@/features/photos/use-photo-upload');
 
 const mockedUsePlantActions = jest.mocked(usePlantActions);
+const mockedUsePhotoUpload = jest.mocked(usePhotoUpload);
+const noPhoto: PhotoUpload = {
+  uri: null,
+  key: null,
+  isUploading: false,
+  error: null,
+  takePhoto: jest.fn(),
+  chooseFromLibrary: jest.fn(),
+  remove: jest.fn(),
+};
 const createPlant = jest.fn();
 const onCreated = jest.fn();
 const user = userEvent.setup();
@@ -20,6 +32,7 @@ const vera = {
   notes: null,
   planterId: null,
   speciesId: null,
+  photoUrl: null,
 };
 const species = [
   { id: 'monstera', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7 },
@@ -33,6 +46,7 @@ const planters = [
 
 beforeEach(() => {
   mockedUsePlantActions.mockReturnValue({ createPlant });
+  mockedUsePhotoUpload.mockReturnValue(noPhoto);
   createPlant.mockResolvedValue(vera);
 });
 
@@ -66,7 +80,8 @@ describe('AddPlantForm', () => {
 
       expect(screen.getByLabelText('Name')).toBeOnTheScreen();
       expect(screen.getByLabelText('Species')).toBeOnTheScreen();
-      expect(screen.getByText('Photos are coming soon')).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Take photo' })).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Choose from library' })).toBeOnTheScreen();
       expect(screen.queryByRole('radio', { name: 'Full sun' })).toBeNull();
       expect(screen.queryByLabelText('Notes')).toBeNull();
       expect(screen.queryByRole('button', { name: 'Add to my garden' })).toBeNull();
@@ -188,6 +203,7 @@ describe('AddPlantForm', () => {
         notes: null,
         planterId: null,
         speciesId: null,
+        photoKey: null,
       });
     });
 
@@ -212,8 +228,31 @@ describe('AddPlantForm', () => {
           notes: 'Found at a flea market',
           planterId: 'kitchen',
           speciesId: 'monstera',
+          photoKey: null,
         }),
       );
+    });
+
+    it('sends the key of the uploaded photo with the plant', async () => {
+      mockedUsePhotoUpload.mockReturnValue({ ...noPhoto, uri: 'file:///a.jpg', key: 'plants/u1/a.jpg' });
+      await renderForm();
+      await nameAndContinue();
+
+      await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
+
+      await waitFor(() =>
+        expect(createPlant).toHaveBeenCalledWith(expect.objectContaining({ photoKey: 'plants/u1/a.jpg' })),
+      );
+    });
+
+    it('waits for the photo to finish uploading before the plant can be added', async () => {
+      mockedUsePhotoUpload.mockReturnValue({ ...noPhoto, uri: 'file:///a.jpg', isUploading: true });
+      await renderForm();
+      await nameAndContinue();
+
+      await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
+
+      expect(createPlant).not.toHaveBeenCalled();
     });
 
     it('links the picked species, shows its details and hints its watering frequency on step 2', async () => {

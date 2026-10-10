@@ -11,8 +11,17 @@ afterEach(() => {
 
 describe('createPlant', () => {
   it('POSTs the new plant to /v1/plants and returns the saved plant', async () => {
-    const request = { name: 'Vera', light: 'bright_indirect' as const, wateringEveryDays: 7, notes: null, planterId: 'room-1', speciesId: 's1' };
-    const saved = { id: 'p1', ...request };
+    const request = {
+      name: 'Vera',
+      light: 'bright_indirect' as const,
+      wateringEveryDays: 7,
+      notes: null,
+      planterId: 'room-1',
+      speciesId: 's1',
+      photoKey: 'plants/u1/photo.jpg',
+    };
+    const { photoKey, ...fields } = request;
+    const saved = { id: 'p1', ...fields, photoUrl: `https://storage.test/${photoKey}` };
     mockedApiFetch.mockResolvedValue(saved);
 
     await expect(plantService.createPlant(request)).resolves.toEqual(saved);
