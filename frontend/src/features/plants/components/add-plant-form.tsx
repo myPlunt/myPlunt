@@ -1,10 +1,11 @@
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { Shadow } from '@/constants/theme';
+import { ChoiceChip } from '@/features/plants/components/choice-chip';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
@@ -27,11 +28,21 @@ const lightOptions: { value: Light; label: string; icon: SymbolViewProps['name']
   { value: 'low_light', label: 'Low light', icon: { ios: 'moon.fill', android: 'dark_mode', web: 'dark_mode' } },
 ];
 
-/** Name, light, watering period and notes for a new plant. Calls onCreated with the saved plant. */
-export function AddPlantForm({ onCreated }: { onCreated: (plant: Plant) => void }) {
+const planterIcon: SymbolViewProps['name'] = { ios: 'house.fill', android: 'yard', web: 'yard' };
+
+interface AddPlantFormProps {
+  /** The user's planters to pick from; null while they load. */
+  planters: { id: string; name: string }[] | null;
+  plantersError: string | null;
+  onCreated: (plant: Plant) => void;
+}
+
+/** Name, planter, light, watering period and notes for a new plant. Calls onCreated with the saved plant. */
+export function AddPlantForm({ planters, plantersError, onCreated }: AddPlantFormProps) {
   const theme = useTheme();
   const { createPlant } = usePlantActions();
   const [name, setName] = useState('');
+  const [planterId, setPlanterId] = useState<string | null>(null);
   const [light, setLight] = useState<Light | null>(null);
   const [wateringEveryDays, setWateringEveryDays] = useState('');
   const [notes, setNotes] = useState('');
@@ -49,6 +60,7 @@ export function AddPlantForm({ onCreated }: { onCreated: (plant: Plant) => void 
         light,
         wateringEveryDays: wateringEveryDays === '' ? null : Number(wateringEveryDays),
         notes: notes.trim() === '' ? null : notes,
+        planterId,
       });
       onCreated(plant);
     } catch (err) {
@@ -74,34 +86,50 @@ export function AddPlantForm({ onCreated }: { onCreated: (plant: Plant) => void 
       />
 
       <View className="mb-2 gap-1">
+        <Text className="type-label text-text-secondary">Planter</Text>
+        {plantersError ? (
+          <Text className="type-caption text-error">{plantersError}</Text>
+        ) : planters === null ? (
+          // A colour prop, so it reads the theme instead of a class.
+          <ActivityIndicator accessibilityLabel="Loading planters" color={theme.primary} className="self-start" />
+        ) : planters.length === 0 ? (
+          <Text className="type-caption text-text-secondary">
+            You have no planters yet, so it goes under Other plants.
+          </Text>
+        ) : (
+          <>
+            <View accessibilityRole="radiogroup" className="flex-row flex-wrap gap-2">
+              {planters.map((planter) => (
+                <ChoiceChip
+                  key={planter.id}
+                  label={planter.name}
+                  icon={planterIcon}
+                  selected={planterId === planter.id}
+                  // Optional, so tapping the chosen planter clears it again.
+                  onPress={() => setPlanterId(planterId === planter.id ? null : planter.id)}
+                />
+              ))}
+            </View>
+            {planterId === null && (
+              <Text className="type-caption text-text-secondary">Leave empty to keep it under Other plants.</Text>
+            )}
+          </>
+        )}
+      </View>
+
+      <View className="mb-2 gap-1">
         <Text className="type-label text-text-secondary">Light</Text>
         <View accessibilityRole="radiogroup" className="flex-row flex-wrap gap-2">
-          {lightOptions.map((option) => {
-            const selected = light === option.value;
-            return (
-              <Pressable
-                key={option.value}
-                accessibilityRole="radio"
-                accessibilityLabel={option.label}
-                accessibilityState={{ checked: selected }}
-                // Light is optional, so tapping the chosen option clears it again.
-                onPress={() => setLight(selected ? null : option.value)}
-                className={`flex-row items-center gap-2 rounded-full border-[1.5px] px-3 py-2 active:opacity-70 ${
-                  selected ? 'border-primary bg-primary' : 'border-input-border bg-background-element'
-                }`}
-                style={Shadow.level2}>
-                {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
-                <SymbolView
-                  name={option.icon}
-                  tintColor={selected ? theme.backgroundElement : theme.accent}
-                  size={16}
-                />
-                <Text className={`type-body-medium ${selected ? 'text-background-element' : 'text-text'}`}>
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+          {lightOptions.map((option) => (
+            <ChoiceChip
+              key={option.value}
+              label={option.label}
+              icon={option.icon}
+              selected={light === option.value}
+              // Light is optional, so tapping the chosen option clears it again.
+              onPress={() => setLight(light === option.value ? null : option.value)}
+            />
+          ))}
         </View>
         {fieldErrors.light && <Text className="type-caption text-error">{fieldErrors.light}</Text>}
       </View>

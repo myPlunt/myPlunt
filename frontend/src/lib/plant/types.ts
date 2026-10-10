@@ -8,6 +8,7 @@ export interface Plant {
   light: Light | null;
   wateringEveryDays: number | null;
   notes: string | null;
+  planterId: string | null;
 }
 
 /** Mirrors CreatePlantRequest (POST /v1/plants). */
@@ -16,4 +17,6 @@ export interface CreatePlantRequest {
   light: Light | null;
   wateringEveryDays: number | null;
   notes: string | null;
+  /** One of the user's planters (a room in the garden); null leaves it under "Other plants". */
+  planterId: string | null;
 }
