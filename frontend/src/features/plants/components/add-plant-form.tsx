@@ -318,7 +318,13 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
         ) : (
           <>
             <View className="flex-1 rounded-[10px] bg-background-element">
-              <Button label="Back" variant="secondary" onPress={() => setStep(1)} style={{ height: boxHeight(1) }} />
+              <Button
+                label="Back"
+                variant="secondary"
+                onPress={() => setStep(1)}
+                // Keeps the secondary fill but drops its outline, which looked busy on the ruled paper.
+                style={{ height: boxHeight(1), borderWidth: 0 }}
+              />
             </View>
             <View className="flex-[2] rounded-[10px] bg-background-element">
               <Button

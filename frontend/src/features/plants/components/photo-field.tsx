@@ -49,7 +49,7 @@ export function PhotoField({ photo }: { photo: PhotoUpload }) {
       </RuledLine>
       <View className="justify-center" style={{ height: ROWS * RULE_HEIGHT }}>
         {photo.uri ? (
-          <View className="overflow-hidden rounded-[10px]" style={box}>
+          <View className="overflow-hidden rounded-[10px] border-[1.5px] border-input-border" style={box}>
             <Image
               accessibilityLabel="Plant photo"
               source={{ uri: photo.uri }}
