@@ -9,6 +9,7 @@ export interface Plant {
   wateringEveryDays: number | null;
   notes: string | null;
   planterId: string | null;
+  speciesId: string | null;
 }
 
 /** Mirrors CreatePlantRequest (POST /v1/plants). */
@@ -19,4 +20,6 @@ export interface CreatePlantRequest {
   notes: string | null;
   /** One of the user's planters (a room in the garden); null leaves it under "Other plants". */
   planterId: string | null;
+  /** An approved species from GET /v1/species; null when none was picked. */
+  speciesId: string | null;
 }

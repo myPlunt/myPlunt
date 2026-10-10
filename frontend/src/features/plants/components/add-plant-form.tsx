@@ -1,14 +1,15 @@
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { Children, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { ChoiceChip } from '@/features/plants/components/choice-chip';
-import { boxHeight, oneLine, RuledLine, RuledTextField } from '@/features/plants/components/notebook-paper';
+import { boxHeight, oneLine, RuledLine, RuledTextField, singleLineInputText } from '@/features/plants/components/notebook-paper';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { Light, Plant } from '@/lib/plant/types';
+import type { Species } from '@/lib/species/types';
 
 const NOTES_MAX_LENGTH = 1000;
 
@@ -29,7 +30,20 @@ const lightOptions: { value: Light; label: string; icon: SymbolViewProps['name']
 
 const planterIcon: SymbolViewProps['name'] = { ios: 'house.fill', android: 'yard', web: 'yard' };
 
+// Suggestions shown under the species search, one per ruled line.
+const MAX_SPECIES_SUGGESTIONS = 3;
+
+function matchesSpecies(species: Species, query: string) {
+  const needle = query.trim().toLowerCase();
+  return (
+    species.commonName.toLowerCase().includes(needle) || species.scientificName.toLowerCase().includes(needle)
+  );
+}
+
 interface AddPlantFormProps {
+  /** The approved species to search; null while they load. */
+  species: Species[] | null;
+  speciesError: string | null;
   /** The user's planters to pick from; null while they load. */
   planters: { id: string; name: string }[] | null;
   plantersError: string | null;
@@ -37,13 +51,15 @@ interface AddPlantFormProps {
 }
 
 /**
- * Name, light, watering period, notes and planter for a new plant, written on ruled
- * lines. Calls onCreated with the saved plant.
+ * Name, species, light, watering period, notes and planter for a new plant, written
+ * on ruled lines. Calls onCreated with the saved plant.
  */
-export function AddPlantForm({ planters, plantersError, onCreated }: AddPlantFormProps) {
+export function AddPlantForm({ species, speciesError, planters, plantersError, onCreated }: AddPlantFormProps) {
   const theme = useTheme();
   const { createPlant } = usePlantActions();
   const [name, setName] = useState('');
+  const [speciesQuery, setSpeciesQuery] = useState('');
+  const [speciesId, setSpeciesId] = useState<string | null>(null);
   const [planterId, setPlanterId] = useState<string | null>(null);
   const [light, setLight] = useState<Light | null>(null);
   const [wateringEveryDays, setWateringEveryDays] = useState('');
@@ -51,6 +67,23 @@ export function AddPlantForm({ planters, plantersError, onCreated }: AddPlantFor
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const selectedSpecies = species?.find((item) => item.id === speciesId) ?? null;
+  const speciesSuggestions =
+    speciesQuery.trim() === '' || selectedSpecies || !species
+      ? []
+      : species.filter((item) => matchesSpecies(item, speciesQuery)).slice(0, MAX_SPECIES_SUGGESTIONS);
+
+  function changeSpeciesQuery(text: string) {
+    setSpeciesQuery(text);
+    // Typing again means searching again, so the earlier pick no longer applies.
+    setSpeciesId(null);
+  }
+
+  function selectSpecies(item: Species) {
+    setSpeciesId(item.id);
+    setSpeciesQuery(item.commonName);
+  }
 
   async function handleSubmit() {
     setError(null);
@@ -63,6 +96,7 @@ export function AddPlantForm({ planters, plantersError, onCreated }: AddPlantFor
         wateringEveryDays: wateringEveryDays === '' ? null : Number(wateringEveryDays),
         notes: notes.trim() === '' ? null : notes,
         planterId,
+        speciesId,
       });
       onCreated(plant);
     } catch (err) {
@@ -86,6 +120,51 @@ export function AddPlantForm({ planters, plantersError, onCreated }: AddPlantFor
         placeholder="Vera the slow Monstera"
         autoCapitalize="words"
       />
+
+      <RuledTextField
+        label="Species"
+        value={speciesQuery}
+        onChangeText={changeSpeciesQuery}
+        placeholder="Search, e.g. Monstera"
+        autoCapitalize="words"
+      />
+      {speciesError ? (
+        <ErrorLine message={speciesError} />
+      ) : selectedSpecies ? (
+        <RuledLine>
+          <Text className="type-caption text-text-secondary" numberOfLines={1} adjustsFontSizeToFit>
+            {selectedSpecies.scientificName}
+            {selectedSpecies.wateringFrequencyDays !== null &&
+              ` · usually watered every ${selectedSpecies.wateringFrequencyDays} days`}
+          </Text>
+        </RuledLine>
+      ) : speciesQuery.trim() !== '' && species === null ? (
+        <View className="justify-center" style={oneLine}>
+          {/* A colour prop, so it reads the theme instead of a class. */}
+          <ActivityIndicator accessibilityLabel="Loading species" color={theme.primary} className="self-start" />
+        </View>
+      ) : speciesQuery.trim() !== '' && speciesSuggestions.length === 0 ? (
+        <RuledLine>
+          <Text className="type-caption text-text-secondary" numberOfLines={1} adjustsFontSizeToFit>
+            No species matches. You can leave it empty.
+          </Text>
+        </RuledLine>
+      ) : (
+        speciesSuggestions.map((item) => (
+          <Pressable
+            key={item.id}
+            accessibilityRole="button"
+            accessibilityLabel={item.commonName}
+            onPress={() => selectSpecies(item)}
+            className="flex-row items-end gap-2 pb-1 active:opacity-70"
+            style={oneLine}>
+            <Text className="type-body-medium text-text">{item.commonName}</Text>
+            <Text className="type-caption shrink text-text-secondary" numberOfLines={1}>
+              {item.scientificName}
+            </Text>
+          </Pressable>
+        ))
+      )}
 
       <RuledLine>
         <Text className="type-label text-text-secondary">Light</Text>
@@ -121,14 +200,16 @@ export function AddPlantForm({ planters, plantersError, onCreated }: AddPlantFor
           onChangeText={(text) => setWateringEveryDays(text.replace(/\D/g, ''))}
           keyboardType="number-pad"
           maxLength={3}
-          placeholder="7"
+          // Left empty, the garden falls back to the species' own frequency, so hint at it.
+          placeholder={String(selectedSpecies?.wateringFrequencyDays ?? 7)}
           // A colour prop, not a style, so it can't take a class.
           placeholderTextColor={theme.placeholder}
-          className={`type-body-large w-16 rounded-[10px] border-[1.5px] bg-background-element text-center text-text ${
+          className={`w-16 rounded-[10px] border-[1.5px] bg-background-element text-center text-text ${
             fieldErrors.wateringEveryDays ? 'border-error' : 'border-input-border'
           }`}
-          // Fits inside one line with a gap to the rules (a computed size, not a class).
-          style={{ height: boxHeight(1) }}
+          // Fits inside one line with a gap to the rules (a computed size, not a class),
+          // with its number centred in the box.
+          style={[{ height: boxHeight(1) }, singleLineInputText]}
         />
         <Text className="type-body-large text-text">days</Text>
       </View>
@@ -196,11 +277,18 @@ export function AddPlantForm({ planters, plantersError, onCreated }: AddPlantFor
         )}
       </RuledLine>
       <RuledLine />
-      {/* Centred in one line. The disabled button is see-through (opacity), so the
-          paper-coloured backing keeps the ruled lines from showing through it. */}
+      {/* Centred in one line with the same gap to the rules as the input boxes. The
+          disabled button is see-through (opacity), so the paper-coloured backing keeps
+          the ruled lines from showing through it. */}
       <View className="justify-center" style={oneLine}>
         <View className="rounded-[10px] bg-background-element">
-          <Button label="Add to my garden" loading={isSubmitting} disabled={name.trim() === ''} onPress={handleSubmit} />
+          <Button
+            label="Add to my garden"
+            loading={isSubmitting}
+            disabled={name.trim() === ''}
+            onPress={handleSubmit}
+            style={{ height: boxHeight(1) }}
+          />
         </View>
       </View>
     </View>

@@ -31,4 +31,10 @@ describe('Button', () => {
     await user.press(screen.getByRole('button'));
     expect(onPress).not.toHaveBeenCalled();
   });
+
+  it('applies a style override such as a computed height', async () => {
+    await render(<Button label="Save" style={{ height: 28 }} />);
+
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveStyle({ height: 28 });
+  });
 });

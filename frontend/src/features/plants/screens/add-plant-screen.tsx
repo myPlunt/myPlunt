@@ -11,6 +11,7 @@ import {
   RULE_HEIGHT,
   RuledLine,
 } from '@/features/plants/components/notebook-paper';
+import { useSpecies } from '@/features/species/use-species';
 
 // Opened from the tab bar's + button; the whole page is a sheet of notebook paper.
 // The photo comes in a later step.
@@ -18,6 +19,7 @@ export function AddPlantScreen() {
   const router = useRouter();
   // The garden's rooms are the user's planters; the group without an id is "Other plants".
   const { garden, error: plantersError } = useGarden();
+  const { species, error: speciesError } = useSpecies();
   const planters = garden?.rooms.flatMap((room) => (room.id ? [{ id: room.id, name: room.name }] : [])) ?? null;
 
   return (
@@ -51,7 +53,13 @@ export function AddPlantScreen() {
                 </Text>
               </RuledLine>
               {/* Closing the sheet refocuses the garden, which reloads and shows the new plant. */}
-              <AddPlantForm planters={planters} plantersError={plantersError} onCreated={() => router.back()} />
+              <AddPlantForm
+                species={species}
+                speciesError={speciesError}
+                planters={planters}
+                plantersError={plantersError}
+                onCreated={() => router.back()}
+              />
             </View>
           </ScrollView>
         </SafeAreaView>

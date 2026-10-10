@@ -1,6 +1,7 @@
 import { forwardRef, type ReactNode } from 'react';
 import { Text, TextInput, View, type TextInputProps } from 'react-native';
 
+import { Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 // Everything on the page is laid out in whole lines of this height, so labels sit
@@ -20,6 +21,19 @@ const BOX_GAP = 6;
 export function boxHeight(rows: number) {
   return rows * RULE_HEIGHT - 2 * BOX_GAP;
 }
+
+/**
+ * Text style for a single-line input inside a box: body-large's font and size but no
+ * line height. With type-body-large's 24px line height, iOS draws single-line input
+ * text at the bottom of the short box; without one it centres it. Android needs the
+ * default vertical padding removed and explicit centring to do the same.
+ */
+export const singleLineInputText = {
+  fontFamily: Typography.bodyLarge.fontFamily,
+  fontSize: Typography.bodyLarge.fontSize,
+  paddingVertical: 0,
+  textAlignVertical: 'center',
+} as const;
 
 // Enough lines to cover a tall page; the parent clips the rest.
 const RULE_COUNT = 60;
@@ -90,14 +104,14 @@ export const RuledTextField = forwardRef<TextInput, RuledTextFieldProps>(functio
       <View className="justify-center" style={{ height: rows * RULE_HEIGHT }}>
         <TextInput
           ref={ref}
-          className={`type-body-large rounded-[10px] border-[1.5px] bg-background-element px-4 text-text ${
-            multiline ? 'py-2' : ''
+          className={`rounded-[10px] border-[1.5px] bg-background-element px-4 text-text ${
+            multiline ? 'type-body-large py-2' : ''
           } ${error ? 'border-error' : 'border-input-border'}`}
           style={[
             // Height comes from the rows prop, so it can't be a static class.
             { height: boxHeight(rows) },
             // Android centres multiline text vertically by default; iOS starts at the top.
-            multiline && { textAlignVertical: 'top' },
+            multiline ? { textAlignVertical: 'top' } : singleLineInputText,
           ]}
           multiline={multiline}
           // A colour prop, not a style, so it can't take a class.

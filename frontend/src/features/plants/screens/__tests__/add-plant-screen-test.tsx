@@ -3,16 +3,19 @@ import { useRouter } from 'expo-router';
 
 import { useGarden } from '@/features/garden/use-garden';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
+import { useSpecies } from '@/features/species/use-species';
 
 import { AddPlantScreen } from '../add-plant-screen';
 
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/garden/use-garden');
 jest.mock('@/features/plants/use-plant-actions');
+jest.mock('@/features/species/use-species');
 
 const mockedUseRouter = jest.mocked(useRouter);
 const mockedUsePlantActions = jest.mocked(usePlantActions);
 const mockedUseGarden = jest.mocked(useGarden);
+const mockedUseSpecies = jest.mocked(useSpecies);
 const garden = {
   rooms: [
     { id: 'balcony', name: 'Balcony', plants: [] },
@@ -26,6 +29,10 @@ const user = userEvent.setup();
 beforeEach(() => {
   mockedUseRouter.mockReturnValue({ back, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
   mockedUsePlantActions.mockReturnValue({ createPlant });
+  mockedUseSpecies.mockReturnValue({
+    species: [{ id: 's1', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7 }],
+    error: null,
+  });
   mockedUseGarden.mockReturnValue({ garden, error: null, isLoading: false, retry: jest.fn(), refresh: jest.fn() });
 });
 
@@ -41,7 +48,7 @@ describe('AddPlantScreen', () => {
   });
 
   it('closes once the plant is saved', async () => {
-    createPlant.mockResolvedValue({ id: 'p1', name: 'Vera', light: null, wateringEveryDays: null, notes: null, planterId: null });
+    createPlant.mockResolvedValue({ id: 'p1', name: 'Vera', light: null, wateringEveryDays: null, notes: null, planterId: null, speciesId: null });
     await render(<AddPlantScreen />);
 
     await user.type(screen.getByLabelText('Name'), 'Vera');
@@ -62,5 +69,13 @@ describe('AddPlantScreen', () => {
     await render(<AddPlantScreen />);
 
     expect(screen.getByLabelText('Loading planters')).toBeOnTheScreen();
+  });
+
+  it('offers the loaded species in the species search', async () => {
+    await render(<AddPlantScreen />);
+
+    await user.type(screen.getByLabelText('Species'), 'mon');
+
+    expect(screen.getByRole('button', { name: 'Monstera' })).toBeOnTheScreen();
   });
 });

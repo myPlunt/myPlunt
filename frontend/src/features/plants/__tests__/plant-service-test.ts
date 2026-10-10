@@ -11,7 +11,7 @@ afterEach(() => {
 
 describe('createPlant', () => {
   it('POSTs the new plant to /v1/plants and returns the saved plant', async () => {
-    const request = { name: 'Vera', light: 'bright_indirect' as const, wateringEveryDays: 7, notes: null, planterId: 'room-1' };
+    const request = { name: 'Vera', light: 'bright_indirect' as const, wateringEveryDays: 7, notes: null, planterId: 'room-1', speciesId: 's1' };
     const saved = { id: 'p1', ...request };
     mockedApiFetch.mockResolvedValue(saved);
 

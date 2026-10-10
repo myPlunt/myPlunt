@@ -13,7 +13,7 @@ jest.mock('@/lib/auth/token-storage', () => ({
 
 const mockedPlantService = jest.mocked(plantService);
 const mockedTokenStorage = jest.mocked(tokenStorage);
-const request = { name: 'Vera', light: null, wateringEveryDays: 7, notes: null, planterId: null };
+const request = { name: 'Vera', light: null, wateringEveryDays: 7, notes: null, planterId: null, speciesId: null };
 
 beforeEach(() => {
   mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
