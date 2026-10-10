@@ -48,17 +48,28 @@ describe('AddPlantScreen', () => {
   });
 
   it('closes once the plant is saved', async () => {
-    createPlant.mockResolvedValue({ id: 'p1', name: 'Vera', light: null, wateringEveryDays: null, notes: null, planterId: null, speciesId: null });
+    createPlant.mockResolvedValue({
+      id: 'p1',
+      name: 'Vera',
+      light: null,
+      wateringEveryDays: null,
+      notes: null,
+      planterId: null,
+      speciesId: null,
+    });
     await render(<AddPlantScreen />);
 
     await user.type(screen.getByLabelText('Name'), 'Vera');
+    await user.press(screen.getByRole('button', { name: 'Next' }));
     await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
 
     await waitFor(() => expect(back).toHaveBeenCalled());
   });
 
-  it('offers the garden\'s rooms as planters, but not the "Other plants" group', async () => {
+  it('offers the garden\'s rooms as planters on step 2, but not the "Other plants" group', async () => {
     await render(<AddPlantScreen />);
+    await user.type(screen.getByLabelText('Name'), 'Vera');
+    await user.press(screen.getByRole('button', { name: 'Next' }));
 
     expect(screen.getByRole('radio', { name: 'Balcony' })).toBeOnTheScreen();
     expect(screen.queryByRole('radio', { name: 'Other plants' })).toBeNull();
@@ -67,6 +78,8 @@ describe('AddPlantScreen', () => {
   it('shows a loading indicator for the planters while the garden loads', async () => {
     mockedUseGarden.mockReturnValue({ garden: null, error: null, isLoading: true, retry: jest.fn(), refresh: jest.fn() });
     await render(<AddPlantScreen />);
+    await user.type(screen.getByLabelText('Name'), 'Vera');
+    await user.press(screen.getByRole('button', { name: 'Next' }));
 
     expect(screen.getByLabelText('Loading planters')).toBeOnTheScreen();
   });
