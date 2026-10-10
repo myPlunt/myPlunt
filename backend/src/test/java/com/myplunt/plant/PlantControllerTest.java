@@ -68,9 +68,9 @@ class PlantControllerTest {
     @Test
     void create_returnsTheCreatedPlantForTheSignedInUser() {
         UUID ownerId = authenticateAsJane();
-        CreatePlantRequest request = new CreatePlantRequest("Vera", "bright_indirect", 7, "Found at a flea market");
+        CreatePlantRequest request = new CreatePlantRequest("Vera", "bright_indirect", 7, "Found at a flea market", null);
         when(plantService.create(eq(ownerId), eq(request)))
-                .thenReturn(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market"));
+                .thenReturn(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market", null));
 
         restTestClient.post().uri("/v1/plants")
                 .header("Authorization", "Bearer access-token")
@@ -79,14 +79,14 @@ class PlantControllerTest {
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(PlantResponse.class)
-                .isEqualTo(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market"));
+                .isEqualTo(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market", null));
     }
 
     @Test
     void create_stripsSurroundingWhitespaceFromName() {
         UUID ownerId = authenticateAsJane();
-        when(plantService.create(eq(ownerId), eq(new CreatePlantRequest("Vera", null, null, null))))
-                .thenReturn(new PlantResponse(plantId, "Vera", null, null, null));
+        when(plantService.create(eq(ownerId), eq(new CreatePlantRequest("Vera", null, null, null, null))))
+                .thenReturn(new PlantResponse(plantId, "Vera", null, null, null, null));
 
         restTestClient.post().uri("/v1/plants")
                 .header("Authorization", "Bearer access-token")
@@ -95,7 +95,20 @@ class PlantControllerTest {
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(PlantResponse.class)
-                .isEqualTo(new PlantResponse(plantId, "Vera", null, null, null));
+                .isEqualTo(new PlantResponse(plantId, "Vera", null, null, null, null));
+    }
+
+    @Test
+    void create_returnsNotFoundForSomeoneElsesPlanter() {
+        authenticateAsJane();
+        when(plantService.create(any(), any())).thenThrow(new IllegalStateException("Planter not found"));
+
+        restTestClient.post().uri("/v1/plants")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new CreatePlantRequest("Vera", null, null, null, UUID.randomUUID()))
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
     @Test
@@ -139,7 +152,7 @@ class PlantControllerTest {
     void create_rejectsRequestsWithoutAToken() {
         restTestClient.post().uri("/v1/plants")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new CreatePlantRequest("Vera", null, null, null))
+                .body(new CreatePlantRequest("Vera", null, null, null, null))
                 .exchange()
                 .expectStatus().isUnauthorized();
     }

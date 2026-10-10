@@ -1,5 +1,6 @@
 package com.myplunt.plant;
 
+import com.myplunt.garden.PlanterRepository;
 import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantResponse;
 import org.springframework.http.HttpStatus;
@@ -18,22 +19,38 @@ public class PlantService {
 
     private final PlantRepository plantRepository;
     private final WateringLogRepository wateringLogRepository;
+    private final PlanterRepository planterRepository;
 
-    public PlantService(PlantRepository plantRepository, WateringLogRepository wateringLogRepository) {
+    public PlantService(
+            PlantRepository plantRepository,
+            WateringLogRepository wateringLogRepository,
+            PlanterRepository planterRepository) {
         this.plantRepository = plantRepository;
         this.wateringLogRepository = wateringLogRepository;
+        this.planterRepository = planterRepository;
     }
 
     @Transactional
     public PlantResponse create(UUID ownerId, CreatePlantRequest request) {
+        // Someone else's planter answers "not found" too, so ids of other users' planters don't leak.
+        if (request.planterId() != null && !planterRepository.existsByIdAndOwnerId(request.planterId(), ownerId)) {
+            throw new IllegalStateException("Planter not found");
+        }
+
         Plant plant = new Plant(ownerId, request.name());
+        plant.setPlanterId(request.planterId());
         plant.setLight(request.light());
         plant.setWateringEveryDays(request.wateringEveryDays());
         plant.setNotes(request.notes() == null || request.notes().isBlank() ? null : request.notes().strip());
 
         Plant saved = plantRepository.save(plant);
         return new PlantResponse(
-                saved.getId(), saved.getName(), saved.getLight(), saved.getWateringEveryDays(), saved.getNotes());
+                saved.getId(),
+                saved.getName(),
+                saved.getLight(),
+                saved.getWateringEveryDays(),
+                saved.getNotes(),
+                saved.getPlanterId());
     }
 
     // The owner's living plants, oldest first, with their species already loaded.
