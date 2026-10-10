@@ -49,6 +49,12 @@ public final class ApiPaths {
         private Plants() {}
     }
 
+    public static final class Planters {
+        public static final String BASE = "/v1/planters";
+
+        private Planters() {}
+    }
+
     public static final class Species {
         public static final String BASE = "/v1/species";
 
