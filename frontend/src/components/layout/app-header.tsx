@@ -13,8 +13,17 @@ interface AppHeaderProps {
 // same look (the iOS native back button renders as Liquid Glass). No page name:
 // the tab bar and each page's own content already say where you are.
 export function AppHeader({ showBack, right }: AppHeaderProps) {
+  return (
+    <View className="w-full max-w-content flex-row items-center justify-between self-center px-6 py-2">
+      {showBack ? <LogoBackButton /> : <Logo />}
+      {right}
+    </View>
+  );
+}
+
+/** The logo as a back button, for screens that lay out their own top row. */
+export function LogoBackButton() {
   const router = useRouter();
-  const logo = <Image className="h-10 w-9" source={require('@/assets/images/Logo.png')} contentFit="contain" />;
 
   function goBack() {
     // Nothing to go back to when the app was opened straight onto this screen
@@ -27,19 +36,12 @@ export function AppHeader({ showBack, right }: AppHeaderProps) {
   }
 
   return (
-    <View className="w-full max-w-content flex-row items-center justify-between self-center px-6 py-2">
-      {showBack ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={goBack}
-          className="active:opacity-70">
-          {logo}
-        </Pressable>
-      ) : (
-        logo
-      )}
-      {right}
-    </View>
+    <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={goBack} className="active:opacity-70">
+      <Logo />
+    </Pressable>
   );
+}
+
+function Logo() {
+  return <Image className="h-10 w-9" source={require('@/assets/images/Logo.png')} contentFit="contain" />;
 }

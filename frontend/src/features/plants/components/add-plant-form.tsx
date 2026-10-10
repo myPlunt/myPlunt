@@ -306,14 +306,12 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
         </>
       )}
 
-      {/* Two empty lines before the buttons: the first shows the error, or else which step this is. */}
+      {/* Two empty lines before the buttons; the first shows the error, if any. */}
       <RuledLine>
-        {error ? (
+        {error && (
           <Text className="type-body-medium text-error" numberOfLines={1} adjustsFontSizeToFit>
             {error}
           </Text>
-        ) : (
-          <Text className="type-caption text-text-secondary">Step {step} of 2</Text>
         )}
       </RuledLine>
       <RuledLine />

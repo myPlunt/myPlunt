@@ -64,7 +64,6 @@ describe('AddPlantForm', () => {
     it('asks for name, species and photo, and leaves the care details for step 2', async () => {
       await renderForm();
 
-      expect(screen.getByText('Step 1 of 2')).toBeOnTheScreen();
       expect(screen.getByLabelText('Name')).toBeOnTheScreen();
       expect(screen.getByLabelText('Species')).toBeOnTheScreen();
       expect(screen.getByText('Photos are coming soon')).toBeOnTheScreen();
@@ -79,7 +78,8 @@ describe('AddPlantForm', () => {
       await user.type(screen.getByLabelText('Name'), '   ');
       await user.press(screen.getByRole('button', { name: 'Next' }));
 
-      expect(screen.getByText('Step 1 of 2')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Name')).toBeOnTheScreen();
+      expect(screen.queryByLabelText('Notes')).toBeNull();
     });
 
     it('suggests species whose common or scientific name matches the search', async () => {
@@ -112,7 +112,6 @@ describe('AddPlantForm', () => {
 
       await nameAndContinue();
 
-      expect(screen.getByText('Step 2 of 2')).toBeOnTheScreen();
       expect(screen.getByRole('radio', { name: 'Full sun' })).toBeOnTheScreen();
       expect(screen.getByLabelText('Water every how many days')).toBeOnTheScreen();
       expect(screen.getByLabelText('Notes')).toBeOnTheScreen();
@@ -257,7 +256,7 @@ describe('AddPlantForm', () => {
       await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
 
       expect(await screen.findByText('Watering must be every 1 to 365 days.')).toBeOnTheScreen();
-      expect(screen.getByText('Step 2 of 2')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Notes')).toBeOnTheScreen();
       expect(onCreated).not.toHaveBeenCalled();
     });
 

@@ -47,6 +47,14 @@ describe('AddPlantScreen', () => {
     expect(screen.getAllByRole('header').map((header) => header.props.children)).toEqual(['Add your new plant']);
   });
 
+  it('goes back when the logo next to the heading is pressed', async () => {
+    await render(<AddPlantScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Go back' }));
+
+    expect(back).toHaveBeenCalled();
+  });
+
   it('closes once the plant is saved', async () => {
     createPlant.mockResolvedValue({
       id: 'p1',
@@ -76,7 +84,13 @@ describe('AddPlantScreen', () => {
   });
 
   it('shows a loading indicator for the planters while the garden loads', async () => {
-    mockedUseGarden.mockReturnValue({ garden: null, error: null, isLoading: true, retry: jest.fn(), refresh: jest.fn() });
+    mockedUseGarden.mockReturnValue({
+      garden: null,
+      error: null,
+      isLoading: true,
+      retry: jest.fn(),
+      refresh: jest.fn(),
+    });
     await render(<AddPlantScreen />);
     await user.type(screen.getByLabelText('Name'), 'Vera');
     await user.press(screen.getByRole('button', { name: 'Next' }));
