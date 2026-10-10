@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { SymbolView } from 'expo-symbols';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
-import { Shadow } from '@/constants/theme';
 import { RoomSection } from '@/features/garden/components/room-section';
 import { WaterDueCard } from '@/features/garden/components/water-due-card';
 import { useGarden } from '@/features/garden/use-garden';
@@ -41,26 +39,8 @@ export function GardenScreen() {
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
-        <AppHeader
-          title="Garden"
-          showBack
-          right={
-            // No action yet: waiting for the add-plant screen (and its POST /v1/plants endpoint).
-            // Shadow goes through style so it sets both iOS shadow* and Android elevation.
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Add plant"
-              className="h-10 w-10 items-center justify-center rounded-full bg-action-primary active:opacity-70"
-              style={Shadow.level2}>
-              {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
-              <SymbolView
-                name={{ ios: 'plus', android: 'add', web: 'add' }}
-                tintColor={theme.backgroundElement}
-                size={20}
-              />
-            </Pressable>
-          }
-        />
+        {/* A tab, so no back button; plants are added with the tab bar's + button. */}
+        <AppHeader />
 
         <ScrollView contentContainerClassName="w-full max-w-content grow gap-8 self-center px-6 pb-8 pt-2">
           {isLoading ? (

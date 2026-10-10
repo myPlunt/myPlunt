@@ -38,6 +38,15 @@ public class Plant {
     @Column(name = "is_alive", nullable = false)
     private boolean alive = true;
 
+    // Care details from the add-plant form (V4); all optional.
+    private String light;
+
+    // Overrides the species' watering frequency when the owner set their own.
+    @Column(name = "watering_every_days")
+    private Integer wateringEveryDays;
+
+    private String notes;
+
     // Filled in by the database default.
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
@@ -87,6 +96,30 @@ public class Plant {
 
     public void setAlive(boolean alive) {
         this.alive = alive;
+    }
+
+    public String getLight() {
+        return light;
+    }
+
+    public void setLight(String light) {
+        this.light = light;
+    }
+
+    public Integer getWateringEveryDays() {
+        return wateringEveryDays;
+    }
+
+    public void setWateringEveryDays(Integer wateringEveryDays) {
+        this.wateringEveryDays = wateringEveryDays;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public Instant getCreatedAt() {

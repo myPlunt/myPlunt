@@ -1,5 +1,4 @@
 import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
-import { useRouter } from 'expo-router';
 
 import { useGarden } from '@/features/garden/use-garden';
 import { useGardenActions } from '@/features/garden/use-garden-actions';
@@ -8,14 +7,11 @@ import type { Garden, GardenPlant } from '@/lib/garden/types';
 
 import { GardenScreen } from '../garden-screen';
 
-jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/garden/use-garden');
 jest.mock('@/features/garden/use-garden-actions');
 
-const mockedUseRouter = jest.mocked(useRouter);
 const mockedUseGarden = jest.mocked(useGarden);
 const mockedUseGardenActions = jest.mocked(useGardenActions);
-const back = jest.fn();
 const retry = jest.fn();
 const refresh = jest.fn();
 const waterPlants = jest.fn();
@@ -46,7 +42,6 @@ function mockGarden(state: Partial<ReturnType<typeof useGarden>>) {
 }
 
 beforeEach(() => {
-  mockedUseRouter.mockReturnValue({ back, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
   mockGarden({});
   mockedUseGardenActions.mockReturnValue({ waterPlants });
   waterPlants.mockResolvedValue(undefined);
@@ -58,16 +53,11 @@ afterEach(() => {
 });
 
 describe('GardenScreen', () => {
-  it('shows "Garden" as the page title', async () => {
+  it('has no back button or add button of its own, because Garden is a tab', async () => {
     await render(<GardenScreen />);
 
-    expect(screen.getByRole('header', { name: 'Garden' })).toBeOnTheScreen();
-  });
-
-  it('shows an Add plant button in the header', async () => {
-    await render(<GardenScreen />);
-
-    expect(screen.getByRole('button', { name: 'Add plant' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add plant' })).toBeNull();
   });
 
   it('summarises how many plants and rooms the garden has', async () => {
@@ -162,13 +152,5 @@ describe('GardenScreen', () => {
     expect(screen.getByText('Something went wrong. Please try again.')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Try again' }));
     expect(retry).toHaveBeenCalled();
-  });
-
-  it('goes back one screen when the logo is pressed', async () => {
-    await render(<GardenScreen />);
-
-    await user.press(screen.getByRole('button', { name: 'Go back' }));
-
-    expect(back).toHaveBeenCalled();
   });
 });

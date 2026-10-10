@@ -47,13 +47,16 @@ export const lightColors = {
   primary: brand.fern500,
   actionPrimary: brand.hunterGreen500,
   accent: brand.oliveWood700,
-  accentMuted: brand.oliveWood900,
+  accentMuted: brand.oliveWood500,
   border: brand.grey300,
   // Text-field outline and placeholder; the form field used these brand values directly before.
   inputBorder: brand.oliveWood300,
   placeholder: brand.grey500,
   error: brand.error500,
   water: brand.waterBlue500,
+  // Bottom tab bar: icon and label of the open tab and of the others.
+  tabActive: brand.hunterGreen500,
+  tabInactive: brand.fern500,
 } as const;
 
 export const Fonts = {

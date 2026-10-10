@@ -34,12 +34,6 @@ afterEach(() => {
 });
 
 describe('SettingsScreen', () => {
-  it('shows "Settings" as the page title', async () => {
-    await render(<SettingsScreen />);
-
-    expect(screen.getByRole('header', { name: 'Settings' })).toBeOnTheScreen();
-  });
-
   it('lets the user change their email, but not edit profile details', async () => {
     await render(<SettingsScreen />);
 

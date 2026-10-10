@@ -57,7 +57,10 @@ public class GardenService {
 
     private GardenPlantResponse toResponse(Plant plant, Instant lastWateredAt) {
         Species species = plant.getSpecies();
-        Integer frequencyDays = species == null ? null : species.getWateringFrequencyDays();
+        // The owner's own "water every N days" wins over the species' default.
+        Integer frequencyDays = plant.getWateringEveryDays() != null
+                ? plant.getWateringEveryDays()
+                : species == null ? null : species.getWateringFrequencyDays();
         // A plant that was never watered counts from the day it was added.
         Instant nextWateringAt = frequencyDays == null
                 ? null

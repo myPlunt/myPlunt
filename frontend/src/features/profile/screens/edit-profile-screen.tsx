@@ -15,7 +15,7 @@ export function EditProfileScreen() {
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
-        <AppHeader title="Edit profile" showBack />
+        <AppHeader showBack />
 
         <ScrollView
           contentContainerClassName="w-full max-w-content grow gap-6 self-center p-6"

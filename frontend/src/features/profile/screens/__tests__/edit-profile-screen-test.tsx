@@ -29,12 +29,6 @@ afterEach(() => {
 });
 
 describe('EditProfileScreen', () => {
-  it('shows "Edit profile" as the page title', async () => {
-    await render(<EditProfileScreen />);
-
-    expect(screen.getByRole('header', { name: 'Edit profile' })).toBeOnTheScreen();
-  });
-
   it('shows the profile form filled in with the current user', async () => {
     await render(<EditProfileScreen />);
 

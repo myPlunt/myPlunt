@@ -10,14 +10,13 @@ jest.mock('@/features/profile/use-profile');
 
 const mockedUseRouter = jest.mocked(useRouter);
 const mockedUseProfile = jest.mocked(useProfile);
-const back = jest.fn();
 const push = jest.fn();
 const retry = jest.fn();
 const user = userEvent.setup();
 const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: 'Fern collector' };
 
 beforeEach(() => {
-  mockedUseRouter.mockReturnValue({ back, canGoBack: () => true, push } as unknown as ReturnType<typeof useRouter>);
+  mockedUseRouter.mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
   mockedUseProfile.mockReturnValue({ user: jane, error: null, isLoading: false, retry });
 });
 
@@ -26,12 +25,6 @@ afterEach(() => {
 });
 
 describe('ProfileScreen', () => {
-  it('shows "Profile" as the page title', async () => {
-    await render(<ProfileScreen />);
-
-    expect(screen.getByRole('header', { name: 'Profile' })).toBeOnTheScreen();
-  });
-
   it("shows the signed-in user's username, email and bio", async () => {
     await render(<ProfileScreen />);
 
@@ -88,11 +81,9 @@ describe('ProfileScreen', () => {
     expect(push).toHaveBeenCalledWith('/settings');
   });
 
-  it('goes back one screen when the logo is pressed', async () => {
+  it('has no back button, because Profile is a tab', async () => {
     await render(<ProfileScreen />);
 
-    await user.press(screen.getByRole('button', { name: 'Go back' }));
-
-    expect(back).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
   });
 });

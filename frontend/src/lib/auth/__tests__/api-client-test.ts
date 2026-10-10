@@ -1,5 +1,6 @@
 import { apiFetch, ApiError, describeError, publicFetch } from '@/lib/auth/api-client';
 import { tokenStorage } from '@/lib/auth/token-storage';
+import { logError } from '@/lib/logger';
 
 jest.mock('@/lib/auth/token-storage', () => ({
   tokenStorage: {
@@ -179,3 +180,41 @@ describe('apiFetch', () => {
     expect(mockedTokenStorage.clearTokens).toHaveBeenCalled();
   });
 });
+
+describe('failed requests', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+    globalThis.fetch = jest.fn();
+    mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'access-1', refreshToken: 'refresh-1' });
+  });
+
+  it('turns "no response" into an ApiError with status 0 and a user-safe message, and logs it', async () => {
+    const networkError = new TypeError('Network request failed');
+    (globalThis.fetch as jest.Mock).mockRejectedValueOnce(networkError);
+
+    const error = await apiFetch('/v1/plants', { method: 'POST', body: {} }).catch((err) => err);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 0 });
+    expect(describeError(error)).toBe("Can't reach myPlunt right now. Check your connection and try again.");
+    expect(jest.mocked(logError)).toHaveBeenCalledWith(expect.stringContaining('POST /v1/plants got no response'), networkError);
+  });
+
+  it('logs the method, path, status and body of an error response', async () => {
+    const body = { detail: 'An unexpected error occurred' };
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(jsonResponse(500, body));
+
+    await expect(apiFetch('/v1/plants', { method: 'POST', body: {} })).rejects.toMatchObject({ status: 500 });
+
+    expect(jest.mocked(logError)).toHaveBeenCalledWith('POST /v1/plants failed with 500', body);
+  });
+
+  it('does not log successful requests', async () => {
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(jsonResponse(200, {}));
+
+    await apiFetch('/v1/plants');
+
+    expect(jest.mocked(logError)).not.toHaveBeenCalled();
+  });
+});
+
