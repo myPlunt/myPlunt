@@ -3,6 +3,8 @@ package com.myplunt.plant;
 import com.myplunt.garden.PlanterRepository;
 import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantResponse;
+import com.myplunt.species.Species;
+import com.myplunt.species.SpeciesRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,14 +22,17 @@ public class PlantService {
     private final PlantRepository plantRepository;
     private final WateringLogRepository wateringLogRepository;
     private final PlanterRepository planterRepository;
+    private final SpeciesRepository speciesRepository;
 
     public PlantService(
             PlantRepository plantRepository,
             WateringLogRepository wateringLogRepository,
-            PlanterRepository planterRepository) {
+            PlanterRepository planterRepository,
+            SpeciesRepository speciesRepository) {
         this.plantRepository = plantRepository;
         this.wateringLogRepository = wateringLogRepository;
         this.planterRepository = planterRepository;
+        this.speciesRepository = speciesRepository;
     }
 
     @Transactional
@@ -37,8 +42,15 @@ public class PlantService {
             throw new IllegalStateException("Planter not found");
         }
 
+        // Unapproved species aren't offered in the app, so they answer "not found" too.
+        Species species = request.speciesId() == null
+                ? null
+                : speciesRepository.findByIdAndApprovedTrue(request.speciesId())
+                        .orElseThrow(() -> new IllegalStateException("Species not found"));
+
         Plant plant = new Plant(ownerId, request.name());
         plant.setPlanterId(request.planterId());
+        plant.setSpecies(species);
         plant.setLight(request.light());
         plant.setWateringEveryDays(request.wateringEveryDays());
         plant.setNotes(request.notes() == null || request.notes().isBlank() ? null : request.notes().strip());
@@ -50,7 +62,8 @@ public class PlantService {
                 saved.getLight(),
                 saved.getWateringEveryDays(),
                 saved.getNotes(),
-                saved.getPlanterId());
+                saved.getPlanterId(),
+                species == null ? null : species.getId());
     }
 
     // The owner's living plants, oldest first, with their species already loaded.

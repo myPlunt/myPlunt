@@ -20,7 +20,9 @@ public record CreatePlantRequest(
                 Integer wateringEveryDays,
         @Size(max = 1000, message = "Notes must be at most 1000 characters.") String notes,
         // One of the owner's planters; null leaves the plant under "Other plants".
-        UUID planterId) {
+        UUID planterId,
+        // An approved species; null when the owner doesn't know or didn't pick one.
+        UUID speciesId) {
 
     // Strip before validation runs, so a name of only spaces counts as blank.
     public CreatePlantRequest {
