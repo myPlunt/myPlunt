@@ -7,3 +7,9 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
+  localstack:
+    image: localstack/localstack:3.8.1
+    environment:
+      SERVICES: s3
+    ports:
+      - "4566:4566"
