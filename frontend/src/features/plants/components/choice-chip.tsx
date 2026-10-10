@@ -1,7 +1,6 @@
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { Pressable, Text } from 'react-native';
 
-import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface ChoiceChipProps {
@@ -11,7 +10,10 @@ interface ChoiceChipProps {
   onPress: () => void;
 }
 
-/** One option in a single-choice group (the parent sets accessibilityRole="radiogroup"). */
+/**
+ * One option in a single-choice group (the parent sets accessibilityRole="radiogroup").
+ * h-8 (28px with NativeWind's 14px rem) leaves room above and below inside one ruled line.
+ */
 export function ChoiceChip({ label, icon, selected, onPress }: ChoiceChipProps) {
   const theme = useTheme();
 
@@ -21,10 +23,9 @@ export function ChoiceChip({ label, icon, selected, onPress }: ChoiceChipProps) 
       accessibilityLabel={label}
       accessibilityState={{ checked: selected }}
       onPress={onPress}
-      className={`flex-row items-center gap-2 rounded-full border-[1.5px] px-3 py-2 active:opacity-70 ${
+      className={`h-8 flex-row items-center gap-2 rounded-full border-[1.5px] px-3 active:opacity-70 ${
         selected ? 'border-primary bg-primary' : 'border-input-border bg-background-element'
-      }`}
-      style={Shadow.level2}>
+      }`}>
       {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
       <SymbolView name={icon} tintColor={selected ? theme.backgroundElement : theme.accent} size={16} />
       <Text className={`type-body-medium ${selected ? 'text-background-element' : 'text-text'}`}>{label}</Text>

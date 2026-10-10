@@ -37,7 +37,7 @@ describe('AddPlantScreen', () => {
   it('shows only the notebook heading, with no page title in the header', async () => {
     await render(<AddPlantScreen />);
 
-    expect(screen.getAllByRole('header').map((header) => header.props.children)).toEqual(['Meet your new plant']);
+    expect(screen.getAllByRole('header').map((header) => header.props.children)).toEqual(['Add your new plant']);
   });
 
   it('closes once the plant is saved', async () => {
