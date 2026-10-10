@@ -13,3 +13,9 @@ spring:
 app:
   jwt:
     secret: ${JWT_SECRET:dev-only-secret-dev-only-secret-dev-only-secret}
+  storage:
+    endpoint: ${STORAGE_ENDPOINT:http://localhost:4566}
+    bucket: ${STORAGE_BUCKET:myplunt-dev}
+    access-key: ${STORAGE_ACCESS_KEY:myplunt}
+    secret-key: ${STORAGE_SECRET_KEY:myplunt-dev-secret}
+    prefix: ${STORAGE_PREFIX:}

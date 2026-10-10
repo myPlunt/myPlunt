@@ -1,8 +1,11 @@
-INSERT INTO users (id, username, email, password_hash, avatar_url, city, watering_streak)
+-- avatar_key is a storage key, presigned via StorageService.createReadUrl at serve time.
+-- The matching objects are uploaded into the dev bucket by StorageConfig's dev-only seeding
+-- runner on backend startup, keyed off these same fixed user ids.
+INSERT INTO users (id, username, email, password_hash, avatar_key, city, watering_streak)
 VALUES
-    ('10000000-0000-0000-0000-000000000001', 'alice', 'alice@example.com', 'hash1', 'https://placehold.co/400x400?text=Avatar', 'Deventer', 3),
-    ('10000000-0000-0000-0000-000000000002', 'bob', 'bob@example.com', 'hash2', 'https://placehold.co/1000x1000?text=Avatar', 'Amsterdam', 0),
-    ('10000000-0000-0000-0000-000000000003', 'greg', 'greg@example.com', 'hash3', 'https://placehold.co/1000x1000?text=Avatar', 'Amsterdam', 0);
+    ('10000000-0000-0000-0000-000000000001', 'alice', 'alice@example.com', 'hash1', 'avatars/10000000-0000-0000-0000-000000000001/seed.png', 'Deventer', 3),
+    ('10000000-0000-0000-0000-000000000002', 'bob', 'bob@example.com', 'hash2', 'avatars/10000000-0000-0000-0000-000000000002/seed.png', 'Amsterdam', 0),
+    ('10000000-0000-0000-0000-000000000003', 'greg', 'greg@example.com', 'hash3', 'avatars/10000000-0000-0000-0000-000000000003/seed.png', 'Amsterdam', 0);
 
 INSERT INTO user_settings (user_id, post_visibility, watering_reminders, weather_alerts, delegation_requests, friend_post_notifications, achievement_notifications)
 VALUES
@@ -20,10 +23,10 @@ VALUES
     ('10000000-0000-0000-0000-000000000009', 'Monstera', 'Monstera deliciosa', 'Central America', 7, 'Indirect', 'Popular houseplant, likes humidity.', true, '10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002'),
     ('10000000-0000-0000-0000-000000000010', 'Pothos', 'Epipremnum aureum', 'Southeast Asia', 10, 'Low to bright indirect', 'Very forgiving, good for beginners.', false, '10000000-0000-0000-0000-000000000001', NULL);
 
-INSERT INTO planters (id, owner_id, name, location_type, photo_url)
+INSERT INTO planters (id, owner_id, name, location_type)
 VALUES
-    ('10000000-0000-0000-0000-000000000011', '10000000-0000-0000-0000-000000000001', 'Living room shelf', 'indoor', 'https://placehold.co/300x300?text=Planter'),
-    ('10000000-0000-0000-0000-000000000012', '10000000-0000-0000-0000-000000000002', 'Balcony', 'outdoor', 'https://placehold.co/300x300?text=Planter');
+    ('10000000-0000-0000-0000-000000000011', '10000000-0000-0000-0000-000000000001', 'Living room shelf', 'indoor'),
+    ('10000000-0000-0000-0000-000000000012', '10000000-0000-0000-0000-000000000002', 'Balcony', 'outdoor');
 
 INSERT INTO plants (id, owner_id, planter_id, species_id, name, is_alive, cause_of_death)
 VALUES
@@ -31,9 +34,9 @@ VALUES
     ('10000000-0000-0000-0000-000000000014', '10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000012', '10000000-0000-0000-0000-000000000010', 'Pothy', true, NULL),
     ('10000000-0000-0000-0000-000000000015', '10000000-0000-0000-0000-000000000003', NULL, '10000000-0000-0000-0000-000000000009', 'Greg''s Monstera', false, 'Underwatering');
 
-INSERT INTO plant_photos (id, plant_id, uploaded_by, photo_url, taken_at)
+INSERT INTO plant_photos (id, plant_id, uploaded_by, photo_key, taken_at)
 VALUES
-    ('10000000-0000-0000-0000-000000000016', '10000000-0000-0000-0000-000000000013', '10000000-0000-0000-0000-000000000001', 'https://placehold.co/600x600?text=Plant', now() - interval '10 days');
+    ('10000000-0000-0000-0000-000000000016', '10000000-0000-0000-0000-000000000013', '10000000-0000-0000-0000-000000000001', 'posts/10000000-0000-0000-0000-000000000001/seed.png', now() - interval '10 days');
 
 INSERT INTO watering_logs (id, plant_id, watered_by, watered_at)
 VALUES
