@@ -151,6 +151,7 @@ describe('AddPlantForm', () => {
       await user.press(screen.getByRole('radio', { name: 'Low light' }));
       expect(screen.getByRole('radio', { name: 'Low light' })).toBeChecked();
       expect(screen.getByRole('radio', { name: 'Full sun' })).not.toBeChecked();
+      expect(screen.getByRole('radio', { name: 'Low light' }).props.accessibilityHint).toBe('Tap again to clear');
 
       await user.press(screen.getByRole('radio', { name: 'Low light' }));
       expect(screen.getByRole('radio', { name: 'Low light' })).not.toBeChecked();

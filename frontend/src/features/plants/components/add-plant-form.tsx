@@ -212,7 +212,8 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
           <View className="flex-row items-center gap-2" style={oneLine}>
             <SymbolView
               name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
-              tintColor={theme.primary}
+              // The approved water blue, the same as the water line in the garden's pots.
+              tintColor={theme.water}
               size={18}
             />
             <Text className="type-body-large text-text">Every</Text>
