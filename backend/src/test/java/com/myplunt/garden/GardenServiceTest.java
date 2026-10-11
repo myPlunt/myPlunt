@@ -108,7 +108,7 @@ class GardenServiceTest {
         GardenPlantResponse response = gardenService().getGarden(ownerId).rooms().get(0).plants().get(0);
 
         assertThat(response).isEqualTo(new GardenPlantResponse(
-                george.getId(), "George", "Basil", 4, wateredAt, wateredAt.plus(Duration.ofDays(4))));
+                george.getId(), "George", "Basil", 4, wateredAt, wateredAt.plus(Duration.ofDays(4)), null));
     }
 
     @Test
@@ -168,5 +168,21 @@ class GardenServiceTest {
         assertThat(response.speciesName()).isNull();
         assertThat(response.wateringFrequencyDays()).isEqualTo(7);
         assertThat(response.nextWateringAt()).isEqualTo(addedAt.plus(Duration.ofDays(7)));
+    }
+
+    @Test
+    void getGarden_linksEachPlantsPhoto() {
+        Planter balcony = planter("Balcony");
+        Plant george = plant("George", balcony, 4);
+        Plant pinky = plant("Pinky", balcony, 4);
+        when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
+        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(george, pinky));
+        when(plantService.getPhotoUrls(List.of(george.getId(), pinky.getId())))
+                .thenReturn(Map.of(george.getId(), "https://storage.test/george.jpg?signed"));
+
+        List<GardenPlantResponse> plants = gardenService().getGarden(ownerId).rooms().get(0).plants();
+
+        assertThat(plants).extracting(GardenPlantResponse::photoUrl)
+                .containsExactly("https://storage.test/george.jpg?signed", null);
     }
 }

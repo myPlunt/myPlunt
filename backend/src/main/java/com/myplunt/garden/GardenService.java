@@ -35,13 +35,15 @@ public class GardenService {
     @Transactional(readOnly = true)
     public GardenResponse getGarden(UUID ownerId) {
         List<Plant> plants = plantService.getLivingPlants(ownerId);
-        Map<UUID, Instant> lastWatered = plantService.getLastWateredAt(plants.stream().map(Plant::getId).toList());
+        List<UUID> plantIds = plants.stream().map(Plant::getId).toList();
+        Map<UUID, Instant> lastWatered = plantService.getLastWateredAt(plantIds);
+        Map<UUID, String> photoUrls = plantService.getPhotoUrls(plantIds);
 
         // LinkedHashMap allows the null key used for plants without a room.
         Map<UUID, List<GardenPlantResponse>> plantsByRoom = new LinkedHashMap<>();
         for (Plant plant : plants) {
             plantsByRoom.computeIfAbsent(plant.getPlanterId(), id -> new ArrayList<>())
-                    .add(toResponse(plant, lastWatered.get(plant.getId())));
+                    .add(toResponse(plant, lastWatered.get(plant.getId()), photoUrls.get(plant.getId())));
         }
 
         List<RoomResponse> rooms = new ArrayList<>();
@@ -55,7 +57,7 @@ public class GardenService {
         return new GardenResponse(rooms);
     }
 
-    private GardenPlantResponse toResponse(Plant plant, Instant lastWateredAt) {
+    private GardenPlantResponse toResponse(Plant plant, Instant lastWateredAt, String photoUrl) {
         Species species = plant.getSpecies();
         return new GardenPlantResponse(
                 plant.getId(),
@@ -63,6 +65,7 @@ public class GardenService {
                 species == null ? null : species.getCommonName(),
                 WateringSchedule.frequencyDays(plant),
                 lastWateredAt,
-                WateringSchedule.nextWateringAt(plant, lastWateredAt));
+                WateringSchedule.nextWateringAt(plant, lastWateredAt),
+                photoUrl);
     }
 }

@@ -25,8 +25,13 @@ export function PlantCard({ plant, now }: PlantCardProps) {
       className="w-[168px] rounded-3xl bg-background-element p-2 active:opacity-70"
       // Shadow goes through style so it sets both iOS shadow* and Android elevation.
       style={Shadow.card}>
-      {/* Always the placeholder for now: GET /v1/garden doesn't send the plants' photos yet. */}
-      <PlantPhoto photoUrl={null} accessibilityLabel={`Photo of ${plant.name}`} className="h-[120px] rounded-2xl" iconSize={36} />
+      {/* Square, like every plant photo (they're cropped to a square when picked), so none of it is cut off. */}
+      <PlantPhoto
+        photoUrl={plant.photoUrl}
+        accessibilityLabel={`Photo of ${plant.name}`}
+        className="aspect-square w-full rounded-2xl"
+        iconSize={36}
+      />
 
       <View className="gap-1 px-2 pb-2 pt-3">
         <View>

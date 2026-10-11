@@ -28,13 +28,31 @@ function inDays(days: number) {
   return date.toISOString();
 }
 
-function plant(id: string, name: string, dueInDays: number, speciesName: string | null = null): GardenPlant {
-  return { id, name, speciesName, wateringFrequencyDays: 4, lastWateredAt: null, nextWateringAt: inDays(dueInDays) };
+function plant(
+  id: string,
+  name: string,
+  dueInDays: number,
+  speciesName: string | null = null,
+  photoUrl: string | null = null,
+): GardenPlant {
+  return {
+    id,
+    name,
+    speciesName,
+    wateringFrequencyDays: 4,
+    lastWateredAt: null,
+    nextWateringAt: inDays(dueInDays),
+    photoUrl,
+  };
 }
 
 const garden: Garden = {
   rooms: [
-    { id: 'balcony', name: 'Balcony', plants: [plant('george', 'George', 2, 'Geranium'), plant('pinky', 'Pinky', 0)] },
+    {
+      id: 'balcony',
+      name: 'Balcony',
+      plants: [plant('george', 'George', 2, 'Geranium', 'https://storage.test/george.jpg'), plant('pinky', 'Pinky', 0)],
+    },
     { id: 'living', name: 'Living room', plants: [] },
     { id: 'kitchen', name: 'Kitchen windowsill', plants: [plant('basil', 'Basil', -1), plant('minty', 'Minty', 1)] },
   ],
@@ -98,6 +116,13 @@ describe('GardenScreen', () => {
     await user.press(screen.getByRole('button', { name: 'George' }));
 
     expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]', params: { id: 'george' } });
+  });
+
+  it('shows the photo of plants that have one and the placeholder for the rest', async () => {
+    await render(<GardenScreen />);
+
+    expect(screen.getByLabelText('Photo of George')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Photo of Pinky')).toBeNull();
   });
 
   it('orders the plants in a room from least to most water', async () => {

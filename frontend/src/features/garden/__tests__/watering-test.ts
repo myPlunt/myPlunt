@@ -21,6 +21,7 @@ function plant(name: string, due: Date | null, wateringFrequencyDays: number | n
     wateringFrequencyDays,
     lastWateredAt: null,
     nextWateringAt: due ? due.toISOString() : null,
+    photoUrl: null,
   };
 }
 

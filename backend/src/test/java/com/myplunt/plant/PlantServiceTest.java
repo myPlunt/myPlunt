@@ -220,8 +220,8 @@ class PlantServiceTest {
         Instant wateredAt = Instant.parse("2026-10-07T08:00:00Z");
         when(planterRepository.findByIdAndOwnerId(balcony.getId(), userId)).thenReturn(Optional.of(balcony));
         when(wateringLogRepository.findLastWateredAt(List.of(plantId))).thenReturn(List.of(new LastWatering(plantId, wateredAt)));
-        when(plantPhotoRepository.findFirstByPlantIdOrderByTakenAtDesc(plantId))
-                .thenReturn(Optional.of(new PlantPhoto(vera, userId, "plants/vera.jpg", wateredAt)));
+        when(plantPhotoRepository.findLatestPhotos(List.of(plantId)))
+                .thenReturn(List.of(new LatestPhoto(plantId, "plants/vera.jpg")));
         when(storageService.createReadUrl("plants/vera.jpg")).thenReturn("https://storage.test/vera.jpg?signed");
 
         PlantDetailsResponse details = plantService().getDetails(userId, plantId);
@@ -428,6 +428,32 @@ class PlantServiceTest {
     void getLastWateredAt_skipsTheQueryWithoutPlants() {
         assertThat(plantService().getLastWateredAt(List.of())).isEmpty();
         verify(wateringLogRepository, never()).findLastWateredAt(any());
+    }
+
+    @Test
+    void getPhotoUrls_mapsEachPlantWithAPhotoToALinkToIt() {
+        UUID noPhoto = UUID.randomUUID();
+        when(plantPhotoRepository.findLatestPhotos(List.of(plantId, noPhoto)))
+                .thenReturn(List.of(new LatestPhoto(plantId, "plants/vera.jpg")));
+        when(storageService.createReadUrl("plants/vera.jpg")).thenReturn("https://storage.test/vera.jpg?signed");
+
+        assertThat(plantService().getPhotoUrls(List.of(plantId, noPhoto)))
+                .containsExactly(entry(plantId, "https://storage.test/vera.jpg?signed"));
+    }
+
+    @Test
+    void getPhotoUrls_keepsOneLinkWhenTwoPhotosShareTheNewestTime() {
+        when(plantPhotoRepository.findLatestPhotos(List.of(plantId)))
+                .thenReturn(List.of(new LatestPhoto(plantId, "plants/a.jpg"), new LatestPhoto(plantId, "plants/b.jpg")));
+        when(storageService.createReadUrl(any())).thenAnswer(invocation -> "https://storage.test/" + invocation.getArgument(0));
+
+        assertThat(plantService().getPhotoUrls(List.of(plantId))).containsOnlyKeys(plantId);
+    }
+
+    @Test
+    void getPhotoUrls_skipsTheQueryWithoutPlants() {
+        assertThat(plantService().getPhotoUrls(List.of())).isEmpty();
+        verify(plantPhotoRepository, never()).findLatestPhotos(any());
     }
 
     @Test

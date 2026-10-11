@@ -127,6 +127,20 @@ public class PlantService {
                 .collect(Collectors.toMap(LastWatering::plantId, LastWatering::wateredAt));
     }
 
+    // A short-lived link to each plant's current photo. Plants without a photo are left out of the map.
+    @Transactional(readOnly = true)
+    public Map<UUID, String> getPhotoUrls(List<UUID> plantIds) {
+        if (plantIds.isEmpty()) {
+            return Map.of();
+        }
+        return plantPhotoRepository.findLatestPhotos(plantIds).stream()
+                .collect(Collectors.toMap(
+                        LatestPhoto::plantId,
+                        photo -> storageService.createReadUrl(photo.photoKey()),
+                        // Two photos taken at the same moment: either will do.
+                        (first, second) -> first));
+    }
+
     @Transactional
     public void water(UUID userId, UUID plantId) {
         Plant plant = findOwnPlant(userId, plantId);
@@ -169,9 +183,7 @@ public class PlantService {
                         .map(Planter::getName)
                         .orElse(null);
         Instant lastWateredAt = getLastWateredAt(List.of(plant.getId())).get(plant.getId());
-        String photoUrl = plantPhotoRepository.findFirstByPlantIdOrderByTakenAtDesc(plant.getId())
-                .map(photo -> storageService.createReadUrl(photo.getPhotoKey()))
-                .orElse(null);
+        String photoUrl = getPhotoUrls(List.of(plant.getId())).get(plant.getId());
         return new PlantDetailsResponse(
                 plant.getId(),
                 plant.getName(),
