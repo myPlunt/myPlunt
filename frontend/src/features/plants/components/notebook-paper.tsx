@@ -1,5 +1,5 @@
-import { forwardRef, type ReactNode } from 'react';
-import { Text, TextInput, View, type TextInputProps } from 'react-native';
+import { forwardRef, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Animated, Easing, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -76,6 +76,36 @@ export function RuledLine({ rows = 1, children }: { rows?: number; children?: Re
       {children}
     </View>
   );
+}
+
+const RESIZE_MS = 200;
+
+/**
+ * A block `rows` whole lines tall. When `rows` changes it eases to the new height instead
+ * of jumping, so whatever sits below slides along; at rest it's back on the grid. Content
+ * taller than the block (while it shrinks) is clipped.
+ */
+export function AnimatedLines({ rows, children }: { rows: number; children?: ReactNode }) {
+  const [height] = useState(() => new Animated.Value(rows * RULE_HEIGHT));
+  // The rows the block last eased to, so mounting (or re-rendering with the same rows)
+  // doesn't start an animation.
+  const shownRows = useRef(rows);
+
+  useEffect(() => {
+    if (rows === shownRows.current) return;
+    shownRows.current = rows;
+    // Height can't run on the native driver; a short timing on the JS side is cheap enough.
+    Animated.timing(height, {
+      toValue: rows * RULE_HEIGHT,
+      duration: RESIZE_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [height, rows]);
+
+  // A style, not classes: the height is an animated value, and React Native's own
+  // Animated.View isn't registered with cssInterop.
+  return <Animated.View style={{ height, overflow: 'hidden' }}>{children}</Animated.View>;
 }
 
 interface RuledTextFieldProps extends TextInputProps {

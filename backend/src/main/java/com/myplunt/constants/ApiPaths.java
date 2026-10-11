@@ -44,6 +44,7 @@ public final class ApiPaths {
 
     public static final class Plants {
         public static final String BASE = "/v1/plants";
+        public static final String BY_ID = BASE + "/{plantId}";
         public static final String WATERINGS = BASE + "/{plantId}/waterings";
 
         private Plants() {}

@@ -3,7 +3,9 @@ package com.myplunt.plant;
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.plant.dto.CreatePlantRequest;
+import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantResponse;
+import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -120,6 +123,16 @@ class PlantControllerTest {
     }
 
     @Test
+    void create_rejectsNameShorterThan3Characters() {
+        authenticateAsJane();
+
+        expectBadRequest("{\"name\": \"Ab\"}");
+        // Surrounding spaces don't count towards the length.
+        expectBadRequest("{\"name\": \"  Ab  \"}");
+        verify(plantService, never()).create(any(), any());
+    }
+
+    @Test
     void create_rejectsNameLongerThan255Characters() {
         authenticateAsJane();
 
@@ -160,6 +173,182 @@ class PlantControllerTest {
         restTestClient.post().uri("/v1/plants")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreatePlantRequest("Vera", null, null, null, null, null, null))
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    private PlantDetailsResponse veraDetails(String name) {
+        Instant wateredAt = Instant.parse("2026-10-07T08:00:00Z");
+        return new PlantDetailsResponse(
+                plantId, name, "bright_indirect", null, "Found at a flea market", null, null, null, null, 7,
+                wateredAt, wateredAt.plusSeconds(7 * 24 * 3600), "https://storage.test/vera.jpg?signed");
+    }
+
+    private void expectBadUpdate(String body) {
+        restTestClient.put().uri("/v1/plants/{plantId}", plantId)
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void get_returnsTheSignedInUsersPlant() {
+        UUID userId = authenticateAsJane();
+        when(plantService.getDetails(userId, plantId)).thenReturn(veraDetails("Vera"));
+
+        restTestClient.get().uri("/v1/plants/{plantId}", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PlantDetailsResponse.class)
+                .isEqualTo(veraDetails("Vera"));
+    }
+
+    @Test
+    void get_returnsNotFoundWhenThePlantIsNotTheUsers() {
+        UUID userId = authenticateAsJane();
+        when(plantService.getDetails(userId, plantId)).thenThrow(new IllegalStateException("Plant not found"));
+
+        restTestClient.get().uri("/v1/plants/{plantId}", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void get_rejectsAMalformedPlantId() {
+        authenticateAsJane();
+
+        restTestClient.get().uri("/v1/plants/not-a-uuid")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void get_rejectsRequestsWithoutAToken() {
+        restTestClient.get().uri("/v1/plants/{plantId}", plantId)
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void update_returnsTheUpdatedPlant() {
+        UUID userId = authenticateAsJane();
+        UpdatePlantRequest request = new UpdatePlantRequest("Vera II", "bright_indirect", null, "Found at a flea market", null, null, null);
+        when(plantService.update(userId, plantId, request)).thenReturn(veraDetails("Vera II"));
+
+        restTestClient.put().uri("/v1/plants/{plantId}", plantId)
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PlantDetailsResponse.class)
+                .isEqualTo(veraDetails("Vera II"));
+    }
+
+    @Test
+    void update_stripsSurroundingWhitespaceFromName() {
+        UUID userId = authenticateAsJane();
+        when(plantService.update(userId, plantId, new UpdatePlantRequest("Vera", null, null, null, null, null, null)))
+                .thenReturn(veraDetails("Vera"));
+
+        restTestClient.put().uri("/v1/plants/{plantId}", plantId)
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"name\": \"  Vera  \"}")
+                .exchange()
+                .expectStatus().isOk();
+    }
+
+    @Test
+    void update_rejectsBlankName() {
+        authenticateAsJane();
+
+        expectBadUpdate("{\"name\": \"   \"}");
+        verify(plantService, never()).update(any(), any(), any());
+    }
+
+    @Test
+    void update_rejectsNameShorterThan3Characters() {
+        authenticateAsJane();
+
+        expectBadUpdate("{\"name\": \"Ab\"}");
+        expectBadUpdate("{\"name\": \"  Ab  \"}");
+        verify(plantService, never()).update(any(), any(), any());
+    }
+
+    @Test
+    void update_rejectsNameLongerThan255Characters() {
+        authenticateAsJane();
+
+        expectBadUpdate("{\"name\": \"" + "a".repeat(256) + "\"}");
+    }
+
+    @Test
+    void update_rejectsUnknownLight() {
+        authenticateAsJane();
+
+        expectBadUpdate("{\"name\": \"Vera\", \"light\": \"disco\"}");
+    }
+
+    @Test
+    void update_rejectsWateringOutside1To365Days() {
+        authenticateAsJane();
+
+        expectBadUpdate("{\"name\": \"Vera\", \"wateringEveryDays\": 0}");
+        expectBadUpdate("{\"name\": \"Vera\", \"wateringEveryDays\": 366}");
+    }
+
+    @Test
+    void update_rejectsNotesLongerThan1000Characters() {
+        authenticateAsJane();
+
+        expectBadUpdate("{\"name\": \"Vera\", \"notes\": \"" + "a".repeat(1001) + "\"}");
+    }
+
+    @Test
+    void update_rejectsPhotoKeyLongerThan512Characters() {
+        authenticateAsJane();
+
+        expectBadUpdate("{\"name\": \"Vera\", \"photoKey\": \"" + "a".repeat(513) + "\"}");
+    }
+
+    @Test
+    void update_returnsNotFoundWhenThePlantIsNotTheUsers() {
+        UUID userId = authenticateAsJane();
+        when(plantService.update(eq(userId), eq(plantId), any())).thenThrow(new IllegalStateException("Plant not found"));
+
+        restTestClient.put().uri("/v1/plants/{plantId}", plantId)
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new UpdatePlantRequest("Vera", null, null, null, null, null, null))
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void update_propagatesConflictFromService() {
+        UUID userId = authenticateAsJane();
+        when(plantService.update(eq(userId), eq(plantId), any()))
+                .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be edited"));
+
+        restTestClient.put().uri("/v1/plants/{plantId}", plantId)
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new UpdatePlantRequest("Vera", null, null, null, null, null, null))
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void update_rejectsRequestsWithoutAToken() {
+        restTestClient.put().uri("/v1/plants/{plantId}", plantId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new UpdatePlantRequest("Vera", null, null, null, null, null, null))
                 .exchange()
                 .expectStatus().isUnauthorized();
     }

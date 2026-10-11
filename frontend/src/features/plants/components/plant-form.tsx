@@ -1,4 +1,4 @@
-import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import { SymbolView } from 'expo-symbols';
 import { Children, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { usePhotoUpload } from '@/features/photos/use-photo-upload';
 import { ChoiceChip } from '@/features/plants/components/choice-chip';
 import {
+  AnimatedLines,
   boxHeight,
   oneLine,
   RuledLine,
@@ -14,29 +15,17 @@ import {
 } from '@/features/plants/components/notebook-paper';
 import { PhotoField } from '@/features/plants/components/photo-field';
 import { PlanterSelect } from '@/features/plants/components/planter-select';
+import { lightOptions } from '@/features/plants/light-options';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
-import type { Light, Plant } from '@/lib/plant/types';
+import type { Light, Plant, PlantDetails } from '@/lib/plant/types';
 import type { Planter } from '@/lib/planter/types';
 import type { Species } from '@/lib/species/types';
 
 const NOTES_MAX_LENGTH = 1000;
-
-const lightOptions: { value: Light; label: string; icon: SymbolViewProps['name'] }[] = [
-  { value: 'full_sun', label: 'Full sun', icon: { ios: 'sun.max.fill', android: 'wb_sunny', web: 'wb_sunny' } },
-  {
-    value: 'bright_indirect',
-    label: 'Bright indirect',
-    icon: { ios: 'sun.haze.fill', android: 'light_mode', web: 'light_mode' },
-  },
-  {
-    value: 'partial_shade',
-    label: 'Partial shade',
-    icon: { ios: 'cloud.sun.fill', android: 'partly_cloudy_day', web: 'partly_cloudy_day' },
-  },
-  { value: 'low_light', label: 'Low light', icon: { ios: 'moon.fill', android: 'dark_mode', web: 'dark_mode' } },
-];
+// Same rule as the backend's CreatePlantRequest and UpdatePlantRequest; spaces around the name don't count.
+const NAME_MIN_LENGTH = 3;
 
 // Fields the backend may reject that live on step 1; an error there sends the user back to it.
 const STEP_1_FIELDS = ['name', 'speciesId', 'photoKey'];
@@ -49,46 +38,62 @@ function matchesSpecies(species: Species, query: string) {
   return species.commonName.toLowerCase().includes(needle) || species.scientificName.toLowerCase().includes(needle);
 }
 
-interface AddPlantFormProps {
+interface PlantFormProps {
+  /** The plant to edit, whose values fill the form; leave it out to add a new plant. */
+  plant?: PlantDetails;
   /** The approved species to search; null while they load. */
   species: Species[] | null;
   speciesError: string | null;
   /** The user's planters to pick from; null while they load. */
   planters: Planter[] | null;
   plantersError: string | null;
-  onCreated: (plant: Plant) => void;
+  onSaved: (plant: Plant) => void;
 }
 
 /**
- * A new plant in two steps on the ruled paper: who it is (name, species, photo), then
- * how it lives (light, watering, notes, planter). Values carry over between the steps.
- * Calls onCreated with the saved plant.
+ * A plant in two steps on the ruled paper: who it is (name, species, photo), then how it
+ * lives (light, watering, notes, planter). Values carry over between the steps. Adds a
+ * new plant, or saves changes to `plant` when given; then calls onSaved with the result.
  */
-export function AddPlantForm({ species, speciesError, planters, plantersError, onCreated }: AddPlantFormProps) {
+export function PlantForm({ plant, species, speciesError, planters, plantersError, onSaved }: PlantFormProps) {
   const theme = useTheme();
-  const { createPlant } = usePlantActions();
+  const { createPlant, updatePlant } = usePlantActions();
   // Uploads as soon as a photo is picked, so it's usually done by the time the form is.
   const photo = usePhotoUpload('PLANT');
   const [step, setStep] = useState<1 | 2>(1);
-  const [name, setName] = useState('');
-  const [speciesQuery, setSpeciesQuery] = useState('');
-  const [speciesId, setSpeciesId] = useState<string | null>(null);
-  const [planterId, setPlanterId] = useState<string | null>(null);
+  const [name, setName] = useState(plant?.name ?? '');
+  // The length hint shows only once the user has left the name field, and never while they're
+  // in it, so it doesn't nag while they type or fix a typo.
+  const [hasLeftName, setHasLeftName] = useState(false);
+  const [isNameFocused, setIsNameFocused] = useState(false);
+  const [speciesQuery, setSpeciesQuery] = useState(plant?.speciesName ?? '');
+  const [speciesId, setSpeciesId] = useState<string | null>(plant?.speciesId ?? null);
+  const [isSpeciesFocused, setIsSpeciesFocused] = useState(false);
+  const [planterId, setPlanterId] = useState<string | null>(plant?.planterId ?? null);
   // Planters added from the dropdown; the garden (and so `planters`) only reloads later.
   const [addedPlanters, setAddedPlanters] = useState<Planter[]>([]);
-  const [light, setLight] = useState<Light | null>(null);
-  const [wateringEveryDays, setWateringEveryDays] = useState('');
-  const [notes, setNotes] = useState('');
+  const [light, setLight] = useState<Light | null>(plant?.light ?? null);
+  // The owner's own setting only: left empty, the species' frequency keeps applying.
+  const [wateringEveryDays, setWateringEveryDays] = useState(plant?.wateringEveryDays?.toString() ?? '');
+  const [notes, setNotes] = useState(plant?.notes ?? '');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const allPlanters = planters && [...planters, ...addedPlanters];
+  const nameLength = name.trim().length;
+  const nameTooShort = hasLeftName && !isNameFocused && nameLength < NAME_MIN_LENGTH;
   const selectedSpecies = species?.find((item) => item.id === speciesId) ?? null;
   const speciesSuggestions =
     speciesQuery.trim() === '' || selectedSpecies || !species
       ? []
       : species.filter((item) => matchesSpecies(item, speciesQuery)).slice(0, MAX_SPECIES_SUGGESTIONS);
+  // Searching from the moment the field is focused until a species is picked; a search
+  // left unfinished (text but no pick) stays open after leaving the field.
+  const isSearchingSpecies = !selectedSpecies && (isSpeciesFocused || speciesQuery.trim() !== '');
+  // Lines under the species field: one for an error or the picked species, room for every
+  // suggestion while searching, none otherwise.
+  const speciesRows = speciesError || selectedSpecies ? 1 : isSearchingSpecies ? MAX_SPECIES_SUGGESTIONS : 0;
 
   function changeSpeciesQuery(text: string) {
     setSpeciesQuery(text);
@@ -106,16 +111,17 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
     setFieldErrors({});
     setIsSubmitting(true);
     try {
-      const plant = await createPlant({
+      const request = {
         name,
         light,
         wateringEveryDays: wateringEveryDays === '' ? null : Number(wateringEveryDays),
         notes: notes.trim() === '' ? null : notes,
         planterId,
         speciesId,
+        // Without a new photo this is null, which keeps an edited plant's current photo.
         photoKey: photo.key,
-      });
-      onCreated(plant);
+      };
+      onSaved(plant ? await updatePlant(plant.id, request) : await createPlant(request));
     } catch (err) {
       if (err instanceof ApiError && err.fieldErrors) {
         setFieldErrors(err.fieldErrors);
@@ -138,7 +144,12 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
             label="Name"
             value={name}
             onChangeText={setName}
-            error={fieldErrors.name}
+            onFocus={() => setIsNameFocused(true)}
+            onBlur={() => {
+              setIsNameFocused(false);
+              setHasLeftName(true);
+            }}
+            error={fieldErrors.name ?? (nameTooShort ? `Name must be at least ${NAME_MIN_LENGTH} characters.` : undefined)}
             placeholder="Vera the slow Monstera"
             autoCapitalize="words"
           />
@@ -147,48 +158,61 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
             label="Species"
             value={speciesQuery}
             onChangeText={changeSpeciesQuery}
+            onFocus={() => setIsSpeciesFocused(true)}
+            onBlur={() => setIsSpeciesFocused(false)}
             placeholder="Search, e.g. Monstera"
             autoCapitalize="words"
           />
-          {speciesError ? (
-            <ErrorLine message={speciesError} />
-          ) : selectedSpecies ? (
-            <RuledLine>
-              <Text className="type-caption text-text-secondary" numberOfLines={1} adjustsFontSizeToFit>
-                {selectedSpecies.scientificName}
-                {selectedSpecies.wateringFrequencyDays !== null &&
-                  ` · usually watered every ${selectedSpecies.wateringFrequencyDays} days`}
-              </Text>
-            </RuledLine>
-          ) : speciesQuery.trim() !== '' && species === null ? (
-            <View className="justify-center" style={oneLine}>
-              {/* A colour prop, so it reads the theme instead of a class. */}
-              <ActivityIndicator accessibilityLabel="Loading species" color={theme.primary} className="self-start" />
-            </View>
-          ) : speciesQuery.trim() !== '' && speciesSuggestions.length === 0 ? (
-            <RuledLine>
-              <Text className="type-caption text-text-secondary" numberOfLines={1} adjustsFontSizeToFit>
-                No species matches. You can leave it empty.
-              </Text>
-            </RuledLine>
-          ) : (
-            speciesSuggestions.map((item) => (
-              <Pressable
-                key={item.id}
-                accessibilityRole="button"
-                accessibilityLabel={item.commonName}
-                onPress={() => selectSpecies(item)}
-                className="flex-row items-end gap-2 pb-1 active:opacity-70"
-                style={oneLine}>
-                <Text className="type-body-medium text-text">{item.commonName}</Text>
-                <Text className="type-caption shrink text-text-secondary" numberOfLines={1}>
-                  {item.scientificName}
+          {/* Fixed sizes, so the photo below only moves when the search opens, closes or
+              settles on a pick, and then slides (AnimatedLines). While searching, the space is
+              always MAX_SPECIES_SUGGESTIONS lines, whatever is typed or deleted. */}
+          <AnimatedLines rows={speciesRows}>
+            {speciesError ? (
+              <ErrorLine message={speciesError} />
+            ) : selectedSpecies ? (
+              <RuledLine>
+                <Text className="type-caption text-text-secondary" numberOfLines={1} adjustsFontSizeToFit>
+                  {selectedSpecies.scientificName}
+                  {selectedSpecies.wateringFrequencyDays !== null &&
+                    ` · usually watered every ${selectedSpecies.wateringFrequencyDays} days`}
                 </Text>
-              </Pressable>
-            ))
-          )}
+              </RuledLine>
+            ) : !isSearchingSpecies ? null : speciesQuery.trim() === '' ? (
+              <RuledLine>
+                <Text className="type-caption text-text-secondary" numberOfLines={1} adjustsFontSizeToFit>
+                  Start typing to see matching species.
+                </Text>
+              </RuledLine>
+            ) : species === null ? (
+              <View className="justify-center" style={oneLine}>
+                {/* A colour prop, so it reads the theme instead of a class. */}
+                <ActivityIndicator accessibilityLabel="Loading species" color={theme.primary} className="self-start" />
+              </View>
+            ) : speciesSuggestions.length === 0 ? (
+              <RuledLine>
+                <Text className="type-caption text-text-secondary" numberOfLines={1} adjustsFontSizeToFit>
+                  No species matches. You can leave it empty.
+                </Text>
+              </RuledLine>
+            ) : (
+              speciesSuggestions.map((item) => (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.commonName}
+                  onPress={() => selectSpecies(item)}
+                  className="flex-row items-end gap-2 pb-1 active:opacity-70"
+                  style={oneLine}>
+                  <Text className="type-body-medium text-text">{item.commonName}</Text>
+                  <Text className="type-caption shrink text-text-secondary" numberOfLines={1}>
+                    {item.scientificName}
+                  </Text>
+                </Pressable>
+              ))
+            )}
+          </AnimatedLines>
 
-          <PhotoField photo={photo} />
+          <PhotoField photo={photo} currentPhotoUrl={plant?.photoUrl ?? null} />
         </>
       ) : (
         <>
@@ -276,7 +300,7 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
         </>
       )}
 
-      {/* Two empty lines before the buttons; the first shows the error, if any. */}
+      {/* One line before the buttons, which shows the error, if any. */}
       <RuledLine>
         {error && (
           <Text className="type-body-medium text-error" numberOfLines={1} adjustsFontSizeToFit>
@@ -284,7 +308,6 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
           </Text>
         )}
       </RuledLine>
-      <RuledLine />
       {/* Centred in one line with the same gap to the rules as the input boxes. A
           disabled button is see-through (opacity), so the paper-coloured backing keeps
           the ruled lines from showing through it. */}
@@ -293,7 +316,7 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
           <View className="flex-1 rounded-[10px] bg-background-element">
             <Button
               label="Next"
-              disabled={name.trim() === ''}
+              disabled={nameLength < NAME_MIN_LENGTH}
               onPress={() => setStep(2)}
               style={{ height: boxHeight(1) }}
             />
@@ -311,7 +334,7 @@ export function AddPlantForm({ species, speciesError, planters, plantersError, o
             </View>
             <View className="flex-[2] rounded-[10px] bg-background-element">
               <Button
-                label="Add to my garden"
+                label={plant ? 'Save changes' : 'Add to my garden'}
                 loading={isSubmitting}
                 // The photo has to finish uploading first, or it would be left out.
                 disabled={photo.isUploading}

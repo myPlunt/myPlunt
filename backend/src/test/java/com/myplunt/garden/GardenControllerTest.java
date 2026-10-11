@@ -56,7 +56,8 @@ class GardenControllerTest {
                         "Geranium",
                         4,
                         Instant.parse("2026-10-07T08:00:00Z"),
-                        Instant.parse("2026-10-11T08:00:00Z"))))));
+                        Instant.parse("2026-10-11T08:00:00Z"),
+                        "https://storage.test/george.jpg?signed")))));
         when(gardenService.getGarden(id)).thenReturn(garden);
 
         restTestClient.get().uri("/v1/garden")

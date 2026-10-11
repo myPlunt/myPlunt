@@ -1,4 +1,5 @@
 import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { useRouter } from 'expo-router';
 
 import { useGarden } from '@/features/garden/use-garden';
 import { useGardenActions } from '@/features/garden/use-garden-actions';
@@ -7,6 +8,7 @@ import type { Garden, GardenPlant } from '@/lib/garden/types';
 
 import { GardenScreen } from '../garden-screen';
 
+jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/garden/use-garden');
 jest.mock('@/features/garden/use-garden-actions');
 
@@ -15,6 +17,7 @@ const mockedUseGardenActions = jest.mocked(useGardenActions);
 const retry = jest.fn();
 const refresh = jest.fn();
 const waterPlants = jest.fn();
+const push = jest.fn();
 const user = userEvent.setup();
 
 // Due dates relative to the real "now", in local time, as the screen reads the clock itself.
@@ -25,13 +28,31 @@ function inDays(days: number) {
   return date.toISOString();
 }
 
-function plant(id: string, name: string, dueInDays: number, speciesName: string | null = null): GardenPlant {
-  return { id, name, speciesName, wateringFrequencyDays: 4, lastWateredAt: null, nextWateringAt: inDays(dueInDays) };
+function plant(
+  id: string,
+  name: string,
+  dueInDays: number,
+  speciesName: string | null = null,
+  photoUrl: string | null = null,
+): GardenPlant {
+  return {
+    id,
+    name,
+    speciesName,
+    wateringFrequencyDays: 4,
+    lastWateredAt: null,
+    nextWateringAt: inDays(dueInDays),
+    photoUrl,
+  };
 }
 
 const garden: Garden = {
   rooms: [
-    { id: 'balcony', name: 'Balcony', plants: [plant('george', 'George', 2, 'Geranium'), plant('pinky', 'Pinky', 0)] },
+    {
+      id: 'balcony',
+      name: 'Balcony',
+      plants: [plant('george', 'George', 2, 'Geranium', 'https://storage.test/george.jpg'), plant('pinky', 'Pinky', 0)],
+    },
     { id: 'living', name: 'Living room', plants: [] },
     { id: 'kitchen', name: 'Kitchen windowsill', plants: [plant('basil', 'Basil', -1), plant('minty', 'Minty', 1)] },
   ],
@@ -42,6 +63,7 @@ function mockGarden(state: Partial<ReturnType<typeof useGarden>>) {
 }
 
 beforeEach(() => {
+  jest.mocked(useRouter).mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
   mockGarden({});
   mockedUseGardenActions.mockReturnValue({ waterPlants });
   waterPlants.mockResolvedValue(undefined);
@@ -88,7 +110,30 @@ describe('GardenScreen', () => {
     expect(screen.getByText('Tomorrow')).toBeOnTheScreen();
   });
 
-  it('orders the plants in a room from least to most water', async () => {
+  it("opens a plant's details when its card is pressed", async () => {
+    await render(<GardenScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'George' }));
+
+    expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]', params: { id: 'george' } });
+  });
+
+  it('shows the photo of plants that have one and the placeholder for the rest', async () => {
+    await render(<GardenScreen />);
+
+    expect(screen.getByLabelText('Photo of George')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Photo of Pinky')).toBeNull();
+  });
+
+  it('keeps a blank species line on cards without a species, so the watering pills line up', async () => {
+    await render(<GardenScreen />);
+
+    // George has a species; Pinky, Basil and Minty get the blank line instead.
+    expect(screen.getByText('Geranium')).toBeOnTheScreen();
+    expect(screen.getAllByText(' ', { includeHiddenElements: true })).toHaveLength(3);
+  });
+
+  it('orders the plants in a room by when they need water next', async () => {
     await render(<GardenScreen />);
 
     const kitchen = screen.getAllByText(/^(Basil|Minty)$/).map((node) => node.props.children);

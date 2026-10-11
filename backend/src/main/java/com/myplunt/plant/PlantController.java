@@ -2,13 +2,17 @@ package com.myplunt.plant;
 
 import com.myplunt.constants.ApiPaths;
 import com.myplunt.plant.dto.CreatePlantRequest;
+import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantResponse;
+import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.user.User;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +33,19 @@ public class PlantController {
     @ResponseStatus(HttpStatus.CREATED)
     public PlantResponse create(@AuthenticationPrincipal User principal, @Valid @RequestBody CreatePlantRequest request) {
         return plantService.create(principal.getId(), request);
+    }
+
+    @GetMapping(ApiPaths.Plants.BY_ID)
+    public PlantDetailsResponse get(@AuthenticationPrincipal User principal, @PathVariable UUID plantId) {
+        return plantService.getDetails(principal.getId(), plantId);
+    }
+
+    @PutMapping(ApiPaths.Plants.BY_ID)
+    public PlantDetailsResponse update(
+            @AuthenticationPrincipal User principal,
+            @PathVariable UUID plantId,
+            @Valid @RequestBody UpdatePlantRequest request) {
+        return plantService.update(principal.getId(), plantId, request);
     }
 
     @PostMapping(ApiPaths.Plants.WATERINGS)

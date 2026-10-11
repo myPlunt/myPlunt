@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Room } from '@/lib/garden/types';
 
-import { plantsNeedingWater, roomSummary, sortByWaterLevel } from '../watering';
+import { plantsNeedingWater, roomSummary, sortByNextWatering } from '../watering';
 import { PlantCard } from './plant-card';
 
 interface RoomSectionProps {
@@ -11,7 +11,7 @@ interface RoomSectionProps {
 }
 
 // One room of the garden: its name and a sideways-scrolling row of plant cards,
-// thirstiest first.
+// the one due soonest first.
 export function RoomSection({ room, now }: RoomSectionProps) {
   const needsWater = plantsNeedingWater({ rooms: [room] }, now).length > 0;
 
@@ -37,7 +37,7 @@ export function RoomSection({ room, now }: RoomSectionProps) {
           showsHorizontalScrollIndicator={false}
           className="-mx-6"
           contentContainerClassName="gap-3 px-6 py-3">
-          {sortByWaterLevel(room.plants, now).map((plant) => (
+          {sortByNextWatering(room.plants, now).map((plant) => (
             <PlantCard key={plant.id} plant={plant} now={now} />
           ))}
         </ScrollView>
