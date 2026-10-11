@@ -46,7 +46,8 @@ class SpeciesControllerTest {
         when(jwtService.parseAndValidate("access-token")).thenReturn(userId);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         List<SpeciesResponse> species =
-                List.of(new SpeciesResponse(UUID.randomUUID(), "Monstera", "Monstera deliciosa", 7));
+                List.of(new SpeciesResponse(
+                        UUID.randomUUID(), "Monstera", "Monstera deliciosa", 7, "Central America", true, null));
         when(speciesService.getApprovedSpecies()).thenReturn(species);
 
         restTestClient.get().uri("/v1/species")

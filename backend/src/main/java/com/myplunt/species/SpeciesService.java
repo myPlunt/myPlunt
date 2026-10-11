@@ -1,6 +1,7 @@
 package com.myplunt.species;
 
 import com.myplunt.species.dto.SpeciesResponse;
+import com.myplunt.storage.StorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,9 +11,11 @@ import java.util.List;
 public class SpeciesService {
 
     private final SpeciesRepository speciesRepository;
+    private final StorageService storageService;
 
-    public SpeciesService(SpeciesRepository speciesRepository) {
+    public SpeciesService(SpeciesRepository speciesRepository, StorageService storageService) {
         this.speciesRepository = speciesRepository;
+        this.storageService = storageService;
     }
 
     // Every approved species, by common name. The list is small for now, so the app
@@ -24,7 +27,11 @@ public class SpeciesService {
                         species.getId(),
                         species.getCommonName(),
                         species.getScientificName(),
-                        species.getWateringFrequencyDays()))
+                        species.getWateringFrequencyDays(),
+                        species.getRegion(),
+                        species.isCommon(),
+                        // Signing is local (no call to storage), so one per species is cheap.
+                        species.getImageKey() == null ? null : storageService.createReadUrl(species.getImageKey())))
                 .toList();
     }
 }
