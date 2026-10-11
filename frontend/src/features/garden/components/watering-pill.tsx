@@ -10,10 +10,10 @@ import { wateringStatus, type WateringTone } from '../watering';
 // opacity, so no new palette colours. `icon` is a theme key because tintColor takes
 // a colour, not a class.
 const toneStyles: Record<WateringTone, { pill: string; text: string; icon: ThemeColor }> = {
-  none: { pill: 'bg-border/40', text: 'text-text-secondary', icon: 'textSecondary' },
-  normal: { pill: 'bg-water/15', text: 'text-water', icon: 'water' },
-  soon: { pill: 'bg-accent/15', text: 'text-accent', icon: 'accent' },
-  overdue: { pill: 'bg-error/15', text: 'text-error', icon: 'error' },
+  later: { pill: 'bg-water/15', text: 'text-water', icon: 'water' },
+  soon: { pill: 'bg-watering-soon/15', text: 'text-watering-soon', icon: 'wateringSoon' },
+  tomorrow: { pill: 'bg-watering-tomorrow/15', text: 'text-watering-tomorrow', icon: 'wateringTomorrow' },
+  due: { pill: 'bg-error/15', text: 'text-error', icon: 'error' },
 };
 
 interface WateringPillProps {
@@ -21,7 +21,10 @@ interface WateringPillProps {
   now: Date;
 }
 
-/** When the plant needs water next ("In 5 days", "Today", "Overdue"), coloured by urgency. */
+/**
+ * When the plant needs water next ("In 5 days", "Today", "Overdue"), coloured by urgency:
+ * blue for 3+ days, mustard for 2, orange for tomorrow, red for today or overdue.
+ */
 export function WateringPill({ plant, now }: WateringPillProps) {
   const theme = useTheme();
   const status = wateringStatus(plant, now);

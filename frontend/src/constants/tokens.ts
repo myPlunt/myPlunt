@@ -32,6 +32,10 @@ export const brand = {
   // Not in brand palette: approved for water only (the water line in the garden's
   // plant pots). A muted blue so it sits with the earthy brand colours.
   waterBlue500: '#4E6F9C',
+  // Not in brand palette: approved for the watering pill's "in 2 days" and "tomorrow"
+  // urgency steps, between water blue (3+ days) and error red (today or overdue).
+  mustard500: '#D4A017',
+  orange500: '#E07B24',
 } as const;
 
 // Semantic colour roles. Tailwind exposes each key in kebab-case
@@ -54,6 +58,9 @@ export const lightColors = {
   placeholder: brand.grey500,
   error: brand.error500,
   water: brand.waterBlue500,
+  // Watering urgency between water (3+ days) and error (today or overdue).
+  wateringSoon: brand.mustard500,
+  wateringTomorrow: brand.orange500,
   // Bottom tab bar: icon and label of the open tab and of the others.
   tabActive: brand.hunterGreen500,
   tabInactive: brand.fern500,

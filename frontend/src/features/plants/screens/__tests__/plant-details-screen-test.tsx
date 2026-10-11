@@ -69,7 +69,7 @@ describe('PlantDetailsScreen', () => {
     expect(screen.getByText('In 5 days')).toBeOnTheScreen();
     expect(screen.getByText('Balcony')).toBeOnTheScreen();
     expect(screen.getByText('Bright indirect')).toBeOnTheScreen();
-    expect(screen.getByText('Every 7 days (species default)')).toBeOnTheScreen();
+    expect(screen.getByText('Every 7 days (default)')).toBeOnTheScreen();
     expect(screen.getByText('2 days ago')).toBeOnTheScreen();
     expect(screen.getByText('Found at a flea market')).toBeOnTheScreen();
   });
@@ -84,9 +84,7 @@ describe('PlantDetailsScreen', () => {
         planterName: null,
         speciesId: null,
         speciesName: null,
-        wateringFrequencyDays: null,
         lastWateredAt: null,
-        nextWateringAt: null,
         photoUrl: null,
       },
     });
@@ -94,13 +92,12 @@ describe('PlantDetailsScreen', () => {
 
     expect(screen.getByText('Other plants')).toBeOnTheScreen();
     expect(screen.getByText('Not set')).toBeOnTheScreen();
-    expect(screen.getAllByText('No schedule')).toHaveLength(2);
     expect(screen.getByText('Not yet')).toBeOnTheScreen();
     expect(screen.queryByText('NOTES')).toBeNull();
     expect(screen.queryByLabelText('Photo of Vera')).toBeNull();
   });
 
-  it("doesn't call the owner's own watering frequency a species default", async () => {
+  it("doesn't call the owner's own watering frequency a default", async () => {
     mockPlant({ plant: { ...vera, wateringEveryDays: 3, wateringFrequencyDays: 3 } });
     await render(<PlantDetailsScreen plantId="p1" />);
 
