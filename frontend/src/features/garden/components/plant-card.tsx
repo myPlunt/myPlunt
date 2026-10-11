@@ -38,11 +38,15 @@ export function PlantCard({ plant, now }: PlantCardProps) {
           <Text className="type-subtitle-large text-text" numberOfLines={1}>
             {plant.name}
           </Text>
-          {plant.speciesName && (
-            <Text className="type-body-medium text-text-secondary" numberOfLines={1}>
-              {plant.speciesName}
-            </Text>
-          )}
+          {/* Always one line, left blank without a species, so the watering pill sits at the
+              same height on every card. The blank line is hidden from screen readers. */}
+          <Text
+            className="type-body-medium text-text-secondary"
+            numberOfLines={1}
+            accessibilityElementsHidden={!plant.speciesName}
+            importantForAccessibility={plant.speciesName ? 'auto' : 'no-hide-descendants'}>
+            {plant.speciesName ?? ' '}
+          </Text>
         </View>
         <View className="mt-1">
           <WateringPill plant={plant} now={now} />

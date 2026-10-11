@@ -125,6 +125,14 @@ describe('GardenScreen', () => {
     expect(screen.queryByLabelText('Photo of Pinky')).toBeNull();
   });
 
+  it('keeps a blank species line on cards without a species, so the watering pills line up', async () => {
+    await render(<GardenScreen />);
+
+    // George has a species; Pinky, Basil and Minty get the blank line instead.
+    expect(screen.getByText('Geranium')).toBeOnTheScreen();
+    expect(screen.getAllByText(' ', { includeHiddenElements: true })).toHaveLength(3);
+  });
+
   it('orders the plants in a room from least to most water', async () => {
     await render(<GardenScreen />);
 
