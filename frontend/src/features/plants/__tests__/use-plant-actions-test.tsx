@@ -84,7 +84,7 @@ it('updatePlant returns the updated plant from the service', async () => {
     speciesName: null,
     wateringFrequencyDays: 7,
     lastWateredAt: null,
-    nextWateringAt: null,
+    nextWateringAt: '2026-10-11T08:00:00.000Z',
   };
   mockedPlantService.updatePlant.mockResolvedValue(updated);
   const { result } = await renderWithStore();

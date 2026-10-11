@@ -1,7 +1,7 @@
 import type { Garden, GardenPlant, Room } from '@/lib/garden/types';
 
 /** How urgent watering is: 3+ days, 2 days, tomorrow, today or overdue. */
-export type WateringTone = 'none' | 'later' | 'soon' | 'tomorrow' | 'due';
+export type WateringTone = 'later' | 'soon' | 'tomorrow' | 'due';
 
 export interface WateringStatus {
   /** Short, for the status pill on a plant card: "In 5 days", "Tomorrow", "Overdue". */
@@ -10,7 +10,7 @@ export interface WateringStatus {
 }
 
 /** What the watering status needs: a garden plant or a plant's details. */
-type WateringSchedule = Pick<GardenPlant, 'wateringFrequencyDays' | 'nextWateringAt'>;
+type WateringSchedule = Pick<GardenPlant, 'nextWateringAt'>;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -22,18 +22,13 @@ function startOfDay(date: Date) {
  * Calendar days from today until the plant is due, in the device's time zone, so
  * "Today" flips at the user's own midnight. Negative when overdue.
  */
-export function daysUntilWatering(plant: WateringSchedule, now: Date): number | null {
-  if (!plant.nextWateringAt) return null;
+export function daysUntilWatering(plant: WateringSchedule, now: Date): number {
   // Rounded because a day across a daylight-saving change is 23 or 25 hours long.
   return Math.round((startOfDay(new Date(plant.nextWateringAt)) - startOfDay(now)) / DAY_MS);
 }
 
 export function wateringStatus(plant: WateringSchedule, now: Date): WateringStatus {
   const days = daysUntilWatering(plant, now);
-  if (days === null || !plant.wateringFrequencyDays) {
-    return { label: 'No schedule', tone: 'none' };
-  }
-
   if (days < 0) return { label: 'Overdue', tone: 'due' };
   if (days === 0) return { label: 'Today', tone: 'due' };
   if (days === 1) return { label: 'Tomorrow', tone: 'tomorrow' };
@@ -42,12 +37,11 @@ export function wateringStatus(plant: WateringSchedule, now: Date): WateringStat
 }
 
 /**
- * Soonest due first (the most overdue at the very start), plants without a schedule
- * last. Plants due on the same day go by name, so the order never changes on reload.
+ * Soonest due first (the most overdue at the very start). Plants due on the same day go
+ * by name, so the order never changes on reload.
  */
 export function sortByNextWatering(plants: GardenPlant[], now: Date): GardenPlant[] {
-  // Infinity puts unscheduled plants after every scheduled one.
-  const days = (plant: GardenPlant) => daysUntilWatering(plant, now) ?? Infinity;
+  const days = (plant: GardenPlant) => daysUntilWatering(plant, now);
   return [...plants].sort((a, b) => days(a) - days(b) || a.name.localeCompare(b.name));
 }
 
@@ -55,10 +49,7 @@ export function sortByNextWatering(plants: GardenPlant[], now: Date): GardenPlan
 export function plantsNeedingWater(garden: Garden, now: Date): GardenPlant[] {
   return garden.rooms
     .flatMap((room) => room.plants)
-    .filter((plant) => {
-      const days = daysUntilWatering(plant, now);
-      return days !== null && days <= 0;
-    });
+    .filter((plant) => daysUntilWatering(plant, now) <= 0);
 }
 
 /** "Today", "Yesterday", "3 days ago", in the device's time zone; "Not yet" when never watered. */

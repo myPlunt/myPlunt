@@ -10,7 +10,6 @@ import { wateringStatus, type WateringTone } from '../watering';
 // opacity, so no new palette colours. `icon` is a theme key because tintColor takes
 // a colour, not a class.
 const toneStyles: Record<WateringTone, { pill: string; text: string; icon: ThemeColor }> = {
-  none: { pill: 'bg-border/40', text: 'text-text-secondary', icon: 'textSecondary' },
   later: { pill: 'bg-water/15', text: 'text-water', icon: 'water' },
   soon: { pill: 'bg-watering-soon/15', text: 'text-watering-soon', icon: 'wateringSoon' },
   tomorrow: { pill: 'bg-watering-tomorrow/15', text: 'text-watering-tomorrow', icon: 'wateringTomorrow' },

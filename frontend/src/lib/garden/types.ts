@@ -12,14 +12,15 @@ export interface Room {
 
 /**
  * Mirrors GardenPlantResponse. speciesName is null when the plant has no species, photoUrl
- * (a short-lived link) when it has no photo; the watering fields are null when it has no schedule.
+ * (a short-lived link) when it has no photo, lastWateredAt when it was never watered. Every
+ * plant has a watering schedule, so wateringFrequencyDays and nextWateringAt are always set.
  */
 export interface GardenPlant {
   id: string;
   name: string;
   speciesName: string | null;
-  wateringFrequencyDays: number | null;
+  wateringFrequencyDays: number;
   lastWateredAt: string | null;
-  nextWateringAt: string | null;
+  nextWateringAt: string;
   photoUrl: string | null;
 }
