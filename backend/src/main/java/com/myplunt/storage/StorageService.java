@@ -25,8 +25,8 @@ public class StorageService {
             "image/jpeg", "jpg",
             "image/png", "png");
 
-    // Signed into the presigned PUT (like contentType already is), so the uploader's PUT
-    // must send this exact header. Lets a bucket lifecycle rule expire anything never confirmed.
+    // Signed into the presigned PUT, so the uploader's PUT must send this exact header.
+    // Lets a bucket lifecycle rule expire anything never confirmed.
     private static final String PENDING_UPLOAD_TAGGING = "pending=true";
 
     private final S3Client s3Client;
@@ -65,7 +65,6 @@ public class StorageService {
         PutObjectRequest putRequest = PutObjectRequest.builder()
                 .bucket(bucket)
                 .key(key)
-                .contentType(request.contentType())
                 .tagging(PENDING_UPLOAD_TAGGING)
                 .build();
 
