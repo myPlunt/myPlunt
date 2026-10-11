@@ -10,6 +10,9 @@ export interface WateringStatus {
   level: number;
 }
 
+/** What the watering status needs: a garden plant or a plant's details. */
+type WateringSchedule = Pick<GardenPlant, 'wateringFrequencyDays' | 'nextWateringAt'>;
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TOMORROW_LEVEL = 0.1;
 
@@ -21,13 +24,13 @@ function startOfDay(date: Date) {
  * Calendar days from today until the plant is due, in the device's time zone, so
  * "Today" flips at the user's own midnight. Negative when overdue.
  */
-export function daysUntilWatering(plant: GardenPlant, now: Date): number | null {
+export function daysUntilWatering(plant: WateringSchedule, now: Date): number | null {
   if (!plant.nextWateringAt) return null;
   // Rounded because a day across a daylight-saving change is 23 or 25 hours long.
   return Math.round((startOfDay(new Date(plant.nextWateringAt)) - startOfDay(now)) / DAY_MS);
 }
 
-export function wateringStatus(plant: GardenPlant, now: Date): WateringStatus {
+export function wateringStatus(plant: WateringSchedule, now: Date): WateringStatus {
   const days = daysUntilWatering(plant, now);
   if (days === null || !plant.wateringFrequencyDays) {
     return { label: 'No schedule', tone: 'none', level: 0 };
@@ -66,6 +69,15 @@ export function plantsNeedingWater(garden: Garden, now: Date): GardenPlant[] {
       const days = daysUntilWatering(plant, now);
       return days !== null && days <= 0;
     });
+}
+
+/** "Today", "Yesterday", "3 days ago", in the device's time zone; "Not yet" when never watered. */
+export function lastWateredLabel(lastWateredAt: string | null, now: Date): string {
+  if (!lastWateredAt) return 'Not yet';
+  const days = Math.round((startOfDay(now) - startOfDay(new Date(lastWateredAt))) / DAY_MS);
+  if (days <= 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  return `${days} days ago`;
 }
 
 function plural(count: number, word: string) {

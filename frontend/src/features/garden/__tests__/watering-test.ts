@@ -1,6 +1,7 @@
 import {
   daysUntilWatering,
   gardenSummary,
+  lastWateredLabel,
   listPlantNames,
   plantsNeedingWater,
   roomSummary,
@@ -161,5 +162,17 @@ describe('listPlantNames', () => {
     [['Pinky', 'Basil', 'Minty', 'Rosie'], 'Pinky, Basil and 2 more'],
   ])('lists %j as "%s"', (names, expected) => {
     expect(listPlantNames(names.map((name) => plant(name, null)))).toBe(expected);
+  });
+});
+
+describe('lastWateredLabel', () => {
+  it('says how many calendar days ago the plant was watered', () => {
+    expect(lastWateredLabel(new Date(2026, 9, 9, 8, 0).toISOString(), now)).toBe('Today');
+    expect(lastWateredLabel(new Date(2026, 9, 8, 23, 0).toISOString(), now)).toBe('Yesterday');
+    expect(lastWateredLabel(new Date(2026, 9, 6, 16, 0).toISOString(), now)).toBe('3 days ago');
+  });
+
+  it('says "Not yet" for a plant that was never watered', () => {
+    expect(lastWateredLabel(null, now)).toBe('Not yet');
   });
 });
