@@ -48,11 +48,13 @@ describe('daysUntilWatering', () => {
 
 describe('wateringStatus', () => {
   it.each([
-    [new Date(2026, 9, 11, 9), 'In 2 days', 'normal'],
-    [new Date(2026, 9, 10, 9), 'Tomorrow', 'soon'],
-    [new Date(2026, 9, 9, 9), 'Today', 'soon'],
-    [new Date(2026, 9, 8, 9), 'Overdue', 'overdue'],
-    [new Date(2026, 9, 6, 9), 'Overdue', 'overdue'],
+    [new Date(2026, 9, 15, 9), 'In 6 days', 'later'],
+    [new Date(2026, 9, 12, 9), 'In 3 days', 'later'],
+    [new Date(2026, 9, 11, 9), 'In 2 days', 'soon'],
+    [new Date(2026, 9, 10, 9), 'Tomorrow', 'tomorrow'],
+    [new Date(2026, 9, 9, 9), 'Today', 'due'],
+    [new Date(2026, 9, 8, 9), 'Overdue', 'due'],
+    [new Date(2026, 9, 6, 9), 'Overdue', 'due'],
   ])('describes a plant due on %s as "%s"', (due, label, tone) => {
     expect(wateringStatus(plant('George', due), now)).toMatchObject({ label, tone });
   });

@@ -1,6 +1,7 @@
 import type { Garden, GardenPlant, Room } from '@/lib/garden/types';
 
-export type WateringTone = 'none' | 'normal' | 'soon' | 'overdue';
+/** How urgent watering is: 3+ days, 2 days, tomorrow, today or overdue. */
+export type WateringTone = 'none' | 'later' | 'soon' | 'tomorrow' | 'due';
 
 export interface WateringStatus {
   /** Short, for the status pill on a plant card: "In 5 days", "Tomorrow", "Overdue". */
@@ -33,10 +34,11 @@ export function wateringStatus(plant: WateringSchedule, now: Date): WateringStat
     return { label: 'No schedule', tone: 'none' };
   }
 
-  if (days < 0) return { label: 'Overdue', tone: 'overdue' };
-  if (days === 0) return { label: 'Today', tone: 'soon' };
-  if (days === 1) return { label: 'Tomorrow', tone: 'soon' };
-  return { label: `In ${days} days`, tone: 'normal' };
+  if (days < 0) return { label: 'Overdue', tone: 'due' };
+  if (days === 0) return { label: 'Today', tone: 'due' };
+  if (days === 1) return { label: 'Tomorrow', tone: 'tomorrow' };
+  if (days === 2) return { label: 'In 2 days', tone: 'soon' };
+  return { label: `In ${days} days`, tone: 'later' };
 }
 
 /**
