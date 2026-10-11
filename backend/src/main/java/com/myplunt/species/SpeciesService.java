@@ -16,7 +16,7 @@ public class SpeciesService {
     }
 
     // Every approved species, by common name. The list is small for now, so the app
-    // searches it locally; the Plantdex will need server-side search and paging.
+    // searches it locally; the Pluntdex will need server-side search and paging.
     @Transactional(readOnly = true)
     public List<SpeciesResponse> getApprovedSpecies() {
         return speciesRepository.findByApprovedTrueOrderByCommonNameAsc().stream()

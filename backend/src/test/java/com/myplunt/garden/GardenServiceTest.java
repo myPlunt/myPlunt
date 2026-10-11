@@ -108,7 +108,7 @@ class GardenServiceTest {
         GardenPlantResponse response = gardenService().getGarden(ownerId).rooms().get(0).plants().get(0);
 
         assertThat(response).isEqualTo(new GardenPlantResponse(
-                george.getId(), "George", "Basil", 4, wateredAt, wateredAt.plus(Duration.ofDays(4)), null));
+                george.getId(), "George", null, "Basil", 4, wateredAt, wateredAt.plus(Duration.ofDays(4)), null));
     }
 
     @Test
