@@ -76,7 +76,7 @@ function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
         <PlantPhoto
           photoUrl={plant.photoUrl}
           accessibilityLabel={`Photo of ${plant.name}`}
-          className="aspect-square w-full rounded-3xl"
+          className="aspect-square w-full rounded-3xl border-[1.5px] border-input-border"
           iconSize={64}
         />
 
@@ -89,7 +89,7 @@ function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
       </View>
 
       {/* Shadow goes through style so it sets both iOS shadow* and Android elevation. */}
-      <View className="gap-3 rounded-2xl bg-background-element p-4" style={Shadow.card}>
+      <View className="gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4" style={Shadow.card}>
         <Text className="type-label text-accent" numberOfLines={1}>
           {`${plant.name} information`.toUpperCase()}
         </Text>
@@ -104,7 +104,7 @@ function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
       </View>
 
       {plant.notes && (
-        <View className="gap-2 rounded-2xl bg-background-element p-4" style={Shadow.card}>
+        <View className="gap-2 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4" style={Shadow.card}>
           <Text className="type-label text-accent">NOTES</Text>
           <Text className="type-body-large text-text">{plant.notes}</Text>
         </View>
