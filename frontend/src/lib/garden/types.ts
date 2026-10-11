@@ -11,12 +11,13 @@ export interface Room {
 }
 
 /**
- * Mirrors GardenPlantResponse. speciesName is null when the plant has no species, photoUrl
+ * Mirrors GardenPlantResponse. speciesId and speciesName are null when the plant has no species, photoUrl
  * (a short-lived link) when it has no photo; the watering fields are null when it has no schedule.
  */
 export interface GardenPlant {
   id: string;
   name: string;
+  speciesId: string | null;
   speciesName: string | null;
   wateringFrequencyDays: number | null;
   lastWateredAt: string | null;

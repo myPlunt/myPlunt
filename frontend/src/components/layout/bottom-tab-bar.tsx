@@ -19,6 +19,11 @@ const feedTab: TabConfig = {
   label: 'Feed',
   icon: { ios: 'house.fill', android: 'home', web: 'home' },
 };
+const pluntdexTab: TabConfig = {
+  route: 'pluntdex',
+  label: 'Pluntdex',
+  icon: { ios: 'book.fill', android: 'menu_book', web: 'menu_book' },
+};
 const rightTabs: TabConfig[] = [
   {
     route: 'garden',
@@ -84,19 +89,7 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
       style={{ paddingBottom: insets.bottom }}>
       <View className="w-full max-w-content flex-row items-center self-center px-2">
         {renderTab(feedTab)}
-        {/* Shown but disabled until the Plantdex (regional plants) endpoint exists. */}
-        <Pressable
-          accessibilityRole="tab"
-          accessibilityLabel="Plantdex"
-          disabled
-          className="flex-1 items-center gap-1 py-2 opacity-50">
-          <SymbolView
-            name={{ ios: 'book.fill', android: 'menu_book', web: 'menu_book' }}
-            tintColor={theme.tabInactive}
-            size={24}
-          />
-          <Text className="type-label text-tab-inactive">Plantdex</Text>
-        </Pressable>
+        {renderTab(pluntdexTab)}
         <View className="flex-1 items-center">
           <Pressable
             accessibilityRole="button"
