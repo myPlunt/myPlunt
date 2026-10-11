@@ -133,7 +133,7 @@ describe('GardenScreen', () => {
     expect(screen.getAllByText(' ', { includeHiddenElements: true })).toHaveLength(3);
   });
 
-  it('orders the plants in a room from least to most water', async () => {
+  it('orders the plants in a room by when they need water next', async () => {
     await render(<GardenScreen />);
 
     const kitchen = screen.getAllByText(/^(Basil|Minty)$/).map((node) => node.props.children);

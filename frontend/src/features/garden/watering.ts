@@ -6,15 +6,12 @@ export interface WateringStatus {
   /** Short, for the status pill on a plant card: "In 5 days", "Tomorrow", "Overdue". */
   label: string;
   tone: WateringTone;
-  /** How much water the plant has left, from 0 (needs water) to 1 (just watered). Used for sorting. */
-  level: number;
 }
 
 /** What the watering status needs: a garden plant or a plant's details. */
 type WateringSchedule = Pick<GardenPlant, 'wateringFrequencyDays' | 'nextWateringAt'>;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const TOMORROW_LEVEL = 0.1;
 
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
@@ -33,32 +30,23 @@ export function daysUntilWatering(plant: WateringSchedule, now: Date): number | 
 export function wateringStatus(plant: WateringSchedule, now: Date): WateringStatus {
   const days = daysUntilWatering(plant, now);
   if (days === null || !plant.wateringFrequencyDays) {
-    return { label: 'No schedule', tone: 'none', level: 0 };
+    return { label: 'No schedule', tone: 'none' };
   }
 
-  // A plant due tomorrow shows just a thin layer of water, so it reads as "nearly
-  // dry" whatever its watering frequency; later days scale with the time left.
-  const level = days <= 0 ? 0 : days === 1 ? TOMORROW_LEVEL : Math.min(days / plant.wateringFrequencyDays, 1);
-  if (days < 0) return { label: 'Overdue', tone: 'overdue', level };
-  if (days === 0) return { label: 'Today', tone: 'soon', level };
-  if (days === 1) return { label: 'Tomorrow', tone: 'soon', level };
-  return { label: `In ${days} days`, tone: 'normal', level };
+  if (days < 0) return { label: 'Overdue', tone: 'overdue' };
+  if (days === 0) return { label: 'Today', tone: 'soon' };
+  if (days === 1) return { label: 'Tomorrow', tone: 'soon' };
+  return { label: `In ${days} days`, tone: 'normal' };
 }
 
 /**
- * Least water first. Equal levels (an overdue and a
- * due-today plant are both empty) go by which is due first; plants without a
- * schedule go last.
+ * Soonest due first (the most overdue at the very start), plants without a schedule
+ * last. Plants due on the same day go by name, so the order never changes on reload.
  */
-export function sortByWaterLevel(plants: GardenPlant[], now: Date): GardenPlant[] {
-  const rank = (plant: GardenPlant) => {
-    const days = daysUntilWatering(plant, now);
-    return { unscheduled: days === null, level: wateringStatus(plant, now).level, days: days ?? 0 };
-  };
-  return plants
-    .map((plant) => ({ plant, ...rank(plant) }))
-    .sort((a, b) => Number(a.unscheduled) - Number(b.unscheduled) || a.level - b.level || a.days - b.days)
-    .map(({ plant }) => plant);
+export function sortByNextWatering(plants: GardenPlant[], now: Date): GardenPlant[] {
+  // Infinity puts unscheduled plants after every scheduled one.
+  const days = (plant: GardenPlant) => daysUntilWatering(plant, now) ?? Infinity;
+  return [...plants].sort((a, b) => days(a) - days(b) || a.name.localeCompare(b.name));
 }
 
 /** Plants due today or overdue, in garden order. */
