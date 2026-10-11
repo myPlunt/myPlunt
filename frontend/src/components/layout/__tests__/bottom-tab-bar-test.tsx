@@ -13,7 +13,7 @@ const navigate = jest.fn();
 const emit = jest.fn();
 const user = userEvent.setup();
 
-const routes = ['index', 'garden', 'profile'].map((name) => ({ key: `${name}-key`, name }));
+const routes = ['index', 'pluntdex', 'garden', 'profile'].map((name) => ({ key: `${name}-key`, name }));
 
 // Only the parts of the navigator props the tab bar reads.
 function tabBarProps(activeIndex: number) {
@@ -35,17 +35,17 @@ afterEach(() => {
 });
 
 describe('BottomTabBar', () => {
-  it('shows Feed, Plantdex, Add, Garden and Profile in that order', async () => {
+  it('shows Feed, Pluntdex, Add, Garden and Profile in that order', async () => {
     await render(<BottomTabBar {...tabBarProps(0)} />);
 
     const labels = screen
       .getAllByRole(/^(tab|button)$/)
       .map((element) => element.props.accessibilityLabel);
-    expect(labels).toEqual(['Feed', 'Plantdex', 'Add plant', 'Garden', 'Profile']);
+    expect(labels).toEqual(['Feed', 'Pluntdex', 'Add plant', 'Garden', 'Profile']);
   });
 
   it('marks only the current tab as selected', async () => {
-    await render(<BottomTabBar {...tabBarProps(2)} />);
+    await render(<BottomTabBar {...tabBarProps(3)} />);
 
     expect(screen.getByRole('tab', { name: 'Profile' })).toBeSelected();
     expect(screen.getByRole('tab', { name: 'Feed' })).not.toBeSelected();
@@ -61,7 +61,7 @@ describe('BottomTabBar', () => {
   });
 
   it('does not navigate when the pressed tab is already open', async () => {
-    await render(<BottomTabBar {...tabBarProps(1)} />);
+    await render(<BottomTabBar {...tabBarProps(2)} />);
 
     await user.press(screen.getByRole('tab', { name: 'Garden' }));
 
@@ -77,16 +77,12 @@ describe('BottomTabBar', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('shows Plantdex as disabled and does nothing when it is pressed', async () => {
+  it('switches to the Pluntdex', async () => {
     await render(<BottomTabBar {...tabBarProps(0)} />);
 
-    const plantdex = screen.getByRole('tab', { name: 'Plantdex' });
-    expect(plantdex).toBeDisabled();
-    await user.press(plantdex);
+    await user.press(screen.getByRole('tab', { name: 'Pluntdex' }));
 
-    expect(emit).not.toHaveBeenCalled();
-    expect(navigate).not.toHaveBeenCalled();
-    expect(push).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith('pluntdex', undefined);
   });
 
   it('opens the add screen from the middle button', async () => {

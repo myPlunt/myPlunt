@@ -17,6 +17,7 @@ function plant(name: string, due: Date | null, wateringFrequencyDays: number | n
   return {
     id: name.toLowerCase(),
     name,
+    speciesId: null,
     speciesName: null,
     wateringFrequencyDays,
     lastWateredAt: null,

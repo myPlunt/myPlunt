@@ -38,6 +38,7 @@ function plant(
   return {
     id,
     name,
+    speciesId: null,
     speciesName,
     wateringFrequencyDays: 4,
     lastWateredAt: null,
