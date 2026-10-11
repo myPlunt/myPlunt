@@ -247,7 +247,8 @@ export function PlantForm({ plant, species, speciesError, planters, plantersErro
               onChangeText={(text) => setWateringEveryDays(text.replace(/\D/g, ''))}
               keyboardType="number-pad"
               maxLength={3}
-              // Left empty, the garden falls back to the species' own frequency, so hint at it.
+              // Left empty, the plant follows the species' frequency, or 7 days without one
+              // (WateringSchedule on the backend), so hint at it.
               placeholder={String(selectedSpecies?.wateringFrequencyDays ?? 7)}
               // A colour prop, not a style, so it can't take a class.
               placeholderTextColor={theme.placeholder}

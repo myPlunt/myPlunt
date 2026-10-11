@@ -5,6 +5,7 @@ import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.garden.dto.RoomResponse;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantService;
+import com.myplunt.plant.WateringSchedule;
 import com.myplunt.species.Species;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -125,7 +126,7 @@ class GardenServiceTest {
     }
 
     @Test
-    void getGarden_leavesTheScheduleEmptyWhenTheSpeciesHasNoWateringFrequency() {
+    void getGarden_usesTheDefaultScheduleWhenNeitherTheOwnerNorTheSpeciesSetAFrequency() {
         Planter balcony = planter("Balcony");
         Plant unknown = plant("Mystery", balcony, null);
         Plant noSpecies = plant("Nameless", balcony, 4);
@@ -137,8 +138,9 @@ class GardenServiceTest {
 
         assertThat(plants).extracting(GardenPlantResponse::speciesName).containsExactly("Basil", null);
         assertThat(plants).allSatisfy(plant -> {
-            assertThat(plant.wateringFrequencyDays()).isNull();
-            assertThat(plant.nextWateringAt()).isNull();
+            assertThat(plant.wateringFrequencyDays()).isEqualTo(WateringSchedule.DEFAULT_FREQUENCY_DAYS);
+            // Never watered, so counted from the day it was added.
+            assertThat(plant.nextWateringAt()).isEqualTo(addedAt.plus(Duration.ofDays(WateringSchedule.DEFAULT_FREQUENCY_DAYS)));
         });
     }
 

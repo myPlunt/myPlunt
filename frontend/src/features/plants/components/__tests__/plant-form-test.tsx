@@ -425,7 +425,7 @@ describe('PlantForm', () => {
       speciesName: 'Monstera',
       wateringFrequencyDays: 9,
       lastWateredAt: null,
-      nextWateringAt: null,
+      nextWateringAt: '2026-10-11T08:00:00.000Z',
       photoUrl: 'https://storage.test/vera.jpg',
     };
 

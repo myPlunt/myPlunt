@@ -65,9 +65,8 @@ function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
   // Taken per render, so "Today" moves on if the screen stays open past midnight.
   const now = new Date();
   const light = lightOptions.find((option) => option.value === plant.light);
-  const watering = plant.wateringFrequencyDays
-    ? `Every ${plant.wateringFrequencyDays} days${plant.wateringEveryDays === null ? ' (species default)' : ''}`
-    : 'No schedule';
+  // Without the owner's own frequency it's the species' or the 7-day fallback.
+  const watering = `Every ${plant.wateringFrequencyDays} days${plant.wateringEveryDays === null ? ' (default)' : ''}`;
 
   return (
     <>
