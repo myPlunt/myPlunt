@@ -2,15 +2,22 @@ import { render, screen, userEvent } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 
 import { usePlant } from '@/features/plants/use-plant';
+import { usePlantActions } from '@/features/plants/use-plant-actions';
+import { ApiError } from '@/lib/auth/api-client';
 import type { PlantDetails } from '@/lib/plant/types';
 
 import { PlantDetailsScreen } from '../plant-details-screen';
 
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/plants/use-plant');
+jest.mock('@/features/plants/use-plant-actions');
 
 const mockedUsePlant = jest.mocked(usePlant);
 const push = jest.fn();
+const back = jest.fn();
+const replace = jest.fn();
+const canGoBack = jest.fn();
+const deletePlant = jest.fn();
 const retry = jest.fn();
 const user = userEvent.setup();
 
@@ -43,7 +50,10 @@ function mockPlant(state: Partial<ReturnType<typeof usePlant>>) {
 }
 
 beforeEach(() => {
-  jest.mocked(useRouter).mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
+  jest.mocked(useRouter).mockReturnValue({ push, back, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
+  jest.mocked(usePlantActions).mockReturnValue({ createPlant: jest.fn(), updatePlant: jest.fn(), deletePlant });
+  canGoBack.mockReturnValue(true);
+  deletePlant.mockResolvedValue(undefined);
   mockPlant({});
 });
 
@@ -112,12 +122,13 @@ describe('PlantDetailsScreen', () => {
     expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]/edit', params: { id: 'p1' } });
   });
 
-  it('shows a loading indicator, and no pencil, while the plant loads', async () => {
+  it('shows a loading indicator, and no pencil or delete, while the plant loads', async () => {
     mockPlant({ plant: null, isLoading: true });
     await render(<PlantDetailsScreen plantId="p1" />);
 
     expect(screen.getByLabelText('Loading plant')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Edit plant' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete plant' })).toBeNull();
   });
 
   it('shows the error and retries when asked', async () => {
@@ -127,5 +138,49 @@ describe('PlantDetailsScreen', () => {
     expect(screen.getByText('Plant not found')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Try again' }));
     expect(retry).toHaveBeenCalled();
+  });
+
+  it('deletes the plant after confirming and goes back to the garden', async () => {
+    await render(<PlantDetailsScreen plantId="p1" />);
+
+    await user.press(screen.getByRole('button', { name: 'Delete plant' }));
+    expect(screen.getByRole('header', { name: 'Delete Vera?' })).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(deletePlant).toHaveBeenCalledWith('p1');
+    expect(back).toHaveBeenCalled();
+  });
+
+  it('goes to the garden after deleting when there is no screen to go back to', async () => {
+    canGoBack.mockReturnValue(false);
+    await render(<PlantDetailsScreen plantId="p1" />);
+
+    await user.press(screen.getByRole('button', { name: 'Delete plant' }));
+    await user.press(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(replace).toHaveBeenCalledWith('/garden');
+  });
+
+  it('keeps the plant when the user cancels', async () => {
+    await render(<PlantDetailsScreen plantId="p1" />);
+
+    await user.press(screen.getByRole('button', { name: 'Delete plant' }));
+    await user.press(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(deletePlant).not.toHaveBeenCalled();
+    expect(screen.queryByRole('header', { name: 'Delete Vera?' })).toBeNull();
+    expect(back).not.toHaveBeenCalled();
+  });
+
+  it('shows why the plant could not be deleted and stays on the page', async () => {
+    deletePlant.mockRejectedValue(new ApiError(404, 'Not Found', { detail: 'Plant not found' }));
+    await render(<PlantDetailsScreen plantId="p1" />);
+
+    await user.press(screen.getByRole('button', { name: 'Delete plant' }));
+    await user.press(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(await screen.findByText('Plant not found')).toBeOnTheScreen();
+    expect(back).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
   });
 });

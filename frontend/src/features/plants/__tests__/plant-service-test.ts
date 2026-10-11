@@ -57,3 +57,12 @@ describe('updatePlant', () => {
     expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants/p1', { method: 'PUT', body: request });
   });
 });
+
+describe('deletePlant', () => {
+  it('DELETEs /v1/plants/{id}', async () => {
+    mockedApiFetch.mockResolvedValue(undefined);
+
+    await expect(plantService.deletePlant('p1')).resolves.toBeUndefined();
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants/p1', { method: 'DELETE' });
+  });
+});
