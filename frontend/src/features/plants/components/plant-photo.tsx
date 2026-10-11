@@ -13,8 +13,11 @@ interface PlantPhotoProps {
   /** Size and shape of the box (e.g. "h-[120px] rounded-2xl"). */
   className: string;
   iconSize: number;
+<<<<<<< HEAD
   /** Blurs the photo (the Pluntdex hides species the user hasn't caught yet). */
   blurRadius?: number;
+=======
+>>>>>>> 33881a1 (FMP-007-Add plant edit logic inside each plant view.)
 }
 
 /**
@@ -22,7 +25,11 @@ interface PlantPhotoProps {
  * shows when the photo can't be loaded (no connection, an expired link, a file that's gone
  * from storage), instead of an empty box.
  */
+<<<<<<< HEAD
 export function PlantPhoto({ photoUrl, accessibilityLabel, className, iconSize, blurRadius }: PlantPhotoProps) {
+=======
+export function PlantPhoto({ photoUrl, accessibilityLabel, className, iconSize }: PlantPhotoProps) {
+>>>>>>> 33881a1 (FMP-007-Add plant edit logic inside each plant view.)
   const theme = useTheme();
   // The URL that failed, so a new URL (e.g. after editing the photo) gets its own try.
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
@@ -38,7 +45,10 @@ export function PlantPhoto({ photoUrl, accessibilityLabel, className, iconSize, 
           source={{ uri: photoUrl }}
           className="absolute inset-0"
           contentFit="cover"
+<<<<<<< HEAD
           blurRadius={blurRadius}
+=======
+>>>>>>> 33881a1 (FMP-007-Add plant edit logic inside each plant view.)
           onError={() => setFailedUrl(photoUrl)}
         />
       )}
