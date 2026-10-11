@@ -17,6 +17,7 @@ import { PhotoField } from '@/features/plants/components/photo-field';
 import { PlanterSelect } from '@/features/plants/components/planter-select';
 import { lightOptions } from '@/features/plants/light-options';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
+import { matchesSpecies } from '@/features/species/matches-species';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { Light, Plant, PlantDetails } from '@/lib/plant/types';
@@ -32,11 +33,6 @@ const STEP_1_FIELDS = ['name', 'speciesId', 'photoKey'];
 
 // Suggestions shown under the species search, one per ruled line.
 const MAX_SPECIES_SUGGESTIONS = 3;
-
-function matchesSpecies(species: Species, query: string) {
-  const needle = query.trim().toLowerCase();
-  return species.commonName.toLowerCase().includes(needle) || species.scientificName.toLowerCase().includes(needle);
-}
 
 interface PlantFormProps {
   /** The plant to edit, whose values fill the form; leave it out to add a new plant. */
