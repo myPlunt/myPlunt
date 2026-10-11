@@ -107,7 +107,7 @@ it('filters by a region picked from the dropdown, and back to all regions', asyn
 it('counts only the species that match the search', async () => {
   await render(<PluntdexScreen />);
 
-  await user.type(screen.getByPlaceholderText('Name or scientific name'), 'basil');
+  await user.type(screen.getByLabelText('Search species'), 'basil');
 
   expect(screen.getByText('1 / 1 discovered')).toBeOnTheScreen();
 });
@@ -115,7 +115,7 @@ it('counts only the species that match the search', async () => {
 it('searches by name and says when nothing matches', async () => {
   await render(<PluntdexScreen />);
 
-  await user.type(screen.getByPlaceholderText('Name or scientific name'), 'cactus');
+  await user.type(screen.getByLabelText('Search species'), 'cactus');
 
-  expect(screen.getByText('No species match.')).toBeOnTheScreen();
+  expect(screen.getByText('No species match')).toBeOnTheScreen();
 });
