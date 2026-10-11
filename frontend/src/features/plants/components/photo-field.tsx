@@ -25,6 +25,9 @@ interface PhotoFieldProps {
 export function PhotoField({ photo, currentPhotoUrl }: PhotoFieldProps) {
   const theme = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // A current photo that can't be loaded (e.g. its file is gone) shows the empty box instead.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showCurrentPhoto = currentPhotoUrl && currentPhotoUrl !== failedUrl;
   // The picker chosen in the menu, started once the menu is gone (see choose()).
   const pendingPick = useRef<(() => Promise<void>) | null>(null);
 
@@ -82,7 +85,7 @@ export function PhotoField({ photo, currentPhotoUrl }: PhotoFieldProps) {
               />
             </Pressable>
           </View>
-        ) : currentPhotoUrl ? (
+        ) : showCurrentPhoto ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Change photo"
@@ -94,6 +97,7 @@ export function PhotoField({ photo, currentPhotoUrl }: PhotoFieldProps) {
               source={{ uri: currentPhotoUrl }}
               className="h-full w-full"
               contentFit="cover"
+              onError={() => setFailedUrl(currentPhotoUrl)}
             />
             <View className="absolute right-2 top-2 h-8 w-8 items-center justify-center rounded-full bg-text opacity-80">
               {/* tintColor is a colour prop, so it reads the theme instead of a class. */}

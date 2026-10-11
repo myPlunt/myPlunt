@@ -1,9 +1,8 @@
 import { useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { Pressable, Text, View } from 'react-native';
 
 import { Shadow } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import type { GardenPlant } from '@/lib/garden/types';
 
 import { WateringPill } from './watering-pill';
@@ -15,7 +14,6 @@ interface PlantCardProps {
 
 /** One plant in a room; pressing it opens the plant's details. */
 export function PlantCard({ plant, now }: PlantCardProps) {
-  const theme = useTheme();
   const router = useRouter();
 
   return (
@@ -27,11 +25,8 @@ export function PlantCard({ plant, now }: PlantCardProps) {
       className="w-[168px] rounded-3xl bg-background-element p-2 active:opacity-70"
       // Shadow goes through style so it sets both iOS shadow* and Android elevation.
       style={Shadow.card}>
-      {/* Placeholder until plants have photos. */}
-      <View className="h-[120px] items-center justify-center rounded-2xl bg-primary">
-        {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
-        <SymbolView name={{ ios: 'leaf', android: 'eco', web: 'eco' }} tintColor={theme.backgroundElement} size={36} />
-      </View>
+      {/* Always the placeholder for now: GET /v1/garden doesn't send the plants' photos yet. */}
+      <PlantPhoto photoUrl={null} accessibilityLabel={`Photo of ${plant.name}`} className="h-[120px] rounded-2xl" iconSize={36} />
 
       <View className="gap-1 px-2 pb-2 pt-3">
         <View>

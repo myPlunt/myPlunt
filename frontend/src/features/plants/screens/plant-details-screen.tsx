@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -9,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Shadow } from '@/constants/theme';
 import { WateringPill } from '@/features/garden/components/watering-pill';
 import { lastWateredLabel } from '@/features/garden/watering';
+import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { lightOptions } from '@/features/plants/light-options';
 import { usePlant } from '@/features/plants/use-plant';
 import { useTheme } from '@/hooks/use-theme';
@@ -62,7 +62,6 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
 }
 
 function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
-  const theme = useTheme();
   // Taken per render, so "Today" moves on if the screen stays open past midnight.
   const now = new Date();
   const light = lightOptions.find((option) => option.value === plant.light);
@@ -72,30 +71,26 @@ function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
 
   return (
     <>
-      {plant.photoUrl ? (
-        <Image
+      {/* The name belongs to the photo, so it sits closer to it than the page's gap-6. */}
+      <View className="gap-3">
+        <PlantPhoto
+          photoUrl={plant.photoUrl}
           accessibilityLabel={`Photo of ${plant.name}`}
-          source={{ uri: plant.photoUrl }}
           className="aspect-square w-full rounded-3xl"
-          contentFit="cover"
+          iconSize={64}
         />
-      ) : (
-        <View className="aspect-square w-full items-center justify-center rounded-3xl bg-primary">
-          {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
-          <SymbolView name={{ ios: 'leaf', android: 'eco', web: 'eco' }} tintColor={theme.backgroundElement} size={64} />
-        </View>
-      )}
 
-      <View className="gap-2">
-        <View>
-          <Text accessibilityRole="header" className="type-h4 text-action-primary" style={styles.name}>
-            {plant.name}
-          </Text>
-          {plant.speciesName && (
-            <Text className="type-subtitle-large text-text-secondary">{plant.speciesName}</Text>
-          )}
+        <View className="gap-2">
+          <View>
+            <Text accessibilityRole="header" className="type-h4 text-action-primary" style={styles.name}>
+              {plant.name}
+            </Text>
+            {plant.speciesName && (
+              <Text className="type-subtitle-large text-text-secondary">{plant.speciesName}</Text>
+            )}
+          </View>
+          <WateringPill plant={plant} now={now} />
         </View>
-        <WateringPill plant={plant} now={now} />
       </View>
 
       {/* Shadow goes through style so it sets both iOS shadow* and Android elevation. */}
@@ -129,9 +124,12 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   // Lateef's natural line is ~1.45× its size; a shorter line height (type-h4's 40) clips
   // the bottom of the glyphs on iOS. Android's extra font padding is dropped so both
-  // platforms place it the same. A style, because a leading-* class loses to type-h4.
+  // platforms place it the same. The full-height line leaves empty space above the
+  // capitals, so the negative margin pulls them up towards the photo. A style, because
+  // a leading-* class loses to type-h4.
   name: {
     lineHeight: 46,
+    marginTop: -6,
     includeFontPadding: false,
   },
 });

@@ -149,4 +149,13 @@ describe('PhotoField', () => {
     expect(screen.getByRole('button', { name: 'Remove photo' })).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Change photo' })).toBeNull();
   });
+
+  it('offers to add a photo when the current one cannot be loaded', async () => {
+    await render(<PhotoField photo={photo()} currentPhotoUrl="https://storage.test/gone.jpg" />);
+
+    await act(async () => screen.getByLabelText('Plant photo').props.onError({ nativeEvent: { error: 'Not found' } }));
+
+    expect(screen.queryByRole('button', { name: 'Change photo' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add a photo' })).toBeOnTheScreen();
+  });
 });
