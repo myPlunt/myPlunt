@@ -1,4 +1,4 @@
-import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, userEvent, waitFor } from '@testing-library/react-native';
 import type { ComponentProps } from 'react';
 
 import { usePhotoUpload, type PhotoUpload } from '@/features/photos/use-photo-upload';
@@ -90,6 +90,40 @@ describe('PlantForm', () => {
       expect(screen.queryByRole('radio', { name: 'Full sun' })).toBeNull();
       expect(screen.queryByLabelText('Notes')).toBeNull();
       expect(screen.queryByRole('button', { name: 'Add to my garden' })).toBeNull();
+    });
+
+    it('keeps Next disabled while the name is shorter than 3 characters', async () => {
+      await renderForm();
+
+      await user.type(screen.getByLabelText('Name'), ' Ve ');
+      await user.press(screen.getByRole('button', { name: 'Next' }));
+      expect(screen.queryByLabelText('Notes')).toBeNull();
+
+      await user.type(screen.getByLabelText('Name'), 'ra');
+      await user.press(screen.getByRole('button', { name: 'Next' }));
+      expect(screen.getByLabelText('Notes')).toBeOnTheScreen();
+    });
+
+    it('waits until the user leaves the name field before saying it is too short', async () => {
+      await renderForm();
+
+      await user.type(screen.getByLabelText('Name'), 'Ve', { skipBlur: true });
+      expect(screen.queryByText('Name must be at least 3 characters.')).toBeNull();
+
+      await fireEvent(screen.getByLabelText('Name'), 'blur');
+      expect(screen.getByText('Name must be at least 3 characters.')).toBeOnTheScreen();
+
+      // Once shown, it goes away as soon as the name is long enough.
+      await user.type(screen.getByLabelText('Name'), 'ra', { skipBlur: true });
+      expect(screen.queryByText('Name must be at least 3 characters.')).toBeNull();
+    });
+
+    it('says the name is too short when the user leaves it empty', async () => {
+      await renderForm();
+
+      await fireEvent(screen.getByLabelText('Name'), 'blur');
+
+      expect(screen.getByText('Name must be at least 3 characters.')).toBeOnTheScreen();
     });
 
     it('keeps Next disabled until the plant has a name', async () => {
@@ -374,6 +408,16 @@ describe('PlantForm', () => {
       expect(screen.getByLabelText('Water every how many days')).toHaveDisplayValue('9');
       expect(screen.getByLabelText('Notes')).toHaveDisplayValue('Found at a flea market');
       expect(screen.getByRole('button', { name: 'Planter' })).toHaveAccessibilityValue({ text: 'Kitchen windowsill' });
+    });
+
+    it('asks for a longer name when the plant was saved before names needed 3 characters', async () => {
+      await renderForm({ plant: { ...veraDetails, name: 'A' } });
+
+      await user.press(screen.getByRole('button', { name: 'Next' }));
+      expect(screen.queryByLabelText('Notes')).toBeNull();
+
+      await fireEvent(screen.getByLabelText('Name'), 'blur');
+      expect(screen.getByText('Name must be at least 3 characters.')).toBeOnTheScreen();
     });
 
     it('saves the changes to the plant instead of adding a new one, keeping the photo', async () => {

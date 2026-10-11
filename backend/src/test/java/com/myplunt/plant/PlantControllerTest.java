@@ -123,6 +123,16 @@ class PlantControllerTest {
     }
 
     @Test
+    void create_rejectsNameShorterThan3Characters() {
+        authenticateAsJane();
+
+        expectBadRequest("{\"name\": \"Ab\"}");
+        // Surrounding spaces don't count towards the length.
+        expectBadRequest("{\"name\": \"  Ab  \"}");
+        verify(plantService, never()).create(any(), any());
+    }
+
+    @Test
     void create_rejectsNameLongerThan255Characters() {
         authenticateAsJane();
 
@@ -259,6 +269,15 @@ class PlantControllerTest {
         authenticateAsJane();
 
         expectBadUpdate("{\"name\": \"   \"}");
+        verify(plantService, never()).update(any(), any(), any());
+    }
+
+    @Test
+    void update_rejectsNameShorterThan3Characters() {
+        authenticateAsJane();
+
+        expectBadUpdate("{\"name\": \"Ab\"}");
+        expectBadUpdate("{\"name\": \"  Ab  \"}");
         verify(plantService, never()).update(any(), any(), any());
     }
 

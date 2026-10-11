@@ -23,6 +23,8 @@ import type { Planter } from '@/lib/planter/types';
 import type { Species } from '@/lib/species/types';
 
 const NOTES_MAX_LENGTH = 1000;
+// Same rule as the backend's CreatePlantRequest and UpdatePlantRequest; spaces around the name don't count.
+const NAME_MIN_LENGTH = 3;
 
 // Fields the backend may reject that live on step 1; an error there sends the user back to it.
 const STEP_1_FIELDS = ['name', 'speciesId', 'photoKey'];
@@ -59,6 +61,8 @@ export function PlantForm({ plant, species, speciesError, planters, plantersErro
   const photo = usePhotoUpload('PLANT');
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState(plant?.name ?? '');
+  // Set once the user leaves the name field, so the length hint doesn't show while they're still typing.
+  const [hasLeftName, setHasLeftName] = useState(false);
   const [speciesQuery, setSpeciesQuery] = useState(plant?.speciesName ?? '');
   const [speciesId, setSpeciesId] = useState<string | null>(plant?.speciesId ?? null);
   const [planterId, setPlanterId] = useState<string | null>(plant?.planterId ?? null);
@@ -73,6 +77,8 @@ export function PlantForm({ plant, species, speciesError, planters, plantersErro
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const allPlanters = planters && [...planters, ...addedPlanters];
+  const nameLength = name.trim().length;
+  const nameTooShort = hasLeftName && nameLength < NAME_MIN_LENGTH;
   const selectedSpecies = species?.find((item) => item.id === speciesId) ?? null;
   const speciesSuggestions =
     speciesQuery.trim() === '' || selectedSpecies || !species
@@ -128,7 +134,8 @@ export function PlantForm({ plant, species, speciesError, planters, plantersErro
             label="Name"
             value={name}
             onChangeText={setName}
-            error={fieldErrors.name}
+            onBlur={() => setHasLeftName(true)}
+            error={fieldErrors.name ?? (nameTooShort ? `Name must be at least ${NAME_MIN_LENGTH} characters.` : undefined)}
             placeholder="Vera the slow Monstera"
             autoCapitalize="words"
           />
@@ -283,7 +290,7 @@ export function PlantForm({ plant, species, speciesError, planters, plantersErro
           <View className="flex-1 rounded-[10px] bg-background-element">
             <Button
               label="Next"
-              disabled={name.trim() === ''}
+              disabled={nameLength < NAME_MIN_LENGTH}
               onPress={() => setStep(2)}
               style={{ height: boxHeight(1) }}
             />
