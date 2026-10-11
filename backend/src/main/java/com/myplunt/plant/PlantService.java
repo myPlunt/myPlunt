@@ -9,6 +9,8 @@ import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesRepository;
 import com.myplunt.storage.StorageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class PlantService {
+
+    private static final Logger log = LoggerFactory.getLogger(PlantService.class);
 
     private final PlantRepository plantRepository;
     private final WateringLogRepository wateringLogRepository;
@@ -148,6 +152,26 @@ public class PlantService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be watered");
         }
         wateringLogRepository.save(new WateringLog(plant, userId, Instant.now()));
+    }
+
+    // Removes the plant from the garden for good, dead or alive. Its waterings, photos, care
+    // delegations and posts go with it (ON DELETE CASCADE in V1).
+    @Transactional
+    public void delete(UUID ownerId, UUID plantId) {
+        Plant plant = findOwnPlant(ownerId, plantId);
+        List<String> photoKeys = plantPhotoRepository.findPhotoKeysByPlantId(plantId);
+        plantRepository.delete(plant);
+        // Flushed first so the plant is really gone before its files are; a failed delete
+        // then leaves the photos in place.
+        plantRepository.flush();
+        for (String key : photoKeys) {
+            // The plant is already gone for the user, so a leftover file only costs storage.
+            try {
+                storageService.deleteObject(key);
+            } catch (RuntimeException e) {
+                log.warn("Could not delete photo {} of deleted plant {}", key, plantId, e);
+            }
+        }
     }
 
     // Someone else's plant answers "not found" too, so ids of other users' plants don't leak.

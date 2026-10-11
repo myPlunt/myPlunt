@@ -17,4 +17,8 @@ public interface PlantPhotoRepository extends JpaRepository<PlantPhoto, UUID> {
               and p.takenAt = (select max(p2.takenAt) from PlantPhoto p2 where p2.plant = p.plant)
             """)
     List<LatestPhoto> findLatestPhotos(Collection<UUID> plantIds);
+
+    // Every photo the plant ever had, so they can be removed from storage along with it.
+    @Query("select p.photoKey from PlantPhoto p where p.plant.id = :plantId")
+    List<String> findPhotoKeysByPlantId(UUID plantId);
 }
