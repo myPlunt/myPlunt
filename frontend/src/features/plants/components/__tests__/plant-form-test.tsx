@@ -113,8 +113,12 @@ describe('PlantForm', () => {
       await fireEvent(screen.getByLabelText('Name'), 'blur');
       expect(screen.getByText('Name must be at least 3 characters.')).toBeOnTheScreen();
 
-      // Once shown, it goes away as soon as the name is long enough.
-      await user.type(screen.getByLabelText('Name'), 'ra', { skipBlur: true });
+      // Back in the field to fix it: no hint while typing, even while still too short.
+      await user.type(screen.getByLabelText('Name'), '{Backspace}', { skipBlur: true });
+      expect(screen.queryByText('Name must be at least 3 characters.')).toBeNull();
+
+      await user.type(screen.getByLabelText('Name'), 'era', { skipBlur: true });
+      await fireEvent(screen.getByLabelText('Name'), 'blur');
       expect(screen.queryByText('Name must be at least 3 characters.')).toBeNull();
     });
 
@@ -143,6 +147,37 @@ describe('PlantForm', () => {
 
       expect(screen.getByRole('button', { name: 'Pothos' })).toBeOnTheScreen();
       expect(screen.queryByRole('button', { name: 'Monstera' })).toBeNull();
+    });
+
+    it('opens the species search with a hint as soon as the field is focused', async () => {
+      await renderForm();
+      expect(screen.queryByText('Start typing to see matching species.')).toBeNull();
+
+      await fireEvent(screen.getByLabelText('Species'), 'focus');
+
+      expect(screen.getByText('Start typing to see matching species.')).toBeOnTheScreen();
+    });
+
+    it('keeps the search open while a character is typed and deleted again', async () => {
+      await renderForm();
+      await fireEvent(screen.getByLabelText('Species'), 'focus');
+
+      await user.type(screen.getByLabelText('Species'), 'm', { skipBlur: true });
+      expect(screen.getByRole('button', { name: 'Monstera' })).toBeOnTheScreen();
+
+      await user.type(screen.getByLabelText('Species'), '{Backspace}', { skipBlur: true });
+      expect(screen.getByText('Start typing to see matching species.')).toBeOnTheScreen();
+    });
+
+    it('closes the search when the field is left empty, but not when a search is left unfinished', async () => {
+      await renderForm();
+      await fireEvent(screen.getByLabelText('Species'), 'focus');
+      await fireEvent(screen.getByLabelText('Species'), 'blur');
+      expect(screen.queryByText('Start typing to see matching species.')).toBeNull();
+
+      await user.type(screen.getByLabelText('Species'), 'mons');
+
+      expect(screen.getByRole('button', { name: 'Monstera' })).toBeOnTheScreen();
     });
 
     it('says so when no species matches the search', async () => {

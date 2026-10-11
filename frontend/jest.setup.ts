@@ -14,3 +14,19 @@ jest.mock('expo-media-library', () => ({
   AssetField: { MEDIA_TYPE: 'mediaType', CREATION_TIME: 'creationTime' },
   MediaType: { IMAGE: 'image' },
 }));
+
+// React Native's JS-driven animations (e.g. AnimatedLines) run on their own timers and keep
+// updating views after a test has finished, which React reports as updates outside act().
+// Tests check behaviour, not in-between frames, so a timing jumps straight to its end value.
+// Patched on the module, not with jest.spyOn, so jest.resetAllMocks() in tests leaves it alone.
+const { Animated } = jest.requireActual<typeof import('react-native')>('react-native');
+const instantTiming: typeof Animated.timing = (value, config) => ({
+  start: (callback) => {
+    (value as InstanceType<typeof Animated.Value>).setValue(config.toValue as number);
+    callback?.({ finished: true });
+  },
+  stop: () => {},
+  reset: () => {},
+});
+// The typings mark it read-only, but the module object can be patched.
+Object.assign(Animated, { timing: instantTiming });
