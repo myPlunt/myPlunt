@@ -129,4 +129,24 @@ describe('PhotoField', () => {
 
     expect(screen.getByText("Couldn't upload the photo. Please try again.")).toBeOnTheScreen();
   });
+
+  it("shows the plant's current photo and opens the menu to replace it", async () => {
+    await render(<PhotoField photo={photo()} currentPhotoUrl="https://storage.test/vera.jpg" />);
+
+    expect(screen.getByLabelText('Plant photo')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Remove photo' })).toBeNull();
+    await user.press(screen.getByRole('button', { name: 'Change photo' }));
+
+    expect(screen.getByRole('button', { name: 'Take a photo' })).toBeOnTheScreen();
+  });
+
+  it('shows a newly picked photo instead of the current one', async () => {
+    await render(
+      <PhotoField photo={photo({ uri: 'file:///a.jpg', key: 'plants/u1/a.jpg' })} currentPhotoUrl="https://storage.test/vera.jpg" />,
+    );
+
+    // Removing undoes the new pick (the current photo comes back), so it's offered only for the new one.
+    expect(screen.getByRole('button', { name: 'Remove photo' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Change photo' })).toBeNull();
+  });
 });

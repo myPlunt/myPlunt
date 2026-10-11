@@ -1,4 +1,5 @@
 import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { useRouter } from 'expo-router';
 
 import { useGarden } from '@/features/garden/use-garden';
 import { useGardenActions } from '@/features/garden/use-garden-actions';
@@ -7,6 +8,7 @@ import type { Garden, GardenPlant } from '@/lib/garden/types';
 
 import { GardenScreen } from '../garden-screen';
 
+jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/garden/use-garden');
 jest.mock('@/features/garden/use-garden-actions');
 
@@ -15,6 +17,7 @@ const mockedUseGardenActions = jest.mocked(useGardenActions);
 const retry = jest.fn();
 const refresh = jest.fn();
 const waterPlants = jest.fn();
+const push = jest.fn();
 const user = userEvent.setup();
 
 // Due dates relative to the real "now", in local time, as the screen reads the clock itself.
@@ -42,6 +45,7 @@ function mockGarden(state: Partial<ReturnType<typeof useGarden>>) {
 }
 
 beforeEach(() => {
+  jest.mocked(useRouter).mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
   mockGarden({});
   mockedUseGardenActions.mockReturnValue({ waterPlants });
   waterPlants.mockResolvedValue(undefined);
@@ -86,6 +90,14 @@ describe('GardenScreen', () => {
     expect(screen.getByText('Today')).toBeOnTheScreen();
     expect(screen.getByText('Overdue')).toBeOnTheScreen();
     expect(screen.getByText('Tomorrow')).toBeOnTheScreen();
+  });
+
+  it("opens a plant's details when its card is pressed", async () => {
+    await render(<GardenScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'George' }));
+
+    expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]', params: { id: 'george' } });
   });
 
   it('orders the plants in a room from least to most water', async () => {

@@ -74,3 +74,48 @@ it('createPlant rethrows other errors without changing the session', async () =>
 
   expect(result.current.store.status).toBe('authenticated');
 });
+
+it('updatePlant returns the updated plant from the service', async () => {
+  const updated = {
+    id: 'p1',
+    ...request,
+    photoUrl: null,
+    planterName: null,
+    speciesName: null,
+    wateringFrequencyDays: 7,
+    lastWateredAt: null,
+    nextWateringAt: null,
+  };
+  mockedPlantService.updatePlant.mockResolvedValue(updated);
+  const { result } = await renderWithStore();
+
+  let returned;
+  await act(async () => {
+    returned = await result.current.actions.updatePlant('p1', request);
+  });
+
+  expect(mockedPlantService.updatePlant).toHaveBeenCalledWith('p1', request);
+  expect(returned).toEqual(updated);
+});
+
+it('updatePlant signs the user out and rethrows when the session has expired', async () => {
+  mockedPlantService.updatePlant.mockRejectedValue(new ApiError(401, 'Not authenticated'));
+  const { result } = await renderWithStore();
+
+  await act(async () => {
+    await expect(result.current.actions.updatePlant('p1', request)).rejects.toBeInstanceOf(ApiError);
+  });
+
+  expect(result.current.store.status).toBe('unauthenticated');
+});
+
+it('updatePlant rethrows other errors without changing the session', async () => {
+  mockedPlantService.updatePlant.mockRejectedValue(new ApiError(404, 'Plant not found'));
+  const { result } = await renderWithStore();
+
+  await act(async () => {
+    await expect(result.current.actions.updatePlant('p1', request)).rejects.toBeInstanceOf(ApiError);
+  });
+
+  expect(result.current.store.status).toBe('authenticated');
+});
