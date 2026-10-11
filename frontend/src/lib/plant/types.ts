@@ -31,14 +31,15 @@ export interface CreatePlantRequest {
 /**
  * Mirrors PlantDetailsResponse (GET and PUT /v1/plants/{id}). `wateringEveryDays` is the
  * owner's own setting; `wateringFrequencyDays` is the one in use (it falls back to the
- * species'). The names, watering dates and photo are null when there's none.
+ * species', then to 7 days), so every plant has a schedule. The names, last watering and
+ * photo are null when there's none.
  */
 export interface PlantDetails extends Plant {
   planterName: string | null;
   speciesName: string | null;
-  wateringFrequencyDays: number | null;
+  wateringFrequencyDays: number;
   lastWateredAt: string | null;
-  nextWateringAt: string | null;
+  nextWateringAt: string;
 }
 
 /**

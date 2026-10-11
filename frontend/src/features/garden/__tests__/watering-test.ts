@@ -13,14 +13,16 @@ import type { GardenPlant, Room } from '@/lib/garden/types';
 // Dates are built in local time, so the tests pass in any time zone.
 const now = new Date(2026, 9, 9, 15, 0);
 
-function plant(name: string, due: Date | null, wateringFrequencyDays: number | null = 4): GardenPlant {
+// Every plant has a schedule; the due date only matters to the watering helpers, so the
+// others default it to a week from now.
+function plant(name: string, due: Date = new Date(2026, 9, 16), wateringFrequencyDays = 4): GardenPlant {
   return {
     id: name.toLowerCase(),
     name,
     speciesName: null,
     wateringFrequencyDays,
     lastWateredAt: null,
-    nextWateringAt: due ? due.toISOString() : null,
+    nextWateringAt: due.toISOString(),
     photoUrl: null,
   };
 }
@@ -40,28 +42,19 @@ describe('daysUntilWatering', () => {
   it('is negative when the plant is overdue', () => {
     expect(daysUntilWatering(plant('Basil', new Date(2026, 9, 7, 20, 0)), now)).toBe(-2);
   });
-
-  it('is null when the plant has no schedule', () => {
-    expect(daysUntilWatering(plant('Mystery', null), now)).toBeNull();
-  });
 });
 
 describe('wateringStatus', () => {
   it.each([
-    [new Date(2026, 9, 11, 9), 'In 2 days', 'normal'],
-    [new Date(2026, 9, 10, 9), 'Tomorrow', 'soon'],
-    [new Date(2026, 9, 9, 9), 'Today', 'soon'],
-    [new Date(2026, 9, 8, 9), 'Overdue', 'overdue'],
-    [new Date(2026, 9, 6, 9), 'Overdue', 'overdue'],
+    [new Date(2026, 9, 15, 9), 'In 6 days', 'later'],
+    [new Date(2026, 9, 12, 9), 'In 3 days', 'later'],
+    [new Date(2026, 9, 11, 9), 'In 2 days', 'soon'],
+    [new Date(2026, 9, 10, 9), 'Tomorrow', 'tomorrow'],
+    [new Date(2026, 9, 9, 9), 'Today', 'due'],
+    [new Date(2026, 9, 8, 9), 'Overdue', 'due'],
+    [new Date(2026, 9, 6, 9), 'Overdue', 'due'],
   ])('describes a plant due on %s as "%s"', (due, label, tone) => {
     expect(wateringStatus(plant('George', due), now)).toMatchObject({ label, tone });
-  });
-
-  it('says so when the plant has no watering schedule', () => {
-    expect(wateringStatus(plant('Mystery', null, null), now)).toEqual({
-      label: 'No schedule',
-      tone: 'none',
-    });
   });
 });
 
@@ -71,7 +64,7 @@ describe('plantsNeedingWater', () => {
       rooms: [
         room('balcony', [plant('George', new Date(2026, 9, 11)), plant('Pinky', new Date(2026, 9, 9))]),
         room('kitchen', [plant('Basil', new Date(2026, 9, 8)), plant('Minty', new Date(2026, 9, 10))]),
-        room(null, [plant('Mystery', null, null)]),
+        room(null, [plant('Stray', new Date(2026, 9, 12))]),
       ],
     };
 
@@ -90,26 +83,23 @@ describe('sortByNextWatering', () => {
     expect(sortByNextWatering(plants, now).map((p) => p.name)).toEqual(['Nig', 'A', 'Ggg']);
   });
 
-  it('puts overdue plants first and plants without a schedule last', () => {
+  it('puts overdue plants first', () => {
     const plants = [
-      plant('Mystery', null, null),
       plant('Pinky', new Date(2026, 9, 9)),
       plant('Basil', new Date(2026, 9, 7)),
       plant('Minty', new Date(2026, 9, 10)),
     ];
 
-    expect(sortByNextWatering(plants, now).map((p) => p.name)).toEqual(['Basil', 'Pinky', 'Minty', 'Mystery']);
+    expect(sortByNextWatering(plants, now).map((p) => p.name)).toEqual(['Basil', 'Pinky', 'Minty']);
   });
 
   it('orders plants due on the same day by name', () => {
     const plants = [
       plant('Rosie', new Date(2026, 9, 12)),
       plant('Monty', new Date(2026, 9, 12)),
-      plant('Zed', null, null),
-      plant('Alma', null, null),
     ];
 
-    expect(sortByNextWatering(plants, now).map((p) => p.name)).toEqual(['Monty', 'Rosie', 'Alma', 'Zed']);
+    expect(sortByNextWatering(plants, now).map((p) => p.name)).toEqual(['Monty', 'Rosie']);
   });
 
   it('leaves the original list as it was', () => {
@@ -123,20 +113,20 @@ describe('sortByNextWatering', () => {
 
 describe('gardenSummary', () => {
   it('counts plants and rooms', () => {
-    const garden = { rooms: [room('a', [plant('George', null)]), room('b', [plant('Pinky', null), plant('Monty', null)])] };
+    const garden = { rooms: [room('a', [plant('George')]), room('b', [plant('Pinky'), plant('Monty')])] };
 
     expect(gardenSummary(garden)).toBe('3 plants in 2 rooms');
   });
 
   it('uses the singular for one plant in one room', () => {
-    expect(gardenSummary({ rooms: [room('a', [plant('George', null)])] })).toBe('1 plant in 1 room');
+    expect(gardenSummary({ rooms: [room('a', [plant('George')])] })).toBe('1 plant in 1 room');
   });
 
   it('does not count the group of plants without a room as a room', () => {
-    const garden = { rooms: [room('a', [plant('George', null)]), room(null, [plant('Stray', null)])] };
+    const garden = { rooms: [room('a', [plant('George')]), room(null, [plant('Stray')])] };
 
     expect(gardenSummary(garden)).toBe('2 plants in 1 room');
-    expect(gardenSummary({ rooms: [room(null, [plant('Stray', null)])] })).toBe('1 plant');
+    expect(gardenSummary({ rooms: [room(null, [plant('Stray')])] })).toBe('1 plant');
   });
 });
 
@@ -165,7 +155,7 @@ describe('listPlantNames', () => {
     [['Pinky', 'Basil', 'Minty'], 'Pinky, Basil and Minty'],
     [['Pinky', 'Basil', 'Minty', 'Rosie'], 'Pinky, Basil and 2 more'],
   ])('lists %j as "%s"', (names, expected) => {
-    expect(listPlantNames(names.map((name) => plant(name, null)))).toBe(expected);
+    expect(listPlantNames(names.map((name) => plant(name)))).toBe(expected);
   });
 });
 

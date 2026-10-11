@@ -4,8 +4,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 // One plant with everything its details page shows. wateringEveryDays is the owner's own
-// setting (null when they left it to the species); wateringFrequencyDays is the one in use.
-// planterName, speciesName, the watering fields and photoUrl are null when there's none.
+// setting (null when they left it to the default); wateringFrequencyDays is the one in use
+// and, like nextWateringAt, always set (see WateringSchedule).
+// planterName, speciesName, lastWateredAt and photoUrl are null when there's none.
 public record PlantDetailsResponse(
         UUID id,
         String name,

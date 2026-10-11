@@ -28,9 +28,9 @@ const vera = {
   planterName: null,
   speciesId: null,
   speciesName: null,
-  wateringFrequencyDays: null,
+  wateringFrequencyDays: 7,
   lastWateredAt: null,
-  nextWateringAt: null,
+  nextWateringAt: '2026-10-11T08:00:00.000Z',
   photoUrl: null,
 };
 
