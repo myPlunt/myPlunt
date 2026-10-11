@@ -1,7 +1,9 @@
 .DS_Store
 
 .vscode
+.claude
 CLAUDE.md
+TODO.md
 
 node_modules/
 package-lock.json

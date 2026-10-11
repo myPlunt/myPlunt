@@ -1,8 +1,11 @@
 package com.myplunt.plant;
 
+import com.myplunt.garden.Planter;
 import com.myplunt.garden.PlanterRepository;
 import com.myplunt.plant.dto.CreatePlantRequest;
+import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantResponse;
+import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesRepository;
 import com.myplunt.storage.StorageService;
@@ -44,17 +47,8 @@ public class PlantService {
 
     @Transactional
     public PlantResponse create(UUID ownerId, CreatePlantRequest request) {
-        // Someone else's planter answers "not found" too, so ids of other users' planters don't leak.
-        if (request.planterId() != null && !planterRepository.existsByIdAndOwnerId(request.planterId(), ownerId)) {
-            throw new IllegalStateException("Planter not found");
-        }
-
-        // Unapproved species aren't offered in the app, so they answer "not found" too.
-        Species species = request.speciesId() == null
-                ? null
-                : speciesRepository.findByIdAndApprovedTrue(request.speciesId())
-                        .orElseThrow(() -> new IllegalStateException("Species not found"));
-
+        requireOwnPlanter(ownerId, request.planterId());
+        Species species = findApprovedSpecies(request.speciesId());
         // Confirmed before anything is saved: a key that isn't the owner's, is missing or is too
         // big fails here (404/400) and no plant is created. Confirming also keeps the bucket's
         // lifecycle rule from deleting the upload.
@@ -67,7 +61,7 @@ public class PlantService {
         plant.setSpecies(species);
         plant.setLight(request.light());
         plant.setWateringEveryDays(request.wateringEveryDays());
-        plant.setNotes(request.notes() == null || request.notes().isBlank() ? null : request.notes().strip());
+        plant.setNotes(cleanNotes(request.notes()));
 
         Plant saved = plantRepository.save(plant);
         if (request.photoKey() != null) {
@@ -82,6 +76,39 @@ public class PlantService {
                 saved.getPlanterId(),
                 species == null ? null : species.getId(),
                 request.photoKey() == null ? null : storageService.createReadUrl(request.photoKey()));
+    }
+
+    @Transactional(readOnly = true)
+    public PlantDetailsResponse getDetails(UUID ownerId, UUID plantId) {
+        return toDetails(findOwnPlant(ownerId, plantId));
+    }
+
+    // Replaces the editable fields. The photo only changes when a new one was uploaded.
+    @Transactional
+    public PlantDetailsResponse update(UUID ownerId, UUID plantId, UpdatePlantRequest request) {
+        Plant plant = findOwnPlant(ownerId, plantId);
+        if (!plant.isAlive()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be edited");
+        }
+        requireOwnPlanter(ownerId, request.planterId());
+        Species species = findApprovedSpecies(request.speciesId());
+        // Confirmed before anything changes, for the same reasons as in create.
+        if (request.photoKey() != null) {
+            storageService.confirmUpload(ownerId, request.photoKey());
+        }
+
+        plant.setName(request.name());
+        plant.setPlanterId(request.planterId());
+        plant.setSpecies(species);
+        plant.setLight(request.light());
+        plant.setWateringEveryDays(request.wateringEveryDays());
+        plant.setNotes(cleanNotes(request.notes()));
+
+        Plant saved = plantRepository.save(plant);
+        if (request.photoKey() != null) {
+            plantPhotoRepository.save(new PlantPhoto(saved, ownerId, request.photoKey(), Instant.now()));
+        }
+        return toDetails(saved);
     }
 
     // The owner's living plants, oldest first, with their species already loaded.
@@ -100,14 +127,76 @@ public class PlantService {
                 .collect(Collectors.toMap(LastWatering::plantId, LastWatering::wateredAt));
     }
 
+    // A short-lived link to each plant's current photo. Plants without a photo are left out of the map.
+    @Transactional(readOnly = true)
+    public Map<UUID, String> getPhotoUrls(List<UUID> plantIds) {
+        if (plantIds.isEmpty()) {
+            return Map.of();
+        }
+        return plantPhotoRepository.findLatestPhotos(plantIds).stream()
+                .collect(Collectors.toMap(
+                        LatestPhoto::plantId,
+                        photo -> storageService.createReadUrl(photo.photoKey()),
+                        // Two photos taken at the same moment: either will do.
+                        (first, second) -> first));
+    }
+
     @Transactional
     public void water(UUID userId, UUID plantId) {
-        // Someone else's plant answers "not found" too, so ids of other users' plants don't leak.
-        Plant plant = plantRepository.findByIdAndOwnerId(plantId, userId)
-                .orElseThrow(() -> new IllegalStateException("Plant not found"));
+        Plant plant = findOwnPlant(userId, plantId);
         if (!plant.isAlive()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be watered");
         }
         wateringLogRepository.save(new WateringLog(plant, userId, Instant.now()));
+    }
+
+    // Someone else's plant answers "not found" too, so ids of other users' plants don't leak.
+    private Plant findOwnPlant(UUID ownerId, UUID plantId) {
+        return plantRepository.findByIdAndOwnerId(plantId, ownerId)
+                .orElseThrow(() -> new IllegalStateException("Plant not found"));
+    }
+
+    // Someone else's planter answers "not found" too, for the same reason. Null means no planter.
+    private void requireOwnPlanter(UUID ownerId, UUID planterId) {
+        if (planterId != null && !planterRepository.existsByIdAndOwnerId(planterId, ownerId)) {
+            throw new IllegalStateException("Planter not found");
+        }
+    }
+
+    // Unapproved species aren't offered in the app, so they answer "not found" too. Null means no species.
+    private Species findApprovedSpecies(UUID speciesId) {
+        return speciesId == null
+                ? null
+                : speciesRepository.findByIdAndApprovedTrue(speciesId)
+                        .orElseThrow(() -> new IllegalStateException("Species not found"));
+    }
+
+    private static String cleanNotes(String notes) {
+        return notes == null || notes.isBlank() ? null : notes.strip();
+    }
+
+    private PlantDetailsResponse toDetails(Plant plant) {
+        Species species = plant.getSpecies();
+        String planterName = plant.getPlanterId() == null
+                ? null
+                : planterRepository.findByIdAndOwnerId(plant.getPlanterId(), plant.getOwnerId())
+                        .map(Planter::getName)
+                        .orElse(null);
+        Instant lastWateredAt = getLastWateredAt(List.of(plant.getId())).get(plant.getId());
+        String photoUrl = getPhotoUrls(List.of(plant.getId())).get(plant.getId());
+        return new PlantDetailsResponse(
+                plant.getId(),
+                plant.getName(),
+                plant.getLight(),
+                plant.getWateringEveryDays(),
+                plant.getNotes(),
+                plant.getPlanterId(),
+                planterName,
+                species == null ? null : species.getId(),
+                species == null ? null : species.getCommonName(),
+                WateringSchedule.frequencyDays(plant),
+                lastWateredAt,
+                WateringSchedule.nextWateringAt(plant, lastWateredAt),
+                photoUrl);
     }
 }

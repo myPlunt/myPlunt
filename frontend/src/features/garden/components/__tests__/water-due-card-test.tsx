@@ -8,7 +8,15 @@ const onWater = jest.fn();
 const user = userEvent.setup();
 
 function plant(name: string): GardenPlant {
-  return { id: name, name, speciesName: null, wateringFrequencyDays: 3, lastWateredAt: null, nextWateringAt: null };
+  return {
+    id: name,
+    name,
+    speciesName: null,
+    wateringFrequencyDays: 3,
+    lastWateredAt: null,
+    nextWateringAt: null,
+    photoUrl: null,
+  };
 }
 
 afterEach(() => {

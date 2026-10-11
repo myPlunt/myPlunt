@@ -11,14 +11,23 @@ import { useTheme } from '@/hooks/use-theme';
 // The box spans this many ruled lines; the picked photo fills it.
 const ROWS = 6;
 
+interface PhotoFieldProps {
+  photo: PhotoUpload;
+  /** The photo the plant already has (when editing); a newly picked one replaces it. */
+  currentPhotoUrl?: string | null;
+}
+
 /**
  * The plant's photo on the ruled grid: a label line, then a box three lines tall. Tapping
- * the empty box opens the photo menu (camera, recent photos, all photos); once picked,
- * the box shows the photo while it uploads.
+ * the empty box, or the plant's current photo, opens the photo menu (camera, recent photos,
+ * all photos); once picked, the box shows the new photo while it uploads.
  */
-export function PhotoField({ photo }: { photo: PhotoUpload }) {
+export function PhotoField({ photo, currentPhotoUrl }: PhotoFieldProps) {
   const theme = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // A current photo that can't be loaded (e.g. its file is gone) shows the empty box instead.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showCurrentPhoto = currentPhotoUrl && currentPhotoUrl !== failedUrl;
   // The picker chosen in the menu, started once the menu is gone (see choose()).
   const pendingPick = useRef<(() => Promise<void>) | null>(null);
 
@@ -76,6 +85,29 @@ export function PhotoField({ photo }: { photo: PhotoUpload }) {
               />
             </Pressable>
           </View>
+        ) : showCurrentPhoto ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Change photo"
+            onPress={() => setIsMenuOpen(true)}
+            className="overflow-hidden rounded-[10px] border-[1.5px] border-input-border active:opacity-70"
+            style={box}>
+            <Image
+              accessibilityLabel="Plant photo"
+              source={{ uri: currentPhotoUrl }}
+              className="h-full w-full"
+              contentFit="cover"
+              onError={() => setFailedUrl(currentPhotoUrl)}
+            />
+            <View className="absolute right-2 top-2 h-8 w-8 items-center justify-center rounded-full bg-text opacity-80">
+              {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
+              <SymbolView
+                name={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }}
+                tintColor={theme.backgroundElement}
+                size={14}
+              />
+            </View>
+          </Pressable>
         ) : (
           <Pressable
             accessibilityRole="button"

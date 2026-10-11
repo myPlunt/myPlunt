@@ -1,5 +1,5 @@
 import { ApiError } from '@/lib/auth/api-client';
-import type { CreatePlantRequest } from '@/lib/plant/types';
+import type { CreatePlantRequest, UpdatePlantRequest } from '@/lib/plant/types';
 import { useAuthStore } from '@/stores/auth-store';
 
 import * as plantService from './plant-service';
@@ -7,17 +7,24 @@ import * as plantService from './plant-service';
 export function usePlantActions() {
   const { setUnauthenticated } = useAuthStore();
 
-  return {
-    async createPlant(request: CreatePlantRequest) {
-      try {
-        return await plantService.createPlant(request);
-      } catch (err) {
-        // apiFetch already tried a refresh; a 401 here means the session is gone.
-        if (err instanceof ApiError && err.status === 401) {
-          setUnauthenticated();
-        }
-        throw err;
+  async function withSession<T>(request: () => Promise<T>) {
+    try {
+      return await request();
+    } catch (err) {
+      // apiFetch already tried a refresh; a 401 here means the session is gone.
+      if (err instanceof ApiError && err.status === 401) {
+        setUnauthenticated();
       }
+      throw err;
+    }
+  }
+
+  return {
+    createPlant(request: CreatePlantRequest) {
+      return withSession(() => plantService.createPlant(request));
+    },
+    updatePlant(plantId: string, request: UpdatePlantRequest) {
+      return withSession(() => plantService.updatePlant(plantId, request));
     },
   };
 }

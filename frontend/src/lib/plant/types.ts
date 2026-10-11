@@ -27,3 +27,22 @@ export interface CreatePlantRequest {
   /** Key from uploading a photo (features/photos); null for no photo. */
   photoKey: string | null;
 }
+
+/**
+ * Mirrors PlantDetailsResponse (GET and PUT /v1/plants/{id}). `wateringEveryDays` is the
+ * owner's own setting; `wateringFrequencyDays` is the one in use (it falls back to the
+ * species'). The names, watering dates and photo are null when there's none.
+ */
+export interface PlantDetails extends Plant {
+  planterName: string | null;
+  speciesName: string | null;
+  wateringFrequencyDays: number | null;
+  lastWateredAt: string | null;
+  nextWateringAt: string | null;
+}
+
+/**
+ * Mirrors UpdatePlantRequest (PUT /v1/plants/{id}): the same fields as a new plant, and
+ * null clears a field, except `photoKey`, where null keeps the current photo.
+ */
+export type UpdatePlantRequest = CreatePlantRequest;

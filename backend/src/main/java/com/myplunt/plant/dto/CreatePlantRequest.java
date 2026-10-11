@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public record CreatePlantRequest(
         @NotBlank(message = "Name must not be blank.")
-                @Size(max = 255, message = "Name must be at most 255 characters.")
+                @Size(min = 3, max = 255, message = "Name must be between 3 and 255 characters.")
                 String name,
         // Same values as the chk_plants_light constraint in V4.
         @Pattern(regexp = "full_sun|bright_indirect|partial_shade|low_light", message = "Light must be one of the listed options.")

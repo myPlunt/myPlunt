@@ -1,10 +1,11 @@
 import {
   daysUntilWatering,
   gardenSummary,
+  lastWateredLabel,
   listPlantNames,
   plantsNeedingWater,
   roomSummary,
-  sortByWaterLevel,
+  sortByNextWatering,
   wateringStatus,
 } from '@/features/garden/watering';
 import type { GardenPlant, Room } from '@/lib/garden/types';
@@ -20,6 +21,7 @@ function plant(name: string, due: Date | null, wateringFrequencyDays: number | n
     wateringFrequencyDays,
     lastWateredAt: null,
     nextWateringAt: due ? due.toISOString() : null,
+    photoUrl: null,
   };
 }
 
@@ -55,25 +57,10 @@ describe('wateringStatus', () => {
     expect(wateringStatus(plant('George', due), now)).toMatchObject({ label, tone });
   });
 
-  it('measures the water level as the share of the watering interval that is left', () => {
-    expect(wateringStatus(plant('George', new Date(2026, 9, 11, 9), 4), now).level).toBe(0.5);
-    expect(wateringStatus(plant('George', new Date(2026, 9, 13, 9), 4), now).level).toBe(1);
-  });
-
-  it('shows only a thin layer of water when the plant is due tomorrow', () => {
-    expect(wateringStatus(plant('Minty', new Date(2026, 9, 10, 9), 3), now).level).toBe(0.1);
-  });
-
-  it('has no water left when the plant is due or overdue', () => {
-    expect(wateringStatus(plant('Pinky', new Date(2026, 9, 9, 9)), now).level).toBe(0);
-    expect(wateringStatus(plant('Basil', new Date(2026, 9, 6, 9)), now).level).toBe(0);
-  });
-
   it('says so when the plant has no watering schedule', () => {
     expect(wateringStatus(plant('Mystery', null, null), now)).toEqual({
       label: 'No schedule',
       tone: 'none',
-      level: 0,
     });
   });
 });
@@ -92,19 +79,18 @@ describe('plantsNeedingWater', () => {
   });
 });
 
-describe('sortByWaterLevel', () => {
-  it('puts the plant with the least water first', () => {
+describe('sortByNextWatering', () => {
+  it('puts the plant due soonest first, whatever its watering interval', () => {
     const plants = [
-      plant('Monty', new Date(2026, 9, 14), 7), // 5 of 7 days left
-      plant('Rosie', new Date(2026, 9, 12), 7), // 3 of 7
-      plant('George', new Date(2026, 9, 11), 4), // 2 of 4
-      plant('Minty', new Date(2026, 9, 10), 3), // tomorrow: a thin layer
+      plant('Ggg', new Date(2026, 10, 7), 30), // in 29 days
+      plant('Nig', new Date(2026, 9, 15), 7), // in 6 days
+      plant('A', new Date(2026, 9, 17), 8), // in 8 days
     ];
 
-    expect(sortByWaterLevel(plants, now).map((p) => p.name)).toEqual(['Minty', 'Rosie', 'George', 'Monty']);
+    expect(sortByNextWatering(plants, now).map((p) => p.name)).toEqual(['Nig', 'A', 'Ggg']);
   });
 
-  it('puts overdue before due today when both have no water left, and unscheduled plants last', () => {
+  it('puts overdue plants first and plants without a schedule last', () => {
     const plants = [
       plant('Mystery', null, null),
       plant('Pinky', new Date(2026, 9, 9)),
@@ -112,7 +98,26 @@ describe('sortByWaterLevel', () => {
       plant('Minty', new Date(2026, 9, 10)),
     ];
 
-    expect(sortByWaterLevel(plants, now).map((p) => p.name)).toEqual(['Basil', 'Pinky', 'Minty', 'Mystery']);
+    expect(sortByNextWatering(plants, now).map((p) => p.name)).toEqual(['Basil', 'Pinky', 'Minty', 'Mystery']);
+  });
+
+  it('orders plants due on the same day by name', () => {
+    const plants = [
+      plant('Rosie', new Date(2026, 9, 12)),
+      plant('Monty', new Date(2026, 9, 12)),
+      plant('Zed', null, null),
+      plant('Alma', null, null),
+    ];
+
+    expect(sortByNextWatering(plants, now).map((p) => p.name)).toEqual(['Monty', 'Rosie', 'Alma', 'Zed']);
+  });
+
+  it('leaves the original list as it was', () => {
+    const plants = [plant('Rosie', new Date(2026, 9, 12)), plant('Basil', new Date(2026, 9, 7))];
+
+    sortByNextWatering(plants, now);
+
+    expect(plants.map((p) => p.name)).toEqual(['Rosie', 'Basil']);
   });
 });
 
@@ -161,5 +166,17 @@ describe('listPlantNames', () => {
     [['Pinky', 'Basil', 'Minty', 'Rosie'], 'Pinky, Basil and 2 more'],
   ])('lists %j as "%s"', (names, expected) => {
     expect(listPlantNames(names.map((name) => plant(name, null)))).toBe(expected);
+  });
+});
+
+describe('lastWateredLabel', () => {
+  it('says how many calendar days ago the plant was watered', () => {
+    expect(lastWateredLabel(new Date(2026, 9, 9, 8, 0).toISOString(), now)).toBe('Today');
+    expect(lastWateredLabel(new Date(2026, 9, 8, 23, 0).toISOString(), now)).toBe('Yesterday');
+    expect(lastWateredLabel(new Date(2026, 9, 6, 16, 0).toISOString(), now)).toBe('3 days ago');
+  });
+
+  it('says "Not yet" for a plant that was never watered', () => {
+    expect(lastWateredLabel(null, now)).toBe('Not yet');
   });
 });

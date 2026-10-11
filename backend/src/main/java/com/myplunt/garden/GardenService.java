@@ -5,11 +5,11 @@ import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.garden.dto.RoomResponse;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantService;
+import com.myplunt.plant.WateringSchedule;
 import com.myplunt.species.Species;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -35,13 +35,15 @@ public class GardenService {
     @Transactional(readOnly = true)
     public GardenResponse getGarden(UUID ownerId) {
         List<Plant> plants = plantService.getLivingPlants(ownerId);
-        Map<UUID, Instant> lastWatered = plantService.getLastWateredAt(plants.stream().map(Plant::getId).toList());
+        List<UUID> plantIds = plants.stream().map(Plant::getId).toList();
+        Map<UUID, Instant> lastWatered = plantService.getLastWateredAt(plantIds);
+        Map<UUID, String> photoUrls = plantService.getPhotoUrls(plantIds);
 
         // LinkedHashMap allows the null key used for plants without a room.
         Map<UUID, List<GardenPlantResponse>> plantsByRoom = new LinkedHashMap<>();
         for (Plant plant : plants) {
             plantsByRoom.computeIfAbsent(plant.getPlanterId(), id -> new ArrayList<>())
-                    .add(toResponse(plant, lastWatered.get(plant.getId())));
+                    .add(toResponse(plant, lastWatered.get(plant.getId()), photoUrls.get(plant.getId())));
         }
 
         List<RoomResponse> rooms = new ArrayList<>();
@@ -55,22 +57,15 @@ public class GardenService {
         return new GardenResponse(rooms);
     }
 
-    private GardenPlantResponse toResponse(Plant plant, Instant lastWateredAt) {
+    private GardenPlantResponse toResponse(Plant plant, Instant lastWateredAt, String photoUrl) {
         Species species = plant.getSpecies();
-        // The owner's own "water every N days" wins over the species' default.
-        Integer frequencyDays = plant.getWateringEveryDays() != null
-                ? plant.getWateringEveryDays()
-                : species == null ? null : species.getWateringFrequencyDays();
-        // A plant that was never watered counts from the day it was added.
-        Instant nextWateringAt = frequencyDays == null
-                ? null
-                : (lastWateredAt != null ? lastWateredAt : plant.getCreatedAt()).plus(Duration.ofDays(frequencyDays));
         return new GardenPlantResponse(
                 plant.getId(),
                 plant.getName(),
                 species == null ? null : species.getCommonName(),
-                frequencyDays,
+                WateringSchedule.frequencyDays(plant),
                 lastWateredAt,
-                nextWateringAt);
+                WateringSchedule.nextWateringAt(plant, lastWateredAt),
+                photoUrl);
     }
 }
