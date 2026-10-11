@@ -168,7 +168,6 @@ build-mobile-staging:
   extends: [.build-mobile, .rules-frontend-dev]
   variables:
     EAS_PROFILE: staging
-    EXPO_PUBLIC_API_URL: $STAGING_API_URL
   needs:
     - job: test-frontend
       optional: true
@@ -181,7 +180,6 @@ build-mobile-prod:
   extends: [.build-mobile, .rules-frontend-main]
   variables:
     EAS_PROFILE: production
-    EXPO_PUBLIC_API_URL: $PROD_API_URL
   needs:
     - job: test-frontend
       optional: true
