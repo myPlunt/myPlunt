@@ -5,11 +5,11 @@ import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.garden.dto.RoomResponse;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantService;
+import com.myplunt.plant.WateringSchedule;
 import com.myplunt.species.Species;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -57,20 +57,12 @@ public class GardenService {
 
     private GardenPlantResponse toResponse(Plant plant, Instant lastWateredAt) {
         Species species = plant.getSpecies();
-        // The owner's own "water every N days" wins over the species' default.
-        Integer frequencyDays = plant.getWateringEveryDays() != null
-                ? plant.getWateringEveryDays()
-                : species == null ? null : species.getWateringFrequencyDays();
-        // A plant that was never watered counts from the day it was added.
-        Instant nextWateringAt = frequencyDays == null
-                ? null
-                : (lastWateredAt != null ? lastWateredAt : plant.getCreatedAt()).plus(Duration.ofDays(frequencyDays));
         return new GardenPlantResponse(
                 plant.getId(),
                 plant.getName(),
                 species == null ? null : species.getCommonName(),
-                frequencyDays,
+                WateringSchedule.frequencyDays(plant),
                 lastWateredAt,
-                nextWateringAt);
+                WateringSchedule.nextWateringAt(plant, lastWateredAt));
     }
 }
