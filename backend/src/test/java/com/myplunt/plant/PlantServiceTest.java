@@ -248,8 +248,11 @@ class PlantServiceTest {
 
         PlantDetailsResponse details = plantService().getDetails(userId, plantId);
 
+        // No frequency from the owner or a species, so the default schedule, counted from the day it was added.
         assertThat(details).isEqualTo(new PlantDetailsResponse(
-                plantId, "Vera", null, null, null, null, null, null, null, null, null, null, null));
+                plantId, "Vera", null, null, null, null, null, null, null,
+                WateringSchedule.DEFAULT_FREQUENCY_DAYS, null,
+                Instant.parse("2026-09-01T10:00:00Z").plus(Duration.ofDays(WateringSchedule.DEFAULT_FREQUENCY_DAYS)), null));
         verify(planterRepository, never()).findByIdAndOwnerId(any(), any());
     }
 
@@ -265,6 +268,27 @@ class PlantServiceTest {
         assertThat(details.wateringFrequencyDays()).isEqualTo(3);
         // Never watered, so counted from the day it was added.
         assertThat(details.nextWateringAt()).isEqualTo(vera.getCreatedAt().plus(Duration.ofDays(3)));
+    }
+
+    @Test
+    void getDetails_usesTheSpeciesFrequencyWhenTheOwnerSetNone() {
+        Plant vera = ownPlant("Vera");
+        vera.setSpecies(new Species("Pothos", 10));
+
+        PlantDetailsResponse details = plantService().getDetails(userId, plantId);
+
+        assertThat(details.wateringEveryDays()).isNull();
+        assertThat(details.wateringFrequencyDays()).isEqualTo(10);
+    }
+
+    @Test
+    void getDetails_usesTheDefaultScheduleForASpeciesWithoutAFrequency() {
+        Plant vera = ownPlant("Vera");
+        vera.setSpecies(new Species("Sweet basil", null));
+
+        PlantDetailsResponse details = plantService().getDetails(userId, plantId);
+
+        assertThat(details.wateringFrequencyDays()).isEqualTo(WateringSchedule.DEFAULT_FREQUENCY_DAYS);
     }
 
     @Test
