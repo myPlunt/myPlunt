@@ -58,12 +58,14 @@ describe('PlantDetailsScreen', () => {
     expect(mockedUsePlant).toHaveBeenCalledWith('p1');
   });
 
-  it('shows the plant with its photo, species, watering status and care details', async () => {
+  it('shows the plant with its photo, species and details, including when it needs water next', async () => {
     await render(<PlantDetailsScreen plantId="p1" />);
 
     expect(screen.getByRole('header', { name: 'Vera' })).toBeOnTheScreen();
     expect(screen.getByLabelText('Photo of Vera')).toBeOnTheScreen();
     expect(screen.getByText('Monstera')).toBeOnTheScreen();
+    expect(screen.getByText('VERA INFORMATION')).toBeOnTheScreen();
+    expect(screen.getByText('Next watering')).toBeOnTheScreen();
     expect(screen.getByText('In 5 days')).toBeOnTheScreen();
     expect(screen.getByText('Balcony')).toBeOnTheScreen();
     expect(screen.getByText('Bright indirect')).toBeOnTheScreen();

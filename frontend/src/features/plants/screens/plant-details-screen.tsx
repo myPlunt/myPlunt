@@ -80,26 +80,27 @@ function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
           iconSize={64}
         />
 
-        <View className="gap-2">
-          <View>
-            <Text accessibilityRole="header" className="type-h4 text-action-primary" style={styles.name}>
-              {plant.name}
-            </Text>
-            {plant.speciesName && (
-              <Text className="type-subtitle-large text-text-secondary">{plant.speciesName}</Text>
-            )}
-          </View>
-          <WateringPill plant={plant} now={now} />
+        <View>
+          <Text accessibilityRole="header" className="type-h4 text-action-primary" style={styles.name}>
+            {plant.name}
+          </Text>
+          {plant.speciesName && <Text className="type-subtitle-large text-text-secondary">{plant.speciesName}</Text>}
         </View>
       </View>
 
       {/* Shadow goes through style so it sets both iOS shadow* and Android elevation. */}
       <View className="gap-3 rounded-2xl bg-background-element p-4" style={Shadow.card}>
-        <Text className="type-label text-accent">CARE</Text>
+        <Text className="type-label text-accent" numberOfLines={1}>
+          {`${plant.name} information`.toUpperCase()}
+        </Text>
         <DetailRow label="Planter" value={plant.planterName ?? 'Other plants'} />
         <DetailRow label="Light" value={light?.label ?? 'Not set'} />
         <DetailRow label="Watering" value={watering} />
         <DetailRow label="Last watered" value={lastWateredLabel(plant.lastWateredAt, now)} />
+        <View className="flex-row items-center justify-between gap-4">
+          <Text className="type-body-large text-text-secondary">Next watering</Text>
+          <WateringPill plant={plant} now={now} />
+        </View>
       </View>
 
       {plant.notes && (
