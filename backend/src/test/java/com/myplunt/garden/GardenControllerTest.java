@@ -53,6 +53,7 @@ class GardenControllerTest {
                 List.of(new GardenPlantResponse(
                         UUID.randomUUID(),
                         "George",
+                        UUID.randomUUID(),
                         "Geranium",
                         4,
                         Instant.parse("2026-10-07T08:00:00Z"),

@@ -12,6 +12,7 @@ export default function TabsLayout() {
       tabBar={(props) => <BottomTabBar {...props} />}
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: theme.background } }}>
       <Tabs.Screen name="index" />
+      <Tabs.Screen name="pluntdex" />
       <Tabs.Screen name="garden" />
       <Tabs.Screen name="profile" />
     </Tabs>

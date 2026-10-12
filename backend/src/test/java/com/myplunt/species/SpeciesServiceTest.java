@@ -1,6 +1,7 @@
 package com.myplunt.species;
 
 import com.myplunt.species.dto.SpeciesResponse;
+import com.myplunt.storage.StorageService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -19,16 +20,38 @@ class SpeciesServiceTest {
     @Mock
     private SpeciesRepository speciesRepository;
 
+    @Mock
+    private StorageService storageService;
+
+    private Species species(String commonName, String scientificName) {
+        Species species = new Species(commonName, 7);
+        ReflectionTestUtils.setField(species, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(species, "scientificName", scientificName);
+        return species;
+    }
+
     @Test
     void getApprovedSpecies_mapsTheApprovedSpeciesInRepositoryOrder() {
-        UUID id = UUID.randomUUID();
-        Species monstera = new Species("Monstera", 7);
-        ReflectionTestUtils.setField(monstera, "id", id);
-        ReflectionTestUtils.setField(monstera, "scientificName", "Monstera deliciosa");
+        Species monstera = species("Monstera", "Monstera deliciosa");
+        ReflectionTestUtils.setField(monstera, "region", "Central America");
+        ReflectionTestUtils.setField(monstera, "common", true);
         when(speciesRepository.findByApprovedTrueOrderByCommonNameAsc()).thenReturn(List.of(monstera));
 
-        List<SpeciesResponse> species = new SpeciesService(speciesRepository).getApprovedSpecies();
+        List<SpeciesResponse> species = new SpeciesService(speciesRepository, storageService).getApprovedSpecies();
 
-        assertThat(species).containsExactly(new SpeciesResponse(id, "Monstera", "Monstera deliciosa", 7));
+        assertThat(species).containsExactly(new SpeciesResponse(
+                monstera.getId(), "Monstera", "Monstera deliciosa", 7, "Central America", true, null));
+    }
+
+    @Test
+    void getApprovedSpecies_signsALinkToTheSpeciesPicture() {
+        Species basil = species("Basil", "Ocimum basilicum");
+        ReflectionTestUtils.setField(basil, "imageKey", "species/basil.jpg");
+        when(speciesRepository.findByApprovedTrueOrderByCommonNameAsc()).thenReturn(List.of(basil));
+        when(storageService.createReadUrl("species/basil.jpg")).thenReturn("https://storage.test/basil.jpg?signed");
+
+        List<SpeciesResponse> species = new SpeciesService(speciesRepository, storageService).getApprovedSpecies();
+
+        assertThat(species.get(0).imageUrl()).isEqualTo("https://storage.test/basil.jpg?signed");
     }
 }

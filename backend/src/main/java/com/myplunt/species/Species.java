@@ -9,8 +9,7 @@ import jakarta.persistence.Table;
 
 import java.util.UUID;
 
-// Only the columns the garden and the add-plant species search need so far; the
-// Plantdex will map the rest.
+// Only the columns the garden, the add-plant species search and the Pluntdex need so far.
 @Entity
 @Table(name = "species")
 public class Species {
@@ -26,6 +25,16 @@ public class Species {
 
     @Column(name = "watering_frequency_days")
     private Integer wateringFrequencyDays;
+
+    @Column(name = "region")
+    private String region;
+
+    @Column(name = "image_key")
+    private String imageKey;
+
+    // Everyday plants people own (basil, snake plant...); the Pluntdex has a filter for them.
+    @Column(name = "is_common", nullable = false)
+    private boolean common;
 
     // Species users submit stay hidden until someone approves them.
     @Column(name = "is_approved", nullable = false)
@@ -56,5 +65,17 @@ public class Species {
 
     public Integer getWateringFrequencyDays() {
         return wateringFrequencyDays;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public String getImageKey() {
+        return imageKey;
+    }
+
+    public boolean isCommon() {
+        return common;
     }
 }

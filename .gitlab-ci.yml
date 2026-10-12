@@ -24,12 +24,14 @@ workflow:
     - if: '$CI_COMMIT_BRANCH == "dev"'
       changes:
         - "frontend/**/*"
+      when: manual
 
 .rules-frontend-main:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - "frontend/**/*"
+      when: manual
 
 .rules-backend-dev:
   rules:

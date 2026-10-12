@@ -124,6 +124,7 @@ class PlantServiceTest {
         ArgumentCaptor<Plant> saved = ArgumentCaptor.forClass(Plant.class);
         verify(plantRepository).save(saved.capture());
         assertThat(saved.getValue().getSpecies()).isSameAs(monstera);
+        verify(speciesRepository).markCaught(userId, speciesId);
     }
 
     @Test
@@ -325,6 +326,7 @@ class PlantServiceTest {
         assertThat(details.name()).isEqualTo("Vera II");
         assertThat(details.speciesName()).isEqualTo("Pothos");
         assertThat(details.wateringFrequencyDays()).isEqualTo(9);
+        verify(speciesRepository).markCaught(userId, pothos.getId());
     }
 
     @Test
