@@ -68,6 +68,7 @@ public class PlantService {
         plant.setNotes(cleanNotes(request.notes()));
 
         Plant saved = plantRepository.save(plant);
+        markCaught(ownerId, species);
         if (request.photoKey() != null) {
             plantPhotoRepository.save(new PlantPhoto(saved, ownerId, request.photoKey(), Instant.now()));
         }
@@ -109,6 +110,7 @@ public class PlantService {
         plant.setNotes(cleanNotes(request.notes()));
 
         Plant saved = plantRepository.save(plant);
+        markCaught(ownerId, species);
         if (request.photoKey() != null) {
             plantPhotoRepository.save(new PlantPhoto(saved, ownerId, request.photoKey(), Instant.now()));
         }
@@ -193,6 +195,13 @@ public class PlantService {
                 ? null
                 : speciesRepository.findByIdAndApprovedTrue(speciesId)
                         .orElseThrow(() -> new IllegalStateException("Species not found"));
+    }
+
+    // Adds the species to the owner's Pluntdex. Deleting the plant later doesn't undo it.
+    private void markCaught(UUID ownerId, Species species) {
+        if (species != null) {
+            speciesRepository.markCaught(ownerId, species.getId());
+        }
     }
 
     private static String cleanNotes(String notes) {

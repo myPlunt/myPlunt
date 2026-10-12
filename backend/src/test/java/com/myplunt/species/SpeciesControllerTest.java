@@ -59,6 +59,24 @@ class SpeciesControllerTest {
     }
 
     @Test
+    void caught_returnsTheUsersCaughtSpeciesIds() {
+        UUID userId = UUID.randomUUID();
+        User user = new User("jane", "jane@example.com", "hashed");
+        ReflectionTestUtils.setField(user, "id", userId);
+        when(jwtService.parseAndValidate("access-token")).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        List<UUID> caught = List.of(UUID.randomUUID());
+        when(speciesService.getCaughtSpeciesIds(userId)).thenReturn(caught);
+
+        restTestClient.get().uri("/v1/species/caught")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(new ParameterizedTypeReference<List<UUID>>() {})
+                .isEqualTo(caught);
+    }
+
+    @Test
     void species_rejectsRequestsWithoutAToken() {
         restTestClient.get().uri("/v1/species")
                 .exchange()

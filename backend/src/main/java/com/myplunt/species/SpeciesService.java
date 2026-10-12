@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class SpeciesService {
@@ -33,5 +34,11 @@ public class SpeciesService {
                         // Signing is local (no call to storage), so one per species is cheap.
                         species.getImageKey() == null ? null : storageService.createReadUrl(species.getImageKey())))
                 .toList();
+    }
+
+    // The species the user has ever owned a plant of, including plants since deleted.
+    @Transactional(readOnly = true)
+    public List<UUID> getCaughtSpeciesIds(UUID userId) {
+        return speciesRepository.findCaughtSpeciesIds(userId);
     }
 }
