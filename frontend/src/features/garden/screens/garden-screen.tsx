@@ -121,7 +121,9 @@ export function GardenScreen() {
               </View>
             ) : (
               <>
-                <View className="flex-row items-center gap-3">
+                {/* min-h-10 is the Select all button's height, kept even without it so the page
+                    doesn't shift down when selection mode starts. */}
+                <View className="min-h-10 flex-row items-center gap-3">
                   <Text className="type-body-large flex-1 text-text-secondary">{gardenSummary(garden)}</Text>
                   {selectedIds && (
                     <Button
