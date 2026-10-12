@@ -48,7 +48,7 @@ const garden: Garden = {
           speciesName: 'Basil',
           wateringFrequencyDays: 3,
           lastWateredAt: null,
-          nextWateringAt: null,
+          nextWateringAt: '2026-10-15T08:00:00.000Z',
           photoUrl: null,
         },
       ],
