@@ -2,10 +2,13 @@ package com.myplunt.species;
 
 import com.myplunt.constants.ApiPaths;
 import com.myplunt.species.dto.SpeciesResponse;
+import com.myplunt.user.User;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 public class SpeciesController {
@@ -19,5 +22,10 @@ public class SpeciesController {
     @GetMapping(ApiPaths.Species.BASE)
     public List<SpeciesResponse> species() {
         return speciesService.getApprovedSpecies();
+    }
+
+    @GetMapping(ApiPaths.Species.CAUGHT)
+    public List<UUID> caught(@AuthenticationPrincipal User principal) {
+        return speciesService.getCaughtSpeciesIds(principal.getId());
     }
 }

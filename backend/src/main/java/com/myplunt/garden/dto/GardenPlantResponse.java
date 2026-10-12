@@ -9,6 +9,7 @@ import java.util.UUID;
 public record GardenPlantResponse(
         UUID id,
         String name,
+        UUID speciesId,
         String speciesName,
         Integer wateringFrequencyDays,
         Instant lastWateredAt,

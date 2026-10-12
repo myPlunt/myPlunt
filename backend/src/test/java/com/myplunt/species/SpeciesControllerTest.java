@@ -46,7 +46,8 @@ class SpeciesControllerTest {
         when(jwtService.parseAndValidate("access-token")).thenReturn(userId);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         List<SpeciesResponse> species =
-                List.of(new SpeciesResponse(UUID.randomUUID(), "Monstera", "Monstera deliciosa", 7));
+                List.of(new SpeciesResponse(
+                        UUID.randomUUID(), "Monstera", "Monstera deliciosa", 7, "Central America", true, null));
         when(speciesService.getApprovedSpecies()).thenReturn(species);
 
         restTestClient.get().uri("/v1/species")
@@ -55,6 +56,24 @@ class SpeciesControllerTest {
                 .expectStatus().isOk()
                 .expectBody(new ParameterizedTypeReference<List<SpeciesResponse>>() {})
                 .isEqualTo(species);
+    }
+
+    @Test
+    void caught_returnsTheUsersCaughtSpeciesIds() {
+        UUID userId = UUID.randomUUID();
+        User user = new User("jane", "jane@example.com", "hashed");
+        ReflectionTestUtils.setField(user, "id", userId);
+        when(jwtService.parseAndValidate("access-token")).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        List<UUID> caught = List.of(UUID.randomUUID());
+        when(speciesService.getCaughtSpeciesIds(userId)).thenReturn(caught);
+
+        restTestClient.get().uri("/v1/species/caught")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(new ParameterizedTypeReference<List<UUID>>() {})
+                .isEqualTo(caught);
     }
 
     @Test

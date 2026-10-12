@@ -19,6 +19,7 @@ function plant(name: string, due: Date = new Date(2026, 9, 16), wateringFrequenc
   return {
     id: name.toLowerCase(),
     name,
+    speciesId: null,
     speciesName: null,
     wateringFrequencyDays,
     lastWateredAt: null,

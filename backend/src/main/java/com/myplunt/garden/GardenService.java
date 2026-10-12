@@ -62,6 +62,7 @@ public class GardenService {
         return new GardenPlantResponse(
                 plant.getId(),
                 plant.getName(),
+                species == null ? null : species.getId(),
                 species == null ? null : species.getCommonName(),
                 WateringSchedule.frequencyDays(plant),
                 lastWateredAt,
