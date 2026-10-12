@@ -1,11 +1,13 @@
+import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { RoomSection } from '@/features/garden/components/room-section';
 import { WaterDueCard } from '@/features/garden/components/water-due-card';
+import { WaterSelectionBar } from '@/features/garden/components/water-selection-bar';
 import { useGarden } from '@/features/garden/use-garden';
 import { useGardenActions } from '@/features/garden/use-garden-actions';
 import { gardenSummary, plantsNeedingWater } from '@/features/garden/watering';
@@ -18,21 +20,51 @@ export function GardenScreen() {
   const { waterPlants } = useGardenActions();
   const [isWatering, setIsWatering] = useState(false);
   const [waterError, setWaterError] = useState<string | null>(null);
+  // The plants picked to water; null when the user isn't picking.
+  const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null);
 
   // Taken per render, so "today" moves on if the screen stays open past midnight.
   const now = new Date();
   const due = garden ? plantsNeedingWater(garden, now) : [];
+  const hasPlants = garden?.rooms.some((room) => room.plants.length > 0) ?? false;
 
-  async function waterDuePlants() {
+  /** Resolves to whether watering worked; on failure the error is shown and nothing is refreshed. */
+  async function water(plantIds: string[]) {
     setWaterError(null);
     setIsWatering(true);
     try {
-      await waterPlants(due.map((plant) => plant.id));
+      await waterPlants(plantIds);
       await refresh();
+      return true;
     } catch (err) {
       setWaterError(describeError(err));
+      return false;
     } finally {
       setIsWatering(false);
+    }
+  }
+
+  function startSelecting() {
+    setWaterError(null);
+    setSelectedIds(new Set());
+  }
+
+  function toggleSelected(plantId: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(plantId)) {
+        next.delete(plantId);
+      } else {
+        next.add(plantId);
+      }
+      return next;
+    });
+  }
+
+  async function waterSelected() {
+    // Stays in selection mode on failure, so the user can retry without picking again.
+    if (selectedIds && (await water([...selectedIds]))) {
+      setSelectedIds(null);
     }
   }
 
@@ -40,7 +72,26 @@ export function GardenScreen() {
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         {/* A tab, so no back button; plants are added with the tab bar's + button. */}
-        <AppHeader />
+        <AppHeader
+          right={
+            hasPlants &&
+            !selectedIds && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Water plants"
+                accessibilityHint="Pick the plants you watered"
+                onPress={startSelecting}
+                className="h-10 w-10 items-center justify-center active:opacity-70">
+                {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
+                <SymbolView
+                  name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
+                  tintColor={theme.water}
+                  size={22}
+                />
+              </Pressable>
+            )
+          }
+        />
 
         <ScrollView contentContainerClassName="w-full max-w-content grow gap-8 self-center px-6 pb-8 pt-2">
           {isLoading ? (
@@ -63,16 +114,37 @@ export function GardenScreen() {
             ) : (
               <>
                 <Text className="type-body-large text-text-secondary">{gardenSummary(garden)}</Text>
-                {due.length > 0 && (
-                  <WaterDueCard plants={due} onWater={waterDuePlants} loading={isWatering} error={waterError} />
+                {/* Hidden while picking plants, so there's only one Water button on screen. */}
+                {due.length > 0 && !selectedIds && (
+                  <WaterDueCard
+                    plants={due}
+                    onWater={() => water(due.map((plant) => plant.id))}
+                    loading={isWatering}
+                    error={waterError}
+                  />
                 )}
                 {garden.rooms.map((room) => (
-                  <RoomSection key={room.id ?? 'unassigned'} room={room} now={now} />
+                  <RoomSection
+                    key={room.id ?? 'unassigned'}
+                    room={room}
+                    now={now}
+                    selection={selectedIds ? { selectedIds, onToggle: toggleSelected } : undefined}
+                  />
                 ))}
               </>
             ))
           )}
         </ScrollView>
+
+        {selectedIds && (
+          <WaterSelectionBar
+            selectedCount={selectedIds.size}
+            onWater={waterSelected}
+            onCancel={() => setSelectedIds(null)}
+            loading={isWatering}
+            error={waterError}
+          />
+        )}
       </SafeAreaView>
     </View>
   );

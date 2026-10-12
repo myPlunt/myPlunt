@@ -8,11 +8,16 @@ import { PlantCard } from './plant-card';
 interface RoomSectionProps {
   room: Room;
   now: Date;
+  /** Set while the user picks plants to water; the cards then toggle instead of opening. */
+  selection?: {
+    selectedIds: ReadonlySet<string>;
+    onToggle: (plantId: string) => void;
+  };
 }
 
 // One room of the garden: its name and a sideways-scrolling row of plant cards,
 // the one due soonest first.
-export function RoomSection({ room, now }: RoomSectionProps) {
+export function RoomSection({ room, now, selection }: RoomSectionProps) {
   const needsWater = plantsNeedingWater({ rooms: [room] }, now).length > 0;
 
   return (
@@ -38,7 +43,17 @@ export function RoomSection({ room, now }: RoomSectionProps) {
           className="-mx-6"
           contentContainerClassName="gap-3 px-6 py-3">
           {sortByNextWatering(room.plants, now).map((plant) => (
-            <PlantCard key={plant.id} plant={plant} now={now} />
+            <PlantCard
+              key={plant.id}
+              plant={plant}
+              now={now}
+              selection={
+                selection && {
+                  selected: selection.selectedIds.has(plant.id),
+                  onToggle: () => selection.onToggle(plant.id),
+                }
+              }
+            />
           ))}
         </ScrollView>
       )}
