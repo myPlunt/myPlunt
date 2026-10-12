@@ -34,6 +34,11 @@ const STEP_1_FIELDS = ['name', 'speciesId', 'photoKey'];
 // Suggestions shown under the species search, one per ruled line.
 const MAX_SPECIES_SUGGESTIONS = 3;
 
+function matchesSpecies(species: Species, query: string) {
+  const needle = query.trim().toLowerCase();
+  return species.commonName.toLowerCase().includes(needle) || species.scientificName.toLowerCase().includes(needle);
+}
+
 interface PlantFormProps {
   /** The plant to edit, whose values fill the form; leave it out to add a new plant. */
   plant?: PlantDetails;

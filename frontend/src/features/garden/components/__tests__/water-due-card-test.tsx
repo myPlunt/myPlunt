@@ -11,7 +11,6 @@ function plant(name: string): GardenPlant {
   return {
     id: name,
     name,
-    speciesId: null,
     speciesName: null,
     wateringFrequencyDays: 3,
     lastWateredAt: null,
