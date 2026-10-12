@@ -1,20 +1,27 @@
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Shadow } from '@/constants/theme';
 import { WateringPill } from '@/features/garden/components/watering-pill';
 import { lastWateredLabel } from '@/features/garden/watering';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { lightOptions } from '@/features/plants/light-options';
 import { usePlant } from '@/features/plants/use-plant';
+import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { useTheme } from '@/hooks/use-theme';
+import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { PlantDetails } from '@/lib/plant/types';
 
-/** One of the user's plants, opened from its card in the garden. The pencil opens the edit screen. */
+/**
+ * One of the user's plants, opened from its card in the garden. The pencil opens the edit
+ * screen; "Delete plant" at the bottom removes it after asking.
+ */
 export function PlantDetailsScreen({ plantId }: { plantId: string }) {
   const theme = useTheme();
   const router = useRouter();
@@ -53,7 +60,12 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
               <Button label="Try again" variant="secondary" onPress={retry} />
             </View>
           ) : (
-            plant && <PlantDetailsContent plant={plant} />
+            plant && (
+              <>
+                <PlantDetailsContent plant={plant} />
+                <DeletePlant plant={plant} />
+              </>
+            )
           )}
         </ScrollView>
       </SafeAreaView>
@@ -108,6 +120,61 @@ function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
           <Text className="type-body-large text-text">{plant.notes}</Text>
         </View>
       )}
+    </>
+  );
+}
+
+function DeletePlant({ plant }: { plant: PlantDetails }) {
+  const router = useRouter();
+  const { deletePlant } = usePlantActions();
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function confirm() {
+    setIsDeleting(true);
+    setError(null);
+    try {
+      await deletePlant(plant.id);
+      setIsConfirming(false);
+      // Back to the garden, which reloads on focus and no longer lists the plant. Nothing
+      // underneath when the app was opened straight onto this page, so go there directly.
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/garden');
+      }
+    } catch (err) {
+      // An expired session already signed the user out (usePlantActions).
+      if (!(err instanceof ApiError && err.status === 401)) {
+        setError(describeError(err));
+      }
+      setIsDeleting(false);
+    }
+  }
+
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Delete plant"
+        onPress={() => setIsConfirming(true)}
+        className="items-center py-2 active:opacity-70">
+        <Text className="type-button-medium text-error">Delete plant</Text>
+      </Pressable>
+      <ConfirmDialog
+        visible={isConfirming}
+        title={`Delete ${plant.name}?`}
+        message="It will be removed from your garden with its photos and watering history. This can't be undone."
+        confirmLabel="Delete"
+        onConfirm={confirm}
+        onCancel={() => {
+          setIsConfirming(false);
+          setError(null);
+        }}
+        loading={isDeleting}
+        error={error}
+      />
     </>
   );
 }

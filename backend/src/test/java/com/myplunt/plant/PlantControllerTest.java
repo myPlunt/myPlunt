@@ -354,6 +354,48 @@ class PlantControllerTest {
     }
 
     @Test
+    void delete_returnsNoContentAndDeletesThePlant() {
+        UUID userId = authenticateAsJane();
+
+        restTestClient.delete().uri("/v1/plants/{plantId}", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(plantService).delete(userId, plantId);
+    }
+
+    @Test
+    void delete_returnsNotFoundWhenThePlantIsNotTheUsers() {
+        UUID userId = authenticateAsJane();
+        doThrow(new IllegalStateException("Plant not found")).when(plantService).delete(userId, plantId);
+
+        restTestClient.delete().uri("/v1/plants/{plantId}", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void delete_rejectsAMalformedPlantId() {
+        authenticateAsJane();
+
+        restTestClient.delete().uri("/v1/plants/not-a-uuid")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void delete_rejectsRequestsWithoutAToken() {
+        restTestClient.delete().uri("/v1/plants/{plantId}", plantId)
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        verify(plantService, never()).delete(any(), any());
+    }
+
+    @Test
     void water_returnsNoContentAndWatersThePlant() {
         UUID userId = authenticateAsJane();
 

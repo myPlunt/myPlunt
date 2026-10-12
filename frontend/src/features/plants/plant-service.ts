@@ -12,3 +12,7 @@ export async function getPlant(plantId: string): Promise<PlantDetails> {
 export async function updatePlant(plantId: string, request: UpdatePlantRequest): Promise<PlantDetails> {
   return apiFetch<PlantDetails>(`/v1/plants/${plantId}`, { method: 'PUT', body: request });
 }
+
+export async function deletePlant(plantId: string): Promise<void> {
+  return apiFetch<void>(`/v1/plants/${plantId}`, { method: 'DELETE' });
+}

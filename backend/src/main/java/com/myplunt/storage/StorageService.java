@@ -117,6 +117,10 @@ public class StorageService {
                 .toString();
     }
 
+    public void deleteObject(String key) {
+        s3Client.deleteObject(r -> r.bucket(bucket).key(key));
+    }
+
     private String buildKey(PhotoCategory category, UUID userId, String extension) {
         String categorySegment = category.name().toLowerCase() + "s"; // avatar -> avatars, post -> posts
         String base = "%s/%s/%s.%s".formatted(categorySegment, userId, UUID.randomUUID(), extension);

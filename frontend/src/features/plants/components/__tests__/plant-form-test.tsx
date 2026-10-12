@@ -50,7 +50,7 @@ const planters = [
 ];
 
 beforeEach(() => {
-  mockedUsePlantActions.mockReturnValue({ createPlant, updatePlant });
+  mockedUsePlantActions.mockReturnValue({ createPlant, updatePlant, deletePlant: jest.fn() });
   mockedUsePhotoUpload.mockReturnValue(noPhoto);
   jest.mocked(usePlanterActions).mockReturnValue({ createPlanter });
   createPlant.mockResolvedValue(vera);
