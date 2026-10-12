@@ -57,6 +57,21 @@ describe('wateringStatus', () => {
   ])('describes a plant due on %s as "%s"', (due, label, tone) => {
     expect(wateringStatus(plant('George', due), now)).toMatchObject({ label, tone });
   });
+
+  it.each([
+    [new Date(2026, 9, 10, 9), 'Tomorrow'],
+    [new Date(2026, 9, 11, 9), 'In 2 days'],
+  ])('keeps a plant watered today calm when it is due again on %s', (due, label) => {
+    const watered = { ...plant('Minty', due, 1), lastWateredAt: new Date(2026, 9, 9, 8).toISOString() };
+
+    expect(wateringStatus(watered, now)).toEqual({ label, tone: 'later' });
+  });
+
+  it('only counts a watering from today as calm', () => {
+    const wateredYesterday = { ...plant('Minty', new Date(2026, 9, 10, 9), 2), lastWateredAt: new Date(2026, 9, 8, 9).toISOString() };
+
+    expect(wateringStatus(wateredYesterday, now)).toEqual({ label: 'Tomorrow', tone: 'tomorrow' });
+  });
 });
 
 describe('plantsNeedingWater', () => {

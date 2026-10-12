@@ -23,7 +23,8 @@ interface WateringPillProps {
 
 /**
  * When the plant needs water next ("In 5 days", "Today", "Overdue"), coloured by urgency:
- * blue for 3+ days, mustard for 2, orange for tomorrow, red for today or overdue.
+ * blue for 3+ days, mustard for 2, orange for tomorrow, red for today or overdue. A plant
+ * watered today stays blue, so a short schedule doesn't look urgent right after watering.
  */
 export function WateringPill({ plant, now }: WateringPillProps) {
   const theme = useTheme();

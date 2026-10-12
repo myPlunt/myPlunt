@@ -215,6 +215,25 @@ describe('GardenScreen', () => {
       expect(await screen.findByRole('button', { name: 'George' })).toBeOnTheScreen();
     });
 
+    it("restarts a watered plant's countdown once the garden is refreshed", async () => {
+      // The backend now counts from today's watering: Basil (every 4 days) was overdue.
+      const watered = { ...plant('basil', 'Basil', 4), lastWateredAt: inDays(0) };
+      refresh.mockImplementation(async () => {
+        mockGarden({ garden: { rooms: [{ id: 'kitchen', name: 'Kitchen windowsill', plants: [watered] }] } });
+      });
+      mockGarden({ garden: { rooms: [{ id: 'kitchen', name: 'Kitchen windowsill', plants: [plant('basil', 'Basil', -1)] }] } });
+      await render(<GardenScreen />);
+      expect(screen.getByText('Overdue')).toBeOnTheScreen();
+      await user.press(screen.getByRole('button', { name: 'Water plants' }));
+      await user.press(screen.getByRole('checkbox', { name: 'Basil' }));
+
+      await user.press(screen.getByRole('button', { name: 'Water 1 plant' }));
+
+      expect(await screen.findByText('In 4 days')).toBeOnTheScreen();
+      expect(screen.queryByText('Overdue')).toBeNull();
+      expect(screen.queryByText(/need(s)? water today/)).toBeNull();
+    });
+
     it('keeps the selection and shows the backend message when watering fails', async () => {
       waterPlants.mockRejectedValue(new ApiError(404, 'irrelevant', { detail: 'Plant not found' }));
       await render(<GardenScreen />);
