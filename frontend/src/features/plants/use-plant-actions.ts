@@ -26,5 +26,8 @@ export function usePlantActions() {
     updatePlant(plantId: string, request: UpdatePlantRequest) {
       return withSession(() => plantService.updatePlant(plantId, request));
     },
+    deletePlant(plantId: string) {
+      return withSession(() => plantService.deletePlant(plantId));
+    },
   };
 }

@@ -5,10 +5,12 @@ import com.myplunt.storage.dto.UploadUrlRequest;
 import com.myplunt.storage.dto.UploadUrlResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
@@ -18,6 +20,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 
 import java.net.URI;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -136,5 +139,19 @@ class StorageServiceTest {
         String url = storageService().createReadUrl("avatars/some/key.jpg");
 
         assertThat(url).isEqualTo("http://localhost:9000/read-signed");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void deleteObject_deletesTheKeyFromTheBucket() {
+        storageService().deleteObject("plants/some/photo.jpg");
+
+        ArgumentCaptor<Consumer<DeleteObjectRequest.Builder>> captor = ArgumentCaptor.forClass(Consumer.class);
+        verify(s3Client).deleteObject(captor.capture());
+        DeleteObjectRequest.Builder builder = DeleteObjectRequest.builder();
+        captor.getValue().accept(builder);
+        DeleteObjectRequest request = builder.build();
+        assertThat(request.bucket()).isEqualTo("myplunt-dev");
+        assertThat(request.key()).isEqualTo("plants/some/photo.jpg");
     }
 }

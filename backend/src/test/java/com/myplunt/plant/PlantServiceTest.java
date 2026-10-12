@@ -12,6 +12,7 @@ import com.myplunt.storage.StorageService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -516,5 +518,55 @@ class PlantServiceTest {
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.CONFLICT);
         verify(wateringLogRepository, never()).save(any());
+    }
+
+    @Test
+    void delete_removesThePlantAndThenItsPhotosFromStorage() {
+        Plant george = new Plant(userId, "George");
+        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(george));
+        when(plantPhotoRepository.findPhotoKeysByPlantId(plantId)).thenReturn(List.of("plants/u/old.jpg", "plants/u/new.jpg"));
+
+        plantService().delete(userId, plantId);
+
+        InOrder order = inOrder(plantRepository, storageService);
+        order.verify(plantRepository).delete(george);
+        order.verify(plantRepository).flush();
+        order.verify(storageService).deleteObject("plants/u/old.jpg");
+        order.verify(storageService).deleteObject("plants/u/new.jpg");
+    }
+
+    @Test
+    void delete_alsoRemovesAPlantThatHasDied() {
+        Plant george = new Plant(userId, "George");
+        george.setAlive(false);
+        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(george));
+
+        plantService().delete(userId, plantId);
+
+        verify(plantRepository).delete(george);
+    }
+
+    @Test
+    void delete_stillDeletesThePlantWhenAPhotoCannotBeRemovedFromStorage() {
+        Plant george = new Plant(userId, "George");
+        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(george));
+        when(plantPhotoRepository.findPhotoKeysByPlantId(plantId)).thenReturn(List.of("plants/u/a.jpg", "plants/u/b.jpg"));
+        doThrow(new RuntimeException("storage down")).when(storageService).deleteObject("plants/u/a.jpg");
+
+        plantService().delete(userId, plantId);
+
+        verify(plantRepository).delete(george);
+        verify(storageService).deleteObject("plants/u/b.jpg");
+    }
+
+    @Test
+    void delete_throwsNotFoundForAPlantTheUserDoesNotOwn() {
+        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> plantService().delete(userId, plantId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Plant not found");
+        verify(plantRepository, never()).delete(any());
+        verify(storageService, never()).deleteObject(any());
     }
 }
