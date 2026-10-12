@@ -15,14 +15,16 @@ interface WaterSelectionBarProps {
 export function WaterSelectionBar({ selectedCount, onWater, onCancel, loading, error }: WaterSelectionBarProps) {
   const title =
     selectedCount === 0
-      ? 'Tap the plants you watered'
+      ? 'Tap to select the plants you watered.'
       : `${selectedCount} ${selectedCount === 1 ? 'plant' : 'plants'} selected`;
 
   return (
     // Shadow goes through style so it sets both iOS shadow* and Android elevation.
     <View className="w-full max-w-content gap-2 self-center rounded-t-3xl bg-background-element px-6 py-4" style={Shadow.card}>
-      <View className="flex-row items-center gap-3">
-        <Text className="type-subtitle-small flex-1 text-text">{title}</Text>
+      <Text className="type-subtitle-small text-center text-text">{title}</Text>
+      {/* The actions get their own row, so the title never has to wrap beside them:
+          Cancel on the left, Water on the right, centred under the title. */}
+      <View className="flex-row items-center justify-center gap-8">
         <Button label="Cancel" variant="ghost" onPress={onCancel} disabled={loading} />
         <Button
           label="Water"
@@ -32,7 +34,7 @@ export function WaterSelectionBar({ selectedCount, onWater, onCancel, loading, e
           loading={loading}
         />
       </View>
-      {error && <Text className="type-caption text-error">{error}</Text>}
+      {error && <Text className="type-caption text-center text-error">{error}</Text>}
     </View>
   );
 }

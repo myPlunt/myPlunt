@@ -14,7 +14,7 @@ describe('WaterSelectionBar', () => {
   it('asks the user to pick plants and disables watering while none are selected', async () => {
     await render(<WaterSelectionBar selectedCount={0} onWater={onWater} onCancel={onCancel} loading={false} error={null} />);
 
-    expect(screen.getByText('Tap the plants you watered')).toBeOnTheScreen();
+    expect(screen.getByText('Tap to select the plants you watered.')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Water 0 plants' })).toBeDisabled();
   });
 

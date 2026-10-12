@@ -26,7 +26,9 @@ export function GardenScreen() {
   // Taken per render, so "today" moves on if the screen stays open past midnight.
   const now = new Date();
   const due = garden ? plantsNeedingWater(garden, now) : [];
-  const hasPlants = garden?.rooms.some((room) => room.plants.length > 0) ?? false;
+  const allPlantIds = garden ? garden.rooms.flatMap((room) => room.plants.map((plant) => plant.id)) : [];
+  const hasPlants = allPlantIds.length > 0;
+  const allSelected = selectedIds !== null && hasPlants && allPlantIds.every((id) => selectedIds.has(id));
 
   /** Resolves to whether watering worked; on failure the error is shown and nothing is refreshed. */
   async function water(plantIds: string[]) {
@@ -49,16 +51,22 @@ export function GardenScreen() {
     setSelectedIds(new Set());
   }
 
-  function toggleSelected(plantId: string) {
+  function selectMany(plantIds: string[], selected: boolean) {
     setSelectedIds((current) => {
       const next = new Set(current);
-      if (next.has(plantId)) {
-        next.delete(plantId);
-      } else {
-        next.add(plantId);
+      for (const plantId of plantIds) {
+        if (selected) {
+          next.add(plantId);
+        } else {
+          next.delete(plantId);
+        }
       }
       return next;
     });
+  }
+
+  function toggleSelected(plantId: string) {
+    selectMany([plantId], !selectedIds?.has(plantId));
   }
 
   async function waterSelected() {
@@ -113,7 +121,17 @@ export function GardenScreen() {
               </View>
             ) : (
               <>
-                <Text className="type-body-large text-text-secondary">{gardenSummary(garden)}</Text>
+                <View className="flex-row items-center gap-3">
+                  <Text className="type-body-large flex-1 text-text-secondary">{gardenSummary(garden)}</Text>
+                  {selectedIds && (
+                    <Button
+                      label={allSelected ? 'Deselect all' : 'Select all'}
+                      accessibilityLabel={`${allSelected ? 'Deselect' : 'Select'} all plants in the garden`}
+                      variant="ghost"
+                      onPress={() => selectMany(allPlantIds, !allSelected)}
+                    />
+                  )}
+                </View>
                 {/* Hidden while picking plants, so there's only one Water button on screen. */}
                 {due.length > 0 && !selectedIds && (
                   <WaterDueCard
@@ -128,7 +146,9 @@ export function GardenScreen() {
                     key={room.id ?? 'unassigned'}
                     room={room}
                     now={now}
-                    selection={selectedIds ? { selectedIds, onToggle: toggleSelected } : undefined}
+                    selection={
+                      selectedIds ? { selectedIds, onToggle: toggleSelected, onSelectMany: selectMany } : undefined
+                    }
                   />
                 ))}
               </>
