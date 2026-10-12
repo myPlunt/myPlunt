@@ -18,3 +18,12 @@ describe('getSpecies', () => {
     expect(mockedApiFetch).toHaveBeenCalledWith('/v1/species');
   });
 });
+
+describe('getCaughtSpeciesIds', () => {
+  it('fetches the caught species ids from /v1/species/caught', async () => {
+    mockedApiFetch.mockResolvedValue(['s1']);
+
+    await expect(speciesService.getCaughtSpeciesIds()).resolves.toEqual(['s1']);
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/species/caught');
+  });
+});

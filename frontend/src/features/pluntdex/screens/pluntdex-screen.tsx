@@ -6,32 +6,29 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { Shadow } from '@/constants/theme';
-import { useGarden } from '@/features/garden/use-garden';
 import { ChoiceChip } from '@/features/plants/components/choice-chip';
 import { RegionSelect } from '@/features/pluntdex/components/region-select';
 import { SpeciesCard } from '@/features/pluntdex/components/species-card';
 import { filterSpecies, regionsOf, type PluntdexFilter } from '@/features/pluntdex/filter';
+import { useCaughtSpecies } from '@/features/species/use-caught-species';
 import { useSpecies } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 
-// Every approved species, numbered like a Pokédex. Species the user owns a plant of
-// are "caught"; the rest are shown as unseen entries. The garden reloads on focus, so a
-// plant added from the tab bar counts as soon as the user comes back here.
+// Every approved species, numbered like a Pokédex. Species the user has ever owned a plant
+// of are "caught", even if that plant was deleted since; the rest are shown as unseen entries.
 export function PluntdexScreen() {
   const theme = useTheme();
   const { species, error: speciesError } = useSpecies();
-  const { garden, error: gardenError, isLoading, retry } = useGarden();
+  const { caughtIds, error: caughtError, isLoading, retry } = useCaughtSpecies();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<PluntdexFilter>({ only: null, region: null });
 
-  const caught = new Set(
-    garden?.rooms.flatMap((room) => room.plants.flatMap((plant) => (plant.speciesId ? [plant.speciesId] : []))),
-  );
+  const caught = new Set(caughtIds ?? []);
   const visible = species ? filterSpecies(species, caught, query, filter) : [];
   // Counts what's on screen, so searching "basil" reads 1 / 1 instead of out of every species.
   const caughtCount = visible.filter((s) => caught.has(s.id)).length;
   const progress = visible.length === 0 ? 0 : caughtCount / visible.length;
-  const error = speciesError ?? gardenError;
+  const error = speciesError ?? caughtError;
   // Tapping the picked chip again clears it (ChoiceChip shows a ✕).
   const toggle = (only: 'common' | 'caught') =>
     setFilter((current) => ({ ...current, only: current.only === only ? null : only }));
@@ -47,8 +44,8 @@ export function PluntdexScreen() {
           {error ? (
             <View className="items-center gap-3">
               <Text className="type-body-medium text-error">{error}</Text>
-              {/* The species list loads once, so only a garden error can be retried. */}
-              {gardenError && <Button label="Try again" variant="secondary" onPress={retry} />}
+              {/* The species list loads once, so only a caught-list error can be retried. */}
+              {caughtError && <Button label="Try again" variant="secondary" onPress={retry} />}
             </View>
           ) : isLoading || !species ? (
             <ActivityIndicator accessibilityLabel="Loading Pluntdex" color={theme.primary} className="mt-6" />
