@@ -6,6 +6,8 @@ import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
+import com.myplunt.plant.dto.WateringHistoryResponse;
+import com.myplunt.plant.dto.WateringResponse;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesRepository;
 import com.myplunt.storage.StorageService;
@@ -520,6 +522,55 @@ class PlantServiceTest {
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.CONFLICT);
         verify(wateringLogRepository, never()).save(any());
+    }
+
+    @Test
+    void getWateringHistory_returnsEveryWateringNewestFirstWithTheSchedule() {
+        Plant vera = ownPlant("Vera");
+        vera.setWateringEveryDays(3);
+        WateringLog latest = new WateringLog(vera, userId, Instant.parse("2026-10-07T08:00:00Z"));
+        WateringLog earlier = new WateringLog(vera, userId, Instant.parse("2026-10-04T08:00:00Z"));
+        ReflectionTestUtils.setField(latest, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(earlier, "id", UUID.randomUUID());
+        when(wateringLogRepository.findByPlantIdOrderByWateredAtDesc(plantId)).thenReturn(List.of(latest, earlier));
+
+        WateringHistoryResponse history = plantService().getWateringHistory(userId, plantId);
+
+        assertThat(history).isEqualTo(new WateringHistoryResponse(
+                "Vera",
+                3,
+                Instant.parse("2026-09-01T10:00:00Z"),
+                List.of(
+                        new WateringResponse(latest.getId(), latest.getWateredAt()),
+                        new WateringResponse(earlier.getId(), earlier.getWateredAt()))));
+    }
+
+    @Test
+    void getWateringHistory_usesTheDefaultScheduleForAPlantThatWasNeverWatered() {
+        ownPlant("Vera");
+
+        WateringHistoryResponse history = plantService().getWateringHistory(userId, plantId);
+
+        assertThat(history.wateringFrequencyDays()).isEqualTo(WateringSchedule.DEFAULT_FREQUENCY_DAYS);
+        assertThat(history.waterings()).isEmpty();
+    }
+
+    @Test
+    void getWateringHistory_stillWorksForAPlantThatHasDied() {
+        Plant vera = ownPlant("Vera");
+        vera.setAlive(false);
+
+        assertThat(plantService().getWateringHistory(userId, plantId).plantName()).isEqualTo("Vera");
+    }
+
+    @Test
+    void getWateringHistory_throwsNotFoundForAPlantTheUserDoesNotOwn() {
+        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> plantService().getWateringHistory(userId, plantId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Plant not found");
+        verify(wateringLogRepository, never()).findByPlantIdOrderByWateredAtDesc(any());
     }
 
     @Test

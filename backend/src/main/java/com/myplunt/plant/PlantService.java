@@ -6,6 +6,8 @@ import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
+import com.myplunt.plant.dto.WateringHistoryResponse;
+import com.myplunt.plant.dto.WateringResponse;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesRepository;
 import com.myplunt.storage.StorageService;
@@ -154,6 +156,17 @@ public class PlantService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be watered");
         }
         wateringLogRepository.save(new WateringLog(plant, userId, Instant.now()));
+    }
+
+    // Also for plants that have died, so their record stays readable.
+    @Transactional(readOnly = true)
+    public WateringHistoryResponse getWateringHistory(UUID ownerId, UUID plantId) {
+        Plant plant = findOwnPlant(ownerId, plantId);
+        List<WateringResponse> waterings = wateringLogRepository.findByPlantIdOrderByWateredAtDesc(plantId).stream()
+                .map(watering -> new WateringResponse(watering.getId(), watering.getWateredAt()))
+                .toList();
+        return new WateringHistoryResponse(
+                plant.getName(), WateringSchedule.frequencyDays(plant), plant.getCreatedAt(), waterings);
     }
 
     // Removes the plant from the garden for good, dead or alive. Its waterings, photos, care

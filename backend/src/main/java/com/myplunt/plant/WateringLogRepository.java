@@ -16,4 +16,6 @@ public interface WateringLogRepository extends JpaRepository<WateringLog, UUID> 
             group by w.plant.id
             """)
     List<LastWatering> findLastWateredAt(Collection<UUID> plantIds);
+
+    List<WateringLog> findByPlantIdOrderByWateredAtDesc(UUID plantId);
 }

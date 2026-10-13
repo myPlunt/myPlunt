@@ -6,6 +6,8 @@ import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
+import com.myplunt.plant.dto.WateringHistoryResponse;
+import com.myplunt.plant.dto.WateringResponse;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,7 @@ import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -443,6 +446,50 @@ class PlantControllerTest {
     @Test
     void water_rejectsRequestsWithoutAToken() {
         restTestClient.post().uri("/v1/plants/{plantId}/waterings", plantId)
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void wateringHistory_returnsThePlantsWaterings() {
+        UUID userId = authenticateAsJane();
+        WateringHistoryResponse history = new WateringHistoryResponse(
+                "Vera", 7, Instant.parse("2026-09-01T10:00:00Z"),
+                List.of(new WateringResponse(UUID.randomUUID(), Instant.parse("2026-10-07T08:00:00Z"))));
+        when(plantService.getWateringHistory(userId, plantId)).thenReturn(history);
+
+        restTestClient.get().uri("/v1/plants/{plantId}/waterings", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(WateringHistoryResponse.class)
+                .isEqualTo(history);
+    }
+
+    @Test
+    void wateringHistory_returnsNotFoundWhenThePlantIsNotTheUsers() {
+        UUID userId = authenticateAsJane();
+        when(plantService.getWateringHistory(userId, plantId)).thenThrow(new IllegalStateException("Plant not found"));
+
+        restTestClient.get().uri("/v1/plants/{plantId}/waterings", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void wateringHistory_rejectsAMalformedPlantId() {
+        authenticateAsJane();
+
+        restTestClient.get().uri("/v1/plants/not-a-uuid/waterings")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void wateringHistory_rejectsRequestsWithoutAToken() {
+        restTestClient.get().uri("/v1/plants/{plantId}/waterings", plantId)
                 .exchange()
                 .expectStatus().isUnauthorized();
     }

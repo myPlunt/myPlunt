@@ -5,6 +5,7 @@ import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
+import com.myplunt.plant.dto.WateringHistoryResponse;
 import com.myplunt.user.User;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -59,5 +60,10 @@ public class PlantController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void water(@AuthenticationPrincipal User principal, @PathVariable UUID plantId) {
         plantService.water(principal.getId(), plantId);
+    }
+
+    @GetMapping(ApiPaths.Plants.WATERINGS)
+    public WateringHistoryResponse wateringHistory(@AuthenticationPrincipal User principal, @PathVariable UUID plantId) {
+        return plantService.getWateringHistory(principal.getId(), plantId);
     }
 }
