@@ -54,6 +54,7 @@ const garden: Garden = {
           wateringFrequencyDays: 3,
           lastWateredAt: null,
           nextWateringAt: '2026-10-14T12:00:00Z',
+          wateringStreak: 0,
           photoUrl: null,
         },
         {
@@ -64,6 +65,7 @@ const garden: Garden = {
           wateringFrequencyDays: 7,
           lastWateredAt: null,
           nextWateringAt: '2026-10-14T12:00:00Z',
+          wateringStreak: 0,
           photoUrl: null,
         },
       ],

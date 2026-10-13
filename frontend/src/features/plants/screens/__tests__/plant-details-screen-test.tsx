@@ -122,6 +122,14 @@ describe('PlantDetailsScreen', () => {
     expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]/edit', params: { id: 'p1' } });
   });
 
+  it('opens the watering history', async () => {
+    await render(<PlantDetailsScreen plantId="p1" />);
+
+    await user.press(screen.getByRole('button', { name: 'Watering history' }));
+
+    expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]/waterings', params: { id: 'p1' } });
+  });
+
   it('shows a loading indicator, and no pencil or delete, while the plant loads', async () => {
     mockPlant({ plant: null, isLoading: true });
     await render(<PlantDetailsScreen plantId="p1" />);

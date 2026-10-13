@@ -16,6 +16,7 @@ function plant(name: string): GardenPlant {
     wateringFrequencyDays: 3,
     lastWateredAt: null,
     nextWateringAt: '2026-10-11T08:00:00.000Z',
+    wateringStreak: 0,
     photoUrl: null,
   };
 }
