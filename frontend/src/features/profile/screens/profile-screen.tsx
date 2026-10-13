@@ -1,12 +1,12 @@
 import { useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
-import { LinkCard } from '@/components/ui/link-card';
 import { UserAvatar } from '@/components/user/user-avatar';
+import { ProfileMenu, ProfileMenuButton } from '@/features/profile/components/profile-menu';
 import { WateringStreakBadge } from '@/features/profile/components/watering-streak';
 import { useProfile } from '@/features/profile/use-profile';
 import { useWateringStreak } from '@/features/profile/use-watering-streak';
@@ -17,40 +17,29 @@ export function ProfileScreen() {
   const router = useRouter();
   const { user, error, isLoading, retry } = useProfile();
   const streak = useWateringStreak();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // Where the header sits and where the burger ends inside it, so the menu's icons start
+  // right under the burger's box and continue the column at the same 40px step.
+  const [headerTop, setHeaderTop] = useState(0);
+  const [burgerBottom, setBurgerBottom] = useState(0);
 
   return (
     <View className="flex-1 bg-background">
       {/* No bottom edge: the tab bar below already pads for the home indicator. */}
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
-        <AppHeader
-          right={
-            <View className="flex-row">
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open friends"
-                onPress={() => router.push('/friends')}
-                className="h-10 w-10 items-center justify-center active:opacity-70">
-                {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
-                <SymbolView
-                  name={{ ios: 'person.2.fill', android: 'group', web: 'group' }}
-                  tintColor={theme.actionPrimary}
-                  size={22}
-                />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open settings"
-                onPress={() => router.push('/settings')}
-                className="h-10 w-10 items-center justify-center active:opacity-70">
-                <SymbolView
-                  name={{ ios: 'gearshape.fill', android: 'settings', web: 'settings' }}
-                  tintColor={theme.actionPrimary}
-                  size={22}
-                />
-              </Pressable>
-            </View>
-          }
-        />
+        {/* y counts the safe-area padding above the header; the menu is positioned from the
+            same edge. The burger's own layout is relative to the header's row. */}
+        <View onLayout={({ nativeEvent: { layout } }) => setHeaderTop(layout.y)}>
+          <AppHeader
+            right={
+              <ProfileMenuButton
+                open={isMenuOpen}
+                onPress={() => setIsMenuOpen((open) => !open)}
+                onLayout={({ nativeEvent: { layout } }) => setBurgerBottom(layout.y + layout.height)}
+              />
+            }
+          />
+        </View>
 
         <ScrollView contentContainerClassName="w-full max-w-content grow gap-6 self-center p-6">
           <View className="items-center gap-1">
@@ -83,14 +72,9 @@ export function ProfileScreen() {
               )
             )}
           </View>
-          {user && (
-            <LinkCard
-              title="Watering calendar"
-              icon={{ ios: 'calendar', android: 'calendar_month', web: 'calendar_month' }}
-              onPress={() => router.push('/watering-calendar')}
-            />
-          )}
         </ScrollView>
+
+        <ProfileMenu open={isMenuOpen} top={headerTop + burgerBottom} onClose={() => setIsMenuOpen(false)} />
       </SafeAreaView>
     </View>
   );
