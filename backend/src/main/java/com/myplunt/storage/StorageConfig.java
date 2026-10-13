@@ -1,10 +1,13 @@
 package com.myplunt.storage;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.ClassPathResource;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -13,14 +16,24 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException;
 import software.amazon.awssdk.services.s3.model.ExpirationStatus;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
+import java.io.IOException;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 public class StorageConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(StorageConfig.class);
 
     @Bean
     public S3Client s3Client(
@@ -54,22 +67,26 @@ public class StorageConfig {
     // and PutLifecycleConfiguration is a bucket-admin permission the app has no other need for.
     private static final int PENDING_UPLOAD_EXPIRATION_DAYS = 1;
 
-    // A 1x1 transparent PNG - real bytes aren't needed, the seed objects just have to
-    // exist so createReadUrl(key) has something real to presign against in dev.
-    private static final byte[] SEED_IMAGE_BYTES = Base64.getDecoder().decode(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+    // Seed storage key (without the prefix) -> image URL, for the keys the db/seed SQL points at.
+    // Downloaded instead of committed, so the repo has no image files.
+    private static final String SEED_IMAGES = "db/seed/seed-images.csv";
 
-    // Keys mirror the fixed UUIDs in db/seed/V2__seed_dev_data.sql, so avatar_key/photo_key
-    // there resolve to real objects instead of placehold.co strings that aren't actual keys.
-    private static final List<String> SEED_AVATAR_KEYS = List.of(
-            "avatars/10000000-0000-0000-0000-000000000001/seed.png",
-            "avatars/10000000-0000-0000-0000-000000000002/seed.png",
-            "avatars/10000000-0000-0000-0000-000000000003/seed.png");
-    private static final String SEED_POST_PHOTO_KEY = "posts/10000000-0000-0000-0000-000000000001/seed.png";
+    // A 1x1 transparent PNG, stored when a download fails (e.g. offline) so the key still exists.
+    // The app then shows its own placeholder icon through it.
+    private static final byte[] PLACEHOLDER_IMAGE = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=");
+
+    // Anything this small is a placeholder from an earlier failed download, so it's retried.
+    private static final long PLACEHOLDER_MAX_BYTES = 1024;
+
+    private static final int DOWNLOAD_ATTEMPTS = 3;
 
     @Bean
     @Profile("dev")
-    public ApplicationRunner ensureDevBucketExists(S3Client s3Client, @Value("${app.storage.bucket}") String bucket) {
+    public ApplicationRunner ensureDevBucketExists(
+            S3Client s3Client,
+            @Value("${app.storage.bucket}") String bucket,
+            @Value("${app.storage.prefix}") String prefix) {
         return args -> {
             try {
                 s3Client.createBucket(r -> r.bucket(bucket));
@@ -85,16 +102,92 @@ public class StorageConfig {
                             .filter(f -> f.tag(t -> t.key("pending").value("true")))
                             .expiration(e -> e.days(PENDING_UPLOAD_EXPIRATION_DAYS)))));
 
-            for (String key : SEED_AVATAR_KEYS) {
-                putSeedImage(s3Client, bucket, key);
-            }
-            putSeedImage(s3Client, bucket, SEED_POST_PHOTO_KEY);
+            // After the bucket exists, so this one runner covers dev, while staging gets its own below.
+            startSeedImageUpload(s3Client, bucket, prefix);
         };
     }
 
-    private void putSeedImage(S3Client s3Client, String bucket, String key) {
-        s3Client.putObject(
-                r -> r.bucket(bucket).key(key).contentType("image/png"),
-                RequestBody.fromBytes(SEED_IMAGE_BYTES));
+    // Staging loads the db/seed data too, so its bucket needs the photos as well. Its bucket is
+    // provisioned externally, so unlike dev this only uploads the photos.
+    @Bean
+    @Profile("staging & !dev")
+    public ApplicationRunner uploadStagingSeedImages(
+            S3Client s3Client,
+            @Value("${app.storage.bucket}") String bucket,
+            @Value("${app.storage.prefix}") String prefix) {
+        return args -> startSeedImageUpload(s3Client, bucket, prefix);
+    }
+
+    // In the background: the first start downloads a few dozen photos, which shouldn't hold up startup.
+    private void startSeedImageUpload(S3Client s3Client, String bucket, String prefix) {
+        Thread.ofVirtual().name("seed-images").start(() -> uploadSeedImages(s3Client, bucket, prefix));
+    }
+
+    private void uploadSeedImages(S3Client s3Client, String bucket, String prefix) {
+        HttpClient http = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .connectTimeout(Duration.ofSeconds(10))
+                .build();
+        // Several keys share a photo (a plant and its species), so each URL is downloaded once.
+        Map<String, Image> downloads = new HashMap<>();
+        try {
+            String csv = new ClassPathResource(SEED_IMAGES).getContentAsString(StandardCharsets.UTF_8);
+            for (String line : csv.lines().toList()) {
+                if (line.isBlank() || line.startsWith("#")) {
+                    continue;
+                }
+                String[] keyAndUrl = line.split(",", 2);
+                // Same prefixing as StorageService.buildKey, and as V9 does with the storagePrefix placeholder.
+                String key = prefix.isBlank() ? keyAndUrl[0] : prefix + "/" + keyAndUrl[0];
+                if (hasRealImage(s3Client, bucket, key)) {
+                    continue;
+                }
+                Image image = downloads.computeIfAbsent(keyAndUrl[1], url -> download(http, url));
+                s3Client.putObject(r -> r.bucket(bucket).key(key).contentType(image.contentType()),
+                        RequestBody.fromBytes(image.bytes()));
+            }
+        } catch (IOException | RuntimeException e) {
+            log.warn("Could not upload the seed images", e);
+        }
+    }
+
+    private boolean hasRealImage(S3Client s3Client, String bucket, String key) {
+        try {
+            return s3Client.headObject(r -> r.bucket(bucket).key(key)).contentLength() > PLACEHOLDER_MAX_BYTES;
+        } catch (NoSuchKeyException e) {
+            return false;
+        }
+    }
+
+    private Image download(HttpClient http, String url) {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                // Wikimedia refuses requests without a descriptive User-Agent.
+                .header("User-Agent", "myplunt-dev-seed/1.0 (dev seed data)")
+                .timeout(Duration.ofSeconds(20))
+                .build();
+        // Wikimedia rate-limits bursts like this one, so a failure gets a couple of slower retries.
+        for (int attempt = 1; attempt <= DOWNLOAD_ATTEMPTS; attempt++) {
+            try {
+                HttpResponse<byte[]> response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                String contentType = response.headers().firstValue("Content-Type").orElse("");
+                if (response.statusCode() == 200 && contentType.startsWith("image/")) {
+                    return new Image(response.body(), contentType);
+                }
+                log.warn("Seed image {} answered {} {} (attempt {})", url, response.statusCode(), contentType, attempt);
+                if (attempt < DOWNLOAD_ATTEMPTS) {
+                    Thread.sleep(Duration.ofSeconds(2L * attempt));
+                }
+            } catch (IOException e) {
+                log.warn("Could not download seed image {} (attempt {})", url, attempt, e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        log.warn("Using a placeholder for seed image {}; it's retried on the next start", url);
+        return new Image(PLACEHOLDER_IMAGE, "image/png");
+    }
+
+    private record Image(byte[] bytes, String contentType) {
     }
 }
