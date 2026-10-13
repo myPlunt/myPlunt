@@ -7,6 +7,9 @@ spring:
     show-sql: false
   flyway:
     enabled: true
+    # Lets the db/seed SQL give its storage keys the same prefix real uploads get.
+    placeholders:
+      storagePrefix: ${app.storage.prefix}
 
 app:
   jwt:
