@@ -10,7 +10,7 @@ export interface WateringStatus {
 }
 
 /** What the watering status needs: a garden plant or a plant's details. */
-type WateringSchedule = Pick<GardenPlant, 'nextWateringAt'>;
+type WateringSchedule = Pick<GardenPlant, 'nextWateringAt' | 'lastWateredAt'>;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -29,10 +29,13 @@ export function daysUntilWatering(plant: WateringSchedule, now: Date): number {
 
 export function wateringStatus(plant: WateringSchedule, now: Date): WateringStatus {
   const days = daysUntilWatering(plant, now);
+  // A plant watered today is cared for, so it stays calm even on a 1- or 2-day schedule,
+  // where the countdown would otherwise restart at an urgent "Tomorrow" or "In 2 days".
+  const wateredToday = plant.lastWateredAt !== null && lastWateredLabel(plant.lastWateredAt, now) === 'Today';
   if (days < 0) return { label: 'Overdue', tone: 'due' };
   if (days === 0) return { label: 'Today', tone: 'due' };
-  if (days === 1) return { label: 'Tomorrow', tone: 'tomorrow' };
-  if (days === 2) return { label: 'In 2 days', tone: 'soon' };
+  if (days === 1) return { label: 'Tomorrow', tone: wateredToday ? 'later' : 'tomorrow' };
+  if (days === 2) return { label: 'In 2 days', tone: wateredToday ? 'later' : 'soon' };
   return { label: `In ${days} days`, tone: 'later' };
 }
 
