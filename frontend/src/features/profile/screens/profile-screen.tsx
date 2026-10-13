@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { LinkCard } from '@/components/ui/link-card';
 import { UserAvatar } from '@/components/user/user-avatar';
 import { WateringStreakBadge } from '@/features/profile/components/watering-streak';
 import { useProfile } from '@/features/profile/use-profile';
@@ -83,7 +84,11 @@ export function ProfileScreen() {
             )}
           </View>
           {user && (
-            <Button label="Watering calendar" variant="secondary" onPress={() => router.push('/watering-calendar')} />
+            <LinkCard
+              title="Watering calendar"
+              icon={{ ios: 'calendar', android: 'calendar_month', web: 'calendar_month' }}
+              onPress={() => router.push('/watering-calendar')}
+            />
           )}
         </ScrollView>
       </SafeAreaView>

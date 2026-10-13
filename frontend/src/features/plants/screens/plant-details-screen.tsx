@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { LinkCard } from '@/components/ui/link-card';
 import { Shadow } from '@/constants/theme';
 import { WateringPill } from '@/features/garden/components/watering-pill';
 import { lastWateredLabel } from '@/features/garden/watering';
@@ -116,9 +117,9 @@ function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
         </View>
       </View>
 
-      <Button
-        label="Watering history"
-        variant="secondary"
+      <LinkCard
+        title="Watering history"
+        icon={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
         onPress={() => router.push({ pathname: '/plant/[id]/waterings', params: { id: plant.id } })}
       />
 
