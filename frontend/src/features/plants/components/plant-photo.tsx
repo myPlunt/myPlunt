@@ -13,7 +13,7 @@ interface PlantPhotoProps {
   /** Size and shape of the box (e.g. "h-[120px] rounded-2xl"). */
   className: string;
   iconSize: number;
-  /** Blurs the photo (the Pluntdex hides species the user hasn't caught yet). */
+  /** Blurs the photo (the Pluntdex hides species the user hasn't discovered yet). */
   blurRadius?: number;
 }
 

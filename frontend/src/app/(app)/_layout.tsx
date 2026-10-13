@@ -19,6 +19,8 @@ export default function AppLayout() {
       <Stack.Screen name="plant/[id]/index" />
       {/* Opened from the pencil on a plant's details; a sheet like adding a plant. */}
       <Stack.Screen name="plant/[id]/edit" options={{ presentation: 'modal' }} />
+      {/* Opened from a card in the Pluntdex. */}
+      <Stack.Screen name="species/[id]" />
     </Stack>
   );
 }

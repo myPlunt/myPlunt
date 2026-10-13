@@ -14,9 +14,11 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
-// Runs the caught-species SQL against the real Flyway schema; a mock can't check "on conflict".
+// Runs the discovered-species SQL against the real Flyway schema; a mock can't check "on conflict".
 @DataJpaTest
 @Testcontainers
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -42,7 +44,7 @@ class SpeciesRepositoryTest {
     }
 
     @Test
-    void markCaught_keepsTheSpeciesCaughtOnceAndAfterThePlantIsDeleted() {
+    void markDiscovered_keepsTheSpeciesDiscoveredOnceAndAfterThePlantIsDeleted() {
         User jane = userRepository.save(new User("jane", "jane@example.com", "hashed"));
         User john = userRepository.save(new User("john", "john@example.com", "hashed"));
         Species monstera = species("Monstera", "Monstera deliciosa");
@@ -50,12 +52,15 @@ class SpeciesRepositoryTest {
         vera.setSpecies(monstera);
         plantRepository.save(vera);
 
-        speciesRepository.markCaught(jane.getId(), monstera.getId());
-        speciesRepository.markCaught(jane.getId(), monstera.getId());
+        speciesRepository.markDiscovered(jane.getId(), monstera.getId());
+        speciesRepository.markDiscovered(jane.getId(), monstera.getId());
         plantRepository.delete(vera);
         plantRepository.flush();
 
-        assertThat(speciesRepository.findCaughtSpeciesIds(jane.getId())).containsExactly(monstera.getId());
-        assertThat(speciesRepository.findCaughtSpeciesIds(john.getId())).isEmpty();
+        List<SpeciesRepository.DiscoveredSpecies> discovered = speciesRepository.findDiscoveredSpecies(jane.getId());
+        assertThat(discovered).hasSize(1);
+        assertThat(discovered.get(0).getSpeciesId()).isEqualTo(monstera.getId());
+        assertThat(discovered.get(0).getDiscoveredAt()).isNotNull();
+        assertThat(speciesRepository.findDiscoveredSpecies(john.getId())).isEmpty();
     }
 }

@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Shadow } from '@/constants/theme';
 import { WateringPill } from '@/features/garden/components/watering-pill';
 import { lastWateredLabel } from '@/features/garden/watering';
+import { DetailRow } from '@/features/plants/components/detail-row';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { lightOptions } from '@/features/plants/light-options';
 import { usePlant } from '@/features/plants/use-plant';
@@ -176,15 +177,6 @@ function DeletePlant({ plant }: { plant: PlantDetails }) {
         error={error}
       />
     </>
-  );
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="flex-row items-center justify-between gap-4">
-      <Text className="type-body-large text-text-secondary">{label}</Text>
-      <Text className="type-body-large shrink text-right text-text">{value}</Text>
-    </View>
   );
 }
 

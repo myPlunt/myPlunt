@@ -2,6 +2,7 @@ package com.myplunt.species;
 
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
+import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.species.dto.SpeciesResponse;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
@@ -15,6 +16,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,7 +49,8 @@ class SpeciesControllerTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         List<SpeciesResponse> species =
                 List.of(new SpeciesResponse(
-                        UUID.randomUUID(), "Monstera", "Monstera deliciosa", 7, "Central America", true, null));
+                        UUID.randomUUID(), "Monstera", "Monstera deliciosa", 7, "Central America",
+                        "Bright indirect", true, null));
         when(speciesService.getApprovedSpecies()).thenReturn(species);
 
         restTestClient.get().uri("/v1/species")
@@ -59,21 +62,22 @@ class SpeciesControllerTest {
     }
 
     @Test
-    void caught_returnsTheUsersCaughtSpeciesIds() {
+    void discovered_returnsTheUsersDiscoveredSpeciesAndWhen() {
         UUID userId = UUID.randomUUID();
         User user = new User("jane", "jane@example.com", "hashed");
         ReflectionTestUtils.setField(user, "id", userId);
         when(jwtService.parseAndValidate("access-token")).thenReturn(userId);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        List<UUID> caught = List.of(UUID.randomUUID());
-        when(speciesService.getCaughtSpeciesIds(userId)).thenReturn(caught);
+        List<DiscoveredSpeciesResponse> discovered =
+                List.of(new DiscoveredSpeciesResponse(UUID.randomUUID(), Instant.parse("2026-10-11T09:30:00Z")));
+        when(speciesService.getDiscoveredSpecies(userId)).thenReturn(discovered);
 
-        restTestClient.get().uri("/v1/species/caught")
+        restTestClient.get().uri("/v1/species/discovered")
                 .header("Authorization", "Bearer access-token")
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(new ParameterizedTypeReference<List<UUID>>() {})
-                .isEqualTo(caught);
+                .expectBody(new ParameterizedTypeReference<List<DiscoveredSpeciesResponse>>() {})
+                .isEqualTo(discovered);
     }
 
     @Test

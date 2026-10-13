@@ -1,5 +1,6 @@
 package com.myplunt.species;
 
+import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.species.dto.SpeciesResponse;
 import com.myplunt.storage.StorageService;
 import org.springframework.stereotype.Service;
@@ -30,15 +31,18 @@ public class SpeciesService {
                         species.getScientificName(),
                         species.getWateringFrequencyDays(),
                         species.getRegion(),
+                        species.getSunlightNeeds(),
                         species.isCommon(),
                         // Signing is local (no call to storage), so one per species is cheap.
                         species.getImageKey() == null ? null : storageService.createReadUrl(species.getImageKey())))
                 .toList();
     }
 
-    // The species the user has ever owned a plant of, including plants since deleted.
+    // The species the user has ever owned a plant of, including plants since deleted, and when.
     @Transactional(readOnly = true)
-    public List<UUID> getCaughtSpeciesIds(UUID userId) {
-        return speciesRepository.findCaughtSpeciesIds(userId);
+    public List<DiscoveredSpeciesResponse> getDiscoveredSpecies(UUID userId) {
+        return speciesRepository.findDiscoveredSpecies(userId).stream()
+                .map(discovered -> new DiscoveredSpeciesResponse(discovered.getSpeciesId(), discovered.getDiscoveredAt()))
+                .toList();
     }
 }
