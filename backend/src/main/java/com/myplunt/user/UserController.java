@@ -4,12 +4,16 @@ import com.myplunt.constants.ApiPaths;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
+import com.myplunt.user.dto.UserSummaryResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 public class UserController {
@@ -30,6 +34,12 @@ public class UserController {
     public UserResponse updateMe(
             @AuthenticationPrincipal User principal, @Valid @RequestBody UpdateProfileRequest request) {
         return userService.updateProfile(principal.getId(), request);
+    }
+
+    @GetMapping(ApiPaths.Users.SEARCH)
+    public List<UserSummaryResponse> search(
+            @AuthenticationPrincipal User principal, @RequestParam(defaultValue = "") String q) {
+        return userService.search(principal.getId(), q);
     }
 
     @PutMapping(ApiPaths.Users.ME_EMAIL)

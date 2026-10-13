@@ -32,6 +32,7 @@ public final class ApiPaths {
         public static final String BASE = "/v1/users";
         public static final String ME = BASE + "/me";
         public static final String ME_EMAIL = ME + "/email";
+        public static final String SEARCH = BASE + "/search";
 
         private Users() {}
     }

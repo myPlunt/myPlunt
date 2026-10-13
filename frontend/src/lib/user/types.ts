@@ -17,3 +17,11 @@ export interface ChangeEmailRequest {
   email: string;
   currentPassword: string;
 }
+
+/** Mirrors UserSummaryResponse (GET /v1/users/search): another user, without their email. */
+export interface UserSummary {
+  id: string;
+  username: string;
+  bio: string | null;
+  avatarUrl: string | null;
+}

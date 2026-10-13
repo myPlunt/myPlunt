@@ -20,18 +20,31 @@ export function ProfileScreen() {
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         <AppHeader
           right={
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open settings"
-              onPress={() => router.push('/settings')}
-              className="h-10 w-10 items-center justify-center active:opacity-70">
-              {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
-              <SymbolView
-                name={{ ios: 'gearshape.fill', android: 'settings', web: 'settings' }}
-                tintColor={theme.actionPrimary}
-                size={22}
-              />
-            </Pressable>
+            <View className="flex-row">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open friends"
+                onPress={() => router.push('/friends')}
+                className="h-10 w-10 items-center justify-center active:opacity-70">
+                {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
+                <SymbolView
+                  name={{ ios: 'person.2.fill', android: 'group', web: 'group' }}
+                  tintColor={theme.actionPrimary}
+                  size={22}
+                />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open settings"
+                onPress={() => router.push('/settings')}
+                className="h-10 w-10 items-center justify-center active:opacity-70">
+                <SymbolView
+                  name={{ ios: 'gearshape.fill', android: 'settings', web: 'settings' }}
+                  tintColor={theme.actionPrimary}
+                  size={22}
+                />
+              </Pressable>
+            </View>
           }
         />
 

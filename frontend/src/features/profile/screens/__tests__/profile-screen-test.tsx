@@ -81,6 +81,14 @@ describe('ProfileScreen', () => {
     expect(push).toHaveBeenCalledWith('/settings');
   });
 
+  it('opens Friends from the header', async () => {
+    await render(<ProfileScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Open friends' }));
+
+    expect(push).toHaveBeenCalledWith('/friends');
+  });
+
   it('has no back button, because Profile is a tab', async () => {
     await render(<ProfileScreen />);
 
