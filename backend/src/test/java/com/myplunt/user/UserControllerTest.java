@@ -5,10 +5,12 @@ import com.myplunt.config.SecurityConfig;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
+import com.myplunt.user.dto.UserSummaryResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -17,6 +19,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -255,6 +258,27 @@ class UserControllerTest {
         restTestClient.put().uri("/v1/users/me/email")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new ChangeEmailRequest("new@example.com", "password123"))
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void search_returnsTheMatchingUsersWithoutTheirEmail() {
+        UUID janeId = authenticateAsJane();
+        List<UserSummaryResponse> users = List.of(new UserSummaryResponse(UUID.randomUUID(), "jane_doe", "Fern collector", null));
+        when(userService.search(janeId, "jan")).thenReturn(users);
+
+        restTestClient.get().uri("/v1/users/search?q=jan")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(new ParameterizedTypeReference<List<UserSummaryResponse>>() {})
+                .isEqualTo(users);
+    }
+
+    @Test
+    void search_rejectsRequestsWithoutAToken() {
+        restTestClient.get().uri("/v1/users/search?q=jan")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }

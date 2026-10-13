@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { SearchField } from '@/components/ui/search-field';
 import { Shadow } from '@/constants/theme';
 import { ChoiceChip } from '@/features/plants/components/choice-chip';
 import { RegionSelect } from '@/features/pluntdex/components/region-select';
@@ -124,38 +125,12 @@ export function PluntdexScreen() {
               row === 'filters' ? (
                 // A solid background so the cards scroll out of sight beneath it once it sticks.
                 <View className="gap-3 bg-background py-2">
-                  <View className="h-11 flex-row items-center gap-2 rounded-full border-[1.5px] border-input-border bg-background-element px-4">
-                    <SymbolView
-                      name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
-                      tintColor={theme.textSecondary}
-                      size={16}
-                    />
-                    <TextInput
-                      accessibilityLabel="Search species"
-                      value={query}
-                      onChangeText={setQuery}
-                      placeholder="Name or scientific name"
-                      // A colour prop, not a style, so it can't take a class.
-                      placeholderTextColor={theme.placeholder}
-                      autoCorrect={false}
-                      returnKeyType="search"
-                      className="type-body-large flex-1 text-text"
-                    />
-                    {query !== '' && (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Clear search"
-                        onPress={() => setQuery('')}
-                        hitSlop={8}
-                        className="active:opacity-70">
-                        <SymbolView
-                          name={{ ios: 'xmark.circle.fill', android: 'cancel', web: 'cancel' }}
-                          tintColor={theme.textSecondary}
-                          size={18}
-                        />
-                      </Pressable>
-                    )}
-                  </View>
+                  <SearchField
+                    value={query}
+                    onChangeText={setQuery}
+                    accessibilityLabel="Search species"
+                    placeholder="Name or scientific name"
+                  />
 
                   <View className="flex-row gap-2">
                     <View accessibilityRole="radiogroup" className="flex-row gap-2">

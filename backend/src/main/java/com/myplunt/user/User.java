@@ -27,6 +27,10 @@ public class User {
 
     private String bio;
 
+    // Storage key of the profile picture; null when there is none.
+    @Column(name = "avatar_key")
+    private String avatarKey;
+
     protected User() {}
 
     public User(String username, String email, String passwordHash) {
@@ -69,5 +73,13 @@ public class User {
 
     public void setBio(String bio) {
         this.bio = bio;
+    }
+
+    public String getAvatarKey() {
+        return avatarKey;
+    }
+
+    public void setAvatarKey(String avatarKey) {
+        this.avatarKey = avatarKey;
     }
 }

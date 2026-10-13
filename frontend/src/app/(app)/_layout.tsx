@@ -12,6 +12,8 @@ export default function AppLayout() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="edit-profile" />
+      {/* Opened from the people icon in the profile's header. */}
+      <Stack.Screen name="friends" />
       {/* Opened from the tab bar's Add button. iOS shows it as a sheet that can be
           swiped down; Android has no sheet, so it slides in full screen. */}
       <Stack.Screen name="add" options={{ presentation: 'modal' }} />
