@@ -10,7 +10,7 @@ import { WaterDueCard } from '@/features/garden/components/water-due-card';
 import { WaterSelectionBar } from '@/features/garden/components/water-selection-bar';
 import { useGarden } from '@/features/garden/use-garden';
 import { useGardenActions } from '@/features/garden/use-garden-actions';
-import { gardenSummary, plantsNeedingWater } from '@/features/garden/watering';
+import { plantsNeedingWater } from '@/features/garden/watering';
 import { useTheme } from '@/hooks/use-theme';
 import { describeError } from '@/lib/auth/api-client';
 
@@ -121,19 +121,18 @@ export function GardenScreen() {
               </View>
             ) : (
               <>
-                {/* min-h-10 is the Select all button's height, kept even without it so the page
-                    doesn't shift down when selection mode starts. */}
-                <View className="min-h-10 flex-row items-center gap-3">
-                  <Text className="type-body-large flex-1 text-text-secondary">{gardenSummary(garden)}</Text>
-                  {selectedIds && (
+                {/* Only while picking plants. It takes the place of the water card, which hides
+                    then, so the rooms barely move when selection mode starts. */}
+                {selectedIds && (
+                  <View className="flex-row justify-end">
                     <Button
                       label={allSelected ? 'Deselect all' : 'Select all'}
                       accessibilityLabel={`${allSelected ? 'Deselect' : 'Select'} all plants in the garden`}
                       variant="ghost"
                       onPress={() => selectMany(allPlantIds, !allSelected)}
                     />
-                  )}
-                </View>
+                  </View>
+                )}
                 {/* Hidden while picking plants, so there's only one Water button on screen. */}
                 {due.length > 0 && !selectedIds && (
                   <WaterDueCard

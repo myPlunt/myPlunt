@@ -75,6 +75,7 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
 }
 
 function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
+  const router = useRouter();
   // Taken per render, so "Today" moves on if the screen stays open past midnight.
   const now = new Date();
   const light = lightOptions.find((option) => option.value === plant.light);
@@ -114,6 +115,12 @@ function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
           <WateringPill plant={plant} now={now} />
         </View>
       </View>
+
+      <Button
+        label="Watering history"
+        variant="secondary"
+        onPress={() => router.push({ pathname: '/plant/[id]/waterings', params: { id: plant.id } })}
+      />
 
       {plant.notes && (
         <View className="gap-2 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4" style={Shadow.card}>

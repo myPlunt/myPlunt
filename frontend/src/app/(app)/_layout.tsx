@@ -14,6 +14,8 @@ export default function AppLayout() {
       <Stack.Screen name="edit-profile" />
       {/* Opened from the people icon in the profile's header. */}
       <Stack.Screen name="friends" />
+      {/* Opened from "Watering calendar" under the streak on the profile. */}
+      <Stack.Screen name="watering-calendar" />
       {/* Opened from the tab bar's Add button. iOS shows it as a sheet that can be
           swiped down; Android has no sheet, so it slides in full screen. */}
       <Stack.Screen name="add" options={{ presentation: 'modal' }} />
@@ -21,6 +23,8 @@ export default function AppLayout() {
       <Stack.Screen name="plant/[id]/index" />
       {/* Opened from the pencil on a plant's details; a sheet like adding a plant. */}
       <Stack.Screen name="plant/[id]/edit" options={{ presentation: 'modal' }} />
+      {/* Opened from "Watering history" on a plant's details. */}
+      <Stack.Screen name="plant/[id]/waterings" />
       {/* Opened from a card in the Pluntdex. */}
       <Stack.Screen name="species/[id]" />
     </Stack>

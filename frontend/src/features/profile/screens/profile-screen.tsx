@@ -6,13 +6,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/user/user-avatar';
+import { WateringStreakBadge } from '@/features/profile/components/watering-streak';
 import { useProfile } from '@/features/profile/use-profile';
+import { useWateringStreak } from '@/features/profile/use-watering-streak';
 import { useTheme } from '@/hooks/use-theme';
 
 export function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { user, error, isLoading, retry } = useProfile();
+  const streak = useWateringStreak();
 
   return (
     <View className="flex-1 bg-background">
@@ -50,7 +53,14 @@ export function ProfileScreen() {
 
         <ScrollView contentContainerClassName="w-full max-w-content grow gap-6 self-center p-6">
           <View className="items-center gap-1">
-            <UserAvatar size={96} />
+            <View>
+              <UserAvatar size={96} />
+              {streak !== null && (
+                <View className="absolute -bottom-1 -right-1">
+                  <WateringStreakBadge streak={streak} />
+                </View>
+              )}
+            </View>
             {isLoading ? (
               <ActivityIndicator accessibilityLabel="Loading profile" color={theme.primary} className="mt-4" />
             ) : error ? (
@@ -72,6 +82,9 @@ export function ProfileScreen() {
               )
             )}
           </View>
+          {user && (
+            <Button label="Watering calendar" variant="secondary" onPress={() => router.push('/watering-calendar')} />
+          )}
         </ScrollView>
       </SafeAreaView>
     </View>
