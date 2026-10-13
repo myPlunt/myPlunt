@@ -7,7 +7,9 @@ import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.plant.dto.WateringHistoryResponse;
+import com.myplunt.plant.dto.WateringLogResponse;
 import com.myplunt.plant.dto.WateringResponse;
+import com.myplunt.plant.dto.WateringStreakResponse;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesRepository;
 import com.myplunt.storage.StorageService;
@@ -23,7 +25,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -525,33 +529,37 @@ class PlantServiceTest {
     }
 
     @Test
-    void getWateringHistory_returnsEveryWateringNewestFirstWithTheSchedule() {
+    void getWateringHistory_returnsEveryWateringNewestFirstMarkedOnTimeOrLate() {
+        // Times relative to now, as the service reads the clock itself. On a 3-day schedule:
+        // added 12 days ago, on time 10 days ago, 3 days late 4 days ago, on time 2 days ago.
         Plant vera = ownPlant("Vera");
+        Instant now = Instant.now();
+        ReflectionTestUtils.setField(vera, "createdAt", now.minus(Duration.ofDays(12)));
         vera.setWateringEveryDays(3);
-        WateringLog latest = new WateringLog(vera, userId, Instant.parse("2026-10-07T08:00:00Z"));
-        WateringLog earlier = new WateringLog(vera, userId, Instant.parse("2026-10-04T08:00:00Z"));
-        ReflectionTestUtils.setField(latest, "id", UUID.randomUUID());
-        ReflectionTestUtils.setField(earlier, "id", UUID.randomUUID());
-        when(wateringLogRepository.findByPlantIdOrderByWateredAtDesc(plantId)).thenReturn(List.of(latest, earlier));
+        WateringLog first = watering(vera, now.minus(Duration.ofDays(10)));
+        WateringLog late = watering(vera, now.minus(Duration.ofDays(4)));
+        WateringLog latest = watering(vera, now.minus(Duration.ofDays(2)));
+        when(wateringLogRepository.findByPlantIdOrderByWateredAtAsc(plantId)).thenReturn(List.of(first, late, latest));
 
-        WateringHistoryResponse history = plantService().getWateringHistory(userId, plantId);
+        WateringHistoryResponse history = plantService().getWateringHistory(userId, plantId, ZoneOffset.UTC);
 
         assertThat(history).isEqualTo(new WateringHistoryResponse(
-                "Vera",
-                3,
-                Instant.parse("2026-09-01T10:00:00Z"),
+                "Vera", 3, 1, 1, 67, false,
                 List.of(
-                        new WateringResponse(latest.getId(), latest.getWateredAt()),
-                        new WateringResponse(earlier.getId(), earlier.getWateredAt()))));
+                        new WateringResponse(latest.getId(), latest.getWateredAt(), 0),
+                        new WateringResponse(late.getId(), late.getWateredAt(), 3),
+                        new WateringResponse(first.getId(), first.getWateredAt(), 0))));
     }
 
     @Test
-    void getWateringHistory_usesTheDefaultScheduleForAPlantThatWasNeverWatered() {
+    void getWateringHistory_hasNoStreakBeforeTheFirstWatering() {
         ownPlant("Vera");
 
-        WateringHistoryResponse history = plantService().getWateringHistory(userId, plantId);
+        WateringHistoryResponse history = plantService().getWateringHistory(userId, plantId, ZoneOffset.UTC);
 
         assertThat(history.wateringFrequencyDays()).isEqualTo(WateringSchedule.DEFAULT_FREQUENCY_DAYS);
+        assertThat(history.currentStreak()).isZero();
+        assertThat(history.onTimePercent()).isNull();
         assertThat(history.waterings()).isEmpty();
     }
 
@@ -560,17 +568,112 @@ class PlantServiceTest {
         Plant vera = ownPlant("Vera");
         vera.setAlive(false);
 
-        assertThat(plantService().getWateringHistory(userId, plantId).plantName()).isEqualTo("Vera");
+        assertThat(plantService().getWateringHistory(userId, plantId, ZoneOffset.UTC).plantName()).isEqualTo("Vera");
     }
 
     @Test
     void getWateringHistory_throwsNotFoundForAPlantTheUserDoesNotOwn() {
         when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> plantService().getWateringHistory(userId, plantId))
+        assertThatThrownBy(() -> plantService().getWateringHistory(userId, plantId, ZoneOffset.UTC))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Plant not found");
-        verify(wateringLogRepository, never()).findByPlantIdOrderByWateredAtDesc(any());
+        verify(wateringLogRepository, never()).findByPlantIdOrderByWateredAtAsc(any());
+    }
+
+    @Test
+    void getWateringStreaks_returnsEachPlantsCurrentStreakFromOneQuery() {
+        Instant now = Instant.now();
+        Plant george = plantAdded("George", now.minus(Duration.ofDays(5)));
+        Plant pinky = plantAdded("Pinky", now.minus(Duration.ofDays(5)));
+        Plant neverWatered = plantAdded("Monty", now.minus(Duration.ofDays(1)));
+        when(wateringLogRepository.findByPlantIdInOrderByWateredAtAsc(
+                List.of(george.getId(), pinky.getId(), neverWatered.getId())))
+                .thenReturn(List.of(
+                        watering(george, now.minus(Duration.ofDays(4))),
+                        watering(pinky, now.minus(Duration.ofDays(4))),
+                        watering(george, now.minus(Duration.ofDays(1)))));
+
+        Map<UUID, Integer> streaks = plantService().getWateringStreaks(List.of(george, pinky, neverWatered), ZoneOffset.UTC);
+
+        // Pinky was due again yesterday, so its streak is broken.
+        assertThat(streaks).containsOnly(entry(george.getId(), 2), entry(pinky.getId(), 0), entry(neverWatered.getId(), 0));
+    }
+
+    @Test
+    void getWateringStreaks_skipsTheQueryWithoutPlants() {
+        assertThat(plantService().getWateringStreaks(List.of(), ZoneOffset.UTC)).isEmpty();
+        verify(wateringLogRepository, never()).findByPlantIdInOrderByWateredAtAsc(any());
+    }
+
+    @Test
+    void getWaterings_returnsTheOwnersWateringsInTheRange() {
+        Instant from = Instant.parse("2026-10-01T00:00:00Z");
+        Instant to = Instant.parse("2026-11-01T00:00:00Z");
+        List<WateringLogResponse> waterings = List.of(
+                new WateringLogResponse(UUID.randomUUID(), plantId, "Vera", Instant.parse("2026-10-07T08:00:00Z")));
+        when(wateringLogRepository.findOwnersWaterings(userId, from, to)).thenReturn(waterings);
+
+        assertThat(plantService().getWaterings(userId, from, to)).isEqualTo(waterings);
+    }
+
+    @Test
+    void getWaterings_rejectsARangeThatEndsBeforeItStarts() {
+        Instant from = Instant.parse("2026-10-01T00:00:00Z");
+
+        assertThatThrownBy(() -> plantService().getWaterings(userId, from, from))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(wateringLogRepository, never()).findOwnersWaterings(any(), any(), any());
+    }
+
+    @Test
+    void getWaterings_rejectsARangeLongerThan62Days() {
+        Instant from = Instant.parse("2026-01-01T00:00:00Z");
+
+        assertThatThrownBy(() -> plantService().getWaterings(userId, from, from.plus(Duration.ofDays(63))))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(wateringLogRepository, never()).findOwnersWaterings(any(), any(), any());
+    }
+
+    @Test
+    void getWateringStreak_addsUpTheStreaksOfTheLivingPlants() {
+        Instant now = Instant.now();
+        Plant george = plantAdded("George", now.minus(Duration.ofDays(5)));
+        Plant pinky = plantAdded("Pinky", now.minus(Duration.ofDays(3)));
+        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(userId)).thenReturn(List.of(george, pinky));
+        when(wateringLogRepository.findByPlantIdInOrderByWateredAtAsc(List.of(george.getId(), pinky.getId())))
+                .thenReturn(List.of(
+                        watering(george, now.minus(Duration.ofDays(4))),
+                        watering(pinky, now.minus(Duration.ofDays(2))),
+                        watering(george, now.minus(Duration.ofDays(1)))));
+
+        assertThat(plantService().getWateringStreak(userId, ZoneOffset.UTC)).isEqualTo(new WateringStreakResponse(3));
+    }
+
+    @Test
+    void getWateringStreak_isZeroWithoutPlants() {
+        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(userId)).thenReturn(List.of());
+
+        assertThat(plantService().getWateringStreak(userId, ZoneOffset.UTC)).isEqualTo(new WateringStreakResponse(0));
+    }
+
+    // A plant on a 3-day schedule, added at the given moment.
+    private Plant plantAdded(String name, Instant addedAt) {
+        Plant plant = new Plant(userId, name);
+        ReflectionTestUtils.setField(plant, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(plant, "createdAt", addedAt);
+        plant.setWateringEveryDays(3);
+        return plant;
+    }
+
+    private static WateringLog watering(Plant plant, Instant wateredAt) {
+        WateringLog watering = new WateringLog(plant, plant.getOwnerId(), wateredAt);
+        ReflectionTestUtils.setField(watering, "id", UUID.randomUUID());
+        return watering;
     }
 
     @Test

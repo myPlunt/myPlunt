@@ -5,7 +5,10 @@ import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.user.User;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.ZoneId;
 
 @RestController
 public class GardenController {
@@ -16,8 +19,9 @@ public class GardenController {
         this.gardenService = gardenService;
     }
 
+    // zone is the app's IANA time zone ("Europe/Amsterdam"); watering streaks count days in it.
     @GetMapping(ApiPaths.Garden.BASE)
-    public GardenResponse garden(@AuthenticationPrincipal User principal) {
-        return gardenService.getGarden(principal.getId());
+    public GardenResponse garden(@AuthenticationPrincipal User principal, @RequestParam(defaultValue = "UTC") ZoneId zone) {
+        return gardenService.getGarden(principal.getId(), zone);
     }
 }

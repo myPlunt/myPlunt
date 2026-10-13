@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -451,14 +452,14 @@ class PlantControllerTest {
     }
 
     @Test
-    void wateringHistory_returnsThePlantsWaterings() {
+    void wateringHistory_returnsThePlantsWateringsCountedInTheUsersTimeZone() {
         UUID userId = authenticateAsJane();
         WateringHistoryResponse history = new WateringHistoryResponse(
-                "Vera", 7, Instant.parse("2026-09-01T10:00:00Z"),
-                List.of(new WateringResponse(UUID.randomUUID(), Instant.parse("2026-10-07T08:00:00Z"))));
-        when(plantService.getWateringHistory(userId, plantId)).thenReturn(history);
+                "Vera", 7, 1, 2, 50, false,
+                List.of(new WateringResponse(UUID.randomUUID(), Instant.parse("2026-10-07T08:00:00Z"), 0)));
+        when(plantService.getWateringHistory(userId, plantId, ZoneId.of("Europe/Amsterdam"))).thenReturn(history);
 
-        restTestClient.get().uri("/v1/plants/{plantId}/waterings", plantId)
+        restTestClient.get().uri("/v1/plants/{plantId}/waterings?zone=Europe/Amsterdam", plantId)
                 .header("Authorization", "Bearer access-token")
                 .exchange()
                 .expectStatus().isOk()
@@ -467,9 +468,34 @@ class PlantControllerTest {
     }
 
     @Test
+    void wateringHistory_countsDaysInUtcWhenTheAppSendsNoTimeZone() {
+        UUID userId = authenticateAsJane();
+        when(plantService.getWateringHistory(userId, plantId, ZoneId.of("UTC")))
+                .thenReturn(new WateringHistoryResponse("Vera", 7, 0, 0, null, false, List.of()));
+
+        restTestClient.get().uri("/v1/plants/{plantId}/waterings", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(plantService).getWateringHistory(userId, plantId, ZoneId.of("UTC"));
+    }
+
+    @Test
+    void wateringHistory_rejectsAnUnknownTimeZone() {
+        authenticateAsJane();
+
+        restTestClient.get().uri("/v1/plants/{plantId}/waterings?zone=Mars/Olympus", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
     void wateringHistory_returnsNotFoundWhenThePlantIsNotTheUsers() {
         UUID userId = authenticateAsJane();
-        when(plantService.getWateringHistory(userId, plantId)).thenThrow(new IllegalStateException("Plant not found"));
+        when(plantService.getWateringHistory(userId, plantId, ZoneId.of("UTC")))
+                .thenThrow(new IllegalStateException("Plant not found"));
 
         restTestClient.get().uri("/v1/plants/{plantId}/waterings", plantId)
                 .header("Authorization", "Bearer access-token")
