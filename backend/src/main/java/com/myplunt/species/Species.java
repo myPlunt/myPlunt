@@ -29,6 +29,10 @@ public class Species {
     @Column(name = "region")
     private String region;
 
+    // Free text, e.g. "Low to bright indirect"; null when unknown.
+    @Column(name = "sunlight_needs")
+    private String sunlightNeeds;
+
     @Column(name = "image_key")
     private String imageKey;
 
@@ -69,6 +73,10 @@ public class Species {
 
     public String getRegion() {
         return region;
+    }
+
+    public String getSunlightNeeds() {
+        return sunlightNeeds;
     }
 
     public String getImageKey() {

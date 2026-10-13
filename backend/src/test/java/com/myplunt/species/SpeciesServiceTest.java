@@ -34,13 +34,14 @@ class SpeciesServiceTest {
     void getApprovedSpecies_mapsTheApprovedSpeciesInRepositoryOrder() {
         Species monstera = species("Monstera", "Monstera deliciosa");
         ReflectionTestUtils.setField(monstera, "region", "Central America");
+        ReflectionTestUtils.setField(monstera, "sunlightNeeds", "Bright indirect");
         ReflectionTestUtils.setField(monstera, "common", true);
         when(speciesRepository.findByApprovedTrueOrderByCommonNameAsc()).thenReturn(List.of(monstera));
 
         List<SpeciesResponse> species = new SpeciesService(speciesRepository, storageService).getApprovedSpecies();
 
         assertThat(species).containsExactly(new SpeciesResponse(
-                monstera.getId(), "Monstera", "Monstera deliciosa", 7, "Central America", true, null));
+                monstera.getId(), "Monstera", "Monstera deliciosa", 7, "Central America", "Bright indirect", true, null));
     }
 
     @Test

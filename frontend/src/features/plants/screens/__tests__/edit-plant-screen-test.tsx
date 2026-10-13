@@ -53,7 +53,7 @@ beforeEach(() => {
   jest.mocked(useRouter).mockReturnValue({ back, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
   jest.mocked(usePlantActions).mockReturnValue({ createPlant: jest.fn(), updatePlant, deletePlant: jest.fn() });
   jest.mocked(usePlanterActions).mockReturnValue({ createPlanter: jest.fn() });
-  jest.mocked(useSpecies).mockReturnValue({ species: [], error: null });
+  jest.mocked(useSpecies).mockReturnValue({ species: [], error: null, retry: jest.fn() });
   jest.mocked(useGarden).mockReturnValue({
     garden: { rooms: [{ id: 'balcony', name: 'Balcony', plants: [] }] },
     error: null,

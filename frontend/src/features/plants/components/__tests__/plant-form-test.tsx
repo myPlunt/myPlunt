@@ -40,9 +40,9 @@ const vera = {
   photoUrl: null,
 };
 const species = [
-  { id: 'monstera', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7, region: null, common: false, imageUrl: null },
-  { id: 'pothos', commonName: 'Pothos', scientificName: 'Epipremnum aureum', wateringFrequencyDays: 10, region: null, common: false, imageUrl: null },
-  { id: 'basil', commonName: 'Sweet basil', scientificName: 'Ocimum basilicum', wateringFrequencyDays: null, region: null, common: false, imageUrl: null },
+  { id: 'monstera', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7, region: null, sunlightNeeds: null, common: false, imageUrl: null },
+  { id: 'pothos', commonName: 'Pothos', scientificName: 'Epipremnum aureum', wateringFrequencyDays: 10, region: null, sunlightNeeds: null, common: false, imageUrl: null },
+  { id: 'basil', commonName: 'Sweet basil', scientificName: 'Ocimum basilicum', wateringFrequencyDays: null, region: null, sunlightNeeds: null, common: false, imageUrl: null },
 ];
 const planters = [
   { id: 'balcony', name: 'Balcony' },
@@ -311,6 +311,16 @@ describe('PlantForm', () => {
           photoKey: null,
         }),
       );
+    });
+
+    it('starts with the species it was opened for, e.g. from the Pluntdex', async () => {
+      await renderForm({ initialSpecies: { id: 'pothos', commonName: 'Pothos' } });
+
+      expect(screen.getByLabelText('Species')).toHaveDisplayValue('Pothos');
+      await nameAndContinue('Pete');
+      await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
+
+      await waitFor(() => expect(createPlant).toHaveBeenCalledWith(expect.objectContaining({ speciesId: 'pothos' })));
     });
 
     it('sends the key of the uploaded photo with the plant', async () => {

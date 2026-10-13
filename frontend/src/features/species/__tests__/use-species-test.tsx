@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import * as speciesService from '@/features/species/species-service';
 import { useSpecies } from '@/features/species/use-species';
@@ -13,7 +13,7 @@ jest.mock('@/lib/auth/token-storage', () => ({
 
 const mockedSpeciesService = jest.mocked(speciesService);
 const mockedTokenStorage = jest.mocked(tokenStorage);
-const monstera = { id: 's1', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7, region: null, common: false, imageUrl: null };
+const monstera = { id: 's1', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7, region: null, sunlightNeeds: null, common: false, imageUrl: null };
 
 beforeEach(() => {
   mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
@@ -48,4 +48,18 @@ it('signs the user out when the session has expired', async () => {
   const { result } = await renderWithStore();
 
   await waitFor(() => expect(result.current.store.status).toBe('unauthenticated'));
+});
+
+it('loads again on retry', async () => {
+  mockedSpeciesService.getSpecies.mockRejectedValueOnce(new ApiError(500, 'irrelevant'));
+  mockedSpeciesService.getSpecies.mockResolvedValueOnce([monstera]);
+  const { result } = await renderWithStore();
+  await waitFor(() => expect(result.current.result.error).not.toBeNull());
+
+  await act(async () => {
+    result.current.result.retry();
+  });
+
+  await waitFor(() => expect(result.current.result.species).toEqual([monstera]));
+  expect(result.current.result.error).toBeNull();
 });

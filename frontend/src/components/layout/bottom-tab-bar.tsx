@@ -21,7 +21,7 @@ const feedTab: TabConfig = {
 };
 const pluntdexTab: TabConfig = {
   route: 'pluntdex',
-  label: 'Pluntdex',
+  label: 'PluntDex',
   icon: { ios: 'book.fill', android: 'menu_book', web: 'menu_book' },
 };
 const rightTabs: TabConfig[] = [

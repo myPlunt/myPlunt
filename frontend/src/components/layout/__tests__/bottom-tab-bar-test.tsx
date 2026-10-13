@@ -35,13 +35,13 @@ afterEach(() => {
 });
 
 describe('BottomTabBar', () => {
-  it('shows Feed, Pluntdex, Add, Garden and Profile in that order', async () => {
+  it('shows Feed, PluntDex, Add, Garden and Profile in that order', async () => {
     await render(<BottomTabBar {...tabBarProps(0)} />);
 
     const labels = screen
       .getAllByRole(/^(tab|button)$/)
       .map((element) => element.props.accessibilityLabel);
-    expect(labels).toEqual(['Feed', 'Pluntdex', 'Add plant', 'Garden', 'Profile']);
+    expect(labels).toEqual(['Feed', 'PluntDex', 'Add plant', 'Garden', 'Profile']);
   });
 
   it('marks only the current tab as selected', async () => {
@@ -80,7 +80,7 @@ describe('BottomTabBar', () => {
   it('switches to the Pluntdex', async () => {
     await render(<BottomTabBar {...tabBarProps(0)} />);
 
-    await user.press(screen.getByRole('tab', { name: 'Pluntdex' }));
+    await user.press(screen.getByRole('tab', { name: 'PluntDex' }));
 
     expect(navigate).toHaveBeenCalledWith('pluntdex', undefined);
   });

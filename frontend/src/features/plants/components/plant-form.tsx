@@ -37,6 +37,8 @@ const MAX_SPECIES_SUGGESTIONS = 3;
 interface PlantFormProps {
   /** The plant to edit, whose values fill the form; leave it out to add a new plant. */
   plant?: PlantDetails;
+  /** A species to start a new plant with, e.g. when added from its Pluntdex page. */
+  initialSpecies?: Pick<Species, 'id' | 'commonName'>;
   /** The approved species to search; null while they load. */
   species: Species[] | null;
   speciesError: string | null;
@@ -51,7 +53,15 @@ interface PlantFormProps {
  * lives (light, watering, notes, planter). Values carry over between the steps. Adds a
  * new plant, or saves changes to `plant` when given; then calls onSaved with the result.
  */
-export function PlantForm({ plant, species, speciesError, planters, plantersError, onSaved }: PlantFormProps) {
+export function PlantForm({
+  plant,
+  initialSpecies,
+  species,
+  speciesError,
+  planters,
+  plantersError,
+  onSaved,
+}: PlantFormProps) {
   const theme = useTheme();
   const { createPlant, updatePlant } = usePlantActions();
   // Uploads as soon as a photo is picked, so it's usually done by the time the form is.
@@ -62,8 +72,8 @@ export function PlantForm({ plant, species, speciesError, planters, plantersErro
   // in it, so it doesn't nag while they type or fix a typo.
   const [hasLeftName, setHasLeftName] = useState(false);
   const [isNameFocused, setIsNameFocused] = useState(false);
-  const [speciesQuery, setSpeciesQuery] = useState(plant?.speciesName ?? '');
-  const [speciesId, setSpeciesId] = useState<string | null>(plant?.speciesId ?? null);
+  const [speciesQuery, setSpeciesQuery] = useState(plant?.speciesName ?? initialSpecies?.commonName ?? '');
+  const [speciesId, setSpeciesId] = useState<string | null>(plant?.speciesId ?? initialSpecies?.id ?? null);
   const [isSpeciesFocused, setIsSpeciesFocused] = useState(false);
   const [planterId, setPlanterId] = useState<string | null>(plant?.planterId ?? null);
   // Planters added from the dropdown; the garden (and so `planters`) only reloads later.

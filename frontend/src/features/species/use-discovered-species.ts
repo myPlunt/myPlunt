@@ -2,17 +2,18 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
 import { ApiError, describeError } from '@/lib/auth/api-client';
+import type { DiscoveredSpecies } from '@/lib/species/types';
 import { useAuthStore } from '@/stores/auth-store';
 
 import * as speciesService from './species-service';
 
 /**
- * The ids of the species the user has caught. Reloads on focus, so a plant added from
- * the tab bar counts as soon as the user comes back to the Pluntdex.
+ * The species the user has discovered, and when. Reloads on focus, so a plant added from
+ * the tab bar (or from a species' page) counts as soon as the user comes back to the Pluntdex.
  */
-export function useCaughtSpecies() {
+export function useDiscoveredSpecies() {
   const { setUnauthenticated } = useAuthStore();
-  const [caughtIds, setCaughtIds] = useState<string[] | null>(null);
+  const [discovered, setDiscovered] = useState<DiscoveredSpecies[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,10 +21,10 @@ export function useCaughtSpecies() {
   const load = useCallback(
     (isCancelled: () => boolean) =>
       speciesService
-        .getCaughtSpeciesIds()
+        .getDiscoveredSpecies()
         .then((result) => {
           if (isCancelled()) return;
-          setCaughtIds(result);
+          setDiscovered(result);
           setError(null);
         })
         .catch((err) => {
@@ -53,7 +54,7 @@ export function useCaughtSpecies() {
   );
 
   return {
-    caughtIds,
+    discovered,
     error,
     isLoading,
     retry() {

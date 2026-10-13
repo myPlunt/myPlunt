@@ -58,7 +58,7 @@ public final class ApiPaths {
 
     public static final class Species {
         public static final String BASE = "/v1/species";
-        public static final String CAUGHT = BASE + "/caught";
+        public static final String DISCOVERED = BASE + "/discovered";
 
         private Species() {}
     }

@@ -1,15 +1,16 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
+import { useRouter } from 'expo-router';
 
-import { useCaughtSpecies } from '@/features/species/use-caught-species';
+import { useDiscoveredSpecies } from '@/features/species/use-discovered-species';
 import { useSpecies } from '@/features/species/use-species';
 
 import { PluntdexScreen } from '../pluntdex-screen';
 
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
-jest.mock('@/features/species/use-caught-species');
+jest.mock('@/features/species/use-discovered-species');
 jest.mock('@/features/species/use-species');
 
-const mockedUseCaughtSpecies = jest.mocked(useCaughtSpecies);
+const mockedUseDiscoveredSpecies = jest.mocked(useDiscoveredSpecies);
 const mockedUseSpecies = jest.mocked(useSpecies);
 const user = userEvent.setup();
 
@@ -20,6 +21,7 @@ const species = [
     scientificName: 'Ocimum basilicum',
     wateringFrequencyDays: 3,
     region: 'Tropical Asia',
+    sunlightNeeds: 'Full sun',
     common: true,
     imageUrl: 'https://storage.test/basil.jpg',
   },
@@ -29,31 +31,52 @@ const species = [
     scientificName: 'Monstera deliciosa',
     wateringFrequencyDays: 7,
     region: 'Central America',
+    sunlightNeeds: null,
     common: false,
     imageUrl: null,
   },
 ];
 
 beforeEach(() => {
-  mockedUseSpecies.mockReturnValue({ species, error: null });
-  mockedUseCaughtSpecies.mockReturnValue({ caughtIds: ['basil'], error: null, isLoading: false, retry: jest.fn() });
+  mockedUseSpecies.mockReturnValue({ species, error: null, retry: jest.fn() });
+  mockedUseDiscoveredSpecies.mockReturnValue({ discovered: [{ speciesId: 'basil', discoveredAt: '2026-10-11T09:30:00Z' }], error: null, isLoading: false, retry: jest.fn() });
 });
 
 afterEach(() => {
   jest.resetAllMocks();
 });
 
-it('lists every species and marks the caught ones', async () => {
+it('lists every species and marks the discovered ones', async () => {
   await render(<PluntdexScreen />);
 
   expect(screen.getByText('1 / 2 discovered')).toBeOnTheScreen();
-  expect(screen.getByLabelText('Basil, caught')).toBeOnTheScreen();
-  expect(screen.getByLabelText('Monstera, not caught yet')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Basil, discovered')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Monstera, not discovered yet')).toBeOnTheScreen();
   expect(screen.getByText('#002')).toBeOnTheScreen();
 });
 
-it('shows the error and a retry when the caught species fail to load', async () => {
-  mockedUseCaughtSpecies.mockReturnValue({ caughtIds: null, error: 'Offline', isLoading: false, retry: jest.fn() });
+it('opens a species page from its card', async () => {
+  const push = jest.fn();
+  jest.mocked(useRouter).mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
+  await render(<PluntdexScreen />);
+
+  await user.press(screen.getByLabelText('Monstera, not discovered yet'));
+
+  expect(push).toHaveBeenCalledWith({ pathname: '/species/[id]', params: { id: 'monstera' } });
+});
+
+it('retries the species list when it fails to load', async () => {
+  const retrySpecies = jest.fn();
+  mockedUseSpecies.mockReturnValue({ species: null, error: 'Offline', retry: retrySpecies });
+  await render(<PluntdexScreen />);
+
+  await user.press(screen.getByRole('button', { name: 'Try again' }));
+
+  expect(retrySpecies).toHaveBeenCalled();
+});
+
+it('shows the error and a retry when the discovered species fail to load', async () => {
+  mockedUseDiscoveredSpecies.mockReturnValue({ discovered: null, error: 'Offline', isLoading: false, retry: jest.fn() });
   await render(<PluntdexScreen />);
 
   expect(screen.getByText('Offline')).toBeOnTheScreen();
@@ -71,23 +94,23 @@ it('filters by a region picked from the dropdown, and back to all regions', asyn
   await render(<PluntdexScreen />);
 
   await user.press(screen.getByRole('button', { name: 'Region' }));
-  await user.press(screen.getByRole('radio', { name: 'Central America' }));
-  expect(screen.queryByLabelText('Basil, caught')).toBeNull();
-  expect(screen.getByLabelText('Monstera, not caught yet')).toBeOnTheScreen();
+  await user.press(screen.getByRole('radio', { name: 'Central America, 0 of 1 discovered' }));
+  expect(screen.queryByLabelText('Basil, discovered')).toBeNull();
+  expect(screen.getByLabelText('Monstera, not discovered yet')).toBeOnTheScreen();
   // Keeps its number from the full list.
   expect(screen.getByText('#002')).toBeOnTheScreen();
 
   await user.press(screen.getByRole('button', { name: 'Region' }));
   await user.press(screen.getByRole('radio', { name: 'All regions' }));
-  expect(screen.getByLabelText('Basil, caught')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Basil, discovered')).toBeOnTheScreen();
 });
 
-it('counts only the species that match the search', async () => {
+it('counts every species, whatever the search', async () => {
   await render(<PluntdexScreen />);
 
   await user.type(screen.getByLabelText('Search species'), 'basil');
 
-  expect(screen.getByText('1 / 1 discovered')).toBeOnTheScreen();
+  expect(screen.getByText('1 / 2 discovered')).toBeOnTheScreen();
 });
 
 it('searches by name and says when nothing matches', async () => {
@@ -96,4 +119,16 @@ it('searches by name and says when nothing matches', async () => {
   await user.type(screen.getByLabelText('Search species'), 'cactus');
 
   expect(screen.getByText('No species match')).toBeOnTheScreen();
+});
+
+it('clears the search and filters from the empty state', async () => {
+  await render(<PluntdexScreen />);
+
+  await user.press(screen.getByRole('radio', { name: 'Common' }));
+  await user.type(screen.getByLabelText('Search species'), 'monstera');
+  await user.press(screen.getByRole('button', { name: 'Clear filters' }));
+
+  expect(screen.getByLabelText('Search species')).toHaveDisplayValue('');
+  expect(screen.getByLabelText('Basil, discovered')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Monstera, not discovered yet')).toBeOnTheScreen();
 });
