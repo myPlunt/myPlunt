@@ -172,6 +172,16 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- Keeps warnings from test runs out of the real error log in logs/. -->
+					<environmentVariables>
+						<LOG_FILE>${project.build.directory}/test-logs/myplunt-errors.log</LOG_FILE>
+					</environmentVariables>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 

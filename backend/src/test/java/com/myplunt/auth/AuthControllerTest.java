@@ -8,8 +8,11 @@ import com.myplunt.auth.dto.RegisterRequest;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.user.UserRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
@@ -18,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.server.ResponseStatusException;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -26,6 +30,7 @@ import static org.mockito.Mockito.when;
 @WebMvcTest(AuthController.class)
 @AutoConfigureRestTestClient
 @Import(SecurityConfig.class)
+@ExtendWith(OutputCaptureExtension.class)
 class AuthControllerTest {
 
     @Autowired
@@ -114,6 +119,19 @@ class AuthControllerTest {
                 .body(new RegisterRequest("jane", "jane@example.com", "short"))
                 .exchange()
                 .expectStatus().isBadRequest();
+    }
+
+    // Logs end up in the error log file (and later a database), so a rejected
+    // password must never be written to them.
+    @Test
+    void register_doesNotLogTheRejectedPassword(CapturedOutput output) {
+        restTestClient.post().uri("/v1/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new RegisterRequest("jane", "jane@example.com", "s3cret!"))
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        assertThat(output).contains("Validation failed").doesNotContain("s3cret!");
     }
 
     @Test

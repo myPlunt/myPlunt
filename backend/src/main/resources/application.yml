@@ -1,7 +1,17 @@
 spring:
   application:
     name: backend
+  # We authenticate with JWT only; without this Spring creates a default user and
+  # logs its generated password on every start.
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  mvc:
+    # Devtools turns this on, and its log line includes rejected request values such as
+    # passwords. GlobalExceptionHandler already logs failures without the values.
+    log-resolved-exception: false
   jpa:
+    # Set explicitly (same as the default) to silence the startup warning in the error log.
+    open-in-view: true
     hibernate:
       ddl-auto: validate
     show-sql: false
@@ -10,6 +20,22 @@ spring:
     # Lets the db/seed SQL give its storage keys the same prefix real uploads get.
     placeholders:
       storagePrefix: ${app.storage.prefix}
+
+logging:
+  # Console stays human-readable; the file only collects problems, one JSON (ECS) object
+  # per line, so it can later be bulk-loaded into a database for the admin dashboard.
+  file:
+    name: ${LOG_FILE:logs/myplunt-errors.log}
+  threshold:
+    file: WARN
+  structured:
+    format:
+      file: ecs
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 14
+      total-size-cap: 200MB
 
 app:
   jwt:
