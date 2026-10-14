@@ -1,5 +1,7 @@
 package com.myplunt.friend;
 
+import com.myplunt.common.logging.AuditEvent;
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -9,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -16,10 +19,12 @@ public class FriendService {
 
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
+    private final AuditLog auditLog;
 
-    public FriendService(FriendshipRepository friendshipRepository, UserRepository userRepository) {
+    public FriendService(FriendshipRepository friendshipRepository, UserRepository userRepository, AuditLog auditLog) {
         this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
+        this.auditLog = auditLog;
     }
 
     @Transactional
@@ -45,5 +50,6 @@ public class FriendService {
             // Both sent a request at the same moment; the unique pair index let only one in.
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Request already sent");
         }
+        auditLog.recorded(AuditEvent.FRIEND_REQUEST_SENT, requesterId, requesterId, Map.of("other_user_id", receiverId));
     }
 }

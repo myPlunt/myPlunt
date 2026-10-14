@@ -1,5 +1,6 @@
 package com.myplunt.plant;
 
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.garden.Planter;
 import com.myplunt.garden.PlanterRepository;
 import com.myplunt.plant.dto.CreatePlantRequest;
@@ -62,12 +63,15 @@ class PlantServiceTest {
     @Mock
     private StorageService storageService;
 
+    @Mock
+    private AuditLog auditLog;
+
     private final UUID userId = UUID.randomUUID();
     private final UUID plantId = UUID.randomUUID();
 
     private PlantService plantService() {
         return new PlantService(
-                plantRepository, wateringLogRepository, planterRepository, speciesRepository, plantPhotoRepository, storageService);
+                plantRepository, wateringLogRepository, planterRepository, speciesRepository, plantPhotoRepository, storageService, auditLog);
     }
 
     // Gives the saved plant an id, as the database would.
@@ -492,11 +496,10 @@ class PlantServiceTest {
 
     @Test
     void water_logsAWateringByTheUserNow() {
-        Plant george = new Plant(userId, "George");
-        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(george));
+        Plant george = ownPlant("George");
         Instant before = Instant.now();
 
-        plantService().water(userId, plantId);
+        plantService().water(userId, plantId, ZoneOffset.UTC);
 
         ArgumentCaptor<WateringLog> saved = ArgumentCaptor.forClass(WateringLog.class);
         verify(wateringLogRepository).save(saved.capture());
@@ -509,7 +512,7 @@ class PlantServiceTest {
     void water_throwsNotFoundForAPlantTheUserDoesNotOwn() {
         when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> plantService().water(userId, plantId))
+        assertThatThrownBy(() -> plantService().water(userId, plantId, ZoneOffset.UTC))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Plant not found");
         verify(wateringLogRepository, never()).save(any());
@@ -521,7 +524,7 @@ class PlantServiceTest {
         george.setAlive(false);
         when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(george));
 
-        assertThatThrownBy(() -> plantService().water(userId, plantId))
+        assertThatThrownBy(() -> plantService().water(userId, plantId, ZoneOffset.UTC))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.CONFLICT);

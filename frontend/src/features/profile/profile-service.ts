@@ -1,5 +1,7 @@
 import { apiFetch } from '@/lib/auth/api-client';
+import { logAction } from '@/lib/logger';
 import type { WateringLog, WateringStreak } from '@/lib/plant/types';
+import { createRequestId } from '@/lib/request-id';
 import { timeZoneQuery } from '@/lib/time-zone';
 import type { ChangeEmailRequest, UpdateProfileRequest, User } from '@/lib/user/types';
 
@@ -8,11 +10,15 @@ export async function getCurrentUser(): Promise<User> {
 }
 
 export async function updateProfile(request: UpdateProfileRequest): Promise<User> {
-  return apiFetch<User>('/v1/users/me', { method: 'PUT', body: request });
+  const requestId = createRequestId();
+  logAction('profile_update_submitted', { requestId });
+  return apiFetch<User>('/v1/users/me', { method: 'PUT', body: request, requestId });
 }
 
 export async function changeEmail(request: ChangeEmailRequest): Promise<User> {
-  return apiFetch<User>('/v1/users/me/email', { method: 'PUT', body: request });
+  const requestId = createRequestId();
+  logAction('email_change_submitted', { requestId });
+  return apiFetch<User>('/v1/users/me/email', { method: 'PUT', body: request, requestId });
 }
 
 export async function getWateringStreak(): Promise<WateringStreak> {

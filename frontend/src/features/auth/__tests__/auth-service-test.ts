@@ -20,10 +20,11 @@ describe('login', () => {
 
     await authService.login({ email: 'jane@example.com', password: 'password123' });
 
-    expect(mockedPublicFetch).toHaveBeenCalledWith('/v1/auth/login', {
-      email: 'jane@example.com',
-      password: 'password123',
-    });
+    expect(mockedPublicFetch).toHaveBeenCalledWith(
+      '/v1/auth/login',
+      { email: 'jane@example.com', password: 'password123' },
+      expect.anything(),
+    );
     expect(mockedTokenStorage.setTokens).toHaveBeenCalledWith({ accessToken: 'a', refreshToken: 'r' });
   });
 });
@@ -34,11 +35,11 @@ describe('register', () => {
 
     await authService.register({ username: 'jane', email: 'jane@example.com', password: 'password123' });
 
-    expect(mockedPublicFetch).toHaveBeenCalledWith('/v1/auth/register', {
-      username: 'jane',
-      email: 'jane@example.com',
-      password: 'password123',
-    });
+    expect(mockedPublicFetch).toHaveBeenCalledWith(
+      '/v1/auth/register',
+      { username: 'jane', email: 'jane@example.com', password: 'password123' },
+      expect.anything(),
+    );
     expect(mockedTokenStorage.setTokens).toHaveBeenCalledWith({ accessToken: 'a', refreshToken: 'r' });
   });
 });

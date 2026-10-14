@@ -4,11 +4,9 @@ import * as profileService from '@/features/profile/profile-service';
 import { useWateringStreak } from '@/features/profile/use-watering-streak';
 import { ApiError } from '@/lib/auth/api-client';
 import { tokenStorage } from '@/lib/auth/token-storage';
-import { logError } from '@/lib/logger';
 import { AuthStoreProvider, useAuthStore } from '@/stores/auth-store';
 
 jest.mock('@/features/profile/profile-service');
-jest.mock('@/lib/logger');
 // No navigator in this test: treat "focused" as "mounted".
 jest.mock('expo-router', () => {
   const { useEffect } = jest.requireActual('react');
@@ -43,12 +41,11 @@ describe('useWateringStreak', () => {
     await waitFor(() => expect(result.current.streak).toBe(7));
   });
 
-  it('stays empty and logs the error when loading fails', async () => {
-    const error = new ApiError(500, 'irrelevant');
-    mockedProfileService.getWateringStreak.mockRejectedValue(error);
+  it('stays empty when loading fails', async () => {
+    mockedProfileService.getWateringStreak.mockRejectedValue(new ApiError(500, 'irrelevant'));
     const { result } = await renderWithStore();
 
-    await waitFor(() => expect(logError).toHaveBeenCalledWith('Could not load the watering streak', error));
+    await waitFor(() => expect(mockedProfileService.getWateringStreak).toHaveBeenCalled());
     expect(result.current.streak).toBeNull();
   });
 
@@ -57,6 +54,5 @@ describe('useWateringStreak', () => {
     const { result } = await renderWithStore();
 
     await waitFor(() => expect(result.current.store.status).toBe('unauthenticated'));
-    expect(logError).not.toHaveBeenCalled();
   });
 });

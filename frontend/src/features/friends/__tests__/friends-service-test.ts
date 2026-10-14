@@ -34,6 +34,9 @@ describe('sendFriendRequest', () => {
     mockedApiFetch.mockResolvedValue(undefined);
 
     await sendFriendRequest('u2');
-    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/friends/requests', { method: 'POST', body: { userId: 'u2' } });
+    expect(mockedApiFetch).toHaveBeenCalledWith(
+      '/v1/friends/requests',
+      expect.objectContaining({ method: 'POST', body: { userId: 'u2' } }),
+    );
   });
 });

@@ -18,6 +18,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.server.ResponseStatusException;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -116,6 +117,8 @@ class AuthControllerTest {
                 .expectStatus().isBadRequest();
     }
 
+    // Logs end up in the error log file (and later a database), so a rejected
+    // password must never be written to them.
     @Test
     void register_propagatesConflictFromService() {
         when(authService.register(any()))

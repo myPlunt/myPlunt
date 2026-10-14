@@ -3,6 +3,7 @@ package com.myplunt.auth;
 import com.myplunt.auth.dto.AuthResponse;
 import com.myplunt.auth.dto.LoginRequest;
 import com.myplunt.auth.dto.RegisterRequest;
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -11,10 +12,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -38,8 +41,11 @@ class AuthServiceTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private AuditLog auditLog;
+
     private AuthService authService() {
-        return new AuthService(userRepository, refreshTokenRepository, passwordEncoder, jwtService, 30);
+        return new AuthService(userRepository, refreshTokenRepository, passwordEncoder, jwtService, auditLog, 30);
     }
 
     @Test
@@ -47,7 +53,12 @@ class AuthServiceTest {
         when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.empty());
         when(userRepository.findByUsername("jane")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("password123")).thenReturn("hashed");
-        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        UUID userId = UUID.randomUUID();
+        when(userRepository.save(any())).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            ReflectionTestUtils.setField(user, "id", userId);
+            return user;
+        });
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtService.generateAccessToken(any())).thenReturn("access-token");
 
@@ -87,6 +98,8 @@ class AuthServiceTest {
     @Test
     void login_returnsTokensForValidCredentials() {
         User user = new User("jane", "jane@example.com", "hashed");
+        UUID userId = UUID.randomUUID();
+        ReflectionTestUtils.setField(user, "id", userId);
         when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password123", "hashed")).thenReturn(true);
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -111,6 +124,8 @@ class AuthServiceTest {
     @Test
     void login_throwsUnauthorizedWhenPasswordIncorrect() {
         User user = new User("jane", "jane@example.com", "hashed");
+        UUID userId = UUID.randomUUID();
+        ReflectionTestUtils.setField(user, "id", userId);
         when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong", "hashed")).thenReturn(false);
 
@@ -118,14 +133,15 @@ class AuthServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
-
         verify(refreshTokenRepository, never()).save(any());
     }
 
     @Test
     void logout_deletesMatchingRefreshToken() {
-        RefreshToken refreshToken = new RefreshToken(
-                new User("jane", "jane@example.com", "hashed"), "token-value", null);
+        User user = new User("jane", "jane@example.com", "hashed");
+        UUID userId = UUID.randomUUID();
+        ReflectionTestUtils.setField(user, "id", userId);
+        RefreshToken refreshToken = new RefreshToken(user, "token-value", null);
         when(refreshTokenRepository.findByToken("token-value")).thenReturn(Optional.of(refreshToken));
 
         authService().logout("token-value");
@@ -145,6 +161,8 @@ class AuthServiceTest {
     @Test
     void refresh_returnsNewTokensForValidRefreshToken() {
         User user = new User("jane", "jane@example.com", "hashed");
+        UUID userId = UUID.randomUUID();
+        ReflectionTestUtils.setField(user, "id", userId);
         RefreshToken refreshToken = new RefreshToken(user, "refresh-token", Instant.now().plusSeconds(60));
         when(refreshTokenRepository.findByToken("refresh-token")).thenReturn(Optional.of(refreshToken));
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -170,6 +188,8 @@ class AuthServiceTest {
     @Test
     void refresh_throwsUnauthorizedAndDeletesTokenWhenExpired() {
         User user = new User("jane", "jane@example.com", "hashed");
+        UUID userId = UUID.randomUUID();
+        ReflectionTestUtils.setField(user, "id", userId);
         RefreshToken refreshToken = new RefreshToken(user, "expired-token", Instant.now().minusSeconds(60));
         when(refreshTokenRepository.findByToken("expired-token")).thenReturn(Optional.of(refreshToken));
 

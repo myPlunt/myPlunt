@@ -33,7 +33,8 @@ export function useWateringStreak() {
             setUnauthenticated();
             return;
           }
-          logError('Could not load the watering streak', err);
+          // The profile just leaves the streak out, so the user sees nothing went wrong.
+          logError('watering_streak_load_failed', err, { requestId: err instanceof ApiError ? err.requestId : undefined });
         });
       return () => {
         cancelled = true;

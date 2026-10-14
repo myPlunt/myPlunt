@@ -9,6 +9,7 @@ import { sendFriendRequest } from '@/features/friends/friends-service';
 import { useUserProfile } from '@/features/friends/use-user-profile';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
+import { logFailedUi } from '@/lib/logger';
 import type { UserSummary } from '@/lib/user/types';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -70,6 +71,7 @@ function FriendshipAction({ user }: { user: UserSummary }) {
       await sendFriendRequest(user.id);
       setSent(true);
     } catch (err) {
+      logFailedUi('friend_request_failed_ui', err);
       // apiFetch already tried a refresh; a 401 here means the session is gone.
       if (err instanceof ApiError && err.status === 401) {
         setUnauthenticated();

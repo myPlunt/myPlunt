@@ -1,5 +1,9 @@
 package com.myplunt.plant;
 
+import com.myplunt.common.logging.AuditEvent;
+import com.myplunt.common.logging.AuditLog;
+import com.myplunt.common.logging.LogEvent;
+import com.myplunt.common.logging.StructuredLog;
 import com.myplunt.garden.Planter;
 import com.myplunt.garden.PlanterRepository;
 import com.myplunt.plant.dto.CreatePlantRequest;
@@ -24,8 +28,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -40,6 +46,7 @@ public class PlantService {
     private final SpeciesRepository speciesRepository;
     private final PlantPhotoRepository plantPhotoRepository;
     private final StorageService storageService;
+    private final AuditLog auditLog;
 
     public PlantService(
             PlantRepository plantRepository,
@@ -47,13 +54,15 @@ public class PlantService {
             PlanterRepository planterRepository,
             SpeciesRepository speciesRepository,
             PlantPhotoRepository plantPhotoRepository,
-            StorageService storageService) {
+            StorageService storageService,
+            AuditLog auditLog) {
         this.plantRepository = plantRepository;
         this.wateringLogRepository = wateringLogRepository;
         this.planterRepository = planterRepository;
         this.speciesRepository = speciesRepository;
         this.plantPhotoRepository = plantPhotoRepository;
         this.storageService = storageService;
+        this.auditLog = auditLog;
     }
 
     @Transactional
@@ -79,6 +88,11 @@ public class PlantService {
         if (request.photoKey() != null) {
             plantPhotoRepository.save(new PlantPhoto(saved, ownerId, request.photoKey(), Instant.now()));
         }
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("plant_id", saved.getId());
+        details.put("species_id", speciesId(species));
+        details.put("has_photo", request.photoKey() != null);
+        auditLog.recorded(AuditEvent.PLANT_CREATED, ownerId, ownerId, details);
         return new PlantResponse(
                 saved.getId(),
                 saved.getName(),
@@ -109,6 +123,7 @@ public class PlantService {
             storageService.confirmUpload(ownerId, request.photoKey());
         }
 
+        List<String> changedFields = changedFields(plant, request, species);
         plant.setName(request.name());
         plant.setPlanterId(request.planterId());
         plant.setSpecies(species);
@@ -121,7 +136,26 @@ public class PlantService {
         if (request.photoKey() != null) {
             plantPhotoRepository.save(new PlantPhoto(saved, ownerId, request.photoKey(), Instant.now()));
         }
+        auditLog.recorded(AuditEvent.PLANT_UPDATED, ownerId, ownerId,
+                Map.of("plant_id", plantId, "changed_fields", changedFields));
         return toDetails(saved);
+    }
+
+    // Names only: the name and notes are the user's own words, so their values stay out of the log.
+    private List<String> changedFields(Plant plant, UpdatePlantRequest request, Species species) {
+        List<String> changed = new ArrayList<>();
+        if (!plant.getName().equals(request.name())) changed.add("name");
+        if (!Objects.equals(plant.getPlanterId(), request.planterId())) changed.add("planter_id");
+        if (!Objects.equals(speciesId(plant.getSpecies()), speciesId(species))) changed.add("species_id");
+        if (!Objects.equals(plant.getLight(), request.light())) changed.add("light");
+        if (!Objects.equals(plant.getWateringEveryDays(), request.wateringEveryDays())) changed.add("watering_every_days");
+        if (!Objects.equals(plant.getNotes(), cleanNotes(request.notes()))) changed.add("notes");
+        if (request.photoKey() != null) changed.add("photo");
+        return changed;
+    }
+
+    private static UUID speciesId(Species species) {
+        return species == null ? null : species.getId();
     }
 
     // The owner's living plants, oldest first, with their species already loaded.
@@ -154,13 +188,37 @@ public class PlantService {
                         (first, second) -> first));
     }
 
+    // zone is only used to count the streak days for the action log.
     @Transactional
-    public void water(UUID userId, UUID plantId) {
+    public void water(UUID userId, UUID plantId, ZoneId zone) {
         Plant plant = findOwnPlant(userId, plantId);
         if (!plant.isAlive()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be watered");
         }
-        wateringLogRepository.save(new WateringLog(plant, userId, Instant.now()));
+        List<Instant> earlier = wateringLogRepository.findByPlantIdOrderByWateredAtAsc(plantId).stream()
+                .map(WateringLog::getWateredAt)
+                .toList();
+        Instant now = Instant.now();
+        wateringLogRepository.save(new WateringLog(plant, userId, now));
+        recordWatering(userId, plant, earlier, now, zone);
+    }
+
+    private void recordWatering(UUID userId, Plant plant, List<Instant> earlier, Instant now, ZoneId zone) {
+        // The streak as it stood at the previous watering, before any overdue days zeroed it.
+        int streakBefore = earlier.isEmpty()
+                ? 0
+                : WateringConsistency.of(plant, earlier, zone, earlier.getLast()).currentStreak();
+        List<Instant> all = new ArrayList<>(earlier);
+        all.add(now);
+        int streak = WateringConsistency.of(plant, all, zone, now).currentStreak();
+
+        auditLog.recorded(AuditEvent.PLANT_WATERED, userId, userId, Map.of("plant_id", plant.getId(), "streak", streak));
+        // A late watering is the only thing that resets a streak to 0. No changed_by: it's the
+        // consequence of the watering, not something the user chose.
+        if (streakBefore > 0 && streak == 0) {
+            auditLog.recorded(AuditEvent.WATERING_STREAK_BROKEN, userId, null,
+                    Map.of("plant_id", plant.getId(), "lost_streak", streakBefore));
+        }
     }
 
     // Also for plants that have died, so their record stays readable. Days are counted in the
@@ -235,6 +293,8 @@ public class PlantService {
         Plant plant = findOwnPlant(ownerId, plantId);
         List<String> photoKeys = plantPhotoRepository.findPhotoKeysByPlantId(plantId);
         plantRepository.delete(plant);
+        auditLog.recorded(AuditEvent.PLANT_DELETED, ownerId, ownerId,
+                Map.of("plant_id", plantId, "photo_count", photoKeys.size()));
         // Flushed first so the plant is really gone before its files are; a failed delete
         // then leaves the photos in place.
         plantRepository.flush();
@@ -243,7 +303,8 @@ public class PlantService {
             try {
                 storageService.deleteObject(key);
             } catch (RuntimeException e) {
-                log.warn("Could not delete photo {} of deleted plant {}", key, plantId, e);
+                StructuredLog.warning(log, LogEvent.PHOTO_CLEANUP_FAILED, Map.of(
+                        "plant_id", plantId, "photo_key", key, "reason", e.getClass().getSimpleName()));
             }
         }
     }

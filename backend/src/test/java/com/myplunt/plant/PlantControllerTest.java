@@ -408,13 +408,25 @@ class PlantControllerTest {
                 .exchange()
                 .expectStatus().isNoContent();
 
-        verify(plantService).water(userId, plantId);
+        verify(plantService).water(userId, plantId, ZoneId.of("UTC"));
+    }
+
+    @Test
+    void water_passesTheAppsTimeZoneToTheService() {
+        UUID userId = authenticateAsJane();
+
+        restTestClient.post().uri("/v1/plants/{plantId}/waterings?zone=Europe/Amsterdam", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(plantService).water(userId, plantId, ZoneId.of("Europe/Amsterdam"));
     }
 
     @Test
     void water_returnsNotFoundWhenThePlantIsNotTheUsers() {
         UUID userId = authenticateAsJane();
-        doThrow(new IllegalStateException("Plant not found")).when(plantService).water(userId, plantId);
+        doThrow(new IllegalStateException("Plant not found")).when(plantService).water(userId, plantId, ZoneId.of("UTC"));
 
         restTestClient.post().uri("/v1/plants/{plantId}/waterings", plantId)
                 .header("Authorization", "Bearer access-token")
@@ -426,7 +438,7 @@ class PlantControllerTest {
     void water_propagatesConflictFromService() {
         UUID userId = authenticateAsJane();
         doThrow(new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be watered"))
-                .when(plantService).water(userId, plantId);
+                .when(plantService).water(userId, plantId, ZoneId.of("UTC"));
 
         restTestClient.post().uri("/v1/plants/{plantId}/waterings", plantId)
                 .header("Authorization", "Bearer access-token")
