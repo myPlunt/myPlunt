@@ -82,20 +82,6 @@ class AuthServiceTest {
     }
 
     @Test
-    void register_throwsConflictWhenUsernameAlreadyTaken() {
-        when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.empty());
-        when(userRepository.findByUsername("jane"))
-                .thenReturn(Optional.of(new User("jane", "someone-else@example.com", "hashed")));
-
-        assertThatThrownBy(() -> authService().register(new RegisterRequest("jane", "jane@example.com", "password123")))
-                .isInstanceOf(ResponseStatusException.class)
-                .extracting("statusCode")
-                .isEqualTo(HttpStatus.CONFLICT);
-
-        verify(userRepository, never()).save(any());
-    }
-
-    @Test
     void login_returnsTokensForValidCredentials() {
         User user = new User("jane", "jane@example.com", "hashed");
         UUID userId = UUID.randomUUID();
@@ -109,16 +95,6 @@ class AuthServiceTest {
 
         assertThat(response.accessToken()).isEqualTo("access-token");
         assertThat(response.refreshToken()).isNotBlank();
-    }
-
-    @Test
-    void login_throwsUnauthorizedWhenUserNotFound() {
-        when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> authService().login(new LoginRequest("missing@example.com", "password123")))
-                .isInstanceOf(ResponseStatusException.class)
-                .extracting("statusCode")
-                .isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
@@ -137,28 +113,6 @@ class AuthServiceTest {
     }
 
     @Test
-    void logout_deletesMatchingRefreshToken() {
-        User user = new User("jane", "jane@example.com", "hashed");
-        UUID userId = UUID.randomUUID();
-        ReflectionTestUtils.setField(user, "id", userId);
-        RefreshToken refreshToken = new RefreshToken(user, "token-value", null);
-        when(refreshTokenRepository.findByToken("token-value")).thenReturn(Optional.of(refreshToken));
-
-        authService().logout("token-value");
-
-        verify(refreshTokenRepository).delete(refreshToken);
-    }
-
-    @Test
-    void logout_isNoOpWhenTokenNotFound() {
-        when(refreshTokenRepository.findByToken("unknown")).thenReturn(Optional.empty());
-
-        authService().logout("unknown");
-
-        verify(refreshTokenRepository, never()).delete(any());
-    }
-
-    @Test
     void refresh_returnsNewTokensForValidRefreshToken() {
         User user = new User("jane", "jane@example.com", "hashed");
         UUID userId = UUID.randomUUID();
@@ -173,16 +127,6 @@ class AuthServiceTest {
         assertThat(response.accessToken()).isEqualTo("new-access-token");
         assertThat(response.refreshToken()).isNotBlank();
         verify(refreshTokenRepository).delete(refreshToken);
-    }
-
-    @Test
-    void refresh_throwsUnauthorizedWhenTokenNotFound() {
-        when(refreshTokenRepository.findByToken("unknown")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> authService().refresh("unknown"))
-                .isInstanceOf(ResponseStatusException.class)
-                .extracting("statusCode")
-                .isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test

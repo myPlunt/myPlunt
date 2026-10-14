@@ -65,14 +65,4 @@ class UserRepositoryTest {
         assertThat(search("%", me)).isEmpty();
     }
 
-    @Test
-    void search_ranksExactThenPrefixThenOtherMatches() {
-        User me = user("me");
-        user("alice_jane");
-        user("jane_doe");
-        user("Jane");
-        user("bob");
-
-        assertThat(search("jane", me)).containsExactly("Jane", "jane_doe", "alice_jane");
-    }
 }

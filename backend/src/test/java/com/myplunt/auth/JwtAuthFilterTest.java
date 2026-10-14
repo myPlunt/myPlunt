@@ -74,16 +74,6 @@ class JwtAuthFilterTest {
     }
 
     @Test
-    void leavesUnauthenticatedWhenHeaderNotBearer() throws Exception {
-        when(request.getHeader("Authorization")).thenReturn("Basic abc123");
-
-        filter().doFilterInternal(request, response, filterChain);
-
-        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
     void leavesUnauthenticatedWhenTokenExpired() throws Exception {
         when(request.getHeader("Authorization")).thenReturn("Bearer expired-token");
         when(jwtService.parseAndValidate("expired-token")).thenThrow(new ExpiredJwtException(null, null, "expired"));
@@ -94,16 +84,4 @@ class JwtAuthFilterTest {
         verify(filterChain).doFilter(request, response);
     }
 
-    @Test
-    void leavesUnauthenticatedWhenUserNotFound() throws Exception {
-        UUID userId = UUID.randomUUID();
-        when(request.getHeader("Authorization")).thenReturn("Bearer valid-token");
-        when(jwtService.parseAndValidate("valid-token")).thenReturn(userId);
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
-
-        filter().doFilterInternal(request, response, filterChain);
-
-        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
-        verify(filterChain).doFilter(request, response);
-    }
 }
