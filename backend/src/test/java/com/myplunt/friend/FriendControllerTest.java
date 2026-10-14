@@ -140,6 +140,15 @@ class FriendControllerTest {
     }
 
     @Test
+    void remove_endsTheFriendshipWithThatUser() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+
+        postAnswer("/v1/friends/" + tomId + "/remove").expectStatus().isNoContent();
+        verify(friendService).remove(janeId, tomId);
+    }
+
+    @Test
     void accept_returnsNotFoundWithoutARequest() {
         authenticateAsJane();
         doThrow(new IllegalStateException("No pending friend request with this user"))
@@ -159,6 +168,9 @@ class FriendControllerTest {
                 .exchange()
                 .expectStatus().isUnauthorized();
         restTestClient.post().uri("/v1/friends/requests/" + UUID.randomUUID() + "/cancel")
+                .exchange()
+                .expectStatus().isUnauthorized();
+        restTestClient.post().uri("/v1/friends/" + UUID.randomUUID() + "/remove")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
