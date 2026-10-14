@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRef, useState } from 'react';
 
 import { describeError } from '@/lib/auth/api-client';
+import { logAction, logFailedUi, logWarning } from '@/lib/logger';
 import type { PhotoCategory } from '@/lib/photo/types';
 
 import { uploadPhoto } from './photo-service';
@@ -48,6 +49,7 @@ export function usePhotoUpload(category: PhotoCategory): PhotoUpload {
     // own process); the camera does, on both.
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
+      logWarning('camera_permission_denied');
       setError('Allow camera access in your phone settings to take a photo.');
       return;
     }
@@ -59,7 +61,10 @@ export function usePhotoUpload(category: PhotoCategory): PhotoUpload {
   }
 
   async function handlePicked(result: ImagePicker.ImagePickerResult) {
-    if (result.canceled) return;
+    if (result.canceled) {
+      logAction('photo_picker_cancelled', { context: { category } });
+      return;
+    }
     const [asset] = result.assets;
     await uploadLibraryPhoto({ uri: asset.uri, width: asset.width, height: asset.height });
   }
@@ -75,6 +80,7 @@ export function usePhotoUpload(category: PhotoCategory): PhotoUpload {
       if (current === attempt.current) setKey(uploadedKey);
     } catch (err) {
       if (current === attempt.current) {
+        logFailedUi('photo_upload_failed_ui', err, { category });
         setUri(null);
         setError(describeError(err));
       }

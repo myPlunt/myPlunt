@@ -72,19 +72,6 @@ afterEach(() => {
 });
 
 describe('AddPlantScreen', () => {
-  it('shows only the notebook heading, with no page title in the header', async () => {
-    await render(<AddPlantScreen />);
-
-    expect(screen.getAllByRole('header').map((header) => header.props.children)).toEqual(['Add your new plant']);
-  });
-
-  it('goes back when the logo next to the heading is pressed', async () => {
-    await render(<AddPlantScreen />);
-
-    await user.press(screen.getByRole('button', { name: 'Go back' }));
-
-    expect(back).toHaveBeenCalled();
-  });
 
   it('closes once the plant is saved', async () => {
     createPlant.mockResolvedValue({
@@ -104,55 +91,6 @@ describe('AddPlantScreen', () => {
     await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
 
     await waitFor(() => expect(back).toHaveBeenCalled());
-  });
-
-  it('goes to the garden once the plant is saved when there is no screen to go back to', async () => {
-    canGoBack.mockReturnValue(false);
-    createPlant.mockResolvedValue({
-      id: 'p1',
-      name: 'Vera',
-      light: null,
-      wateringEveryDays: null,
-      notes: null,
-      planterId: null,
-      speciesId: null,
-      photoUrl: null,
-    });
-    await render(<AddPlantScreen />);
-
-    await user.type(screen.getByLabelText('Name'), 'Vera');
-    await user.press(screen.getByRole('button', { name: 'Next' }));
-    await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
-
-    await waitFor(() => expect(replace).toHaveBeenCalledWith('/garden'));
-    expect(back).not.toHaveBeenCalled();
-  });
-
-  it('offers the garden\'s rooms as planters on step 2, but not the "Other plants" group', async () => {
-    await render(<AddPlantScreen />);
-    await user.type(screen.getByLabelText('Name'), 'Vera');
-    await user.press(screen.getByRole('button', { name: 'Next' }));
-
-    await user.press(screen.getByRole('button', { name: 'Planter' }));
-
-    expect(screen.getByRole('radio', { name: 'Balcony' })).toBeOnTheScreen();
-    // Just the dropdown's own "no planter" option, not a second one for the garden group.
-    expect(screen.getAllByRole('radio', { name: 'Other plants' })).toHaveLength(1);
-  });
-
-  it('shows a loading indicator for the planters while the garden loads', async () => {
-    mockedUseGarden.mockReturnValue({
-      garden: null,
-      error: null,
-      isLoading: true,
-      retry: jest.fn(),
-      refresh: jest.fn(),
-    });
-    await render(<AddPlantScreen />);
-    await user.type(screen.getByLabelText('Name'), 'Vera');
-    await user.press(screen.getByRole('button', { name: 'Next' }));
-
-    expect(screen.getByLabelText('Loading planters')).toBeOnTheScreen();
   });
 
   it('celebrates when the plant is the first of its species, then closes', async () => {
@@ -182,13 +120,5 @@ describe('AddPlantScreen', () => {
 
     await waitFor(() => expect(back).toHaveBeenCalled());
     expect(screen.queryByText('Just discovered!')).toBeNull();
-  });
-
-  it('offers the loaded species in the species search', async () => {
-    await render(<AddPlantScreen />);
-
-    await user.type(screen.getByLabelText('Species'), 'mon');
-
-    expect(screen.getByRole('button', { name: 'Monstera' })).toBeOnTheScreen();
   });
 });

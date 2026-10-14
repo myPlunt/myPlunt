@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { useProfileActions } from '@/features/profile/use-profile-actions';
 import { ApiError, describeError } from '@/lib/auth/api-client';
+import { logFailedUi } from '@/lib/logger';
 import type { User } from '@/lib/user/types';
 
 /** Changes the email. The backend always asks for the current password. */
@@ -32,6 +33,7 @@ export function ChangeEmailForm({ user }: { user: User }) {
       setCurrentPassword('');
       setJustSaved(true);
     } catch (err) {
+      logFailedUi('email_change_failed_ui', err);
       if (err instanceof ApiError && err.fieldErrors) {
         setFieldErrors(err.fieldErrors);
       } else if (err instanceof ApiError && err.status === 403) {

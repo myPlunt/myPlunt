@@ -1,4 +1,6 @@
 import { apiFetch } from '@/lib/auth/api-client';
+import { logAction } from '@/lib/logger';
+import { createRequestId } from '@/lib/request-id';
 import type { FriendRequests, UserSummary } from '@/lib/user/types';
 
 /** Other users whose username contains the query, A to Z, at most 20. */
@@ -13,7 +15,9 @@ export async function getUser(userId: string): Promise<UserSummary> {
 
 /** Asks another user to be friends; it stays pending until they answer. */
 export async function sendFriendRequest(userId: string): Promise<void> {
-  return apiFetch<void>('/v1/friends/requests', { method: 'POST', body: { userId } });
+  const requestId = createRequestId();
+  logAction('friend_request_submitted', { requestId, context: { other_user_id: userId } });
+  return apiFetch<void>('/v1/friends/requests', { method: 'POST', body: { userId }, requestId });
 }
 
 /** The signed-in user's friends, A to Z. */

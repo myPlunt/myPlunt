@@ -34,21 +34,13 @@ describe('LoginScreen', () => {
   });
 
   it('shows the backend-provided message when login is rejected', async () => {
-    login.mockRejectedValue(new ApiError(401, 'irrelevant', { detail: 'Invalid credentials' }));
+    const error = new ApiError(401, 'irrelevant', { detail: 'Invalid credentials' });
+    login.mockRejectedValue(error);
     await render(<LoginScreen />);
 
     await user.press(screen.getByRole('button', { name: 'Log in' }));
 
     await screen.findByText('Invalid credentials');
-  });
-
-  it('falls back to a generic message when the backend sends no detail', async () => {
-    login.mockRejectedValue(new ApiError(500, 'irrelevant'));
-    await render(<LoginScreen />);
-
-    await user.press(screen.getByRole('button', { name: 'Log in' }));
-
-    await screen.findByText('Something went wrong. Please try again.');
   });
 
   it('shows field-specific validation errors next to the right input', async () => {

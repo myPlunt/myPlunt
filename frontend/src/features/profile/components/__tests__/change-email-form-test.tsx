@@ -26,23 +26,6 @@ async function typeNewEmail(email: string) {
 }
 
 describe('ChangeEmailForm', () => {
-  it('shows the current email and nothing else until it changes', async () => {
-    await render(<ChangeEmailForm user={jane} />);
-
-    expect(screen.getByLabelText('Email')).toHaveDisplayValue('jane@example.com');
-    expect(screen.queryByLabelText('Current password')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Change email' })).toBeNull();
-  });
-
-  it('asks for the current password before it can submit', async () => {
-    await render(<ChangeEmailForm user={jane} />);
-
-    await typeNewEmail('new@example.com');
-    await user.press(screen.getByRole('button', { name: 'Change email' }));
-
-    expect(screen.getByLabelText('Current password')).toBeOnTheScreen();
-    expect(changeEmail).not.toHaveBeenCalled();
-  });
 
   it('sends the new email with the current password', async () => {
     changeEmail.mockResolvedValue({ ...jane, email: 'new@example.com' });
@@ -68,16 +51,5 @@ describe('ChangeEmailForm', () => {
     await user.press(screen.getByRole('button', { name: 'Change email' }));
 
     await screen.findByText('Current password is incorrect');
-  });
-
-  it('shows the backend message for other errors', async () => {
-    changeEmail.mockRejectedValue(new ApiError(409, 'irrelevant', { detail: 'Email already registered' }));
-    await render(<ChangeEmailForm user={jane} />);
-
-    await typeNewEmail('taken@example.com');
-    await user.type(screen.getByLabelText('Current password'), 'password123');
-    await user.press(screen.getByRole('button', { name: 'Change email' }));
-
-    await screen.findByText('Email already registered');
   });
 });

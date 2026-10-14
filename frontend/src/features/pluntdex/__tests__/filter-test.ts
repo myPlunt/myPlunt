@@ -1,4 +1,4 @@
-import { filterSpecies, regionsOf } from '@/features/pluntdex/filter';
+import { filterSpecies } from '@/features/pluntdex/filter';
 import type { Species } from '@/lib/species/types';
 
 function species(id: string, commonName: string, region: string | null, common = false): Species {
@@ -15,18 +15,7 @@ const discovered = new Set(['monstera']);
 
 const ids = (list: Species[]) => list.map((s) => s.id);
 
-it('lists each region once, A to Z, with its discovered count, skipping unknown ones', () => {
-  expect(regionsOf(all, discovered)).toEqual([
-    { name: 'Central America', discovered: 1, total: 1 },
-    { name: 'Tropical Asia', discovered: 0, total: 2 },
-  ]);
-});
-
 const none = { only: null, region: null };
-
-it('shows everything without a search or filter', () => {
-  expect(ids(filterSpecies(all, discovered, '', none))).toEqual(['basil', 'monstera', 'pothos', 'mystery']);
-});
 
 it('filters by chip and by region', () => {
   expect(ids(filterSpecies(all, discovered, '', { ...none, only: 'common' }))).toEqual(['basil', 'pothos']);

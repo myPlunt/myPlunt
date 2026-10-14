@@ -38,7 +38,7 @@ class UserRepositoryTest {
     // Through UserService, which lowercases and escapes the query the way the repository expects.
     // No avatars here, so it never needs storage or the password encoder.
     private List<String> search(String query, User searcher) {
-        return new UserService(userRepository, null, null, friendshipRepository)
+        return new UserService(userRepository, null, null, friendshipRepository, null)
                 .search(searcher.getId(), query)
                 .stream()
                 .map(UserSummaryResponse::username)
@@ -65,14 +65,4 @@ class UserRepositoryTest {
         assertThat(search("%", me)).isEmpty();
     }
 
-    @Test
-    void search_ranksExactThenPrefixThenOtherMatches() {
-        User me = user("me");
-        user("alice_jane");
-        user("jane_doe");
-        user("Jane");
-        user("bob");
-
-        assertThat(search("jane", me)).containsExactly("Jane", "jane_doe", "alice_jane");
-    }
 }

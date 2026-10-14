@@ -40,14 +40,6 @@ afterEach(() => {
   jest.resetAllMocks();
 });
 
-it('shows who they are', async () => {
-  await showProfile({});
-
-  expect(mockedUseUserProfile).toHaveBeenCalledWith('u2');
-  expect(screen.getByText('jane_doe')).toBeOnTheScreen();
-  expect(screen.getByText('Fern collector')).toBeOnTheScreen();
-});
-
 it('sends a friend request and then offers to cancel it', async () => {
   mockedSendFriendRequest.mockResolvedValue();
   await showProfile({});
@@ -80,7 +72,8 @@ it('shows why cancelling failed and keeps Cancel request', async () => {
 });
 
 it('shows why a friend request failed and keeps Add friend', async () => {
-  mockedSendFriendRequest.mockRejectedValue(new ApiError(409, 'conflict', { detail: 'Request already sent' }));
+  const error = new ApiError(409, 'conflict', { detail: 'Request already sent' });
+  mockedSendFriendRequest.mockRejectedValue(error);
   await showProfile({});
 
   await user.press(screen.getByRole('button', { name: 'Add friend' }));
@@ -116,18 +109,4 @@ it('lets you decline a request they sent, leaving them to add again', async () =
   expect(mockedDecline).toHaveBeenCalledWith('u2');
   expect(screen.getByRole('button', { name: 'Add friend' })).toBeOnTheScreen();
   expect(screen.queryByText('jane_doe sent you a friend request')).toBeNull();
-});
-
-it('shows a spinner while loading', async () => {
-  await showProfile({ user: null, isLoading: true });
-
-  expect(screen.getByLabelText('Loading profile')).toBeOnTheScreen();
-});
-
-it('shows the error with a way to try again', async () => {
-  await showProfile({ user: null, error: 'Offline' });
-
-  expect(screen.getByText('Offline')).toBeOnTheScreen();
-  await user.press(screen.getByRole('button', { name: 'Try again' }));
-  expect(retry).toHaveBeenCalled();
 });

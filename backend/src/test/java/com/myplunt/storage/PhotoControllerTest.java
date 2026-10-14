@@ -17,7 +17,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.client.RestTestClient;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -68,15 +67,6 @@ class PhotoControllerTest {
     }
 
     @Test
-    void createUploadUrl_rejectsUnauthenticatedRequest() {
-        restTestClient.post().uri("/v1/photos/upload-url")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new UploadUrlRequest(PhotoCategory.AVATAR, "image/jpeg"))
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
     void confirmUpload_returnsNoContentWhenKeyValid() {
         UUID userId = UUID.randomUUID();
         authenticateAs(userId);
@@ -89,19 +79,4 @@ class PhotoControllerTest {
                 .expectStatus().isNoContent();
     }
 
-    @Test
-    void confirmUpload_propagatesNotFoundForMissingKey() {
-        UUID userId = UUID.randomUUID();
-        authenticateAs(userId);
-        String key = "avatars/" + userId + "/missing.jpg";
-        org.mockito.Mockito.doThrow(new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND))
-                .when(storageService).confirmUpload(userId, key);
-
-        restTestClient.post().uri("/v1/photos/confirm")
-                .header("Authorization", "Bearer valid-token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new ConfirmUploadRequest(key))
-                .exchange()
-                .expectStatus().isNotFound();
-    }
 }

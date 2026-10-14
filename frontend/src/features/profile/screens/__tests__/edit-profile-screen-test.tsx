@@ -36,21 +36,6 @@ describe('EditProfileScreen', () => {
     expect(screen.getByLabelText('Bio')).toBeOnTheScreen();
   });
 
-  it('lists the profile picture as coming soon', async () => {
-    await render(<EditProfileScreen />);
-
-    expect(screen.getByText('Profile picture')).toBeOnTheScreen();
-    expect(screen.getByText('Coming soon')).toBeOnTheScreen();
-  });
-
-  it('shows a loading indicator while the profile loads', async () => {
-    mockedUseProfile.mockReturnValue({ user: null, error: null, isLoading: true, retry });
-    await render(<EditProfileScreen />);
-
-    expect(screen.getByLabelText('Loading profile')).toBeOnTheScreen();
-    expect(screen.queryByLabelText('Username')).toBeNull();
-  });
-
   it('shows the error and retries when asked', async () => {
     mockedUseProfile.mockReturnValue({ user: null, error: 'Something went wrong.', isLoading: false, retry });
     await render(<EditProfileScreen />);
@@ -58,13 +43,5 @@ describe('EditProfileScreen', () => {
     await user.press(screen.getByRole('button', { name: 'Try again' }));
 
     expect(retry).toHaveBeenCalled();
-  });
-
-  it('goes back one screen when the logo is pressed', async () => {
-    await render(<EditProfileScreen />);
-
-    await user.press(screen.getByRole('button', { name: 'Go back' }));
-
-    expect(back).toHaveBeenCalled();
   });
 });

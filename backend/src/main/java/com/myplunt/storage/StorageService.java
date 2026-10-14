@@ -1,5 +1,7 @@
 package com.myplunt.storage;
 
+import com.myplunt.common.logging.AuditEvent;
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.storage.dto.UploadUrlRequest;
 import com.myplunt.storage.dto.UploadUrlResponse;
@@ -36,6 +38,7 @@ public class StorageService {
     private final Duration uploadUrlTtl;
     private final Duration readUrlTtl;
     private final long maxUploadSizeBytes;
+    private final AuditLog auditLog;
 
     public StorageService(
             S3Client s3Client,
@@ -44,7 +47,8 @@ public class StorageService {
             @Value("${app.storage.prefix}") String prefix,
             @Value("${app.storage.upload-url-ttl-minutes}") long uploadUrlTtlMinutes,
             @Value("${app.storage.read-url-ttl-minutes}") long readUrlTtlMinutes,
-            @Value("${app.storage.max-upload-size-bytes}") long maxUploadSizeBytes) {
+            @Value("${app.storage.max-upload-size-bytes}") long maxUploadSizeBytes,
+            AuditLog auditLog) {
         this.s3Client = s3Client;
         this.s3Presigner = s3Presigner;
         this.bucket = bucket;
@@ -52,6 +56,7 @@ public class StorageService {
         this.uploadUrlTtl = Duration.ofMinutes(uploadUrlTtlMinutes);
         this.readUrlTtl = Duration.ofMinutes(readUrlTtlMinutes);
         this.maxUploadSizeBytes = maxUploadSizeBytes;
+        this.auditLog = auditLog;
     }
 
     public UploadUrlResponse createUploadUrl(UUID userId, UploadUrlRequest request) {
@@ -92,6 +97,8 @@ public class StorageService {
 
         if (head.contentLength() > maxUploadSizeBytes) {
             s3Client.deleteObject(r -> r.bucket(bucket).key(key));
+            auditLog.rejected(AuditEvent.PHOTO_UPLOAD_REJECTED, userId, "too_large",
+                    Map.of("photo_key", key, "size_bytes", head.contentLength()));
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uploaded file exceeds the size limit.");
         }
 

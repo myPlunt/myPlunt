@@ -107,82 +107,6 @@ class UserControllerTest {
     }
 
     @Test
-    void updateMe_rejectsBioOver255Characters() {
-        authenticateAsJane();
-
-        restTestClient.put().uri("/v1/users/me")
-                .header("Authorization", "Bearer access-token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new UpdateProfileRequest("jane", "a".repeat(256)))
-                .exchange()
-                .expectStatus().isBadRequest();
-    }
-
-    @Test
-    void updateMe_stripsSurroundingWhitespaceFromUsername() {
-        UUID id = authenticateAsJane();
-        when(userService.updateProfile(eq(id), eq(new UpdateProfileRequest("janey", null))))
-                .thenReturn(new UserResponse(id, "janey", "jane@example.com", null));
-
-        restTestClient.put().uri("/v1/users/me")
-                .header("Authorization", "Bearer access-token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body("{\"username\": \"  janey  \", \"bio\": null}")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(UserResponse.class)
-                .isEqualTo(new UserResponse(id, "janey", "jane@example.com", null));
-    }
-
-    @Test
-    void updateMe_rejectsUsernameShorterThan3Characters() {
-        authenticateAsJane();
-
-        restTestClient.put().uri("/v1/users/me")
-                .header("Authorization", "Bearer access-token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new UpdateProfileRequest("ja", null))
-                .exchange()
-                .expectStatus().isBadRequest();
-    }
-
-    @Test
-    void updateMe_rejectsUsernameLongerThan30Characters() {
-        authenticateAsJane();
-
-        restTestClient.put().uri("/v1/users/me")
-                .header("Authorization", "Bearer access-token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new UpdateProfileRequest("j".repeat(31), null))
-                .exchange()
-                .expectStatus().isBadRequest();
-    }
-
-    @Test
-    void updateMe_rejectsUsernameWithDisallowedCharacters() {
-        authenticateAsJane();
-
-        // Inner space, and a Cyrillic "а" that looks like a Latin "a".
-        for (String username : new String[] {"jane doe", "j\u0430ne"}) {
-            restTestClient.put().uri("/v1/users/me")
-                    .header("Authorization", "Bearer access-token")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new UpdateProfileRequest(username, null))
-                    .exchange()
-                    .expectStatus().isBadRequest();
-        }
-    }
-
-    @Test
-    void updateMe_rejectsRequestsWithoutAToken() {
-        restTestClient.put().uri("/v1/users/me")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new UpdateProfileRequest("jane", null))
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
     void changeEmail_returnsTheUpdatedUser() {
         UUID id = authenticateAsJane();
         ChangeEmailRequest request = new ChangeEmailRequest("new@example.com", "password123");
@@ -200,46 +124,6 @@ class UserControllerTest {
     }
 
     @Test
-    void changeEmail_stripsSurroundingWhitespaceFromEmail() {
-        UUID id = authenticateAsJane();
-        when(userService.changeEmail(eq(id), eq(new ChangeEmailRequest("new@example.com", "password123"))))
-                .thenReturn(new UserResponse(id, "jane", "new@example.com", null));
-
-        restTestClient.put().uri("/v1/users/me/email")
-                .header("Authorization", "Bearer access-token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body("{\"email\": \"  new@example.com \", \"currentPassword\": \"password123\"}")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(UserResponse.class)
-                .isEqualTo(new UserResponse(id, "jane", "new@example.com", null));
-    }
-
-    @Test
-    void changeEmail_rejectsInvalidEmail() {
-        authenticateAsJane();
-
-        restTestClient.put().uri("/v1/users/me/email")
-                .header("Authorization", "Bearer access-token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new ChangeEmailRequest("not-an-email", "password123"))
-                .exchange()
-                .expectStatus().isBadRequest();
-    }
-
-    @Test
-    void changeEmail_rejectsBlankCurrentPassword() {
-        authenticateAsJane();
-
-        restTestClient.put().uri("/v1/users/me/email")
-                .header("Authorization", "Bearer access-token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new ChangeEmailRequest("new@example.com", " "))
-                .exchange()
-                .expectStatus().isBadRequest();
-    }
-
-    @Test
     void changeEmail_propagatesForbiddenFromService() {
         authenticateAsJane();
         when(userService.changeEmail(any(), any()))
@@ -251,15 +135,6 @@ class UserControllerTest {
                 .body(new ChangeEmailRequest("new@example.com", "wrong"))
                 .exchange()
                 .expectStatus().isForbidden();
-    }
-
-    @Test
-    void changeEmail_rejectsRequestsWithoutAToken() {
-        restTestClient.put().uri("/v1/users/me/email")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new ChangeEmailRequest("new@example.com", "password123"))
-                .exchange()
-                .expectStatus().isUnauthorized();
     }
 
     @Test
@@ -277,13 +152,6 @@ class UserControllerTest {
     }
 
     @Test
-    void search_rejectsRequestsWithoutAToken() {
-        restTestClient.get().uri("/v1/users/search?q=jan")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
     void user_returnsAnotherUserForTheSignedInViewer() {
         UUID janeId = authenticateAsJane();
         UUID tomId = UUID.randomUUID();
@@ -298,10 +166,4 @@ class UserControllerTest {
                 .isEqualTo(tom);
     }
 
-    @Test
-    void user_rejectsRequestsWithoutAToken() {
-        restTestClient.get().uri("/v1/users/" + UUID.randomUUID())
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
 }

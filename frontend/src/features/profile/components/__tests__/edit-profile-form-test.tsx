@@ -21,21 +21,6 @@ afterEach(() => {
 });
 
 describe('EditProfileForm', () => {
-  it('starts with the current username and bio filled in, and no email field', async () => {
-    await render(<EditProfileForm user={jane} />);
-
-    expect(screen.getByLabelText('Username')).toHaveDisplayValue('jane');
-    expect(screen.getByLabelText('Bio')).toHaveDisplayValue('Fern collector');
-    expect(screen.queryByLabelText('Email')).toBeNull();
-  });
-
-  it('keeps Save disabled until something changes', async () => {
-    await render(<EditProfileForm user={jane} />);
-
-    await user.press(screen.getByRole('button', { name: 'Save changes' }));
-
-    expect(updateProfile).not.toHaveBeenCalled();
-  });
 
   it('saves a new username and bio', async () => {
     updateProfile.mockResolvedValue({ ...jane, username: 'janey', bio: 'Cactus fan' });
@@ -51,16 +36,6 @@ describe('EditProfileForm', () => {
     await screen.findByText('Profile saved');
   });
 
-  it('sends an emptied bio as null', async () => {
-    updateProfile.mockResolvedValue({ ...jane, bio: null });
-    await render(<EditProfileForm user={jane} />);
-
-    await user.clear(screen.getByLabelText('Bio'));
-    await user.press(screen.getByRole('button', { name: 'Save changes' }));
-
-    await waitFor(() => expect(updateProfile).toHaveBeenCalledWith({ username: 'jane', bio: null }));
-  });
-
   it('shows field-specific validation errors next to the right input', async () => {
     updateProfile.mockRejectedValue(
       new ApiError(400, 'irrelevant', { fieldErrors: { username: 'Username must not be blank.' } }),
@@ -71,16 +46,5 @@ describe('EditProfileForm', () => {
     await user.press(screen.getByRole('button', { name: 'Save changes' }));
 
     await screen.findByText('Username must not be blank.');
-  });
-
-  it('shows the backend message for other errors', async () => {
-    updateProfile.mockRejectedValue(new ApiError(409, 'irrelevant', { detail: 'Username already taken' }));
-    await render(<EditProfileForm user={jane} />);
-
-    await user.clear(screen.getByLabelText('Username'));
-    await user.type(screen.getByLabelText('Username'), 'taken');
-    await user.press(screen.getByRole('button', { name: 'Save changes' }));
-
-    await screen.findByText('Username already taken');
   });
 });

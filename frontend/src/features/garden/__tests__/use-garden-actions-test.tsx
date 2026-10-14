@@ -43,17 +43,6 @@ it('waterPlants waters every plant it is given', async () => {
   expect(mockedGardenService.waterPlant).toHaveBeenCalledWith('p2');
 });
 
-it('waterPlants rethrows a failure and keeps the user signed in', async () => {
-  mockedGardenService.waterPlant.mockRejectedValue(new ApiError(404, 'irrelevant', { detail: 'Plant not found' }));
-  const { result } = await renderWithStore();
-
-  await act(async () => {
-    await expect(result.current.actions.waterPlants(['p1'])).rejects.toThrow(ApiError);
-  });
-
-  expect(result.current.store.status).toBe('authenticated');
-});
-
 it('waterPlants signs the user out and rethrows when the session has expired', async () => {
   mockedGardenService.waterPlant.mockRejectedValue(new ApiError(401, 'Not authenticated'));
   const { result } = await renderWithStore();

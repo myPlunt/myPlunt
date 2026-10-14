@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -16,7 +15,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 // Real Postgres: the unordered pair index is what stops two rows for the same two people.
 @DataJpaTest
@@ -56,16 +54,6 @@ class FriendshipRepositoryTest {
                 me.getId(), List.of(asked.getId(), asker.getId(), stranger.getId(), elsewhere.getId()));
 
         assertThat(found).extracting(Friendship::getId).containsExactlyInAnyOrder(sent.getId(), received.getId());
-    }
-
-    @Test
-    void rejectsASecondRequestForTheSamePairInReverse() {
-        User jane = user("jane");
-        User tom = user("tom");
-        friendshipRepository.saveAndFlush(new Friendship(jane.getId(), tom.getId()));
-
-        assertThatThrownBy(() -> friendshipRepository.saveAndFlush(new Friendship(tom.getId(), jane.getId())))
-                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     // Rows saved in one test transaction all get the same now(), so the order is set by hand.

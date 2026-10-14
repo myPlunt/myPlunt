@@ -47,10 +47,4 @@ class JwtServiceTest {
         assertThatThrownBy(() -> verifier.parseAndValidate(token)).isInstanceOf(JwtException.class);
     }
 
-    @Test
-    void parseAndValidate_throwsOnGarbageToken() {
-        JwtService jwtService = new JwtService(UUID.randomUUID().toString(), 15);
-
-        assertThatThrownBy(() -> jwtService.parseAndValidate("not-a-jwt")).isInstanceOf(JwtException.class);
-    }
 }

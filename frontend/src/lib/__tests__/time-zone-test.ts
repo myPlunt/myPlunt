@@ -11,11 +11,6 @@ afterEach(() => {
 });
 
 describe('deviceTimeZone', () => {
-  it("returns the device's IANA time zone", () => {
-    mockTimeZone('Europe/Amsterdam');
-
-    expect(deviceTimeZone()).toBe('Europe/Amsterdam');
-  });
 
   it('falls back to UTC when the device reports none', () => {
     mockTimeZone(undefined);

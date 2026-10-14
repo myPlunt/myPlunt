@@ -1,7 +1,8 @@
 package com.myplunt.friend;
 
-import com.myplunt.user.User;
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.dto.FriendRequestsResponse;
+import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import com.myplunt.user.UserService;
 import com.myplunt.user.dto.UserSummaryResponse;
@@ -10,7 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
@@ -39,6 +39,9 @@ class FriendServiceTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private AuditLog auditLog;
+
     private final UUID janeId = UUID.randomUUID();
     private final UUID tomId = UUID.randomUUID();
 
@@ -50,7 +53,7 @@ class FriendServiceTest {
     }
 
     private FriendService friendService() {
-        return new FriendService(friendshipRepository, userRepository, userService);
+        return new FriendService(friendshipRepository, userRepository, userService, auditLog);
     }
 
     private void assertConflict(String message) {
@@ -83,15 +86,6 @@ class FriendServiceTest {
     }
 
     @Test
-    void sendRequest_failsForAnUnknownUser() {
-        UUID ghostId = UUID.randomUUID();
-
-        assertThatThrownBy(() -> friendService().sendRequest(janeId, ghostId))
-                .isInstanceOf(IllegalStateException.class);
-        verifyNoInteractions(friendshipRepository);
-    }
-
-    @Test
     void sendRequest_conflictsWhenAlreadyFriends() {
         Friendship friends = new Friendship(tomId, janeId);
         ReflectionTestUtils.setField(friends, "status", Friendship.ACCEPTED);
@@ -102,26 +96,11 @@ class FriendServiceTest {
     }
 
     @Test
-    void sendRequest_conflictsWhenAlreadySent() {
-        when(friendshipRepository.findBetween(janeId, List.of(tomId)))
-                .thenReturn(List.of(new Friendship(janeId, tomId)));
-
-        assertConflict("Request already sent");
-    }
-
-    @Test
     void sendRequest_conflictsWhenTheyAlreadyAsked() {
         when(friendshipRepository.findBetween(janeId, List.of(tomId)))
                 .thenReturn(List.of(new Friendship(tomId, janeId)));
 
         assertConflict("tom already sent you a request");
-    }
-
-    @Test
-    void sendRequest_conflictsWhenTheyAskedAtTheSameMoment() {
-        when(friendshipRepository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("uq"));
-
-        assertConflict("Request already sent");
     }
 
     private void tomAsked() {

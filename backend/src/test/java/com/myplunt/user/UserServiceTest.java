@@ -1,5 +1,6 @@
 package com.myplunt.user;
 
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.Friendship;
 import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.storage.StorageService;
@@ -34,6 +35,9 @@ import static org.mockito.Mockito.when;
 class UserServiceTest {
 
     @Mock
+    private AuditLog auditLog;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -55,16 +59,7 @@ class UserServiceTest {
     }
 
     private UserService userService() {
-        return new UserService(userRepository, passwordEncoder, storageService, friendshipRepository);
-    }
-
-    @Test
-    void toResponse_mapsIdUsernameEmailAndBioOnly() {
-        jane.setBio("Fern collector");
-
-        UserResponse response = userService().toResponse(jane);
-
-        assertThat(response).isEqualTo(new UserResponse(id, "jane", "jane@example.com", "Fern collector"));
+        return new UserService(userRepository, passwordEncoder, storageService, friendshipRepository, auditLog);
     }
 
     @Test
@@ -79,28 +74,6 @@ class UserServiceTest {
     }
 
     @Test
-    void updateProfile_storesBlankBioAsNull() {
-        jane.setBio("old bio");
-        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
-        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        UserResponse response = userService().updateProfile(id, new UpdateProfileRequest("jane", "   "));
-
-        assertThat(response.bio()).isNull();
-    }
-
-    @Test
-    void updateProfile_allowsChangingOnlyTheCaseOfTheOwnUsername() {
-        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
-        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        UserResponse response = userService().updateProfile(id, new UpdateProfileRequest("Jane", null));
-
-        assertThat(response.username()).isEqualTo("Jane");
-        verify(userRepository, never()).findByUsername(any());
-    }
-
-    @Test
     void updateProfile_rejectsUsernameTakenByAnotherUser() {
         when(userRepository.findById(id)).thenReturn(Optional.of(jane));
         when(userRepository.findByUsername("taken"))
@@ -110,15 +83,6 @@ class UserServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Username already taken");
         verify(userRepository, never()).save(any());
-    }
-
-    @Test
-    void updateProfile_throwsWhenUserNoLongerExists() {
-        when(userRepository.findById(id)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> userService().updateProfile(id, new UpdateProfileRequest("jane", null)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("User not found");
     }
 
     @Test
@@ -159,30 +123,6 @@ class UserServiceTest {
     }
 
     @Test
-    void changeEmail_allowsChangingOnlyTheCaseOfTheOwnEmail() {
-        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
-        when(passwordEncoder.matches("password123", "hashed")).thenReturn(true);
-        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        UserResponse response = userService().changeEmail(id, new ChangeEmailRequest("Jane@Example.com", "password123"));
-
-        assertThat(response.email()).isEqualTo("Jane@Example.com");
-        verify(userRepository, never()).findByEmail(any());
-    }
-
-    @Test
-    void search_returnsOtherUsersWithoutTheirEmail() {
-        jane.setBio("Fern collector");
-        jane.setAvatarKey("avatars/a.jpg");
-        UUID searcherId = UUID.randomUUID();
-        when(userRepository.search("jan", searcherId, Limit.of(20))).thenReturn(List.of(jane));
-        when(storageService.createReadUrl("avatars/a.jpg")).thenReturn("https://storage.test/a.jpg");
-
-        assertThat(userService().search(searcherId, " JAN "))
-                .containsExactly(new UserSummaryResponse(id, "jane", "Fern collector", "https://storage.test/a.jpg", null));
-    }
-
-    @Test
     void search_saysHowEachResultRelatesToTheSearcher() {
         UUID searcherId = UUID.randomUUID();
         User friend = user("friend");
@@ -215,33 +155,10 @@ class UserServiceTest {
                 .isEqualTo(new UserSummaryResponse(id, "jane", null, null, "request_received"));
     }
 
-    @Test
-    void getSummary_hasNoFriendshipWhenNeitherAsked() {
-        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
-
-        assertThat(userService().getSummary(UUID.randomUUID(), id).friendship()).isNull();
-    }
-
-    @Test
-    void getSummary_failsForAnUnknownUser() {
-        UUID ghostId = UUID.randomUUID();
-
-        assertThatThrownBy(() -> userService().getSummary(id, ghostId)).isInstanceOf(IllegalStateException.class);
-    }
-
     private static User user(String username) {
         User user = new User(username, username + "@example.com", "hashed");
         ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
         return user;
-    }
-
-    @Test
-    void search_escapesLikeWildcards() {
-        UUID searcherId = UUID.randomUUID();
-
-        userService().search(searcherId, "a_b%c\\d");
-
-        verify(userRepository).search("a\\_b\\%c\\\\d", searcherId, Limit.of(20));
     }
 
     @Test

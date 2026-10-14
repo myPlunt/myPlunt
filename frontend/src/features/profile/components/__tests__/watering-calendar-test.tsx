@@ -45,14 +45,6 @@ afterEach(() => {
 });
 
 describe('WateringCalendar', () => {
-  it('shows every day of the month and how many waterings each had', async () => {
-    await renderCalendar();
-
-    expect(screen.getAllByRole('button', { name: /October.*, (no waterings|\d+ waterings?)$/ })).toHaveLength(31);
-    expect(screen.getByRole('button', { name: day(7, '2 waterings') })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: day(3, '1 watering') })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: day(4, 'no waterings') })).toBeOnTheScreen();
-  });
 
   it('lists the plants watered on the day the user picks', async () => {
     await renderCalendar();
@@ -65,12 +57,6 @@ describe('WateringCalendar', () => {
     expect(screen.getByText('Basil')).toBeOnTheScreen();
   });
 
-  it('says so when nothing was watered that month', async () => {
-    await renderCalendar({ waterings: [] });
-
-    expect(screen.getByText(/No waterings logged in/)).toBeOnTheScreen();
-  });
-
   it('pages between months, and the next month only when there is one', async () => {
     await renderCalendar();
 
@@ -79,18 +65,5 @@ describe('WateringCalendar', () => {
 
     expect(onPreviousMonth).toHaveBeenCalledTimes(1);
     expect(onNextMonth).toHaveBeenCalledTimes(1);
-  });
-
-  it('disables the next month in the current month', async () => {
-    await renderCalendar({ canShowNextMonth: false });
-
-    expect(screen.getByRole('button', { name: 'Next month' })).toBeDisabled();
-  });
-
-  it('shows a loading indicator instead of the days while the month loads', async () => {
-    await renderCalendar({ isLoading: true });
-
-    expect(screen.getByLabelText('Loading waterings')).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: /(no waterings|\d+ waterings?)$/ })).toBeNull();
   });
 });

@@ -51,7 +51,7 @@ export function useRecentPhotos(enabled: boolean, count: number): RecentPhotos {
         );
         if (!cancelled) setState({ status: 'ready', photos });
       } catch (err) {
-        logError('Loading recent photos failed', err);
+        logError('recent_photos_load_failed', err);
         if (!cancelled) setState({ status: 'unavailable' });
       }
     }
