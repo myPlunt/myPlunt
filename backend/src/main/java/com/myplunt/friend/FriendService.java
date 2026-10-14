@@ -2,8 +2,11 @@ package com.myplunt.friend;
 
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
+import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
+import com.myplunt.user.UserService;
+import com.myplunt.user.dto.UserSummaryResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,12 +22,60 @@ public class FriendService {
 
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
     private final AuditLog auditLog;
 
-    public FriendService(FriendshipRepository friendshipRepository, UserRepository userRepository, AuditLog auditLog) {
+    public FriendService(
+            FriendshipRepository friendshipRepository,
+            UserRepository userRepository,
+            UserService userService,
+            AuditLog auditLog) {
         this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
+        this.userService = userService;
         this.auditLog = auditLog;
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserSummaryResponse> getFriends(UUID userId) {
+        return summaries(friendshipRepository.findFriends(userId), "friends");
+    }
+
+    @Transactional(readOnly = true)
+    public FriendRequestsResponse getRequests(UUID userId) {
+        return new FriendRequestsResponse(
+                summaries(friendshipRepository.findRequesters(userId), "request_received"),
+                summaries(friendshipRepository.findRequested(userId), "request_sent"));
+    }
+
+    @Transactional
+    public void accept(UUID userId, UUID requesterId) {
+        pendingRequest(requesterId, userId).accept();
+        auditLog.recorded(AuditEvent.FRIEND_REQUEST_ACCEPTED, userId, userId, Map.of("other_user_id", requesterId));
+    }
+
+    // Deleted rather than marked declined: the pair index would otherwise stop either of them asking again.
+    @Transactional
+    public void decline(UUID userId, UUID requesterId) {
+        friendshipRepository.delete(pendingRequest(requesterId, userId));
+        auditLog.recorded(AuditEvent.FRIEND_REQUEST_DECLINED, userId, userId, Map.of("other_user_id", requesterId));
+    }
+
+    @Transactional
+    public void cancel(UUID userId, UUID receiverId) {
+        friendshipRepository.delete(pendingRequest(userId, receiverId));
+        auditLog.recorded(AuditEvent.FRIEND_REQUEST_CANCELLED, userId, userId, Map.of("other_user_id", receiverId));
+    }
+
+    // Looked up by direction, so accept/decline can't touch the user's own request and cancel can't touch one they received.
+    private Friendship pendingRequest(UUID requesterId, UUID receiverId) {
+        return friendshipRepository
+                .findByRequesterIdAndReceiverIdAndStatus(requesterId, receiverId, Friendship.PENDING)
+                .orElseThrow(() -> new IllegalStateException("No pending friend request with this user"));
+    }
+
+    private List<UserSummaryResponse> summaries(List<User> users, String friendship) {
+        return users.stream().map(user -> userService.toSummary(user, friendship)).toList();
     }
 
     @Transactional

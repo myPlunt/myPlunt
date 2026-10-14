@@ -27,3 +27,9 @@ export interface UserSummary {
   /** How they relate to the signed-in user: request_sent means the signed-in user asked. null when neither asked. */
   friendship: 'friends' | 'request_sent' | 'request_received' | null;
 }
+
+/** Mirrors FriendRequestsResponse (GET /v1/friends/requests): requests still waiting, newest first. */
+export interface FriendRequests {
+  received: UserSummary[];
+  sent: UserSummary[];
+}

@@ -19,6 +19,9 @@ public enum AuditEvent {
     // reason: wrong_password or email_in_use.
     EMAIL_CHANGE_REJECTED,
     FRIEND_REQUEST_SENT,
+    FRIEND_REQUEST_ACCEPTED,
+    FRIEND_REQUEST_DECLINED,
+    FRIEND_REQUEST_CANCELLED,
     PLANTER_CREATED,
     PLANT_CREATED,
     PLANT_UPDATED,
