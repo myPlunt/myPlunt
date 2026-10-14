@@ -11,14 +11,15 @@ import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-// Writes each log line to the logs table (V10): its type, time and source get their own columns,
-// the rest goes in details, and the whole line in raw. Runs behind an AsyncAppender
-// (DatabaseLogging), so it's on its own thread, never inside the caller's transaction.
+// Writes each structured log line (LogLineFormatter) to the logs table (V10): its type, time and
+// source get their own columns, the rest goes in details, and the whole line in raw. Runs behind
+// an AsyncAppender (DatabaseLogging), so it's on its own thread, never inside the caller's
+// transaction.
 public class DatabaseLogAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
 
     static final String INSERT = "INSERT INTO logs (level, logged_at, location, details, raw) VALUES (?, ?, ?, ?::jsonb, ?::json)";
 
-    private final JsonWriter<Map<String, Object>> writer = JsonWriter.standard();
+    private final JsonWriter<Map<String, Object>> writer = JsonWriter.<Map<String, Object>>standard();
     private final LogLineFormatter formatter;
     private final JdbcTemplate jdbc;
 
@@ -30,7 +31,7 @@ public class DatabaseLogAppender extends UnsynchronizedAppenderBase<ILoggingEven
     @Override
     protected void append(ILoggingEvent event) {
         // A line logged on this thread came from the insert itself (the driver, the pool). Writing
-        // it to the table could fail the same way and loop, so it's only in the files.
+        // it to the table could fail the same way and loop, so it's only on the console.
         if (Thread.currentThread().getName().equals(event.getThreadName())) {
             return;
         }
@@ -43,7 +44,7 @@ public class DatabaseLogAppender extends UnsynchronizedAppenderBase<ILoggingEven
             jdbc.update(INSERT, String.valueOf(level), OffsetDateTime.ofInstant(event.getInstant(), ZoneOffset.UTC),
                     String.valueOf(location), writer.writeToString(details), writer.writeToString(line));
         } catch (DataAccessException e) {
-            // Not logged through SLF4J, which would come back here; the line is still in the files.
+            // Not logged through SLF4J, which would come back here. The line is lost.
             addError("Could not write a log line to the logs table", e);
         }
     }

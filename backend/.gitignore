@@ -34,6 +34,3 @@ build/
 
 ### Local secrets ###
 .env
-
-### Error log file (application.yml logging.file.name) ###
-logs/

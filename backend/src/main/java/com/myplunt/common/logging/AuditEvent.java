@@ -1,6 +1,6 @@
 package com.myplunt.common.logging;
 
-// What happened to an account or its data, as the "event" field of audit.log (written in
+// What happened to an account or its data, as the "event" field of its audit line (written in
 // snake_case: PLANT_CREATED -> "plant_created"). Outcomes only; the app logs what the user
 // tried to do under its own names. Renaming a value splits its history in two.
 public enum AuditEvent {

@@ -2,24 +2,23 @@ package com.myplunt.common.logging;
 
 import ch.qos.logback.classic.AsyncAppender;
 import ch.qos.logback.classic.LoggerContext;
-import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
+import org.springframework.context.SmartLifecycle;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-// Copies the lines that reach the log files into the logs table as well (DatabaseLogAppender).
-// Hooked up here rather than in logback-spring.xml because it needs the database, and only once
-// the app is ready, when Flyway has created the table: startup lines are only in the files.
+// Sends the structured log lines to the logs table (DatabaseLogAppender). Hooked up here rather
+// than in logback-spring.xml because it needs the database: it starts once every bean is ready
+// (so Flyway has created the table) but before the web server takes requests. Lines from earlier
+// in startup are only on the console.
 @Component
-public class DatabaseLogging {
+public class DatabaseLogging implements SmartLifecycle {
 
-    // The same loggers the files are fed from; audit and frontend don't pass their lines to root.
+    // Audit and frontend don't pass their lines to root (logback-spring.xml), so each is attached.
     private static final List<String> LOGGERS =
             List.of(Logger.ROOT_LOGGER_NAME, AuditLog.AUDIT_LOGGER, LogLineFormatter.FRONTEND_LOGGER);
 
@@ -31,8 +30,8 @@ public class DatabaseLogging {
         this.appender = new DatabaseLogAppender(new LogLineFormatter(environment), jdbc);
     }
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void attach() {
+    @Override
+    public void start() {
         appender.setContext(context);
         appender.setName("DATABASE");
         appender.start();
@@ -44,7 +43,7 @@ public class DatabaseLogging {
         async.setDiscardingThreshold(0);
         async.setNeverBlock(true);
         async.addAppender(appender);
-        LogFileFilter filter = new LogFileFilter();
+        LogTableFilter filter = new LogTableFilter();
         filter.start();
         async.addFilter(filter);
         async.start();
@@ -52,11 +51,22 @@ public class DatabaseLogging {
         LOGGERS.forEach(name -> context.getLogger(name).addAppender(async));
     }
 
-    // Stops before the database closes, writing out what's still queued. Stopping the async
-    // appender also stops DatabaseLogAppender.
-    @PreDestroy
-    public void detach() {
+    // Runs after the web server has stopped taking requests and before the database closes,
+    // writing out what's still queued. Stopping the async appender also stops DatabaseLogAppender.
+    @Override
+    public void stop() {
         LOGGERS.forEach(name -> context.getLogger(name).detachAppender(async));
         async.stop();
+    }
+
+    @Override
+    public boolean isRunning() {
+        return async.isStarted();
+    }
+
+    // Lower phases start first and stop last; the web server's phase is close to Integer.MAX_VALUE.
+    @Override
+    public int getPhase() {
+        return 0;
     }
 }
