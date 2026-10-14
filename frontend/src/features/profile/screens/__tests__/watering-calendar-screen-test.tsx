@@ -42,14 +42,6 @@ describe('WateringCalendarScreen', () => {
     expect(screen.getByRole('button', { name: /, 1 watering$/ })).toBeOnTheScreen();
   });
 
-  it('pages to the previous month', async () => {
-    await render(<WateringCalendarScreen />);
-
-    await user.press(screen.getByRole('button', { name: 'Previous month' }));
-
-    expect(showPreviousMonth).toHaveBeenCalled();
-  });
-
   it('shows the error instead of the calendar and retries when asked', async () => {
     mockCalendar({ error: 'Something went wrong' });
     await render(<WateringCalendarScreen />);

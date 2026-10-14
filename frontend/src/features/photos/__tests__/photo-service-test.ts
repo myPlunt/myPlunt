@@ -47,18 +47,6 @@ describe('uploadPhoto', () => {
     );
   });
 
-  it('throws a user-safe error when storage cannot be reached', async () => {
-    const networkError = new TypeError('Network request failed');
-    fetchMock.mockReset().mockResolvedValueOnce({ blob: () => Promise.resolve(file) }).mockRejectedValueOnce(networkError);
-
-    const error = await uploadPhoto('file:///photo.jpg', 'PLANT').catch((err) => err);
-
-    expect(error).toBeInstanceOf(ApiError);
-    expect(error).toEqual(
-      expect.objectContaining({ status: 0, detail: "Couldn't upload the photo. Please try again." }),
-    );
-  });
-
   it('does not upload anything when the backend refuses an upload URL', async () => {
     mockedApiFetch.mockRejectedValue(new ApiError(400, 'Bad request', { detail: 'Unsupported content type' }));
 

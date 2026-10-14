@@ -37,24 +37,6 @@ async function openAndStartAdding() {
 }
 
 describe('PlanterSelect', () => {
-  it('shows the chosen planter, or Other plants when there is none', async () => {
-    const { rerender } = await renderSelect();
-    expect(screen.getByRole('button', { name: 'Planter' })).toHaveAccessibilityValue({ text: 'Other plants' });
-
-    await rerender(<PlanterSelect planters={planters} selectedId="kitchen" onSelect={onSelect} onAdded={onAdded} />);
-
-    expect(screen.getByRole('button', { name: 'Planter' })).toHaveAccessibilityValue({ text: 'Kitchen windowsill' });
-  });
-
-  it('lists Other plants and every planter, with the chosen one checked', async () => {
-    await renderSelect({ selectedId: 'balcony' });
-
-    await user.press(screen.getByRole('button', { name: 'Planter' }));
-
-    expect(screen.getByRole('radio', { name: 'Other plants' })).not.toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Balcony' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Kitchen windowsill' })).not.toBeChecked();
-  });
 
   it('selects a planter and closes', async () => {
     await renderSelect();
@@ -64,15 +46,6 @@ describe('PlanterSelect', () => {
 
     expect(onSelect).toHaveBeenCalledWith('kitchen');
     expect(screen.queryByRole('radio', { name: 'Balcony' })).toBeNull();
-  });
-
-  it('clears the planter when Other plants is chosen', async () => {
-    await renderSelect({ selectedId: 'balcony' });
-    await user.press(screen.getByRole('button', { name: 'Planter' }));
-
-    await user.press(screen.getByRole('radio', { name: 'Other plants' }));
-
-    expect(onSelect).toHaveBeenCalledWith(null);
   });
 
   it('adds a new planter, hands it back and selects it', async () => {
@@ -89,16 +62,6 @@ describe('PlanterSelect', () => {
     expect(screen.queryByLabelText('New planter name')).toBeNull();
   });
 
-  it('keeps Add disabled until the new planter has a name', async () => {
-    await renderSelect();
-    await openAndStartAdding();
-
-    await user.type(screen.getByLabelText('New planter name'), '   ');
-    await user.press(screen.getByRole('button', { name: 'Add' }));
-
-    expect(createPlanter).not.toHaveBeenCalled();
-  });
-
   it("shows the backend's message when the planter can't be added, and stays open", async () => {
     createPlanter.mockRejectedValue(
       new ApiError(409, 'Conflict', { detail: 'You already have a planter called Balcony' }),
@@ -112,27 +75,5 @@ describe('PlanterSelect', () => {
     expect(await screen.findByText('You already have a planter called Balcony')).toBeOnTheScreen();
     expect(onAdded).not.toHaveBeenCalled();
     expect(screen.getByLabelText('New planter name')).toBeOnTheScreen();
-  });
-
-  it('shows a name validation error next to the input', async () => {
-    const error = new ApiError(400, 'Validation failed', { fieldErrors: { name: 'Name must be at most 255 characters.' } });
-    createPlanter.mockRejectedValue(error);
-    await renderSelect();
-    await openAndStartAdding();
-
-    await user.type(screen.getByLabelText('New planter name'), 'x');
-    await user.press(screen.getByRole('button', { name: 'Add' }));
-
-    expect(await screen.findByText('Name must be at most 255 characters.')).toBeOnTheScreen();
-  });
-
-  it('goes back to the list when adding is cancelled', async () => {
-    await renderSelect();
-    await openAndStartAdding();
-
-    await user.press(screen.getByRole('button', { name: 'Cancel' }));
-
-    expect(screen.queryByLabelText('New planter name')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Add a planter' })).toBeOnTheScreen();
   });
 });

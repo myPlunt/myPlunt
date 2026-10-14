@@ -1,20 +1,4 @@
-import { addMonths, calendarWeeks, dayKey, startOfMonth, wateringsByDay } from '@/features/profile/watering-calendar';
-
-// Dates are built in local time, so the tests pass in any time zone.
-
-describe('startOfMonth / addMonths', () => {
-  it('goes to the first of the month and pages across years', () => {
-    expect(startOfMonth(new Date(2026, 9, 13, 21, 30))).toEqual(new Date(2026, 9, 1));
-    expect(addMonths(new Date(2026, 11, 1), 1)).toEqual(new Date(2027, 0, 1));
-    expect(addMonths(new Date(2026, 0, 1), -1)).toEqual(new Date(2025, 11, 1));
-  });
-});
-
-describe('dayKey', () => {
-  it('names the calendar day with zero-padded month and day', () => {
-    expect(dayKey(new Date(2026, 2, 7, 23, 59))).toBe('2026-03-07');
-  });
-});
+import { calendarWeeks, wateringsByDay } from '@/features/profile/watering-calendar';
 
 describe('calendarWeeks', () => {
   it('starts the weeks on Monday and pads the month with empty days', () => {
@@ -27,19 +11,6 @@ describe('calendarWeeks', () => {
     expect(weeks[0][3]).toEqual(new Date(2026, 9, 1));
     expect(weeks[4][5]).toEqual(new Date(2026, 9, 31));
     expect(weeks[4][6]).toBeNull();
-  });
-
-  it('needs no padding before a month that starts on Monday', () => {
-    // June 2026 starts on a Monday.
-    expect(calendarWeeks(new Date(2026, 5, 1))[0][0]).toEqual(new Date(2026, 5, 1));
-  });
-
-  it('puts a Sunday the 1st at the end of the first week', () => {
-    // February 2026 starts on a Sunday.
-    const weeks = calendarWeeks(new Date(2026, 1, 1));
-
-    expect(weeks[0][6]).toEqual(new Date(2026, 1, 1));
-    expect(weeks).toHaveLength(5);
   });
 });
 

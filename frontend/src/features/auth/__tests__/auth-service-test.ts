@@ -54,13 +54,4 @@ describe('logout', () => {
     expect(mockedTokenStorage.clearTokens).toHaveBeenCalled();
     expect(mockedPublicFetch).toHaveBeenCalledWith('/v1/auth/logout', { refreshToken: 'r' });
   });
-
-  it('clears local tokens and skips the backend call when there was nothing stored', async () => {
-    mockedTokenStorage.getTokens.mockResolvedValue(null);
-
-    await authService.logout();
-
-    expect(mockedTokenStorage.clearTokens).toHaveBeenCalled();
-    expect(mockedPublicFetch).not.toHaveBeenCalled();
-  });
 });

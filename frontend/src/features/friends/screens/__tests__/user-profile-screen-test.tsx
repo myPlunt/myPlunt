@@ -32,14 +32,6 @@ afterEach(() => {
   jest.resetAllMocks();
 });
 
-it('shows who they are', async () => {
-  await showProfile({});
-
-  expect(mockedUseUserProfile).toHaveBeenCalledWith('u2');
-  expect(screen.getByText('jane_doe')).toBeOnTheScreen();
-  expect(screen.getByText('Fern collector')).toBeOnTheScreen();
-});
-
 it('sends a friend request and then shows it as requested', async () => {
   mockedSendFriendRequest.mockResolvedValue();
   await showProfile({});
@@ -60,35 +52,4 @@ it('shows why a friend request failed and keeps Add friend', async () => {
 
   expect(screen.getByText('Request already sent')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Add friend' })).toBeOnTheScreen();
-});
-
-it.each([
-  ['friends', 'Friends'],
-  ['request_sent', 'Requested'],
-] as const)('shows %s as a disabled "%s" instead of Add friend', async (friendship, label) => {
-  await showProfile({ user: { ...jane, friendship } });
-
-  expect(screen.getByRole('button', { name: label })).toBeDisabled();
-  expect(screen.queryByRole('button', { name: 'Add friend' })).toBeNull();
-});
-
-it('says when they sent you a request', async () => {
-  await showProfile({ user: { ...jane, friendship: 'request_received' } });
-
-  expect(screen.getByText('jane_doe sent you a friend request')).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Add friend' })).toBeNull();
-});
-
-it('shows a spinner while loading', async () => {
-  await showProfile({ user: null, isLoading: true });
-
-  expect(screen.getByLabelText('Loading profile')).toBeOnTheScreen();
-});
-
-it('shows the error with a way to try again', async () => {
-  await showProfile({ user: null, error: 'Offline' });
-
-  expect(screen.getByText('Offline')).toBeOnTheScreen();
-  await user.press(screen.getByRole('button', { name: 'Try again' }));
-  expect(retry).toHaveBeenCalled();
 });

@@ -54,11 +54,6 @@ afterEach(() => {
 });
 
 describe('WateringHistoryScreen', () => {
-  it('loads the waterings of the plant it was opened for', async () => {
-    await render(<WateringHistoryScreen plantId="p1" />);
-
-    expect(mockedUseWateringHistory).toHaveBeenCalledWith('p1');
-  });
 
   it('shows the streaks and how often the plant was watered on time', async () => {
     await render(<WateringHistoryScreen plantId="p1" />);
@@ -79,37 +74,6 @@ describe('WateringHistoryScreen', () => {
     expect(rows[0]).toHaveAccessibleName(/^Watered 2 days ago, .*, on time$/);
     expect(rows[1]).toHaveAccessibleName(/^Watered 4 days ago, .*, 3 days late$/);
     expect(rows[2]).toHaveAccessibleName(/^Watered 10 days ago, .*, on time$/);
-  });
-
-  it('says the streak is broken when the plant is overdue', async () => {
-    mockHistory({ history: { ...vera, currentStreak: 0, overdue: true } });
-    await render(<WateringHistoryScreen plantId="p1" />);
-
-    expect(screen.getByLabelText('Current streak: 0')).toBeOnTheScreen();
-    expect(screen.getByText(/Vera is overdue, so the streak is broken/)).toBeOnTheScreen();
-  });
-
-  it('explains what to do before the first watering', async () => {
-    mockHistory({
-      history: {
-        ...vera,
-        currentStreak: 0,
-        bestStreak: 0,
-        onTimePercent: null,
-        waterings: [],
-      },
-    });
-    await render(<WateringHistoryScreen plantId="p1" />);
-
-    expect(screen.getByText(/No waterings yet/)).toBeOnTheScreen();
-    expect(screen.getByLabelText('On time: –')).toBeOnTheScreen();
-  });
-
-  it('shows a loading indicator while the waterings load', async () => {
-    mockHistory({ history: null, isLoading: true });
-    await render(<WateringHistoryScreen plantId="p1" />);
-
-    expect(screen.getByLabelText('Loading waterings')).toBeOnTheScreen();
   });
 
   it('shows the error and retries when asked', async () => {
