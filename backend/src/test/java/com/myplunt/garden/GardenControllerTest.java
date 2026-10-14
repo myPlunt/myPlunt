@@ -17,10 +17,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @WebMvcTest(GardenController.class)
@@ -58,10 +60,11 @@ class GardenControllerTest {
                         4,
                         Instant.parse("2026-10-07T08:00:00Z"),
                         Instant.parse("2026-10-11T08:00:00Z"),
+                        3,
                         "https://storage.test/george.jpg?signed")))));
-        when(gardenService.getGarden(id)).thenReturn(garden);
+        when(gardenService.getGarden(id, ZoneId.of("Europe/Amsterdam"))).thenReturn(garden);
 
-        restTestClient.get().uri("/v1/garden")
+        restTestClient.get().uri("/v1/garden?zone=Europe/Amsterdam")
                 .header("Authorization", "Bearer access-token")
                 .exchange()
                 .expectStatus().isOk()
@@ -74,5 +77,37 @@ class GardenControllerTest {
         restTestClient.get().uri("/v1/garden")
                 .exchange()
                 .expectStatus().isUnauthorized();
+    }
+
+    private UUID authenticateAsJane() {
+        UUID id = UUID.randomUUID();
+        User user = new User("jane", "jane@example.com", "hashed");
+        ReflectionTestUtils.setField(user, "id", id);
+        when(jwtService.parseAndValidate("access-token")).thenReturn(id);
+        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        return id;
+    }
+
+    @Test
+    void garden_countsDaysInUtcWhenTheAppSendsNoTimeZone() {
+        UUID id = authenticateAsJane();
+        when(gardenService.getGarden(id, ZoneId.of("UTC"))).thenReturn(new GardenResponse(List.of()));
+
+        restTestClient.get().uri("/v1/garden")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(gardenService).getGarden(id, ZoneId.of("UTC"));
+    }
+
+    @Test
+    void garden_rejectsAnUnknownTimeZone() {
+        authenticateAsJane();
+
+        restTestClient.get().uri("/v1/garden?zone=Mars/Olympus")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 }

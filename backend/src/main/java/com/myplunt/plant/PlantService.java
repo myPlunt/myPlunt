@@ -6,6 +6,10 @@ import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
+import com.myplunt.plant.dto.WateringHistoryResponse;
+import com.myplunt.plant.dto.WateringLogResponse;
+import com.myplunt.plant.dto.WateringResponse;
+import com.myplunt.plant.dto.WateringStreakResponse;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesRepository;
 import com.myplunt.storage.StorageService;
@@ -16,7 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -154,6 +161,71 @@ public class PlantService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be watered");
         }
         wateringLogRepository.save(new WateringLog(plant, userId, Instant.now()));
+    }
+
+    // Also for plants that have died, so their record stays readable. Days are counted in the
+    // user's time zone, so "on time" flips at their own midnight.
+    @Transactional(readOnly = true)
+    public WateringHistoryResponse getWateringHistory(UUID ownerId, UUID plantId, ZoneId zone) {
+        Plant plant = findOwnPlant(ownerId, plantId);
+        List<WateringLog> waterings = wateringLogRepository.findByPlantIdOrderByWateredAtAsc(plantId);
+        WateringConsistency consistency = WateringConsistency.of(
+                plant, waterings.stream().map(WateringLog::getWateredAt).toList(), zone, Instant.now());
+
+        List<WateringResponse> newestFirst = new ArrayList<>();
+        for (int i = waterings.size() - 1; i >= 0; i--) {
+            WateringLog watering = waterings.get(i);
+            newestFirst.add(new WateringResponse(watering.getId(), watering.getWateredAt(), consistency.daysLate().get(i)));
+        }
+        return new WateringHistoryResponse(
+                plant.getName(),
+                WateringSchedule.frequencyDays(plant),
+                consistency.currentStreak(),
+                consistency.bestStreak(),
+                consistency.onTimePercent(),
+                consistency.overdue(),
+                newestFirst);
+    }
+
+    // Each plant's current watering streak (see WateringConsistency), in one query for all of them.
+    @Transactional(readOnly = true)
+    public Map<UUID, Integer> getWateringStreaks(List<Plant> plants, ZoneId zone) {
+        if (plants.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, List<Instant>> wateredAt = wateringLogRepository
+                .findByPlantIdInOrderByWateredAtAsc(plants.stream().map(Plant::getId).toList()).stream()
+                .collect(Collectors.groupingBy(
+                        watering -> watering.getPlant().getId(),
+                        Collectors.mapping(WateringLog::getWateredAt, Collectors.toList())));
+        Instant now = Instant.now();
+        return plants.stream().collect(Collectors.toMap(
+                Plant::getId,
+                plant -> WateringConsistency.of(plant, wateredAt.getOrDefault(plant.getId(), List.of()), zone, now)
+                        .currentStreak()));
+    }
+
+    // The longest range the watering calendar may ask for at once, so one request can't read years of logs.
+    static final Duration MAX_WATERINGS_RANGE = Duration.ofDays(62);
+
+    @Transactional(readOnly = true)
+    public List<WateringLogResponse> getWaterings(UUID ownerId, Instant from, Instant to) {
+        if (!to.isAfter(from)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The end of the range must be after its start");
+        }
+        if (Duration.between(from, to).compareTo(MAX_WATERINGS_RANGE) > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ask for at most 62 days of waterings at once");
+        }
+        return wateringLogRepository.findOwnersWaterings(ownerId, from, to);
+    }
+
+    // Living plants only: a plant that died no longer has a streak to keep up.
+    @Transactional(readOnly = true)
+    public WateringStreakResponse getWateringStreak(UUID ownerId, ZoneId zone) {
+        int total = getWateringStreaks(getLivingPlants(ownerId), zone).values().stream()
+                .mapToInt(Integer::intValue)
+                .sum();
+        return new WateringStreakResponse(total);
     }
 
     // Removes the plant from the garden for good, dead or alive. Its waterings, photos, care

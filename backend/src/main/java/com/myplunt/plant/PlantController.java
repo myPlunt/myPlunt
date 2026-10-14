@@ -5,6 +5,7 @@ import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
+import com.myplunt.plant.dto.WateringHistoryResponse;
 import com.myplunt.user.User;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -15,9 +16,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.ZoneId;
 import java.util.UUID;
 
 @RestController
@@ -59,5 +62,14 @@ public class PlantController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void water(@AuthenticationPrincipal User principal, @PathVariable UUID plantId) {
         plantService.water(principal.getId(), plantId);
+    }
+
+    // zone is the app's IANA time zone ("Europe/Amsterdam"); streaks count days in it.
+    @GetMapping(ApiPaths.Plants.WATERINGS)
+    public WateringHistoryResponse wateringHistory(
+            @AuthenticationPrincipal User principal,
+            @PathVariable UUID plantId,
+            @RequestParam(defaultValue = "UTC") ZoneId zone) {
+        return plantService.getWateringHistory(principal.getId(), plantId, zone);
     }
 }

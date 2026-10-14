@@ -1,4 +1,4 @@
-/** Mirrors the backend's GardenResponse (GET /v1/garden). */
+/** Mirrors the backend's GardenResponse (GET /v1/garden?zone=...). */
 export interface Garden {
   rooms: Room[];
 }
@@ -23,5 +23,7 @@ export interface GardenPlant {
   wateringFrequencyDays: number;
   lastWateredAt: string | null;
   nextWateringAt: string;
+  /** On-time waterings in a row up to now, counted in the device's time zone; 0 when broken or never watered. */
+  wateringStreak: number;
   photoUrl: string | null;
 }

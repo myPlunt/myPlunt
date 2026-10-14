@@ -68,14 +68,6 @@ function plural(count: number, word: string) {
   return `${count} ${count === 1 ? word : `${word}s`}`;
 }
 
-/** "6 plants in 3 rooms". Plants without a room count as plants but not as a room. */
-export function gardenSummary(garden: Garden): string {
-  const plantCount = garden.rooms.reduce((sum, room) => sum + room.plants.length, 0);
-  const roomCount = garden.rooms.filter((room) => room.id !== null).length;
-  const plants = plural(plantCount, 'plant');
-  return roomCount === 0 ? plants : `${plants} in ${plural(roomCount, 'room')}`;
-}
-
 /** "3 plants · 1 needs water", or just "3 plants" when none are due. */
 export function roomSummary(room: Room, now: Date): string {
   const plants = plural(room.plants.length, 'plant');

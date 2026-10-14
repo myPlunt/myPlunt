@@ -47,3 +47,42 @@ export interface PlantDetails extends Plant {
  * null clears a field, except `photoKey`, where null keeps the current photo.
  */
 export type UpdatePlantRequest = CreatePlantRequest;
+
+/** Mirrors WateringResponse: one logged watering. `daysLate` is 0 when it was on time. */
+export interface Watering {
+  id: string;
+  wateredAt: string;
+  daysLate: number;
+}
+
+/**
+ * Mirrors WateringHistoryResponse (GET /v1/plants/{id}/waterings?zone=...). Waterings are
+ * newest first. The backend works out on time, late and the streaks in the device's time
+ * zone (see the backend's WateringConsistency). `currentStreak` is 0 once the plant is
+ * `overdue`; `onTimePercent` is null before the first watering.
+ */
+export interface WateringHistory {
+  plantName: string;
+  wateringFrequencyDays: number;
+  currentStreak: number;
+  bestStreak: number;
+  onTimePercent: number | null;
+  overdue: boolean;
+  waterings: Watering[];
+}
+
+/** Mirrors WateringLogResponse (GET /v1/waterings?from=...&to=...): one watering of one of the user's plants. */
+export interface WateringLog {
+  id: string;
+  plantId: string;
+  plantName: string;
+  wateredAt: string;
+}
+
+/**
+ * Mirrors WateringStreakResponse (GET /v1/waterings/streak?zone=...): the current streaks of
+ * all the user's living plants added up, so it matches the numbers on the garden's plant cards.
+ */
+export interface WateringStreak {
+  wateringStreak: number;
+}
