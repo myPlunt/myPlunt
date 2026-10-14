@@ -1,5 +1,13 @@
+import { NavLink } from 'react-router'
+
 import logoMyPlunt from '../assets/logo-myplunt.svg'
 import type { Admin } from '../lib/api'
+
+const links = [
+  { label: 'Overview', to: '/' },
+  { label: 'Species', to: '/species' },
+  { label: 'Logs', to: '/logs' },
+]
 
 type SidebarProps = {
   admin: Admin
@@ -18,9 +26,18 @@ function Sidebar({ admin, onSignOut }: SidebarProps) {
       </div>
 
       <nav className="flex gap-2 md:flex-col" aria-label="Main">
-        <a href="#" aria-current="page" className="rounded-xl bg-green px-4 py-2.5 text-[15px] font-semibold text-white">
-          Overview
-        </a>
+        {links.map((link) => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            end
+            className={({ isActive }) =>
+              `rounded-xl px-4 py-2.5 text-[15px] font-semibold transition-colors ${isActive ? 'bg-green text-white' : 'hover:bg-sand'}`
+            }
+          >
+            {link.label}
+          </NavLink>
+        ))}
       </nav>
 
       <div className="flex flex-col gap-3 md:mt-auto">

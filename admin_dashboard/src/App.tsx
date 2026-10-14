@@ -1,22 +1,29 @@
+import { Navigate, Route, Routes } from 'react-router'
+
 import { useAuth } from './auth/auth-context'
+import AppLayout from './components/AppLayout'
 import LoginPage from './components/LoginPage'
-import Overview from './components/Overview'
-import Sidebar from './components/Sidebar'
+import LogsPage from './pages/LogsPage'
+import OverviewPage from './pages/OverviewPage'
+import SpeciesPage from './pages/SpeciesPage'
 
 function App() {
   const { state, signOut } = useAuth()
 
   // Checking for an existing session; brief, and nothing worth showing.
   if (state.status === 'loading') return null
+  // Shown on any URL, so after logging in the admin lands on the page they opened.
   if (state.status === 'signedOut') return <LoginPage />
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <Sidebar admin={state.admin} onSignOut={signOut} />
-      <main className="flex-1 px-5 py-8 sm:px-10 sm:py-12">
-        <Overview />
-      </main>
-    </div>
+    <Routes>
+      <Route element={<AppLayout admin={state.admin} onSignOut={signOut} />}>
+        <Route index element={<OverviewPage />} />
+        <Route path="species" element={<SpeciesPage />} />
+        <Route path="logs" element={<LogsPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   )
 }
 
