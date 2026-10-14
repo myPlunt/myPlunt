@@ -163,6 +163,29 @@ class FriendServiceTest {
         verify(friendshipRepository, never()).delete(any());
     }
 
+    // tom asked and jane accepted, so this also covers removing someone whose request you answered.
+    @Test
+    void remove_deletesTheFriendshipWhoeverAsked() {
+        Friendship friends = new Friendship(tomId, janeId);
+        friends.accept();
+        when(friendshipRepository.findBetween(janeId, List.of(tomId))).thenReturn(List.of(friends));
+
+        friendService().remove(janeId, tomId);
+
+        verify(friendshipRepository).delete(friends);
+        verify(auditLog).recorded(AuditEvent.FRIEND_REMOVED, janeId, janeId, Map.of("other_user_id", tomId));
+    }
+
+    @Test
+    void remove_failsWhenTheyAreNotFriends() {
+        when(friendshipRepository.findBetween(janeId, List.of(tomId))).thenReturn(List.of(new Friendship(janeId, tomId)));
+
+        assertThatThrownBy(() -> friendService().remove(janeId, tomId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("You're not friends with this user");
+        verify(friendshipRepository, never()).delete(any());
+    }
+
     @Test
     void getRequests_mapsReceivedAndSent() {
         User tom = new User("tom", "tom@example.com", "hashed");
