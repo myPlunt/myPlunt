@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/user/user-avatar';
+import { FriendRequestActions } from '@/features/friends/components/friend-request-actions';
 import { sendFriendRequest } from '@/features/friends/friends-service';
 import { useUserProfile } from '@/features/friends/use-user-profile';
 import { useTheme } from '@/hooks/use-theme';
@@ -54,21 +55,22 @@ export function UserProfileScreen({ userId }: { userId: string }) {
   );
 }
 
-// Add friend for strangers; otherwise where the two stand. Answering, cancelling and removing come
-// with their own tickets and hang off these.
+// Add friend for strangers, Accept / Decline for someone who asked; otherwise where the two stand.
+// Cancelling and removing come with their own tickets and hang off these buttons.
 function FriendshipAction({ user }: { user: UserSummary }) {
   const { setUnauthenticated } = useAuthStore();
-  const [sent, setSent] = useState(false);
+  // Set by answering or adding here (undefined until then); the loaded value only reloads on focus.
+  const [changed, setChanged] = useState<UserSummary['friendship'] | undefined>(undefined);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const friendship = sent ? 'request_sent' : user.friendship;
+  const friendship = changed === undefined ? user.friendship : changed;
 
   async function add() {
     setIsSending(true);
     setError(null);
     try {
       await sendFriendRequest(user.id);
-      setSent(true);
+      setChanged('request_sent');
     } catch (err) {
       // apiFetch already tried a refresh; a 401 here means the session is gone.
       if (err instanceof ApiError && err.status === 401) {
@@ -88,9 +90,16 @@ function FriendshipAction({ user }: { user: UserSummary }) {
       return <Button label="Requested" variant="secondary" disabled />;
     case 'request_received':
       return (
-        <Text className="type-body-medium text-center text-text-secondary">
-          {user.username} sent you a friend request
-        </Text>
+        <View className="items-center gap-3">
+          <Text className="type-body-medium text-center text-text-secondary">
+            {user.username} sent you a friend request
+          </Text>
+          <FriendRequestActions
+            userId={user.id}
+            // Declining deletes the request, so they're back to someone you can add.
+            onAnswered={(answer) => setChanged(answer === 'accepted' ? 'friends' : null)}
+          />
+        </View>
       );
     default:
       return (

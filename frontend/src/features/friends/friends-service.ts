@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/auth/api-client';
-import type { UserSummary } from '@/lib/user/types';
+import type { FriendRequests, UserSummary } from '@/lib/user/types';
 
 /** Other users whose username contains the query, A to Z, at most 20. */
 export async function searchUsers(query: string): Promise<UserSummary[]> {
@@ -14,4 +14,24 @@ export async function getUser(userId: string): Promise<UserSummary> {
 /** Asks another user to be friends; it stays pending until they answer. */
 export async function sendFriendRequest(userId: string): Promise<void> {
   return apiFetch<void>('/v1/friends/requests', { method: 'POST', body: { userId } });
+}
+
+/** The signed-in user's friends, A to Z. */
+export async function getFriends(): Promise<UserSummary[]> {
+  return apiFetch<UserSummary[]>('/v1/friends');
+}
+
+/** Requests waiting for an answer: received from others and sent by the signed-in user. */
+export async function getFriendRequests(): Promise<FriendRequests> {
+  return apiFetch<FriendRequests>('/v1/friends/requests');
+}
+
+/** Accepts the request userId sent the signed-in user. */
+export async function acceptFriendRequest(userId: string): Promise<void> {
+  return apiFetch<void>(`/v1/friends/requests/${userId}/accept`, { method: 'POST' });
+}
+
+/** Declines the request userId sent; they can ask again later. */
+export async function declineFriendRequest(userId: string): Promise<void> {
+  return apiFetch<void>(`/v1/friends/requests/${userId}/decline`, { method: 'POST' });
 }
