@@ -1,4 +1,5 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
+import { useRouter } from 'expo-router';
 
 import { useUserSearch } from '@/features/friends/use-user-search';
 
@@ -8,10 +9,19 @@ jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/friends/use-user-search');
 
 const mockedUseUserSearch = jest.mocked(useUserSearch);
+const mockedUseRouter = jest.mocked(useRouter);
+const push = jest.fn();
 const user = userEvent.setup();
-const jane = { id: 'u2', username: 'jane_doe', bio: 'Fern collector', avatarUrl: 'https://storage.test/jane.jpg' };
+const jane = {
+  id: 'u2',
+  username: 'jane_doe',
+  bio: 'Fern collector',
+  avatarUrl: 'https://storage.test/jane.jpg',
+  friendship: null,
+} as const;
 
 beforeEach(() => {
+  mockedUseRouter.mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
   mockedUseUserSearch.mockReturnValue({ users: null, error: null, isLoading: false });
 });
 
@@ -67,4 +77,23 @@ it('shows the error when the search fails', async () => {
   await search('jan');
 
   expect(screen.getByText('Offline')).toBeOnTheScreen();
+});
+
+it("opens a person's profile when they're pressed", async () => {
+  mockedUseUserSearch.mockReturnValue({ users: [jane], error: null, isLoading: false });
+  await search('jan');
+
+  await user.press(screen.getByRole('button', { name: 'jane_doe' }));
+
+  expect(push).toHaveBeenCalledWith({ pathname: '/user/[id]', params: { id: 'u2' } });
+});
+
+it('tags people who are already friends, and only them', async () => {
+  const tom = { ...jane, id: 'u3', username: 'tom', friendship: 'friends' } as const;
+  const mia = { ...jane, id: 'u4', username: 'mia', friendship: 'request_sent' } as const;
+  mockedUseUserSearch.mockReturnValue({ users: [jane, tom, mia], error: null, isLoading: false });
+  await search('a');
+
+  expect(screen.getAllByText('Friend')).toHaveLength(1);
+  expect(screen.getByRole('button', { name: 'tom' })).toHaveTextContent(/Friend/);
 });

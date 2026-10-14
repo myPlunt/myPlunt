@@ -33,8 +33,17 @@ public final class ApiPaths {
         public static final String ME = BASE + "/me";
         public static final String ME_EMAIL = ME + "/email";
         public static final String SEARCH = BASE + "/search";
+        // Literal paths (/me, /search) win over this template.
+        public static final String BY_ID = BASE + "/{userId}";
 
         private Users() {}
+    }
+
+    public static final class Friends {
+        public static final String BASE = "/v1/friends";
+        public static final String REQUESTS = BASE + "/requests";
+
+        private Friends() {}
     }
 
     public static final class Garden {

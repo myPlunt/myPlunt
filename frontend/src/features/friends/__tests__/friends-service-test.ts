@@ -1,4 +1,4 @@
-import { searchUsers } from '@/features/friends/friends-service';
+import { getUser, searchUsers, sendFriendRequest } from '@/features/friends/friends-service';
 import { apiFetch } from '@/lib/auth/api-client';
 
 jest.mock('@/lib/auth/api-client', () => ({ apiFetch: jest.fn() }));
@@ -16,5 +16,24 @@ describe('searchUsers', () => {
 
     await expect(searchUsers('jane d&')).resolves.toEqual(users);
     expect(mockedApiFetch).toHaveBeenCalledWith('/v1/users/search?q=jane%20d%26');
+  });
+});
+
+describe('getUser', () => {
+  it('fetches /v1/users/{id}', async () => {
+    const jane = { id: 'u2', username: 'jane_doe', bio: null, avatarUrl: null, friendship: null };
+    mockedApiFetch.mockResolvedValue(jane);
+
+    await expect(getUser('u2')).resolves.toEqual(jane);
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/users/u2');
+  });
+});
+
+describe('sendFriendRequest', () => {
+  it('posts the user id to /v1/friends/requests', async () => {
+    mockedApiFetch.mockResolvedValue(undefined);
+
+    await sendFriendRequest('u2');
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/friends/requests', { method: 'POST', body: { userId: 'u2' } });
   });
 });
