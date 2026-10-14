@@ -1,6 +1,12 @@
 import logoMyPlunt from '../assets/logo-myplunt.svg'
+import type { Admin } from '../lib/api'
 
-function Sidebar() {
+type SidebarProps = {
+  admin: Admin
+  onSignOut: () => void
+}
+
+function Sidebar({ admin, onSignOut }: SidebarProps) {
   return (
     <aside className="flex shrink-0 flex-col gap-8 bg-cream px-5 py-6 text-green md:w-64 md:py-8">
       <div className="flex items-center gap-3">
@@ -16,6 +22,20 @@ function Sidebar() {
           Overview
         </a>
       </nav>
+
+      <div className="flex flex-col gap-3 md:mt-auto">
+        <div className="flex flex-col">
+          <span className="text-[15px] font-semibold">{admin.displayName}</span>
+          <span className="text-sm break-all text-ink">{admin.email}</span>
+        </div>
+        <button
+          type="button"
+          onClick={onSignOut}
+          className="self-start rounded-full border border-green px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-80"
+        >
+          Log out
+        </button>
+      </div>
     </aside>
   )
 }
