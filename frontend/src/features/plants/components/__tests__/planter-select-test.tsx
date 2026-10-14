@@ -76,4 +76,29 @@ describe('PlanterSelect', () => {
     expect(onAdded).not.toHaveBeenCalled();
     expect(screen.getByLabelText('New planter name')).toBeOnTheScreen();
   });
+<<<<<<< HEAD
+=======
+
+  it('shows a name validation error next to the input', async () => {
+    const error = new ApiError(400, 'Validation failed', { fieldErrors: { name: 'Name must be at most 255 characters.' } });
+    createPlanter.mockRejectedValue(error);
+    await renderSelect();
+    await openAndStartAdding();
+
+    await user.type(screen.getByLabelText('New planter name'), 'x');
+    await user.press(screen.getByRole('button', { name: 'Add' }));
+
+    expect(await screen.findByText('Name must be at most 255 characters.')).toBeOnTheScreen();
+  });
+
+  it('goes back to the list when adding is cancelled', async () => {
+    await renderSelect();
+    await openAndStartAdding();
+
+    await user.press(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByLabelText('New planter name')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add a planter' })).toBeOnTheScreen();
+  });
+>>>>>>> origin/dev
 });

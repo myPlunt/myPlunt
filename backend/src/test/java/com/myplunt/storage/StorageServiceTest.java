@@ -41,6 +41,9 @@ class StorageServiceTest {
     @Mock
     private AuditLog auditLog;
 
+    @Mock
+    private AuditLog auditLog;
+
     private StorageService storageService() {
         return new StorageService(s3Client, s3Presigner, "myplunt-dev", "", 5, 15, 5_242_880, auditLog);
     }
@@ -60,6 +63,22 @@ class StorageServiceTest {
     }
 
     @Test
+<<<<<<< HEAD
+=======
+    void createUploadUrl_appliesPrefixWhenConfigured() throws Exception {
+        when(s3Presigner.presignPutObject(any(java.util.function.Consumer.class)))
+                .thenReturn(presignedPutObjectRequest);
+        when(presignedPutObjectRequest.url()).thenReturn(URI.create("http://localhost:9000/signed").toURL());
+
+        StorageService staging = new StorageService(s3Client, s3Presigner, "myplunt", "staging", 5, 15, 5_242_880, auditLog);
+
+        UploadUrlResponse response = staging.createUploadUrl(UUID.randomUUID(), new UploadUrlRequest(PhotoCategory.POST, "image/png"));
+
+        assertThat(response.key()).startsWith("staging/posts/");
+    }
+
+    @Test
+>>>>>>> origin/dev
     void createUploadUrl_rejectsUnsupportedContentType() {
         assertThatThrownBy(() -> storageService()
                         .createUploadUrl(UUID.randomUUID(), new UploadUrlRequest(PhotoCategory.AVATAR, "image/gif")))

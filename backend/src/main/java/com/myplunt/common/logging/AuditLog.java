@@ -13,8 +13,13 @@ import java.util.UUID;
 // The record of what happened to accounts and their data, written to audit.log (see
 // logback-spring.xml). It's the source of truth, so services call it whatever the request came
 // from. user_id is the account the change is about and changed_by who made it; they differ when
+<<<<<<< HEAD
 // someone acts on another account. Old and new values that are personal data go in masked
 // (LogMasking).
+=======
+// someone acts on another account. Old and new values (emails, usernames) are logged in full;
+// passwords and tokens never go in.
+>>>>>>> origin/dev
 @Component
 public class AuditLog {
 

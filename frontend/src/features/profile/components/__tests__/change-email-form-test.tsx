@@ -52,4 +52,19 @@ describe('ChangeEmailForm', () => {
 
     await screen.findByText('Current password is incorrect');
   });
+<<<<<<< HEAD
+=======
+
+  it('shows the backend message for other errors', async () => {
+    const error = new ApiError(409, 'irrelevant', { detail: 'Email already registered' });
+    changeEmail.mockRejectedValue(error);
+    await render(<ChangeEmailForm user={jane} />);
+
+    await typeNewEmail('taken@example.com');
+    await user.type(screen.getByLabelText('Current password'), 'password123');
+    await user.press(screen.getByRole('button', { name: 'Change email' }));
+
+    await screen.findByText('Email already registered');
+  });
+>>>>>>> origin/dev
 });
