@@ -1,6 +1,6 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
 
-import { sendFriendRequest } from '@/features/friends/friends-service';
+import { acceptFriendRequest, declineFriendRequest, sendFriendRequest } from '@/features/friends/friends-service';
 import { useUserProfile } from '@/features/friends/use-user-profile';
 import { ApiError } from '@/lib/auth/api-client';
 import { AuthStoreProvider } from '@/stores/auth-store';
@@ -13,6 +13,8 @@ jest.mock('@/features/friends/friends-service');
 
 const mockedUseUserProfile = jest.mocked(useUserProfile);
 const mockedSendFriendRequest = jest.mocked(sendFriendRequest);
+const mockedAccept = jest.mocked(acceptFriendRequest);
+const mockedDecline = jest.mocked(declineFriendRequest);
 const user = userEvent.setup();
 const retry = jest.fn();
 const jane = {
@@ -71,11 +73,26 @@ it.each([
   expect(screen.queryByRole('button', { name: 'Add friend' })).toBeNull();
 });
 
-it('says when they sent you a request', async () => {
+it('lets you accept a request they sent', async () => {
+  mockedAccept.mockResolvedValue();
   await showProfile({ user: { ...jane, friendship: 'request_received' } });
 
   expect(screen.getByText('jane_doe sent you a friend request')).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Add friend' })).toBeNull();
+  await user.press(screen.getByRole('button', { name: 'Accept' }));
+
+  expect(mockedAccept).toHaveBeenCalledWith('u2');
+  expect(screen.getByRole('button', { name: 'Friends' })).toBeDisabled();
+});
+
+it('lets you decline a request they sent, leaving them to add again', async () => {
+  mockedDecline.mockResolvedValue();
+  await showProfile({ user: { ...jane, friendship: 'request_received' } });
+
+  await user.press(screen.getByRole('button', { name: 'Decline' }));
+
+  expect(mockedDecline).toHaveBeenCalledWith('u2');
+  expect(screen.getByRole('button', { name: 'Add friend' })).toBeOnTheScreen();
+  expect(screen.queryByText('jane_doe sent you a friend request')).toBeNull();
 });
 
 it('shows a spinner while loading', async () => {
