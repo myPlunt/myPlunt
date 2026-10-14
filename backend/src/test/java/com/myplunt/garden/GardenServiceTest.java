@@ -15,6 +15,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,6 +34,7 @@ class GardenServiceTest {
 
     private final UUID ownerId = UUID.randomUUID();
     private final Instant addedAt = Instant.parse("2026-09-01T10:00:00Z");
+    private final ZoneId zone = ZoneId.of("Europe/Amsterdam");
 
     private GardenService gardenService() {
         return new GardenService(planterRepository, plantService);
@@ -63,7 +65,7 @@ class GardenServiceTest {
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony, kitchen));
         when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(basil, george, minty));
 
-        GardenResponse garden = gardenService().getGarden(ownerId);
+        GardenResponse garden = gardenService().getGarden(ownerId, zone);
 
         assertThat(garden.rooms()).extracting(RoomResponse::name).containsExactly("Balcony", "Kitchen windowsill");
         assertThat(garden.rooms().get(0).plants()).extracting(GardenPlantResponse::name).containsExactly("George");
@@ -76,7 +78,7 @@ class GardenServiceTest {
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
         when(plantService.getLivingPlants(ownerId)).thenReturn(List.of());
 
-        GardenResponse garden = gardenService().getGarden(ownerId);
+        GardenResponse garden = gardenService().getGarden(ownerId, zone);
 
         assertThat(garden.rooms()).containsExactly(new RoomResponse(balcony.getId(), "Balcony", List.of()));
     }
@@ -89,7 +91,7 @@ class GardenServiceTest {
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
         when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(stray, george));
 
-        GardenResponse garden = gardenService().getGarden(ownerId);
+        GardenResponse garden = gardenService().getGarden(ownerId, zone);
 
         RoomResponse unassigned = garden.rooms().get(1);
         assertThat(unassigned.id()).isNull();
@@ -106,10 +108,10 @@ class GardenServiceTest {
         when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(george));
         when(plantService.getLastWateredAt(List.of(george.getId()))).thenReturn(Map.of(george.getId(), wateredAt));
 
-        GardenPlantResponse response = gardenService().getGarden(ownerId).rooms().get(0).plants().get(0);
+        GardenPlantResponse response = gardenService().getGarden(ownerId, zone).rooms().get(0).plants().get(0);
 
         assertThat(response).isEqualTo(new GardenPlantResponse(
-                george.getId(), "George", george.getSpecies().getId(), "Basil", 4, wateredAt, wateredAt.plus(Duration.ofDays(4)), null));
+                george.getId(), "George", george.getSpecies().getId(), "Basil", 4, wateredAt, wateredAt.plus(Duration.ofDays(4)), 0, null));
     }
 
     @Test
@@ -119,7 +121,7 @@ class GardenServiceTest {
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
         when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(george));
 
-        GardenPlantResponse response = gardenService().getGarden(ownerId).rooms().get(0).plants().get(0);
+        GardenPlantResponse response = gardenService().getGarden(ownerId, zone).rooms().get(0).plants().get(0);
 
         assertThat(response.lastWateredAt()).isNull();
         assertThat(response.nextWateringAt()).isEqualTo(addedAt.plus(Duration.ofDays(4)));
@@ -134,7 +136,7 @@ class GardenServiceTest {
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
         when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(unknown, noSpecies));
 
-        List<GardenPlantResponse> plants = gardenService().getGarden(ownerId).rooms().get(0).plants();
+        List<GardenPlantResponse> plants = gardenService().getGarden(ownerId, zone).rooms().get(0).plants();
 
         assertThat(plants).extracting(GardenPlantResponse::speciesName).containsExactly("Basil", null);
         assertThat(plants).allSatisfy(plant -> {
@@ -151,7 +153,7 @@ class GardenServiceTest {
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of());
         when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(vera));
 
-        GardenPlantResponse response = gardenService().getGarden(ownerId).rooms().get(0).plants().get(0);
+        GardenPlantResponse response = gardenService().getGarden(ownerId, zone).rooms().get(0).plants().get(0);
 
         assertThat(response.wateringFrequencyDays()).isEqualTo(10);
         assertThat(response.nextWateringAt()).isEqualTo(addedAt.plus(Duration.ofDays(10)));
@@ -165,7 +167,7 @@ class GardenServiceTest {
         when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of());
         when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(vera));
 
-        GardenPlantResponse response = gardenService().getGarden(ownerId).rooms().get(0).plants().get(0);
+        GardenPlantResponse response = gardenService().getGarden(ownerId, zone).rooms().get(0).plants().get(0);
 
         assertThat(response.speciesName()).isNull();
         assertThat(response.wateringFrequencyDays()).isEqualTo(7);
@@ -182,9 +184,24 @@ class GardenServiceTest {
         when(plantService.getPhotoUrls(List.of(george.getId(), pinky.getId())))
                 .thenReturn(Map.of(george.getId(), "https://storage.test/george.jpg?signed"));
 
-        List<GardenPlantResponse> plants = gardenService().getGarden(ownerId).rooms().get(0).plants();
+        List<GardenPlantResponse> plants = gardenService().getGarden(ownerId, zone).rooms().get(0).plants();
 
         assertThat(plants).extracting(GardenPlantResponse::photoUrl)
                 .containsExactly("https://storage.test/george.jpg?signed", null);
+    }
+
+    @Test
+    void getGarden_includesEachPlantsWateringStreakInTheUsersTimeZone() {
+        Planter balcony = planter("Balcony");
+        Plant george = plant("George", balcony, 4);
+        Plant pinky = plant("Pinky", balcony, 4);
+        List<Plant> plants = List.of(george, pinky);
+        when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
+        when(plantService.getLivingPlants(ownerId)).thenReturn(plants);
+        when(plantService.getWateringStreaks(plants, zone)).thenReturn(Map.of(george.getId(), 5, pinky.getId(), 0));
+
+        List<GardenPlantResponse> response = gardenService().getGarden(ownerId, zone).rooms().get(0).plants();
+
+        assertThat(response).extracting(GardenPlantResponse::wateringStreak).containsExactly(5, 0);
     }
 }

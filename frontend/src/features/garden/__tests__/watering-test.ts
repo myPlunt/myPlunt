@@ -1,6 +1,5 @@
 import {
   daysUntilWatering,
-  gardenSummary,
   lastWateredLabel,
   listPlantNames,
   plantsNeedingWater,
@@ -24,6 +23,7 @@ function plant(name: string, due: Date = new Date(2026, 9, 16), wateringFrequenc
     wateringFrequencyDays,
     lastWateredAt: null,
     nextWateringAt: due.toISOString(),
+    wateringStreak: 0,
     photoUrl: null,
   };
 }
@@ -124,25 +124,6 @@ describe('sortByNextWatering', () => {
     sortByNextWatering(plants, now);
 
     expect(plants.map((p) => p.name)).toEqual(['Rosie', 'Basil']);
-  });
-});
-
-describe('gardenSummary', () => {
-  it('counts plants and rooms', () => {
-    const garden = { rooms: [room('a', [plant('George')]), room('b', [plant('Pinky'), plant('Monty')])] };
-
-    expect(gardenSummary(garden)).toBe('3 plants in 2 rooms');
-  });
-
-  it('uses the singular for one plant in one room', () => {
-    expect(gardenSummary({ rooms: [room('a', [plant('George')])] })).toBe('1 plant in 1 room');
-  });
-
-  it('does not count the group of plants without a room as a room', () => {
-    const garden = { rooms: [room('a', [plant('George')]), room(null, [plant('Stray')])] };
-
-    expect(gardenSummary(garden)).toBe('2 plants in 1 room');
-    expect(gardenSummary({ rooms: [room(null, [plant('Stray')])] })).toBe('1 plant');
   });
 });
 

@@ -73,20 +73,56 @@ describe('ProfileScreen', () => {
     expect(push).toHaveBeenCalledWith('/garden');
   });
 
-  it('opens settings from the header', async () => {
+  it('keeps friends, the watering calendar and settings in the burger menu', async () => {
     await render(<ProfileScreen />);
+    expect(screen.queryByRole('button', { name: 'Open settings' })).toBeNull();
 
-    await user.press(screen.getByRole('button', { name: 'Open settings' }));
+    await user.press(screen.getByRole('button', { name: 'Open menu' }));
 
-    expect(push).toHaveBeenCalledWith('/settings');
+    expect(screen.getByRole('button', { name: 'Close menu' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Open friends' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Open watering calendar' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Open settings' })).toBeOnTheScreen();
   });
 
-  it('opens Friends from the header', async () => {
+  it('lists settings, friends and the watering calendar in that order', async () => {
     await render(<ProfileScreen />);
 
-    await user.press(screen.getByRole('button', { name: 'Open friends' }));
+    await user.press(screen.getByRole('button', { name: 'Open menu' }));
 
-    expect(push).toHaveBeenCalledWith('/friends');
+    expect(
+      screen.getAllByRole('button', { name: /^Open (settings|friends|watering calendar)$/ }).map(
+        (button) => button.props.accessibilityLabel,
+      ),
+    ).toEqual(['Open settings', 'Open friends', 'Open watering calendar']);
+  });
+
+  it.each([
+    ['Open settings', '/settings'],
+    ['Open friends', '/friends'],
+    ['Open watering calendar', '/watering-calendar'],
+  ])('"%s" in the menu opens %s and closes the menu', async (label, path) => {
+    await render(<ProfileScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Open menu' }));
+    await user.press(screen.getByRole('button', { name: label }));
+
+    expect(push).toHaveBeenCalledWith(path);
+    expect(screen.queryByRole('button', { name: label })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open menu' })).toBeOnTheScreen();
+  });
+
+  it('closes the menu from the cross or a press anywhere else', async () => {
+    await render(<ProfileScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Open menu' }));
+    await user.press(screen.getByRole('button', { name: 'Close menu' }));
+    expect(screen.queryByRole('button', { name: 'Open settings' })).toBeNull();
+
+    await user.press(screen.getByRole('button', { name: 'Open menu' }));
+    await user.press(screen.getByLabelText('Dismiss menu'));
+    expect(screen.queryByRole('button', { name: 'Open settings' })).toBeNull();
+    expect(push).not.toHaveBeenCalled();
   });
 
   it('has no back button, because Profile is a tab', async () => {

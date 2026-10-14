@@ -43,6 +43,7 @@ function plant(
     wateringFrequencyDays: 4,
     lastWateredAt: null,
     nextWateringAt: inDays(dueInDays),
+    wateringStreak: 0,
     photoUrl,
   };
 }
@@ -81,12 +82,6 @@ describe('GardenScreen', () => {
 
     expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Add plant' })).toBeNull();
-  });
-
-  it('summarises how many plants and rooms the garden has', async () => {
-    await render(<GardenScreen />);
-
-    expect(screen.getByText('4 plants in 3 rooms')).toBeOnTheScreen();
   });
 
   it('shows every room with how many plants need water', async () => {

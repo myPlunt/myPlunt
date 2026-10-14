@@ -6,6 +6,8 @@ import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
+import com.myplunt.plant.dto.WateringHistoryResponse;
+import com.myplunt.plant.dto.WateringResponse;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,8 @@ import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -443,6 +447,75 @@ class PlantControllerTest {
     @Test
     void water_rejectsRequestsWithoutAToken() {
         restTestClient.post().uri("/v1/plants/{plantId}/waterings", plantId)
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void wateringHistory_returnsThePlantsWateringsCountedInTheUsersTimeZone() {
+        UUID userId = authenticateAsJane();
+        WateringHistoryResponse history = new WateringHistoryResponse(
+                "Vera", 7, 1, 2, 50, false,
+                List.of(new WateringResponse(UUID.randomUUID(), Instant.parse("2026-10-07T08:00:00Z"), 0)));
+        when(plantService.getWateringHistory(userId, plantId, ZoneId.of("Europe/Amsterdam"))).thenReturn(history);
+
+        restTestClient.get().uri("/v1/plants/{plantId}/waterings?zone=Europe/Amsterdam", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(WateringHistoryResponse.class)
+                .isEqualTo(history);
+    }
+
+    @Test
+    void wateringHistory_countsDaysInUtcWhenTheAppSendsNoTimeZone() {
+        UUID userId = authenticateAsJane();
+        when(plantService.getWateringHistory(userId, plantId, ZoneId.of("UTC")))
+                .thenReturn(new WateringHistoryResponse("Vera", 7, 0, 0, null, false, List.of()));
+
+        restTestClient.get().uri("/v1/plants/{plantId}/waterings", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(plantService).getWateringHistory(userId, plantId, ZoneId.of("UTC"));
+    }
+
+    @Test
+    void wateringHistory_rejectsAnUnknownTimeZone() {
+        authenticateAsJane();
+
+        restTestClient.get().uri("/v1/plants/{plantId}/waterings?zone=Mars/Olympus", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void wateringHistory_returnsNotFoundWhenThePlantIsNotTheUsers() {
+        UUID userId = authenticateAsJane();
+        when(plantService.getWateringHistory(userId, plantId, ZoneId.of("UTC")))
+                .thenThrow(new IllegalStateException("Plant not found"));
+
+        restTestClient.get().uri("/v1/plants/{plantId}/waterings", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void wateringHistory_rejectsAMalformedPlantId() {
+        authenticateAsJane();
+
+        restTestClient.get().uri("/v1/plants/not-a-uuid/waterings")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void wateringHistory_rejectsRequestsWithoutAToken() {
+        restTestClient.get().uri("/v1/plants/{plantId}/waterings", plantId)
                 .exchange()
                 .expectStatus().isUnauthorized();
     }

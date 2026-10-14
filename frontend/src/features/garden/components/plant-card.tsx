@@ -26,6 +26,7 @@ export function PlantCard({ plant, now, selection }: PlantCardProps) {
   const router = useRouter();
   const theme = useTheme();
   const selected = selection?.selected ?? false;
+  const streak = plant.wateringStreak;
 
   return (
     <Pressable
@@ -42,6 +43,10 @@ export function PlantCard({ plant, now, selection }: PlantCardProps) {
             onPress: () => router.push({ pathname: '/plant/[id]', params: { id: plant.id } }),
           })}
       accessibilityLabel={plant.name}
+      // The streak badge sits inside the card, which reads as one element, so it's announced here.
+      accessibilityValue={
+        streak > 0 ? { text: `Watered on time ${streak} ${streak === 1 ? 'time' : 'times'} in a row` } : undefined
+      }
       // The border is always there (transparent when unselected) so selecting doesn't shift the card.
       className={`w-[168px] rounded-3xl border-2 bg-background-element p-2 active:opacity-70 ${
         selected ? 'border-action-primary' : 'border-transparent'
@@ -55,6 +60,18 @@ export function PlantCard({ plant, now, selection }: PlantCardProps) {
         className="aspect-square w-full rounded-2xl"
         iconSize={36}
       />
+      {/* Only once there's a streak; a 0 on every new plant would just be noise. */}
+      {streak > 0 && (
+        <View className="absolute left-4 top-4 flex-row items-center gap-1 rounded-full bg-background-element/90 px-2 py-0.5">
+          {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
+          <SymbolView
+            name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
+            tintColor={theme.water}
+            size={12}
+          />
+          <Text className="type-body-medium text-text">{streak}</Text>
+        </View>
+      )}
       {selection && (
         <View
           className={`absolute right-4 top-4 h-7 w-7 items-center justify-center rounded-full border-2 border-background-element ${

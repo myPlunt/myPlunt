@@ -46,9 +46,17 @@ public final class ApiPaths {
     public static final class Plants {
         public static final String BASE = "/v1/plants";
         public static final String BY_ID = BASE + "/{plantId}";
+        // POST waters the plant, GET returns its watering history.
         public static final String WATERINGS = BASE + "/{plantId}/waterings";
 
         private Plants() {}
+    }
+
+    public static final class Waterings {
+        public static final String BASE = "/v1/waterings";
+        public static final String STREAK = BASE + "/streak";
+
+        private Waterings() {}
     }
 
     public static final class Planters {

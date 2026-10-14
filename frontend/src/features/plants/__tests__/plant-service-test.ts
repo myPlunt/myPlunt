@@ -2,6 +2,7 @@ import * as plantService from '@/features/plants/plant-service';
 import { apiFetch } from '@/lib/auth/api-client';
 
 jest.mock('@/lib/auth/api-client', () => ({ apiFetch: jest.fn() }));
+jest.mock('@/lib/time-zone', () => ({ timeZoneQuery: () => '?zone=Europe%2FAmsterdam' }));
 
 const mockedApiFetch = jest.mocked(apiFetch);
 
@@ -64,5 +65,23 @@ describe('deletePlant', () => {
 
     await expect(plantService.deletePlant('p1')).resolves.toBeUndefined();
     expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants/p1', { method: 'DELETE' });
+  });
+});
+
+describe('getWateringHistory', () => {
+  it("GETs the plant's waterings, with the device's time zone for the streaks", async () => {
+    const history = {
+      plantName: 'Vera',
+      wateringFrequencyDays: 7,
+      currentStreak: 0,
+      bestStreak: 0,
+      onTimePercent: null,
+      overdue: false,
+      waterings: [],
+    };
+    mockedApiFetch.mockResolvedValue(history);
+
+    await expect(plantService.getWateringHistory('p1')).resolves.toEqual(history);
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants/p1/waterings?zone=Europe%2FAmsterdam');
   });
 });
