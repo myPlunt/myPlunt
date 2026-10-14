@@ -49,6 +49,10 @@ public final class ApiPaths {
     public static final class Friends {
         public static final String BASE = "/v1/friends";
         public static final String REQUESTS = BASE + "/requests";
+        // Keyed by the other user, so their profile can answer without knowing the request's id.
+        public static final String ACCEPT = REQUESTS + "/{userId}/accept";
+        public static final String DECLINE = REQUESTS + "/{userId}/decline";
+        public static final String CANCEL = REQUESTS + "/{userId}/cancel";
 
         private Friends() {}
     }
