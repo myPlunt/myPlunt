@@ -18,7 +18,9 @@ import java.util.UUID;
 @Component
 public class AuditLog {
 
-    private static final Logger log = LoggerFactory.getLogger("com.myplunt.audit");
+    static final String AUDIT_LOGGER = "com.myplunt.audit";
+
+    private static final Logger log = LoggerFactory.getLogger(AUDIT_LOGGER);
 
     // Inside a transaction the line waits for the commit, so a rollback never leaves an action
     // in the log that didn't happen.

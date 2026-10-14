@@ -30,6 +30,11 @@ public class LogLineFormatter implements StructuredLogFormatter<ILoggingEvent> {
 
     @Override
     public String format(ILoggingEvent event) {
+        return writer.writeToString(toLine(event));
+    }
+
+    // The line as a map, before it's written as JSON. DatabaseLogAppender stores it in the logs table.
+    Map<String, Object> toLine(ILoggingEvent event) {
         boolean frontend = FRONTEND_LOGGER.equals(event.getLoggerName());
         Map<String, Object> fields = new LinkedHashMap<>();
         if (event.getKeyValuePairs() != null) {
@@ -72,7 +77,7 @@ public class LogLineFormatter implements StructuredLogFormatter<ILoggingEvent> {
         }
         // Fields that don't apply to this line are left out rather than written as null.
         line.values().removeIf(value -> value == null);
-        return writer.writeToString(line);
+        return line;
     }
 
     private static String typeOf(Level level) {
