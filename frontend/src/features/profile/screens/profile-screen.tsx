@@ -43,8 +43,9 @@ export function ProfileScreen() {
             <View>
               <UserAvatar size={96} />
 
-              /* TO think we need to show the streak badge here, but we don't have the streak data yet. */
-              /* The streak sould be just increasing never decreassing we dont know how to make that happen yet. */
+
+              {/* TO think we need to show the streak badge here, but we don't have the streak data yet. */}
+              {/* The streak sould be just increasing never decreassing we dont know how to make that happen yet. */}
               {/* {streak !== null && (
                 <View className="absolute -bottom-1 -right-1">
                   <WateringStreakBadge streak={streak} />
