@@ -10,7 +10,7 @@ spring:
     # passwords. GlobalExceptionHandler already logs failures without the values.
     log-resolved-exception: false
   jpa:
-    # Set explicitly (same as the default) to silence the startup warning in the error log.
+    # Set explicitly (same as the default) to silence its startup warning in the log file.
     open-in-view: true
     hibernate:
       ddl-auto: validate
@@ -22,15 +22,14 @@ spring:
       storagePrefix: ${app.storage.prefix}
 
 logging:
-  # Console stays human-readable; the file only collects problems, one JSON (ECS) object
-  # per line, so it can later be bulk-loaded into a database for the admin dashboard.
+  # Console stays human-readable. The file gets warnings, errors and user actions (see
+  # logback-spring.xml for which lines), one flat JSON object per line (see LogLineFormatter),
+  # so it can later be bulk-loaded into a database for the admin dashboard.
   file:
-    name: ${LOG_FILE:logs/myplunt-errors.log}
-  threshold:
-    file: WARN
+    name: ${LOG_FILE:logs/myplunt.log}
   structured:
     format:
-      file: ecs
+      file: com.myplunt.common.logging.LogLineFormatter
   logback:
     rollingpolicy:
       max-file-size: 10MB

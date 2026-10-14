@@ -3,6 +3,8 @@ package com.myplunt.auth;
 import com.myplunt.auth.dto.AuthResponse;
 import com.myplunt.auth.dto.LoginRequest;
 import com.myplunt.auth.dto.RegisterRequest;
+import com.myplunt.common.logging.ActionLog;
+import com.myplunt.common.logging.UserAction;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -11,16 +13,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,8 +43,11 @@ class AuthServiceTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private ActionLog actionLog;
+
     private AuthService authService() {
-        return new AuthService(userRepository, refreshTokenRepository, passwordEncoder, jwtService, 30);
+        return new AuthService(userRepository, refreshTokenRepository, passwordEncoder, jwtService, actionLog, 30);
     }
 
     @Test
@@ -47,7 +55,12 @@ class AuthServiceTest {
         when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.empty());
         when(userRepository.findByUsername("jane")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("password123")).thenReturn("hashed");
-        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        UUID userId = UUID.randomUUID();
+        when(userRepository.save(any())).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            ReflectionTestUtils.setField(user, "id", userId);
+            return user;
+        });
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtService.generateAccessToken(any())).thenReturn("access-token");
 
@@ -55,6 +68,7 @@ class AuthServiceTest {
 
         assertThat(response.accessToken()).isEqualTo("access-token");
         assertThat(response.refreshToken()).isNotBlank();
+        verify(actionLog).record(UserAction.USER_REGISTERED, userId);
     }
 
     @Test
@@ -87,6 +101,8 @@ class AuthServiceTest {
     @Test
     void login_returnsTokensForValidCredentials() {
         User user = new User("jane", "jane@example.com", "hashed");
+        UUID userId = UUID.randomUUID();
+        ReflectionTestUtils.setField(user, "id", userId);
         when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password123", "hashed")).thenReturn(true);
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -96,6 +112,7 @@ class AuthServiceTest {
 
         assertThat(response.accessToken()).isEqualTo("access-token");
         assertThat(response.refreshToken()).isNotBlank();
+        verify(actionLog).record(UserAction.USER_LOGGED_IN, userId);
     }
 
     @Test
@@ -118,6 +135,7 @@ class AuthServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
+        verifyNoInteractions(actionLog);
 
         verify(refreshTokenRepository, never()).save(any());
     }

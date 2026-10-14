@@ -58,10 +58,14 @@ public class PlantController {
         plantService.delete(principal.getId(), plantId);
     }
 
+    // zone is the app's IANA time zone ("Europe/Amsterdam"); streaks count days in it.
     @PostMapping(ApiPaths.Plants.WATERINGS)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void water(@AuthenticationPrincipal User principal, @PathVariable UUID plantId) {
-        plantService.water(principal.getId(), plantId);
+    public void water(
+            @AuthenticationPrincipal User principal,
+            @PathVariable UUID plantId,
+            @RequestParam(defaultValue = "UTC") ZoneId zone) {
+        plantService.water(principal.getId(), plantId, zone);
     }
 
     // zone is the app's IANA time zone ("Europe/Amsterdam"); streaks count days in it.

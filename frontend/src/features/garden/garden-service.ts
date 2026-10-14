@@ -7,5 +7,5 @@ export async function getGarden(): Promise<Garden> {
 }
 
 export async function waterPlant(plantId: string): Promise<void> {
-  return apiFetch<void>(`/v1/plants/${plantId}/waterings`, { method: 'POST' });
+  return apiFetch<void>(`/v1/plants/${plantId}/waterings${timeZoneQuery()}`, { method: 'POST' });
 }

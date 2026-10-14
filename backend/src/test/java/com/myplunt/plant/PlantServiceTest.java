@@ -1,5 +1,7 @@
 package com.myplunt.plant;
 
+import com.myplunt.common.logging.ActionLog;
+import com.myplunt.common.logging.UserAction;
 import com.myplunt.garden.Planter;
 import com.myplunt.garden.PlanterRepository;
 import com.myplunt.plant.dto.CreatePlantRequest;
@@ -35,10 +37,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,12 +66,15 @@ class PlantServiceTest {
     @Mock
     private StorageService storageService;
 
+    @Mock
+    private ActionLog actionLog;
+
     private final UUID userId = UUID.randomUUID();
     private final UUID plantId = UUID.randomUUID();
 
     private PlantService plantService() {
         return new PlantService(
-                plantRepository, wateringLogRepository, planterRepository, speciesRepository, plantPhotoRepository, storageService);
+                plantRepository, wateringLogRepository, planterRepository, speciesRepository, plantPhotoRepository, storageService, actionLog);
     }
 
     // Gives the saved plant an id, as the database would.
@@ -91,6 +98,7 @@ class PlantServiceTest {
         verify(plantRepository).save(saved.capture());
         assertThat(saved.getValue().getOwnerId()).isEqualTo(userId);
         assertThat(saved.getValue().isAlive()).isTrue();
+        verify(actionLog).record(UserAction.PLANT_CREATED, userId, plantId);
     }
 
     @Test
@@ -492,11 +500,10 @@ class PlantServiceTest {
 
     @Test
     void water_logsAWateringByTheUserNow() {
-        Plant george = new Plant(userId, "George");
-        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(george));
+        Plant george = ownPlant("George");
         Instant before = Instant.now();
 
-        plantService().water(userId, plantId);
+        plantService().water(userId, plantId, ZoneOffset.UTC);
 
         ArgumentCaptor<WateringLog> saved = ArgumentCaptor.forClass(WateringLog.class);
         verify(wateringLogRepository).save(saved.capture());
@@ -506,13 +513,59 @@ class PlantServiceTest {
     }
 
     @Test
+    void water_recordsTheWateringWithThePlantsNewStreak() {
+        // On a 3-day schedule: added 6 days ago, watered on time 4 and 2 days ago, and now.
+        Plant vera = ownPlant("Vera");
+        Instant now = Instant.now();
+        ReflectionTestUtils.setField(vera, "createdAt", now.minus(Duration.ofDays(6)));
+        vera.setWateringEveryDays(3);
+        when(wateringLogRepository.findByPlantIdOrderByWateredAtAsc(plantId)).thenReturn(List.of(
+                watering(vera, now.minus(Duration.ofDays(4))),
+                watering(vera, now.minus(Duration.ofDays(2)))));
+
+        plantService().water(userId, plantId, ZoneOffset.UTC);
+
+        verify(actionLog).record(UserAction.PLANT_WATERED, userId, plantId, Map.of("streak", 3));
+        verify(actionLog, never()).record(eq(UserAction.WATERING_STREAK_BROKEN), any(), any(), any());
+    }
+
+    @Test
+    void water_recordsABrokenStreakWhenTheWateringIsLate() {
+        // On a 3-day schedule: added 12 days ago, watered on time 10 and 8 days ago, so due 5 days ago.
+        Plant vera = ownPlant("Vera");
+        Instant now = Instant.now();
+        ReflectionTestUtils.setField(vera, "createdAt", now.minus(Duration.ofDays(12)));
+        vera.setWateringEveryDays(3);
+        when(wateringLogRepository.findByPlantIdOrderByWateredAtAsc(plantId)).thenReturn(List.of(
+                watering(vera, now.minus(Duration.ofDays(10))),
+                watering(vera, now.minus(Duration.ofDays(8)))));
+
+        plantService().water(userId, plantId, ZoneOffset.UTC);
+
+        verify(actionLog).record(UserAction.PLANT_WATERED, userId, plantId, Map.of("streak", 0));
+        verify(actionLog).record(UserAction.WATERING_STREAK_BROKEN, userId, plantId, Map.of("lostStreak", 2));
+    }
+
+    @Test
+    void water_doesNotRecordABrokenStreakWhenThereWasNoStreakToLose() {
+        // Added long ago and never watered, so this first watering is late with nothing to break.
+        ownPlant("Vera");
+
+        plantService().water(userId, plantId, ZoneOffset.UTC);
+
+        verify(actionLog).record(UserAction.PLANT_WATERED, userId, plantId, Map.of("streak", 0));
+        verify(actionLog, never()).record(eq(UserAction.WATERING_STREAK_BROKEN), any(), any(), any());
+    }
+
+    @Test
     void water_throwsNotFoundForAPlantTheUserDoesNotOwn() {
         when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> plantService().water(userId, plantId))
+        assertThatThrownBy(() -> plantService().water(userId, plantId, ZoneOffset.UTC))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Plant not found");
         verify(wateringLogRepository, never()).save(any());
+        verifyNoInteractions(actionLog);
     }
 
     @Test
@@ -521,7 +574,7 @@ class PlantServiceTest {
         george.setAlive(false);
         when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(george));
 
-        assertThatThrownBy(() -> plantService().water(userId, plantId))
+        assertThatThrownBy(() -> plantService().water(userId, plantId, ZoneOffset.UTC))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.CONFLICT);
@@ -689,6 +742,7 @@ class PlantServiceTest {
         order.verify(plantRepository).flush();
         order.verify(storageService).deleteObject("plants/u/old.jpg");
         order.verify(storageService).deleteObject("plants/u/new.jpg");
+        verify(actionLog).record(UserAction.PLANT_DELETED, userId, plantId);
     }
 
     @Test
@@ -724,5 +778,6 @@ class PlantServiceTest {
                 .hasMessage("Plant not found");
         verify(plantRepository, never()).delete(any());
         verify(storageService, never()).deleteObject(any());
+        verifyNoInteractions(actionLog);
     }
 }

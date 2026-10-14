@@ -3,6 +3,8 @@ package com.myplunt.auth;
 import com.myplunt.auth.dto.AuthResponse;
 import com.myplunt.auth.dto.LoginRequest;
 import com.myplunt.auth.dto.RegisterRequest;
+import com.myplunt.common.logging.ActionLog;
+import com.myplunt.common.logging.UserAction;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +24,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final ActionLog actionLog;
     private final Duration refreshTokenTtl;
 
     public AuthService(
@@ -29,11 +32,13 @@ public class AuthService {
             RefreshTokenRepository refreshTokenRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
+            ActionLog actionLog,
             @Value("${app.jwt.refresh-token-ttl-days}") long refreshTokenTtlDays) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.actionLog = actionLog;
         this.refreshTokenTtl = Duration.ofDays(refreshTokenTtlDays);
     }
 
@@ -47,6 +52,7 @@ public class AuthService {
 
         User user = userRepository.save(new User(
                 request.username(), request.email(), passwordEncoder.encode(request.password())));
+        actionLog.record(UserAction.USER_REGISTERED, user.getId());
 
         return issueTokens(user);
     }
@@ -58,6 +64,7 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
+        actionLog.record(UserAction.USER_LOGGED_IN, user.getId());
 
         return issueTokens(user);
     }

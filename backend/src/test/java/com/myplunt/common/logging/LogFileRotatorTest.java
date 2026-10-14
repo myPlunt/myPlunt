@@ -17,16 +17,16 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ErrorLogRotatorTest {
+class LogFileRotatorTest {
 
     @TempDir
     Path dir;
 
-    private final ErrorLogRotator rotator = new ErrorLogRotator(new DeferredLogs());
+    private final LogFileRotator rotator = new LogFileRotator(new DeferredLogs());
 
     @Test
     void rotate_renamesThePreviousRunsFileAfterTheTimeItWasLastWritten() throws IOException {
-        Path logFile = dir.resolve("myplunt-errors.log");
+        Path logFile = dir.resolve("myplunt.log");
         Files.writeString(logFile, "{\"message\":\"previous run\"}\n");
         Instant lastWritten = Instant.parse("2026-10-14T09:05:32Z");
         Files.setLastModifiedTime(logFile, FileTime.from(lastWritten));
@@ -36,21 +36,21 @@ class ErrorLogRotatorTest {
         String stamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")
                 .withZone(ZoneId.systemDefault()).format(lastWritten);
         assertThat(logFile).doesNotExist();
-        assertThat(dir.resolve("myplunt-errors-" + stamp + ".log")).hasContent("{\"message\":\"previous run\"}");
+        assertThat(dir.resolve("myplunt-" + stamp + ".log")).hasContent("{\"message\":\"previous run\"}");
     }
 
     @Test
     void rotate_leavesAnEmptyFileInPlace() throws IOException {
-        Path logFile = Files.createFile(dir.resolve("myplunt-errors.log"));
+        Path logFile = Files.createFile(dir.resolve("myplunt.log"));
 
         rotator.rotate(logFile, 14);
 
-        assertThat(fileNames()).containsExactly("myplunt-errors.log");
+        assertThat(fileNames()).containsExactly("myplunt.log");
     }
 
     @Test
     void rotate_doesNothingOnFirstStartWhenTheFolderDoesNotExistYet() {
-        Path logFile = dir.resolve("logs/myplunt-errors.log");
+        Path logFile = dir.resolve("logs/myplunt.log");
 
         rotator.rotate(logFile, 14);
 
@@ -59,9 +59,9 @@ class ErrorLogRotatorTest {
 
     @Test
     void rotate_deletesArchivesOlderThanMaxHistoryButKeepsOtherFiles() throws IOException {
-        Path logFile = dir.resolve("myplunt-errors.log");
-        Path oldArchive = archiveAgedDays("myplunt-errors-2026-09-01_10-00-00.log", 20);
-        Path recentArchive = archiveAgedDays("myplunt-errors-2026-10-10_10-00-00.log", 4);
+        Path logFile = dir.resolve("myplunt.log");
+        Path oldArchive = archiveAgedDays("myplunt-2026-09-01_10-00-00.log", 20);
+        Path recentArchive = archiveAgedDays("myplunt-2026-10-10_10-00-00.log", 4);
         Path unrelated = archiveAgedDays("other-2026-09-01_10-00-00.log", 20);
 
         rotator.rotate(logFile, 14);

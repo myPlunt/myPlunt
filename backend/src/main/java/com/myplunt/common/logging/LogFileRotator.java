@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.stream.Stream;
 
 /**
- * Gives every start of the backend its own error log: before logging starts, the previous
+ * Gives every start of the backend its own log file: before logging starts, the previous
  * run's file is renamed to {@code <name>-<yyyy-MM-dd_HH-mm-ss>.log} (the time it was last
  * written), so each archived file is complete and safe to import. Archives older than
  * {@code logging.logback.rollingpolicy.max-history} days are deleted.
@@ -23,7 +23,7 @@ import java.util.stream.Stream;
  * <p>Runs as an EnvironmentPostProcessor because that is the last hook before Spring Boot
  * opens the log file, and after application.yml has been read.
  */
-public class ErrorLogRotator implements EnvironmentPostProcessor {
+public class LogFileRotator implements EnvironmentPostProcessor {
 
     private static final DateTimeFormatter ARCHIVE_TIME =
             DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss").withZone(ZoneId.systemDefault());
@@ -31,8 +31,8 @@ public class ErrorLogRotator implements EnvironmentPostProcessor {
     // Logging isn't set up yet at this point; a deferred log is replayed once it is.
     private final Log log;
 
-    public ErrorLogRotator(DeferredLogFactory logFactory) {
-        this.log = logFactory.getLog(ErrorLogRotator.class);
+    public LogFileRotator(DeferredLogFactory logFactory) {
+        this.log = logFactory.getLog(LogFileRotator.class);
     }
 
     @Override
@@ -56,7 +56,7 @@ public class ErrorLogRotator implements EnvironmentPostProcessor {
             deleteOldArchives(logFile, baseName, maxHistoryDays);
         } catch (IOException e) {
             // Never block startup over this; logback just keeps appending to the old file.
-            log.warn("Could not rotate the error log " + logFile, e);
+            log.warn("Could not rotate the log file " + logFile, e);
         }
     }
 

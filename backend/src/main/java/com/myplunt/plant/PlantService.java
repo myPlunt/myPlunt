@@ -1,5 +1,7 @@
 package com.myplunt.plant;
 
+import com.myplunt.common.logging.ActionLog;
+import com.myplunt.common.logging.UserAction;
 import com.myplunt.garden.Planter;
 import com.myplunt.garden.PlanterRepository;
 import com.myplunt.plant.dto.CreatePlantRequest;
@@ -40,6 +42,7 @@ public class PlantService {
     private final SpeciesRepository speciesRepository;
     private final PlantPhotoRepository plantPhotoRepository;
     private final StorageService storageService;
+    private final ActionLog actionLog;
 
     public PlantService(
             PlantRepository plantRepository,
@@ -47,13 +50,15 @@ public class PlantService {
             PlanterRepository planterRepository,
             SpeciesRepository speciesRepository,
             PlantPhotoRepository plantPhotoRepository,
-            StorageService storageService) {
+            StorageService storageService,
+            ActionLog actionLog) {
         this.plantRepository = plantRepository;
         this.wateringLogRepository = wateringLogRepository;
         this.planterRepository = planterRepository;
         this.speciesRepository = speciesRepository;
         this.plantPhotoRepository = plantPhotoRepository;
         this.storageService = storageService;
+        this.actionLog = actionLog;
     }
 
     @Transactional
@@ -79,6 +84,7 @@ public class PlantService {
         if (request.photoKey() != null) {
             plantPhotoRepository.save(new PlantPhoto(saved, ownerId, request.photoKey(), Instant.now()));
         }
+        actionLog.record(UserAction.PLANT_CREATED, ownerId, saved.getId());
         return new PlantResponse(
                 saved.getId(),
                 saved.getName(),
@@ -154,13 +160,36 @@ public class PlantService {
                         (first, second) -> first));
     }
 
+    // zone is only used to count the streak days for the action log.
     @Transactional
-    public void water(UUID userId, UUID plantId) {
+    public void water(UUID userId, UUID plantId, ZoneId zone) {
         Plant plant = findOwnPlant(userId, plantId);
         if (!plant.isAlive()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be watered");
         }
-        wateringLogRepository.save(new WateringLog(plant, userId, Instant.now()));
+        List<Instant> earlier = wateringLogRepository.findByPlantIdOrderByWateredAtAsc(plantId).stream()
+                .map(WateringLog::getWateredAt)
+                .toList();
+        Instant now = Instant.now();
+        wateringLogRepository.save(new WateringLog(plant, userId, now));
+        recordWatering(userId, plant, earlier, now, zone);
+    }
+
+    private void recordWatering(UUID userId, Plant plant, List<Instant> earlier, Instant now, ZoneId zone) {
+        // The streak as it stood at the previous watering, before any overdue days zeroed it.
+        int streakBefore = earlier.isEmpty()
+                ? 0
+                : WateringConsistency.of(plant, earlier, zone, earlier.getLast()).currentStreak();
+        List<Instant> all = new ArrayList<>(earlier);
+        all.add(now);
+        int streak = WateringConsistency.of(plant, all, zone, now).currentStreak();
+
+        actionLog.record(UserAction.PLANT_WATERED, userId, plant.getId(), Map.of("streak", streak));
+        // A late watering is the only thing that resets a streak to 0.
+        if (streakBefore > 0 && streak == 0) {
+            actionLog.record(
+                    UserAction.WATERING_STREAK_BROKEN, userId, plant.getId(), Map.of("lostStreak", streakBefore));
+        }
     }
 
     // Also for plants that have died, so their record stays readable. Days are counted in the
@@ -235,6 +264,7 @@ public class PlantService {
         Plant plant = findOwnPlant(ownerId, plantId);
         List<String> photoKeys = plantPhotoRepository.findPhotoKeysByPlantId(plantId);
         plantRepository.delete(plant);
+        actionLog.record(UserAction.PLANT_DELETED, ownerId, plantId);
         // Flushed first so the plant is really gone before its files are; a failed delete
         // then leaves the photos in place.
         plantRepository.flush();

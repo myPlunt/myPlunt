@@ -176,9 +176,9 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<!-- Keeps warnings from test runs out of the real error log in logs/. -->
+					<!-- Keeps what test runs log out of the real log file in logs/. -->
 					<environmentVariables>
-						<LOG_FILE>${project.build.directory}/test-logs/myplunt-errors.log</LOG_FILE>
+						<LOG_FILE>${project.build.directory}/test-logs/myplunt.log</LOG_FILE>
 					</environmentVariables>
 				</configuration>
 			</plugin>
