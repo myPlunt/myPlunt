@@ -53,6 +53,7 @@ public final class ApiPaths {
         public static final String ACCEPT = REQUESTS + "/{userId}/accept";
         public static final String DECLINE = REQUESTS + "/{userId}/decline";
         public static final String CANCEL = REQUESTS + "/{userId}/cancel";
+        public static final String REMOVE = BASE + "/{userId}/remove";
 
         private Friends() {}
     }

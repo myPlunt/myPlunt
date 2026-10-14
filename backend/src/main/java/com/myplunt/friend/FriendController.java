@@ -63,4 +63,11 @@ public class FriendController {
     public void cancel(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
         friendService.cancel(principal.getId(), userId);
     }
+
+    // userId is a friend of the signed-in user; either of them can end it.
+    @PostMapping(ApiPaths.Friends.REMOVE)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void remove(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
+        friendService.remove(principal.getId(), userId);
+    }
 }

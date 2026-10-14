@@ -67,6 +67,17 @@ public class FriendService {
         auditLog.recorded(AuditEvent.FRIEND_REQUEST_CANCELLED, userId, userId, Map.of("other_user_id", receiverId));
     }
 
+    // Deleted like a declined request, so either of them can ask again later.
+    @Transactional
+    public void remove(UUID userId, UUID friendId) {
+        Friendship friendship = friendshipRepository.findBetween(userId, List.of(friendId)).stream()
+                .filter(f -> Friendship.ACCEPTED.equals(f.getStatus()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("You're not friends with this user"));
+        friendshipRepository.delete(friendship);
+        auditLog.recorded(AuditEvent.FRIEND_REMOVED, userId, userId, Map.of("other_user_id", friendId));
+    }
+
     // Looked up by direction, so accept/decline can't touch the user's own request and cancel can't touch one they received.
     private Friendship pendingRequest(UUID requesterId, UUID receiverId) {
         return friendshipRepository

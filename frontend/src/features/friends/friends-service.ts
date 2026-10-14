@@ -44,3 +44,10 @@ export async function declineFriendRequest(userId: string): Promise<void> {
 export async function cancelFriendRequest(userId: string): Promise<void> {
   return apiFetch<void>(`/v1/friends/requests/${userId}/cancel`, { method: 'POST' });
 }
+
+/** Ends the friendship with userId; either of them can send a new request afterwards. */
+export async function removeFriend(userId: string): Promise<void> {
+  const requestId = createRequestId();
+  logAction('friend_remove_submitted', { requestId, context: { other_user_id: userId } });
+  return apiFetch<void>(`/v1/friends/${userId}/remove`, { method: 'POST', requestId });
+}
