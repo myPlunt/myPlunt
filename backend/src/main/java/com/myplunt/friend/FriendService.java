@@ -1,7 +1,10 @@
 package com.myplunt.friend;
 
+import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
+import com.myplunt.user.UserService;
+import com.myplunt.user.dto.UserSummaryResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -16,10 +19,47 @@ public class FriendService {
 
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
 
-    public FriendService(FriendshipRepository friendshipRepository, UserRepository userRepository) {
+    public FriendService(
+            FriendshipRepository friendshipRepository, UserRepository userRepository, UserService userService) {
         this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
+        this.userService = userService;
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserSummaryResponse> getFriends(UUID userId) {
+        return summaries(friendshipRepository.findFriends(userId), "friends");
+    }
+
+    @Transactional(readOnly = true)
+    public FriendRequestsResponse getRequests(UUID userId) {
+        return new FriendRequestsResponse(
+                summaries(friendshipRepository.findRequesters(userId), "request_received"),
+                summaries(friendshipRepository.findRequested(userId), "request_sent"));
+    }
+
+    @Transactional
+    public void accept(UUID userId, UUID requesterId) {
+        pendingRequest(requesterId, userId).accept();
+    }
+
+    // Deleted rather than marked declined: the pair index would otherwise stop either of them asking again.
+    @Transactional
+    public void decline(UUID userId, UUID requesterId) {
+        friendshipRepository.delete(pendingRequest(requesterId, userId));
+    }
+
+    // Only the receiver can answer, so a request the user sent themselves isn't found either.
+    private Friendship pendingRequest(UUID requesterId, UUID receiverId) {
+        return friendshipRepository
+                .findByRequesterIdAndReceiverIdAndStatus(requesterId, receiverId, Friendship.PENDING)
+                .orElseThrow(() -> new IllegalStateException("No friend request from this user"));
+    }
+
+    private List<UserSummaryResponse> summaries(List<User> users, String friendship) {
+        return users.stream().map(user -> userService.toSummary(user, friendship)).toList();
     }
 
     @Transactional

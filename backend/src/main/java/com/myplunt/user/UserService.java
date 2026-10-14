@@ -83,12 +83,15 @@ public class UserService {
     }
 
     private UserSummaryResponse toSummary(User user, Friendship friendship, UUID viewerId) {
-        return new UserSummaryResponse(
-                user.getId(), user.getUsername(), user.getBio(), avatarUrl(user), friendship(friendship, viewerId));
+        return toSummary(user, friendship(friendship, viewerId));
     }
 
-    // ponytail: declined and blocked rows still read as a pending request; the decline PBI should
-    // delete the row instead, or the pair index blocks asking again forever.
+    // friendship is one of UserSummaryResponse's values, already worked out by the caller.
+    public UserSummaryResponse toSummary(User user, String friendship) {
+        return new UserSummaryResponse(user.getId(), user.getUsername(), user.getBio(), avatarUrl(user), friendship);
+    }
+
+    // Declining deletes the row, so only "blocked" (not used yet) would read as a pending request here.
     private static String friendship(Friendship friendship, UUID viewerId) {
         if (friendship == null) {
             return null;
