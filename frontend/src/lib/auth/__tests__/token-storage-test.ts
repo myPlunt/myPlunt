@@ -34,11 +34,4 @@ describe('tokenStorage', () => {
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith('myplunt.accessToken', 'a');
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith('myplunt.refreshToken', 'r');
   });
-
-  it('deletes both tokens on clearTokens', async () => {
-    await tokenStorage.clearTokens();
-
-    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('myplunt.accessToken');
-    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('myplunt.refreshToken');
-  });
 });

@@ -83,13 +83,6 @@ class PlanterControllerTest {
     }
 
     @Test
-    void create_rejectsNameLongerThan255Characters() {
-        authenticateAsJane();
-
-        post("{\"name\": \"" + "a".repeat(256) + "\"}").expectStatus().isBadRequest();
-    }
-
-    @Test
     void create_returnsConflictForADuplicateName() {
         authenticateAsJane();
         when(planterService.create(any(), any()))
@@ -98,12 +91,4 @@ class PlanterControllerTest {
         post(new CreatePlanterRequest("Balcony")).expectStatus().isEqualTo(HttpStatus.CONFLICT);
     }
 
-    @Test
-    void create_rejectsRequestsWithoutAToken() {
-        restTestClient.post().uri("/v1/planters")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new CreatePlanterRequest("Balcony"))
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
 }

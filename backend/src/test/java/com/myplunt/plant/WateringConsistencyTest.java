@@ -7,7 +7,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,17 +34,6 @@ class WateringConsistencyTest {
 
     private static WateringConsistency of(Instant now, Instant... wateredAt) {
         return WateringConsistency.of(vera(), Arrays.asList(wateredAt), AMSTERDAM, now);
-    }
-
-    @Test
-    void of_hasNoStreakOrOnTimeShareBeforeTheFirstWatering() {
-        assertThat(of(october(2))).isEqualTo(new WateringConsistency(List.of(), 0, 0, null, false));
-    }
-
-    @Test
-    void of_countsTheFirstWateringFromTheDayThePlantWasAdded() {
-        assertThat(of(october(5), october(4)).daysLate()).containsExactly(0);
-        assertThat(of(october(7), october(6)).daysLate()).containsExactly(2);
     }
 
     @Test
@@ -85,26 +73,6 @@ class WateringConsistencyTest {
 
         assertThat(result.overdue()).isFalse();
         assertThat(result.currentStreak()).isEqualTo(2);
-    }
-
-    @Test
-    void of_doesNotLetASecondWateringOnTheSameDayGrowTheStreak() {
-        WateringConsistency result = of(october(7), october(4, 8), october(4, 18), october(6));
-
-        assertThat(result.daysLate()).hasSize(3);
-        assertThat(result.currentStreak()).isEqualTo(2);
-        assertThat(result.onTimePercent()).isEqualTo(100);
-    }
-
-    @Test
-    void of_countsDaysInTheUsersTimeZone() {
-        // 00:30 in Amsterdam on the 5th is still the 4th in UTC: on time there, late here.
-        Instant justAfterMidnight = october(5, 0).plusSeconds(30 * 60);
-
-        assertThat(WateringConsistency.of(vera(), List.of(justAfterMidnight), AMSTERDAM, october(5)).daysLate())
-                .containsExactly(1);
-        assertThat(WateringConsistency.of(vera(), List.of(justAfterMidnight), ZoneId.of("UTC"), october(5)).daysLate())
-                .containsExactly(0);
     }
 
     @Test

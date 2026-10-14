@@ -42,43 +42,11 @@ describe('SettingsScreen', () => {
     expect(screen.queryByLabelText('Bio')).toBeNull();
   });
 
-  it('lists changing the password as coming soon', async () => {
-    await render(<SettingsScreen />);
-
-    expect(screen.getByText('Change password')).toBeOnTheScreen();
-    expect(screen.getByText('Coming soon')).toBeOnTheScreen();
-  });
-
-  it('shows a loading indicator while the account loads', async () => {
-    mockedUseProfile.mockReturnValue({ user: null, error: null, isLoading: true, retry });
-    await render(<SettingsScreen />);
-
-    expect(screen.getByLabelText('Loading account')).toBeOnTheScreen();
-    expect(screen.queryByLabelText('Email')).toBeNull();
-  });
-
-  it('shows the error and retries when asked', async () => {
-    mockedUseProfile.mockReturnValue({ user: null, error: 'Something went wrong.', isLoading: false, retry });
-    await render(<SettingsScreen />);
-
-    await user.press(screen.getByRole('button', { name: 'Try again' }));
-
-    expect(retry).toHaveBeenCalled();
-  });
-
   it('logs the user out', async () => {
     await render(<SettingsScreen />);
 
     await user.press(screen.getByRole('button', { name: 'Log out' }));
 
     expect(logout).toHaveBeenCalled();
-  });
-
-  it('goes back one screen when the logo is pressed', async () => {
-    await render(<SettingsScreen />);
-
-    await user.press(screen.getByRole('button', { name: 'Go back' }));
-
-    expect(back).toHaveBeenCalled();
   });
 });

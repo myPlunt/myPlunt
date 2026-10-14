@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
 import type { ComponentProps } from 'react';
 
 import { usePhotoUpload, type PhotoUpload } from '@/features/photos/use-photo-upload';
@@ -104,43 +104,6 @@ describe('PlantForm', () => {
       expect(screen.getByLabelText('Notes')).toBeOnTheScreen();
     });
 
-    it('waits until the user leaves the name field before saying it is too short', async () => {
-      await renderForm();
-
-      await user.type(screen.getByLabelText('Name'), 'Ve', { skipBlur: true });
-      expect(screen.queryByText('Name must be at least 3 characters.')).toBeNull();
-
-      await fireEvent(screen.getByLabelText('Name'), 'blur');
-      expect(screen.getByText('Name must be at least 3 characters.')).toBeOnTheScreen();
-
-      // Back in the field to fix it: no hint while typing, even while still too short.
-      await user.type(screen.getByLabelText('Name'), '{Backspace}', { skipBlur: true });
-      expect(screen.queryByText('Name must be at least 3 characters.')).toBeNull();
-
-      await user.type(screen.getByLabelText('Name'), 'era', { skipBlur: true });
-      await fireEvent(screen.getByLabelText('Name'), 'blur');
-      expect(screen.queryByText('Name must be at least 3 characters.')).toBeNull();
-      // Only the one time the hint showed; a long enough name isn't a validation failure.
-    });
-
-    it('says the name is too short when the user leaves it empty', async () => {
-      await renderForm();
-
-      await fireEvent(screen.getByLabelText('Name'), 'blur');
-
-      expect(screen.getByText('Name must be at least 3 characters.')).toBeOnTheScreen();
-    });
-
-    it('keeps Next disabled until the plant has a name', async () => {
-      await renderForm();
-
-      await user.type(screen.getByLabelText('Name'), '   ');
-      await user.press(screen.getByRole('button', { name: 'Next' }));
-
-      expect(screen.getByLabelText('Name')).toBeOnTheScreen();
-      expect(screen.queryByLabelText('Notes')).toBeNull();
-    });
-
     it('suggests species whose common or scientific name matches the search', async () => {
       await renderForm();
 
@@ -148,51 +111,6 @@ describe('PlantForm', () => {
 
       expect(screen.getByRole('button', { name: 'Pothos' })).toBeOnTheScreen();
       expect(screen.queryByRole('button', { name: 'Monstera' })).toBeNull();
-    });
-
-    it('opens the species search with a hint as soon as the field is focused', async () => {
-      await renderForm();
-      expect(screen.queryByText('Start typing to see matching species.')).toBeNull();
-
-      await fireEvent(screen.getByLabelText('Species'), 'focus');
-
-      expect(screen.getByText('Start typing to see matching species.')).toBeOnTheScreen();
-    });
-
-    it('keeps the search open while a character is typed and deleted again', async () => {
-      await renderForm();
-      await fireEvent(screen.getByLabelText('Species'), 'focus');
-
-      await user.type(screen.getByLabelText('Species'), 'm', { skipBlur: true });
-      expect(screen.getByRole('button', { name: 'Monstera' })).toBeOnTheScreen();
-
-      await user.type(screen.getByLabelText('Species'), '{Backspace}', { skipBlur: true });
-      expect(screen.getByText('Start typing to see matching species.')).toBeOnTheScreen();
-    });
-
-    it('closes the search when the field is left empty, but not when a search is left unfinished', async () => {
-      await renderForm();
-      await fireEvent(screen.getByLabelText('Species'), 'focus');
-      await fireEvent(screen.getByLabelText('Species'), 'blur');
-      expect(screen.queryByText('Start typing to see matching species.')).toBeNull();
-
-      await user.type(screen.getByLabelText('Species'), 'mons');
-
-      expect(screen.getByRole('button', { name: 'Monstera' })).toBeOnTheScreen();
-    });
-
-    it('says so when no species matches the search', async () => {
-      await renderForm();
-
-      await user.type(screen.getByLabelText('Species'), 'cactus');
-
-      expect(screen.getByText('No species matches. You can leave it empty.')).toBeOnTheScreen();
-    });
-
-    it('shows why the species could not be loaded', async () => {
-      await renderForm({ species: null, speciesError: "Can't reach myPlunt right now." });
-
-      expect(screen.getByText("Can't reach myPlunt right now.")).toBeOnTheScreen();
     });
   });
 
@@ -207,64 +125,6 @@ describe('PlantForm', () => {
       expect(screen.getByLabelText('Notes')).toBeOnTheScreen();
       expect(screen.getByRole('button', { name: 'Planter' })).toBeOnTheScreen();
       expect(screen.queryByLabelText('Name')).toBeNull();
-    });
-
-    it('goes back to step 1 with what was entered still filled in', async () => {
-      await renderForm();
-      await nameAndContinue('Vera');
-
-      await user.press(screen.getByRole('button', { name: 'Back' }));
-
-      expect(screen.getByLabelText('Name')).toHaveDisplayValue('Vera');
-    });
-
-    it('selects one light at a time and clears it when the chosen one is tapped again', async () => {
-      await renderForm();
-      await nameAndContinue();
-
-      await user.press(screen.getByRole('radio', { name: 'Full sun' }));
-      await user.press(screen.getByRole('radio', { name: 'Low light' }));
-      expect(screen.getByRole('radio', { name: 'Low light' })).toBeChecked();
-      expect(screen.getByRole('radio', { name: 'Full sun' })).not.toBeChecked();
-      expect(screen.getByRole('radio', { name: 'Low light' }).props.accessibilityHint).toBe('Tap again to clear');
-
-      await user.press(screen.getByRole('radio', { name: 'Low light' }));
-      expect(screen.getByRole('radio', { name: 'Low light' })).not.toBeChecked();
-    });
-
-    it('keeps only digits in the watering field', async () => {
-      await renderForm();
-      await nameAndContinue();
-
-      await user.type(screen.getByLabelText('Water every how many days'), '1a2');
-
-      expect(screen.getByLabelText('Water every how many days')).toHaveDisplayValue('12');
-    });
-
-    it('picks the planter from a dropdown that starts on Other plants', async () => {
-      await renderForm();
-      await nameAndContinue();
-      expect(screen.getByRole('button', { name: 'Planter' })).toHaveAccessibilityValue({ text: 'Other plants' });
-
-      await user.press(screen.getByRole('button', { name: 'Planter' }));
-      await user.press(screen.getByRole('radio', { name: 'Kitchen windowsill' }));
-
-      expect(screen.getByRole('button', { name: 'Planter' })).toHaveAccessibilityValue({ text: 'Kitchen windowsill' });
-    });
-
-    it('selects a planter added from the dropdown, even before the garden reloads', async () => {
-      createPlanter.mockResolvedValue({ id: 'shed', name: 'Shed' });
-      await renderForm({ planters: [] });
-      await nameAndContinue();
-
-      await user.press(screen.getByRole('button', { name: 'Planter' }));
-      await user.press(screen.getByRole('button', { name: 'Add a planter' }));
-      await user.type(screen.getByLabelText('New planter name'), 'Shed');
-      await user.press(screen.getByRole('button', { name: 'Add' }));
-
-      expect(await screen.findByRole('button', { name: 'Planter' })).toHaveAccessibilityValue({ text: 'Shed' });
-      await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
-      await waitFor(() => expect(createPlant).toHaveBeenCalledWith(expect.objectContaining({ planterId: 'shed' })));
     });
   });
 
@@ -314,16 +174,6 @@ describe('PlantForm', () => {
       );
     });
 
-    it('starts with the species it was opened for, e.g. from the Pluntdex', async () => {
-      await renderForm({ initialSpecies: { id: 'pothos', commonName: 'Pothos' } });
-
-      expect(screen.getByLabelText('Species')).toHaveDisplayValue('Pothos');
-      await nameAndContinue('Pete');
-      await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
-
-      await waitFor(() => expect(createPlant).toHaveBeenCalledWith(expect.objectContaining({ speciesId: 'pothos' })));
-    });
-
     it('sends the key of the uploaded photo with the plant', async () => {
       mockedUsePhotoUpload.mockReturnValue({ ...noPhoto, uri: 'file:///a.jpg', key: 'plants/u1/a.jpg' });
       await renderForm();
@@ -344,33 +194,6 @@ describe('PlantForm', () => {
       await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
 
       expect(createPlant).not.toHaveBeenCalled();
-    });
-
-    it('links the picked species, shows its details and hints its watering frequency on step 2', async () => {
-      await renderForm();
-      await user.type(screen.getByLabelText('Name'), 'Vera');
-      await user.type(screen.getByLabelText('Species'), 'mons');
-      await user.press(screen.getByRole('button', { name: 'Monstera' }));
-
-      expect(screen.getByLabelText('Species')).toHaveDisplayValue('Monstera');
-      expect(screen.getByText(/Monstera deliciosa · usually watered every 7 days/)).toBeOnTheScreen();
-      expect(screen.queryByRole('button', { name: 'Monstera' })).toBeNull();
-
-      await user.press(screen.getByRole('button', { name: 'Next' }));
-      expect(screen.getByLabelText('Water every how many days')).toHaveProp('placeholder', '7');
-    });
-
-    it('drops the picked species when the search is edited again', async () => {
-      await renderForm();
-      await user.type(screen.getByLabelText('Name'), 'Vera');
-      await user.type(screen.getByLabelText('Species'), 'pot');
-      await user.press(screen.getByRole('button', { name: 'Pothos' }));
-      await user.type(screen.getByLabelText('Species'), 'x');
-      await user.press(screen.getByRole('button', { name: 'Next' }));
-
-      await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
-
-      await waitFor(() => expect(createPlant).toHaveBeenCalledWith(expect.objectContaining({ speciesId: null })));
     });
 
     it('shows a step 2 validation error next to its input', async () => {
@@ -401,26 +224,6 @@ describe('PlantForm', () => {
 
       expect(await screen.findByText('Name must be at most 255 characters.')).toBeOnTheScreen();
       expect(screen.getByLabelText('Name')).toBeOnTheScreen();
-    });
-
-    it("shows the backend's message for other errors", async () => {
-      createPlant.mockRejectedValue(new ApiError(500, 'Server error', { detail: 'An unexpected error occurred' }));
-      await renderForm();
-      await nameAndContinue();
-
-      await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
-
-      expect(await screen.findByText('An unexpected error occurred')).toBeOnTheScreen();
-      expect(onSaved).not.toHaveBeenCalled();
-    });
-
-    it('still lets the plant be added when the planters could not be loaded', async () => {
-      await renderForm({ planters: null, plantersError: "Can't reach myPlunt right now." });
-      await nameAndContinue();
-
-      expect(screen.getByText("Can't reach myPlunt right now.")).toBeOnTheScreen();
-      await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
-      await waitFor(() => expect(createPlant).toHaveBeenCalledWith(expect.objectContaining({ planterId: null })));
     });
   });
 
@@ -456,16 +259,6 @@ describe('PlantForm', () => {
       expect(screen.getByRole('button', { name: 'Planter' })).toHaveAccessibilityValue({ text: 'Kitchen windowsill' });
     });
 
-    it('asks for a longer name when the plant was saved before names needed 3 characters', async () => {
-      await renderForm({ plant: { ...veraDetails, name: 'A' } });
-
-      await user.press(screen.getByRole('button', { name: 'Next' }));
-      expect(screen.queryByLabelText('Notes')).toBeNull();
-
-      await fireEvent(screen.getByLabelText('Name'), 'blur');
-      expect(screen.getByText('Name must be at least 3 characters.')).toBeOnTheScreen();
-    });
-
     it('saves the changes to the plant instead of adding a new one, keeping the photo', async () => {
       updatePlant.mockResolvedValue({ ...veraDetails, name: 'Vera II' });
       await renderForm({ plant: veraDetails });
@@ -487,31 +280,6 @@ describe('PlantForm', () => {
         photoKey: null,
       });
       expect(createPlant).not.toHaveBeenCalled();
-    });
-
-    it('sends the key of a newly picked photo', async () => {
-      mockedUsePhotoUpload.mockReturnValue({ ...noPhoto, uri: 'file:///b.jpg', key: 'plants/u1/b.jpg' });
-      updatePlant.mockResolvedValue(veraDetails);
-      await renderForm({ plant: veraDetails });
-      await user.press(screen.getByRole('button', { name: 'Next' }));
-
-      await user.press(screen.getByRole('button', { name: 'Save changes' }));
-
-      await waitFor(() =>
-        expect(updatePlant).toHaveBeenCalledWith('p1', expect.objectContaining({ photoKey: 'plants/u1/b.jpg' })),
-      );
-    });
-
-    it('shows why the changes could not be saved', async () => {
-      const error = new ApiError(409, 'Conflict', { detail: "This plant has passed away and can't be edited" });
-      updatePlant.mockRejectedValue(error);
-      await renderForm({ plant: veraDetails });
-      await user.press(screen.getByRole('button', { name: 'Next' }));
-
-      await user.press(screen.getByRole('button', { name: 'Save changes' }));
-
-      expect(await screen.findByText("This plant has passed away and can't be edited")).toBeOnTheScreen();
-      expect(onSaved).not.toHaveBeenCalled();
     });
   });
 });

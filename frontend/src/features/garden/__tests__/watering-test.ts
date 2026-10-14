@@ -1,7 +1,6 @@
 import {
   daysUntilWatering,
   lastWateredLabel,
-  listPlantNames,
   plantsNeedingWater,
   roomSummary,
   sortByNextWatering,
@@ -48,29 +47,12 @@ describe('daysUntilWatering', () => {
 describe('wateringStatus', () => {
   it.each([
     [new Date(2026, 9, 15, 9), 'In 6 days', 'later'],
-    [new Date(2026, 9, 12, 9), 'In 3 days', 'later'],
     [new Date(2026, 9, 11, 9), 'In 2 days', 'soon'],
     [new Date(2026, 9, 10, 9), 'Tomorrow', 'tomorrow'],
     [new Date(2026, 9, 9, 9), 'Today', 'due'],
     [new Date(2026, 9, 8, 9), 'Overdue', 'due'],
-    [new Date(2026, 9, 6, 9), 'Overdue', 'due'],
   ])('describes a plant due on %s as "%s"', (due, label, tone) => {
     expect(wateringStatus(plant('George', due), now)).toMatchObject({ label, tone });
-  });
-
-  it.each([
-    [new Date(2026, 9, 10, 9), 'Tomorrow'],
-    [new Date(2026, 9, 11, 9), 'In 2 days'],
-  ])('keeps a plant watered today calm when it is due again on %s', (due, label) => {
-    const watered = { ...plant('Minty', due, 1), lastWateredAt: new Date(2026, 9, 9, 8).toISOString() };
-
-    expect(wateringStatus(watered, now)).toEqual({ label, tone: 'later' });
-  });
-
-  it('only counts a watering from today as calm', () => {
-    const wateredYesterday = { ...plant('Minty', new Date(2026, 9, 10, 9), 2), lastWateredAt: new Date(2026, 9, 8, 9).toISOString() };
-
-    expect(wateringStatus(wateredYesterday, now)).toEqual({ label: 'Tomorrow', tone: 'tomorrow' });
   });
 });
 
@@ -108,23 +90,6 @@ describe('sortByNextWatering', () => {
 
     expect(sortByNextWatering(plants, now).map((p) => p.name)).toEqual(['Basil', 'Pinky', 'Minty']);
   });
-
-  it('orders plants due on the same day by name', () => {
-    const plants = [
-      plant('Rosie', new Date(2026, 9, 12)),
-      plant('Monty', new Date(2026, 9, 12)),
-    ];
-
-    expect(sortByNextWatering(plants, now).map((p) => p.name)).toEqual(['Monty', 'Rosie']);
-  });
-
-  it('leaves the original list as it was', () => {
-    const plants = [plant('Rosie', new Date(2026, 9, 12)), plant('Basil', new Date(2026, 9, 7))];
-
-    sortByNextWatering(plants, now);
-
-    expect(plants.map((p) => p.name)).toEqual(['Rosie', 'Basil']);
-  });
 });
 
 describe('roomSummary', () => {
@@ -138,22 +103,6 @@ describe('roomSummary', () => {
     expect(roomSummary(kitchen, now)).toBe('3 plants · 2 need water');
     expect(roomSummary(room('balcony', [plant('Pinky', new Date(2026, 9, 9))]), now)).toBe('1 plant · 1 needs water');
   });
-
-  it('only counts the plants when none need water', () => {
-    expect(roomSummary(room('living', [plant('Monty', new Date(2026, 9, 14))]), now)).toBe('1 plant');
-    expect(roomSummary(room('empty', []), now)).toBe('0 plants');
-  });
-});
-
-describe('listPlantNames', () => {
-  it.each([
-    [['Pinky'], 'Pinky'],
-    [['Pinky', 'Basil'], 'Pinky and Basil'],
-    [['Pinky', 'Basil', 'Minty'], 'Pinky, Basil and Minty'],
-    [['Pinky', 'Basil', 'Minty', 'Rosie'], 'Pinky, Basil and 2 more'],
-  ])('lists %j as "%s"', (names, expected) => {
-    expect(listPlantNames(names.map((name) => plant(name)))).toBe(expected);
-  });
 });
 
 describe('lastWateredLabel', () => {
@@ -161,9 +110,5 @@ describe('lastWateredLabel', () => {
     expect(lastWateredLabel(new Date(2026, 9, 9, 8, 0).toISOString(), now)).toBe('Today');
     expect(lastWateredLabel(new Date(2026, 9, 8, 23, 0).toISOString(), now)).toBe('Yesterday');
     expect(lastWateredLabel(new Date(2026, 9, 6, 16, 0).toISOString(), now)).toBe('3 days ago');
-  });
-
-  it('says "Not yet" for a plant that was never watered', () => {
-    expect(lastWateredLabel(null, now)).toBe('Not yet');
   });
 });

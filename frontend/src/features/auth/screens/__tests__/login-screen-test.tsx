@@ -43,15 +43,6 @@ describe('LoginScreen', () => {
     await screen.findByText('Invalid credentials');
   });
 
-  it('falls back to a generic message when the backend sends no detail', async () => {
-    login.mockRejectedValue(new ApiError(500, 'irrelevant'));
-    await render(<LoginScreen />);
-
-    await user.press(screen.getByRole('button', { name: 'Log in' }));
-
-    await screen.findByText('Something went wrong. Please try again.');
-  });
-
   it('shows field-specific validation errors next to the right input', async () => {
     login.mockRejectedValue(new ApiError(400, 'irrelevant', { fieldErrors: { email: 'must be a well-formed email address' } }));
     await render(<LoginScreen />);

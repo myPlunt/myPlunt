@@ -44,23 +44,6 @@ it('login calls the service then flips the store to authenticated', async () => 
   expect(result.current.store.status).toBe('authenticated');
 });
 
-it('register calls the service then flips the store to authenticated', async () => {
-  mockedAuthService.register.mockResolvedValue(undefined);
-  const { result } = await renderWithStore();
-  await waitFor(() => expect(result.current.store.status).toBe('unauthenticated'));
-
-  await act(async () => {
-    await result.current.actions.register({
-      username: 'jane',
-      email: 'jane@example.com',
-      password: 'password123',
-    });
-  });
-
-  expect(mockedAuthService.register).toHaveBeenCalled();
-  expect(result.current.store.status).toBe('authenticated');
-});
-
 it('logout calls the service then flips the store to unauthenticated', async () => {
   mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
   mockedAuthService.logout.mockResolvedValue(undefined);

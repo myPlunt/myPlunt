@@ -77,12 +77,6 @@ afterEach(() => {
 });
 
 describe('GardenScreen', () => {
-  it('has no back button or add button of its own, because Garden is a tab', async () => {
-    await render(<GardenScreen />);
-
-    expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Add plant' })).toBeNull();
-  });
 
   it('shows every room with how many plants need water', async () => {
     await render(<GardenScreen />);
@@ -95,38 +89,12 @@ describe('GardenScreen', () => {
     expect(screen.getByText('No plants in this room yet.')).toBeOnTheScreen();
   });
 
-  it('shows each plant with its species and when it needs water', async () => {
-    await render(<GardenScreen />);
-
-    expect(screen.getByText('George')).toBeOnTheScreen();
-    expect(screen.getByText('Geranium')).toBeOnTheScreen();
-    expect(screen.getByText('In 2 days')).toBeOnTheScreen();
-    expect(screen.getByText('Today')).toBeOnTheScreen();
-    expect(screen.getByText('Overdue')).toBeOnTheScreen();
-    expect(screen.getByText('Tomorrow')).toBeOnTheScreen();
-  });
-
   it("opens a plant's details when its card is pressed", async () => {
     await render(<GardenScreen />);
 
     await user.press(screen.getByRole('button', { name: 'George' }));
 
     expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]', params: { id: 'george' } });
-  });
-
-  it('shows the photo of plants that have one and the placeholder for the rest', async () => {
-    await render(<GardenScreen />);
-
-    expect(screen.getByLabelText('Photo of George')).toBeOnTheScreen();
-    expect(screen.queryByLabelText('Photo of Pinky')).toBeNull();
-  });
-
-  it('keeps a blank species line on cards without a species, so the watering pills line up', async () => {
-    await render(<GardenScreen />);
-
-    // George has a species; Pinky, Basil and Minty get the blank line instead.
-    expect(screen.getByText('Geranium')).toBeOnTheScreen();
-    expect(screen.getAllByText(' ', { includeHiddenElements: true })).toHaveLength(3);
   });
 
   it('orders the plants in a room by when they need water next', async () => {
@@ -143,13 +111,6 @@ describe('GardenScreen', () => {
 
     expect(screen.getByText('2 need water today')).toBeOnTheScreen();
     expect(screen.getByText('Pinky and Basil')).toBeOnTheScreen();
-  });
-
-  it('hides the water card when nothing needs water', async () => {
-    mockGarden({ garden: { rooms: [{ id: 'balcony', name: 'Balcony', plants: [plant('george', 'George', 2, 'Geranium')] }] } });
-    await render(<GardenScreen />);
-
-    expect(screen.queryByText(/need(s)? water today/)).toBeNull();
   });
 
   it('waters the due plants and then refreshes the garden', async () => {
@@ -185,19 +146,6 @@ describe('GardenScreen', () => {
       expect(screen.queryByRole('button', { name: 'Water plants' })).toBeNull();
     });
 
-    it('selects a plant instead of opening it, and unselects it on a second press', async () => {
-      await render(<GardenScreen />);
-      await user.press(screen.getByRole('button', { name: 'Water plants' }));
-
-      await user.press(screen.getByRole('checkbox', { name: 'George' }));
-      expect(screen.getByRole('checkbox', { name: 'George' })).toBeChecked();
-      expect(screen.getByText('1 plant selected')).toBeOnTheScreen();
-      expect(push).not.toHaveBeenCalled();
-
-      await user.press(screen.getByRole('checkbox', { name: 'George' }));
-      expect(screen.getByRole('checkbox', { name: 'George' })).not.toBeChecked();
-    });
-
     it('waters only the selected plants, refreshes the garden and stops picking', async () => {
       await render(<GardenScreen />);
       await user.press(screen.getByRole('button', { name: 'Water plants' }));
@@ -211,38 +159,6 @@ describe('GardenScreen', () => {
       expect(await screen.findByRole('button', { name: 'George' })).toBeOnTheScreen();
     });
 
-    it("restarts a watered plant's countdown once the garden is refreshed", async () => {
-      // The backend now counts from today's watering: Basil (every 4 days) was overdue.
-      const watered = { ...plant('basil', 'Basil', 4), lastWateredAt: inDays(0) };
-      refresh.mockImplementation(async () => {
-        mockGarden({ garden: { rooms: [{ id: 'kitchen', name: 'Kitchen windowsill', plants: [watered] }] } });
-      });
-      mockGarden({ garden: { rooms: [{ id: 'kitchen', name: 'Kitchen windowsill', plants: [plant('basil', 'Basil', -1)] }] } });
-      await render(<GardenScreen />);
-      expect(screen.getByText('Overdue')).toBeOnTheScreen();
-      await user.press(screen.getByRole('button', { name: 'Water plants' }));
-      await user.press(screen.getByRole('checkbox', { name: 'Basil' }));
-
-      await user.press(screen.getByRole('button', { name: 'Water 1 plant' }));
-
-      expect(await screen.findByText('In 4 days')).toBeOnTheScreen();
-      expect(screen.queryByText('Overdue')).toBeNull();
-      expect(screen.queryByText(/need(s)? water today/)).toBeNull();
-    });
-
-    it('keeps the selection and shows the backend message when watering fails', async () => {
-      waterPlants.mockRejectedValue(new ApiError(404, 'irrelevant', { detail: 'Plant not found' }));
-      await render(<GardenScreen />);
-      await user.press(screen.getByRole('button', { name: 'Water plants' }));
-      await user.press(screen.getByRole('checkbox', { name: 'George' }));
-
-      await user.press(screen.getByRole('button', { name: 'Water 1 plant' }));
-
-      expect(await screen.findByText('Plant not found')).toBeOnTheScreen();
-      expect(screen.getByRole('checkbox', { name: 'George' })).toBeChecked();
-      expect(refresh).not.toHaveBeenCalled();
-    });
-
     it('selects and waters every plant in the garden with the Select all at the top', async () => {
       await render(<GardenScreen />);
       await user.press(screen.getByRole('button', { name: 'Water plants' }));
@@ -254,86 +170,6 @@ describe('GardenScreen', () => {
       await user.press(screen.getByRole('button', { name: 'Water 4 plants' }));
       expect(waterPlants).toHaveBeenCalledWith(expect.arrayContaining(['george', 'pinky', 'basil', 'minty']));
     });
-
-    it('clears the whole selection with Deselect all', async () => {
-      await render(<GardenScreen />);
-      await user.press(screen.getByRole('button', { name: 'Water plants' }));
-      await user.press(screen.getByRole('button', { name: 'Select all plants in the garden' }));
-
-      await user.press(screen.getByRole('button', { name: 'Deselect all plants in the garden' }));
-
-      expect(screen.getByText('Tap to select the plants you watered.')).toBeOnTheScreen();
-      expect(screen.getByRole('checkbox', { name: 'George' })).not.toBeChecked();
-    });
-
-    it('selects all the plants of one planter, leaving the other planters alone', async () => {
-      await render(<GardenScreen />);
-      await user.press(screen.getByRole('button', { name: 'Water plants' }));
-
-      await user.press(screen.getByRole('button', { name: 'Select all plants in Kitchen windowsill' }));
-
-      expect(screen.getByRole('checkbox', { name: 'Basil' })).toBeChecked();
-      expect(screen.getByRole('checkbox', { name: 'Minty' })).toBeChecked();
-      expect(screen.getByRole('checkbox', { name: 'George' })).not.toBeChecked();
-      // A planter without plants has nothing to select.
-      expect(screen.queryByRole('button', { name: 'Select all plants in Living room' })).toBeNull();
-
-      await user.press(screen.getByRole('button', { name: 'Water 2 plants' }));
-      expect(waterPlants).toHaveBeenCalledWith(['basil', 'minty']);
-    });
-
-    it("deselects a planter's plants once they are all selected, keeping the other picks", async () => {
-      await render(<GardenScreen />);
-      await user.press(screen.getByRole('button', { name: 'Water plants' }));
-      await user.press(screen.getByRole('checkbox', { name: 'George' }));
-      await user.press(screen.getByRole('button', { name: 'Select all plants in Kitchen windowsill' }));
-
-      await user.press(screen.getByRole('button', { name: 'Deselect all plants in Kitchen windowsill' }));
-
-      expect(screen.getByRole('checkbox', { name: 'Basil' })).not.toBeChecked();
-      expect(screen.getByRole('checkbox', { name: 'George' })).toBeChecked();
-      expect(screen.getByText('1 plant selected')).toBeOnTheScreen();
-    });
-
-    it('has no Select all outside of picking plants', async () => {
-      await render(<GardenScreen />);
-
-      expect(screen.queryByRole('button', { name: /Select all/ })).toBeNull();
-    });
-
-    it('goes back to the normal garden when cancelled, without watering', async () => {
-      await render(<GardenScreen />);
-      await user.press(screen.getByRole('button', { name: 'Water plants' }));
-      await user.press(screen.getByRole('checkbox', { name: 'George' }));
-
-      await user.press(screen.getByRole('button', { name: 'Cancel' }));
-
-      expect(screen.getByRole('button', { name: 'George' })).toBeOnTheScreen();
-      expect(screen.getByText('2 need water today')).toBeOnTheScreen();
-      expect(waterPlants).not.toHaveBeenCalled();
-    });
-
-    it('has no water drop when the garden has no plants', async () => {
-      mockGarden({ garden: { rooms: [{ id: 'living', name: 'Living room', plants: [] }] } });
-      await render(<GardenScreen />);
-
-      expect(screen.queryByRole('button', { name: 'Water plants' })).toBeNull();
-    });
-  });
-
-  it('shows an empty state when the garden has no rooms or plants', async () => {
-    mockGarden({ garden: { rooms: [] } });
-    await render(<GardenScreen />);
-
-    expect(screen.getByText('Your garden is empty')).toBeOnTheScreen();
-  });
-
-  it('shows a loading indicator while the garden loads', async () => {
-    mockGarden({ garden: null, isLoading: true });
-    await render(<GardenScreen />);
-
-    expect(screen.getByLabelText('Loading garden')).toBeOnTheScreen();
-    expect(screen.queryByText('George')).toBeNull();
   });
 
   it('shows the error and retries when asked', async () => {

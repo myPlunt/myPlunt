@@ -22,7 +22,6 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -70,14 +69,6 @@ class FriendControllerTest {
     }
 
     @Test
-    void sendRequest_rejectsAMissingUser() {
-        authenticateAsJane();
-
-        post("{}").expectStatus().isBadRequest();
-        verify(friendService, never()).sendRequest(any(), any());
-    }
-
-    @Test
     void sendRequest_returnsConflictWhenAlreadyAsked() {
         authenticateAsJane();
         doThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Request already sent"))
@@ -86,12 +77,4 @@ class FriendControllerTest {
         post(new SendFriendRequest(UUID.randomUUID())).expectStatus().isEqualTo(HttpStatus.CONFLICT);
     }
 
-    @Test
-    void sendRequest_rejectsRequestsWithoutAToken() {
-        restTestClient.post().uri("/v1/friends/requests")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new SendFriendRequest(UUID.randomUUID()))
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
 }

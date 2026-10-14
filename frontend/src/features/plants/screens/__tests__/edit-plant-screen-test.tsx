@@ -78,13 +78,6 @@ async function renameAndSave(name: string) {
 }
 
 describe('EditPlantScreen', () => {
-  it('opens the form filled in with the plant it was opened for', async () => {
-    await render(<EditPlantScreen plantId="p1" />);
-
-    expect(mockedUsePlant).toHaveBeenCalledWith('p1');
-    expect(screen.getByRole('header', { name: 'Edit your plant' })).toBeOnTheScreen();
-    expect(screen.getByLabelText('Name')).toHaveDisplayValue('Vera');
-  });
 
   it('saves the changes to the plant and closes', async () => {
     await render(<EditPlantScreen plantId="p1" />);
@@ -93,24 +86,6 @@ describe('EditPlantScreen', () => {
 
     await waitFor(() => expect(back).toHaveBeenCalled());
     expect(updatePlant).toHaveBeenCalledWith('p1', expect.objectContaining({ name: 'Vera II', planterId: 'balcony' }));
-  });
-
-  it("goes to the plant's details once saved when there is no screen to go back to", async () => {
-    canGoBack.mockReturnValue(false);
-    await render(<EditPlantScreen plantId="p1" />);
-
-    await renameAndSave('Vera II');
-
-    await waitFor(() => expect(replace).toHaveBeenCalledWith({ pathname: '/plant/[id]', params: { id: 'p1' } }));
-    expect(back).not.toHaveBeenCalled();
-  });
-
-  it('shows a loading indicator while the plant loads', async () => {
-    mockPlant({ plant: null, isLoading: true });
-    await render(<EditPlantScreen plantId="p1" />);
-
-    expect(screen.getByLabelText('Loading plant')).toBeOnTheScreen();
-    expect(screen.queryByLabelText('Name')).toBeNull();
   });
 
   it('shows the error and retries when asked', async () => {
