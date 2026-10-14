@@ -2,6 +2,7 @@ package com.myplunt.auth;
 
 import com.myplunt.common.logging.LogEvent;
 import com.myplunt.common.logging.StructuredLog;
+import com.myplunt.constants.ApiPaths;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -34,6 +35,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     public JwtAuthFilter(JwtService jwtService, UserRepository userRepository) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
+    }
+
+    // Admin requests carry admin tokens, checked by AdminJwtAuthFilter; this one would only
+    // report them as invalid.
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return request.getRequestURI().startsWith(ApiPaths.Admin.BASE + "/");
     }
 
     @Override
