@@ -4,9 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { UserAvatar } from '@/components/user/user-avatar';
 import { FriendRequestActions } from '@/features/friends/components/friend-request-actions';
-import { cancelFriendRequest, sendFriendRequest } from '@/features/friends/friends-service';
+import { cancelFriendRequest, removeFriend, sendFriendRequest } from '@/features/friends/friends-service';
 import { useUserProfile } from '@/features/friends/use-user-profile';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
@@ -57,10 +58,10 @@ export function UserProfileScreen({ userId }: { userId: string }) {
 }
 
 // Add friend for strangers, Cancel request for someone you asked, Accept / Decline for someone who
-// asked you; otherwise where the two stand. Removing a friend comes with its own ticket.
+// asked you, and Friends (tap to remove) for a friend.
 function FriendshipAction({ user }: { user: UserSummary }) {
   const { setUnauthenticated } = useAuthStore();
-  // Set by answering, adding or cancelling here (undefined until then); the loaded value only reloads on focus.
+  // Set by answering, adding, cancelling or removing here (undefined until then); the loaded value only reloads on focus.
   const [changed, setChanged] = useState<UserSummary['friendship'] | undefined>(undefined);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +89,8 @@ function FriendshipAction({ user }: { user: UserSummary }) {
 
   switch (friendship) {
     case 'friends':
-      return <Button label="Friends" variant="secondary" disabled />;
+      // Removing deletes the friendship, so they're back to someone you can add.
+      return <RemoveFriend user={user} onRemoved={() => setChanged(null)} />;
     case 'request_sent':
       return (
         <View className="items-center gap-2">
@@ -117,4 +119,55 @@ function FriendshipAction({ user }: { user: UserSummary }) {
         </View>
       );
   }
+}
+
+// The Friends button: tapping it asks before ending the friendship.
+function RemoveFriend({ user, onRemoved }: { user: UserSummary; onRemoved: () => void }) {
+  const { setUnauthenticated } = useAuthStore();
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function remove() {
+    setIsRemoving(true);
+    setError(null);
+    try {
+      await removeFriend(user.id);
+      // Swaps this button (and its popup) for Add friend.
+      onRemoved();
+    } catch (err) {
+      setIsRemoving(false);
+      logFailedUi('friend_remove_failed_ui', err);
+      // apiFetch already tried a refresh; a 401 here means the session is gone.
+      if (err instanceof ApiError && err.status === 401) {
+        setUnauthenticated();
+        return;
+      }
+      setError(describeError(err));
+    }
+  }
+
+  return (
+    <>
+      <Button
+        label="Friends"
+        variant="secondary"
+        accessibilityHint="Asks before removing them as a friend"
+        onPress={() => setIsConfirming(true)}
+      />
+      <ConfirmDialog
+        visible={isConfirming}
+        title={`Remove ${user.username} as a friend?`}
+        message="To be friends again, one of you will have to send a new request."
+        confirmLabel="Remove"
+        onConfirm={remove}
+        onCancel={() => {
+          setIsConfirming(false);
+          setError(null);
+        }}
+        loading={isRemoving}
+        error={error}
+      />
+    </>
+  );
 }
