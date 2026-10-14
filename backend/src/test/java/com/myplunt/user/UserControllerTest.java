@@ -265,7 +265,7 @@ class UserControllerTest {
     @Test
     void search_returnsTheMatchingUsersWithoutTheirEmail() {
         UUID janeId = authenticateAsJane();
-        List<UserSummaryResponse> users = List.of(new UserSummaryResponse(UUID.randomUUID(), "jane_doe", "Fern collector", null));
+        List<UserSummaryResponse> users = List.of(new UserSummaryResponse(UUID.randomUUID(), "jane_doe", "Fern collector", null, null));
         when(userService.search(janeId, "jan")).thenReturn(users);
 
         restTestClient.get().uri("/v1/users/search?q=jan")
