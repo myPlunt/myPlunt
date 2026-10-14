@@ -1,7 +1,9 @@
 package com.myplunt;
 
 import com.myplunt.common.logging.ActionLog;
+import com.myplunt.common.logging.ClientLog;
 import com.myplunt.common.logging.UserAction;
+import com.myplunt.common.logging.dto.ClientLogRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
@@ -68,6 +70,20 @@ class LogFileTest {
                 .endsWith("\"level\":\"INFO\",\"service\":\"backend\",\"message\":\"WATERING_STREAK_BROKEN\","
                         + "\"action\":\"WATERING_STREAK_BROKEN\",\"userId\":\"" + userId + "\","
                         + "\"plantId\":\"" + plantId + "\",\"lostStreak\":4}");
+    }
+
+    @Test
+    void clientLog_writesAnErrorLineMarkedAsComingFromTheFrontend(@TempDir Path dir) throws IOException {
+        UUID userId = UUID.randomUUID();
+
+        List<String> lines = logToFile(dir, () -> new ClientLog().record(userId, new ClientLogRequest(
+                "GET /v1/garden got no response", "TypeError: Network request failed", "android", "1.0.0")));
+
+        assertThat(lines).singleElement().asString()
+                .startsWith("{\"timestamp\":\"")
+                .endsWith("\"level\":\"ERROR\",\"service\":\"frontend\",\"message\":\"GET /v1/garden got no response\","
+                        + "\"userId\":\"" + userId + "\",\"platform\":\"android\",\"appVersion\":\"1.0.0\","
+                        + "\"details\":\"TypeError: Network request failed\"}");
     }
 
     // The lines written while the logging config from application.yml is active, minus the

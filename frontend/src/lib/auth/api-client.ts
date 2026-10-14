@@ -38,19 +38,20 @@ interface ProblemDetailBody {
 // status 0 marks "no response at all": the backend is down, or the device is offline.
 const NETWORK_ERROR_DETAIL = "Can't reach myPlunt right now. Check your connection and try again.";
 
-async function send(path: string, init: RequestInit): Promise<Response> {
+// silent skips logging the failure; only the logger's own reports use it.
+async function send(path: string, init: RequestInit, silent = false): Promise<Response> {
   try {
     return await fetch(`${API_BASE_URL}${path}`, init);
   } catch (err) {
-    logError(`${init.method} ${path} got no response (is the backend running at ${API_BASE_URL}?)`, err);
+    if (!silent) logError(`${init.method} ${path} got no response (is the backend running at ${API_BASE_URL}?)`, err);
     throw new ApiError(0, 'Network request failed', { detail: NETWORK_ERROR_DETAIL });
   }
 }
 
-async function parseJsonOrThrow<T>(response: Response, request: string): Promise<T> {
+async function parseJsonOrThrow<T>(response: Response, request: string, silent = false): Promise<T> {
   if (!response.ok) {
     const body: ProblemDetailBody | undefined = await response.json().catch(() => undefined);
-    logError(`${request} failed with ${response.status}`, body);
+    if (!silent) logError(`${request} failed with ${response.status}`, body);
     throw new ApiError(response.status, body?.detail ?? `Request failed with status ${response.status}`, {
       detail: body?.detail,
       fieldErrors: body?.errors,
@@ -97,6 +98,8 @@ async function refreshTokens(refreshToken: string): Promise<TokenPair> {
 interface ApiFetchOptions {
   method?: string;
   body?: unknown;
+  /** Don't log a failure of this request (for the logger's own reports). */
+  silent?: boolean;
 }
 
 /** For everything else: attaches the access token, retries once after a refresh on 401. */
@@ -115,7 +118,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
         Authorization: `Bearer ${accessToken}`,
       },
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-    });
+    }, options.silent);
 
   let response = await makeRequest(tokens.accessToken);
 
@@ -124,5 +127,5 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     response = await makeRequest(refreshed.accessToken);
   }
 
-  return parseJsonOrThrow<T>(response, `${method} ${path}`);
+  return parseJsonOrThrow<T>(response, `${method} ${path}`, options.silent);
 }

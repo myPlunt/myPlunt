@@ -209,6 +209,17 @@ describe('failed requests', () => {
     expect(jest.mocked(logError)).toHaveBeenCalledWith('POST /v1/plants failed with 500', body);
   });
 
+  it('does not log the failures of a silent request, so the logger cannot report its own failures', async () => {
+    (globalThis.fetch as jest.Mock)
+      .mockRejectedValueOnce(new TypeError('Network request failed'))
+      .mockResolvedValueOnce(jsonResponse(400, { errors: { platform: 'Platform must not be blank.' } }));
+
+    await expect(apiFetch('/v1/client-logs', { method: 'POST', body: {}, silent: true })).rejects.toMatchObject({ status: 0 });
+    await expect(apiFetch('/v1/client-logs', { method: 'POST', body: {}, silent: true })).rejects.toMatchObject({ status: 400 });
+
+    expect(jest.mocked(logError)).not.toHaveBeenCalled();
+  });
+
   it('does not log successful requests', async () => {
     (globalThis.fetch as jest.Mock).mockResolvedValueOnce(jsonResponse(200, {}));
 

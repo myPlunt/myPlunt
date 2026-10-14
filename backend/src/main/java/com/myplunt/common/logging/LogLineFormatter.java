@@ -30,7 +30,8 @@ public class LogLineFormatter implements StructuredLogFormatter<ILoggingEvent> {
         line.put("level", event.getLevel().toString());
         line.put("service", service);
         line.put("message", event.getFormattedMessage());
-        // The fields ActionLog adds (action, userId, plantId, streak...).
+        // The fields ActionLog and ClientLog add (action, userId, plantId, streak...). ClientLog's
+        // "service":"frontend" replaces the default service in place.
         if (event.getKeyValuePairs() != null) {
             for (KeyValuePair pair : event.getKeyValuePairs()) {
                 // Numbers stay numbers so they can be summed; ids and the rest become text.

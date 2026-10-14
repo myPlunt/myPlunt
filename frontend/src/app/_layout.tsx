@@ -9,9 +9,11 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
 import { SplashOverlay } from '@/components/splash/splash-overlay';
+import { reportUncaughtErrors } from '@/lib/logger';
 import { AuthStoreProvider, useAuthStore } from '@/stores/auth-store';
 
 SplashScreen.preventAutoHideAsync();
+reportUncaughtErrors();
 
 function RootNavigator() {
   const { status } = useAuthStore();
