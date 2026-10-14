@@ -1,7 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
 
-import { Shadow } from '@/constants/theme';
-
 export type FriendsTab = 'find' | 'friends' | 'requests';
 
 const TABS: { tab: FriendsTab; label: string }[] = [
@@ -17,10 +15,10 @@ interface FriendsTabsProps {
   requestCount: number;
 }
 
-/** The Friends screen's segmented control: Find · Friends · Requests. */
+/** The Friends screen's tabs: Find · Friends · Requests, the open one underlined in green. */
 export function FriendsTabs({ tab, onChange, requestCount }: FriendsTabsProps) {
   return (
-    <View accessibilityRole="tablist" className="flex-row rounded-xl bg-background-element p-1">
+    <View accessibilityRole="tablist" className="flex-row border-b border-border">
       {TABS.map(({ tab: value, label }) => {
         const selected = value === tab;
         const badge = value === 'requests' && requestCount > 0 ? requestCount : null;
@@ -31,11 +29,10 @@ export function FriendsTabs({ tab, onChange, requestCount }: FriendsTabsProps) {
             accessibilityLabel={badge ? `${label}, ${badge} waiting` : label}
             accessibilityState={{ selected }}
             onPress={() => onChange(value)}
-            className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-lg py-2 active:opacity-70 ${
-              selected ? 'bg-background' : ''
-            }`}
-            style={selected ? Shadow.card : undefined}>
+            className="flex-1 flex-row items-center justify-center gap-1.5 pb-3 pt-2 active:opacity-70">
             <Text className={`type-button-medium ${selected ? 'text-text' : 'text-text-secondary'}`}>{label}</Text>
+            {/* Sits over the strip's bottom border, so the open tab reads as joined to the content below. */}
+            {selected && <View className="absolute -bottom-px left-4 right-4 h-[3px] rounded-t bg-action-primary" />}
             {badge && (
               <View className="min-w-5 items-center rounded-full bg-action-primary px-1.5">
                 <Text className="type-label text-background-element">{badge}</Text>
