@@ -56,4 +56,11 @@ public class FriendController {
     public void decline(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
         friendService.decline(principal.getId(), userId);
     }
+
+    // userId is the person the signed-in user asked; takes the request back before they answer.
+    @PostMapping(ApiPaths.Friends.CANCEL)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancel(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
+        friendService.cancel(principal.getId(), userId);
+    }
 }

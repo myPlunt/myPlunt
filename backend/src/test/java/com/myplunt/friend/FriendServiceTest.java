@@ -156,8 +156,26 @@ class FriendServiceTest {
     void acceptAndDecline_failWithoutAPendingRequestFromThem() {
         assertThatThrownBy(() -> friendService().accept(janeId, tomId))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("No friend request from this user");
+                .hasMessage("No pending friend request with this user");
         assertThatThrownBy(() -> friendService().decline(janeId, tomId)).isInstanceOf(IllegalStateException.class);
+        verify(friendshipRepository, never()).delete(any());
+    }
+
+    @Test
+    void cancel_deletesTheRequestTheUserSent() {
+        Friendship request = new Friendship(janeId, tomId);
+        when(friendshipRepository.findByRequesterIdAndReceiverIdAndStatus(janeId, tomId, Friendship.PENDING))
+                .thenReturn(Optional.of(request));
+
+        friendService().cancel(janeId, tomId);
+
+        verify(friendshipRepository).delete(request);
+    }
+
+    // A request tom sent jane is looked up with jane as the requester, so she can't cancel it, only decline.
+    @Test
+    void cancel_failsWithoutAPendingRequestToThem() {
+        assertThatThrownBy(() -> friendService().cancel(janeId, tomId)).isInstanceOf(IllegalStateException.class);
         verify(friendshipRepository, never()).delete(any());
     }
 

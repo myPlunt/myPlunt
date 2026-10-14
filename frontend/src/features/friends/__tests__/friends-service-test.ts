@@ -1,5 +1,6 @@
 import {
   acceptFriendRequest,
+  cancelFriendRequest,
   declineFriendRequest,
   getFriendRequests,
   getFriends,
@@ -63,5 +64,12 @@ describe('friends and requests', () => {
     await declineFriendRequest('u4');
     expect(mockedApiFetch).toHaveBeenCalledWith('/v1/friends/requests/u4/accept', { method: 'POST' });
     expect(mockedApiFetch).toHaveBeenCalledWith('/v1/friends/requests/u4/decline', { method: 'POST' });
+  });
+
+  it("cancels a sent request by the receiver's id", async () => {
+    mockedApiFetch.mockResolvedValue(undefined);
+
+    await cancelFriendRequest('u4');
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/friends/requests/u4/cancel', { method: 'POST' });
   });
 });

@@ -43,12 +43,12 @@ it('declines the request', async () => {
 });
 
 it('shows why answering failed and lets you try again', async () => {
-  mockedAccept.mockRejectedValue(new ApiError(404, 'not found', { detail: 'No friend request from this user' }));
+  mockedAccept.mockRejectedValue(new ApiError(404, 'not found', { detail: 'No pending friend request with this user' }));
   await renderActions();
 
   await user.press(screen.getByRole('button', { name: 'Accept' }));
 
-  expect(screen.getByText('No friend request from this user')).toBeOnTheScreen();
+  expect(screen.getByText('No pending friend request with this user')).toBeOnTheScreen();
   expect(onAnswered).not.toHaveBeenCalled();
   expect(screen.getByRole('button', { name: 'Accept' })).toBeEnabled();
 });

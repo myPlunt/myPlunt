@@ -51,11 +51,16 @@ public class FriendService {
         friendshipRepository.delete(pendingRequest(requesterId, userId));
     }
 
-    // Only the receiver can answer, so a request the user sent themselves isn't found either.
+    @Transactional
+    public void cancel(UUID userId, UUID receiverId) {
+        friendshipRepository.delete(pendingRequest(userId, receiverId));
+    }
+
+    // Looked up by direction, so accept/decline can't touch the user's own request and cancel can't touch one they received.
     private Friendship pendingRequest(UUID requesterId, UUID receiverId) {
         return friendshipRepository
                 .findByRequesterIdAndReceiverIdAndStatus(requesterId, receiverId, Friendship.PENDING)
-                .orElseThrow(() -> new IllegalStateException("No friend request from this user"));
+                .orElseThrow(() -> new IllegalStateException("No pending friend request with this user"));
     }
 
     private List<UserSummaryResponse> summaries(List<User> users, String friendship) {

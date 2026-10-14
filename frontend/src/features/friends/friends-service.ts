@@ -35,3 +35,8 @@ export async function acceptFriendRequest(userId: string): Promise<void> {
 export async function declineFriendRequest(userId: string): Promise<void> {
   return apiFetch<void>(`/v1/friends/requests/${userId}/decline`, { method: 'POST' });
 }
+
+/** Takes back the request the signed-in user sent userId, before they answer. */
+export async function cancelFriendRequest(userId: string): Promise<void> {
+  return apiFetch<void>(`/v1/friends/requests/${userId}/cancel`, { method: 'POST' });
+}

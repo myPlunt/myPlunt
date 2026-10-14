@@ -1,6 +1,11 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
 
-import { acceptFriendRequest, declineFriendRequest, sendFriendRequest } from '@/features/friends/friends-service';
+import {
+  acceptFriendRequest,
+  cancelFriendRequest,
+  declineFriendRequest,
+  sendFriendRequest,
+} from '@/features/friends/friends-service';
 import { useUserProfile } from '@/features/friends/use-user-profile';
 import { ApiError } from '@/lib/auth/api-client';
 import { AuthStoreProvider } from '@/stores/auth-store';
@@ -15,6 +20,7 @@ const mockedUseUserProfile = jest.mocked(useUserProfile);
 const mockedSendFriendRequest = jest.mocked(sendFriendRequest);
 const mockedAccept = jest.mocked(acceptFriendRequest);
 const mockedDecline = jest.mocked(declineFriendRequest);
+const mockedCancel = jest.mocked(cancelFriendRequest);
 const user = userEvent.setup();
 const retry = jest.fn();
 const jane = {
@@ -42,15 +48,35 @@ it('shows who they are', async () => {
   expect(screen.getByText('Fern collector')).toBeOnTheScreen();
 });
 
-it('sends a friend request and then shows it as requested', async () => {
+it('sends a friend request and then offers to cancel it', async () => {
   mockedSendFriendRequest.mockResolvedValue();
   await showProfile({});
 
   await user.press(screen.getByRole('button', { name: 'Add friend' }));
 
   expect(mockedSendFriendRequest).toHaveBeenCalledWith('u2');
-  expect(screen.getByRole('button', { name: 'Requested' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Cancel request' })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Add friend' })).toBeNull();
+});
+
+it('cancels a request you sent, leaving them to add again', async () => {
+  mockedCancel.mockResolvedValue();
+  await showProfile({ user: { ...jane, friendship: 'request_sent' } });
+
+  await user.press(screen.getByRole('button', { name: 'Cancel request' }));
+
+  expect(mockedCancel).toHaveBeenCalledWith('u2');
+  expect(screen.getByRole('button', { name: 'Add friend' })).toBeOnTheScreen();
+});
+
+it('shows why cancelling failed and keeps Cancel request', async () => {
+  mockedCancel.mockRejectedValue(new ApiError(404, 'not found', { detail: 'No pending friend request with this user' }));
+  await showProfile({ user: { ...jane, friendship: 'request_sent' } });
+
+  await user.press(screen.getByRole('button', { name: 'Cancel request' }));
+
+  expect(screen.getByText('No pending friend request with this user')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Cancel request' })).toBeOnTheScreen();
 });
 
 it('shows why a friend request failed and keeps Add friend', async () => {
@@ -63,13 +89,10 @@ it('shows why a friend request failed and keeps Add friend', async () => {
   expect(screen.getByRole('button', { name: 'Add friend' })).toBeOnTheScreen();
 });
 
-it.each([
-  ['friends', 'Friends'],
-  ['request_sent', 'Requested'],
-] as const)('shows %s as a disabled "%s" instead of Add friend', async (friendship, label) => {
-  await showProfile({ user: { ...jane, friendship } });
+it('shows friends as a disabled "Friends" instead of Add friend', async () => {
+  await showProfile({ user: { ...jane, friendship: 'friends' } });
 
-  expect(screen.getByRole('button', { name: label })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Friends' })).toBeDisabled();
   expect(screen.queryByRole('button', { name: 'Add friend' })).toBeNull();
 });
 
