@@ -1,5 +1,7 @@
 package com.myplunt.user;
 
+import com.myplunt.friend.Friendship;
+import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.storage.StorageService;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
@@ -14,7 +16,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -24,11 +29,17 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final StorageService storageService;
+    private final FriendshipRepository friendshipRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, StorageService storageService) {
+    public UserService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            StorageService storageService,
+            FriendshipRepository friendshipRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.storageService = storageService;
+        this.friendshipRepository = friendshipRepository;
     }
 
     // Maps the principal JwtAuthFilter already loaded, so read-only endpoints like
@@ -48,9 +59,44 @@ public class UserService {
         }
         // Escaped so "j_d" matches the literal underscore instead of any character.
         String pattern = q.toLowerCase(Locale.ROOT).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
-        return userRepository.search(pattern, searcherId, Limit.of(SEARCH_LIMIT)).stream()
-                .map(user -> new UserSummaryResponse(user.getId(), user.getUsername(), user.getBio(), avatarUrl(user)))
+        List<User> users = userRepository.search(pattern, searcherId, Limit.of(SEARCH_LIMIT));
+        if (users.isEmpty()) {
+            return List.of();
+        }
+        // Keyed by the other user; the pair index allows at most one row per pair.
+        Map<UUID, Friendship> friendships = friendshipRepository
+                .findBetween(searcherId, users.stream().map(User::getId).toList())
+                .stream()
+                .collect(Collectors.toMap(
+                        f -> f.getRequesterId().equals(searcherId) ? f.getReceiverId() : f.getRequesterId(),
+                        Function.identity()));
+        return users.stream()
+                .map(user -> toSummary(user, friendships.get(user.getId()), searcherId))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public UserSummaryResponse getSummary(UUID viewerId, UUID userId) {
+        User user = loadUser(userId);
+        List<Friendship> friendship = friendshipRepository.findBetween(viewerId, List.of(userId));
+        return toSummary(user, friendship.isEmpty() ? null : friendship.getFirst(), viewerId);
+    }
+
+    private UserSummaryResponse toSummary(User user, Friendship friendship, UUID viewerId) {
+        return new UserSummaryResponse(
+                user.getId(), user.getUsername(), user.getBio(), avatarUrl(user), friendship(friendship, viewerId));
+    }
+
+    // ponytail: declined and blocked rows still read as a pending request; the decline PBI should
+    // delete the row instead, or the pair index blocks asking again forever.
+    private static String friendship(Friendship friendship, UUID viewerId) {
+        if (friendship == null) {
+            return null;
+        }
+        if (Friendship.ACCEPTED.equals(friendship.getStatus())) {
+            return "friends";
+        }
+        return friendship.getRequesterId().equals(viewerId) ? "request_sent" : "request_received";
     }
 
     private String avatarUrl(User user) {

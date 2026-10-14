@@ -1,5 +1,7 @@
 package com.myplunt.user;
 
+import com.myplunt.friend.Friendship;
+import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.storage.StorageService;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
@@ -40,6 +42,9 @@ class UserServiceTest {
     @Mock
     private StorageService storageService;
 
+    @Mock
+    private FriendshipRepository friendshipRepository;
+
     private final UUID id = UUID.randomUUID();
     private User jane;
 
@@ -50,7 +55,7 @@ class UserServiceTest {
     }
 
     private UserService userService() {
-        return new UserService(userRepository, passwordEncoder, storageService);
+        return new UserService(userRepository, passwordEncoder, storageService, friendshipRepository);
     }
 
     @Test
@@ -174,7 +179,60 @@ class UserServiceTest {
         when(storageService.createReadUrl("avatars/a.jpg")).thenReturn("https://storage.test/a.jpg");
 
         assertThat(userService().search(searcherId, " JAN "))
-                .containsExactly(new UserSummaryResponse(id, "jane", "Fern collector", "https://storage.test/a.jpg"));
+                .containsExactly(new UserSummaryResponse(id, "jane", "Fern collector", "https://storage.test/a.jpg", null));
+    }
+
+    @Test
+    void search_saysHowEachResultRelatesToTheSearcher() {
+        UUID searcherId = UUID.randomUUID();
+        User friend = user("friend");
+        User asked = user("asked");
+        User asker = user("asker");
+        User stranger = user("stranger");
+        Friendship accepted = new Friendship(friend.getId(), searcherId);
+        ReflectionTestUtils.setField(accepted, "status", Friendship.ACCEPTED);
+        when(userRepository.search("a", searcherId, Limit.of(20))).thenReturn(List.of(friend, asked, asker, stranger));
+        when(friendshipRepository.findBetween(
+                        searcherId, List.of(friend.getId(), asked.getId(), asker.getId(), stranger.getId())))
+                .thenReturn(List.of(
+                        accepted,
+                        new Friendship(searcherId, asked.getId()),
+                        new Friendship(asker.getId(), searcherId)));
+
+        assertThat(userService().search(searcherId, "a"))
+                .extracting(UserSummaryResponse::friendship)
+                .containsExactly("friends", "request_sent", "request_received", null);
+    }
+
+    @Test
+    void getSummary_returnsTheUserAndHowTheyRelateToTheViewer() {
+        UUID viewerId = UUID.randomUUID();
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(friendshipRepository.findBetween(viewerId, List.of(id)))
+                .thenReturn(List.of(new Friendship(id, viewerId)));
+
+        assertThat(userService().getSummary(viewerId, id))
+                .isEqualTo(new UserSummaryResponse(id, "jane", null, null, "request_received"));
+    }
+
+    @Test
+    void getSummary_hasNoFriendshipWhenNeitherAsked() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+
+        assertThat(userService().getSummary(UUID.randomUUID(), id).friendship()).isNull();
+    }
+
+    @Test
+    void getSummary_failsForAnUnknownUser() {
+        UUID ghostId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> userService().getSummary(id, ghostId)).isInstanceOf(IllegalStateException.class);
+    }
+
+    private static User user(String username) {
+        User user = new User(username, username + "@example.com", "hashed");
+        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+        return user;
     }
 
     @Test

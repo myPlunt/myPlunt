@@ -24,4 +24,6 @@ export interface UserSummary {
   username: string;
   bio: string | null;
   avatarUrl: string | null;
+  /** How they relate to the signed-in user: request_sent means the signed-in user asked. null when neither asked. */
+  friendship: 'friends' | 'request_sent' | 'request_received' | null;
 }

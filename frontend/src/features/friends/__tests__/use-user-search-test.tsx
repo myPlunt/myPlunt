@@ -13,7 +13,7 @@ jest.mock('@/lib/auth/token-storage', () => ({
 
 const mockedFriendsService = jest.mocked(friendsService);
 const mockedTokenStorage = jest.mocked(tokenStorage);
-const jane = { id: 'u2', username: 'jane_doe', bio: null, avatarUrl: null };
+const jane = { id: 'u2', username: 'jane_doe', bio: null, avatarUrl: null, friendship: null };
 
 beforeEach(() => {
   jest.useFakeTimers();
@@ -50,7 +50,7 @@ it('searches only once typing pauses, with the last query', async () => {
 });
 
 it('keeps the previous results while the next query loads', async () => {
-  const john = { id: 'u3', username: 'john', bio: null, avatarUrl: null };
+  const john = { id: 'u3', username: 'john', bio: null, avatarUrl: null, friendship: null };
   mockedFriendsService.searchUsers.mockResolvedValueOnce([jane, john]).mockResolvedValueOnce([jane]);
   const { result, rerender } = await renderWithStore('j');
   await act(() => jest.advanceTimersByTime(300));

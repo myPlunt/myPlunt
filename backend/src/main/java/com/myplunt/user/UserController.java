@@ -8,12 +8,14 @@ import com.myplunt.user.dto.UserSummaryResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 public class UserController {
@@ -40,6 +42,12 @@ public class UserController {
     public List<UserSummaryResponse> search(
             @AuthenticationPrincipal User principal, @RequestParam(defaultValue = "") String q) {
         return userService.search(principal.getId(), q);
+    }
+
+    // Another user's profile, with how they relate to the signed-in user.
+    @GetMapping(ApiPaths.Users.BY_ID)
+    public UserSummaryResponse user(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
+        return userService.getSummary(principal.getId(), userId);
     }
 
     @PutMapping(ApiPaths.Users.ME_EMAIL)
