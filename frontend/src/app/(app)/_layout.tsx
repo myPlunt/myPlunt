@@ -14,6 +14,8 @@ export default function AppLayout() {
       <Stack.Screen name="edit-profile" />
       {/* Opened from the people icon in the profile's header. */}
       <Stack.Screen name="friends" />
+      {/* Opened from a person in the Friends search. */}
+      <Stack.Screen name="user/[id]" />
       {/* Opened from "Watering calendar" under the streak on the profile. */}
       <Stack.Screen name="watering-calendar" />
       {/* Opened from the tab bar's Add button. iOS shows it as a sheet that can be

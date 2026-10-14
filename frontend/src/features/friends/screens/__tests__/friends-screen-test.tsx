@@ -1,18 +1,16 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
+import { useRouter } from 'expo-router';
 
-import { sendFriendRequest } from '@/features/friends/friends-service';
 import { useUserSearch } from '@/features/friends/use-user-search';
-import { ApiError } from '@/lib/auth/api-client';
-import { AuthStoreProvider } from '@/stores/auth-store';
 
 import { FriendsScreen } from '../friends-screen';
 
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/friends/use-user-search');
-jest.mock('@/features/friends/friends-service');
 
 const mockedUseUserSearch = jest.mocked(useUserSearch);
-const mockedSendFriendRequest = jest.mocked(sendFriendRequest);
+const mockedUseRouter = jest.mocked(useRouter);
+const push = jest.fn();
 const user = userEvent.setup();
 const jane = {
   id: 'u2',
@@ -23,6 +21,7 @@ const jane = {
 } as const;
 
 beforeEach(() => {
+  mockedUseRouter.mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
   mockedUseUserSearch.mockReturnValue({ users: null, error: null, isLoading: false });
 });
 
@@ -31,12 +30,12 @@ afterEach(() => {
 });
 
 async function search(query: string) {
-  await render(<FriendsScreen />, { wrapper: AuthStoreProvider });
+  await render(<FriendsScreen />);
   await user.type(screen.getByLabelText('Search people'), query);
 }
 
 it('explains what to search for before anything is typed', async () => {
-  await render(<FriendsScreen />, { wrapper: AuthStoreProvider });
+  await render(<FriendsScreen />);
 
   expect(screen.getByText('Find friends by their username')).toBeOnTheScreen();
 });
@@ -80,37 +79,21 @@ it('shows the error when the search fails', async () => {
   expect(screen.getByText('Offline')).toBeOnTheScreen();
 });
 
-it('sends a friend request and then shows it as requested', async () => {
+it("opens a person's profile when they're pressed", async () => {
   mockedUseUserSearch.mockReturnValue({ users: [jane], error: null, isLoading: false });
-  mockedSendFriendRequest.mockResolvedValue();
   await search('jan');
 
-  await user.press(screen.getByLabelText('Add jane_doe'));
+  await user.press(screen.getByRole('button', { name: 'jane_doe' }));
 
-  expect(mockedSendFriendRequest).toHaveBeenCalledWith('u2');
-  expect(screen.getByText('Requested')).toBeOnTheScreen();
-  expect(screen.queryByLabelText('Add jane_doe')).toBeNull();
+  expect(push).toHaveBeenCalledWith({ pathname: '/user/[id]', params: { id: 'u2' } });
 });
 
-it('shows why a friend request failed and keeps the Add button', async () => {
-  mockedUseUserSearch.mockReturnValue({ users: [jane], error: null, isLoading: false });
-  mockedSendFriendRequest.mockRejectedValue(new ApiError(409, 'conflict', { detail: 'Request already sent' }));
-  await search('jan');
+it('tags people who are already friends, and only them', async () => {
+  const tom = { ...jane, id: 'u3', username: 'tom', friendship: 'friends' } as const;
+  const mia = { ...jane, id: 'u4', username: 'mia', friendship: 'request_sent' } as const;
+  mockedUseUserSearch.mockReturnValue({ users: [jane, tom, mia], error: null, isLoading: false });
+  await search('a');
 
-  await user.press(screen.getByLabelText('Add jane_doe'));
-
-  expect(screen.getByText('Request already sent')).toBeOnTheScreen();
-  expect(screen.getByLabelText('Add jane_doe')).toBeOnTheScreen();
-});
-
-it.each([
-  ['friends', 'Friends'],
-  ['request_sent', 'Requested'],
-  ['request_received', 'Wants to be friends'],
-] as const)('shows %s people as "%s" instead of an Add button', async (friendship, label) => {
-  mockedUseUserSearch.mockReturnValue({ users: [{ ...jane, friendship }], error: null, isLoading: false });
-  await search('jan');
-
-  expect(screen.getByText(label)).toBeOnTheScreen();
-  expect(screen.queryByLabelText('Add jane_doe')).toBeNull();
+  expect(screen.getAllByText('Friend')).toHaveLength(1);
+  expect(screen.getByRole('button', { name: 'tom' })).toHaveTextContent(/Friend/);
 });
