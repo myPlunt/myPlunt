@@ -2,17 +2,14 @@ import { render, screen, userEvent } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 
 import { useProfile } from '@/features/profile/use-profile';
-import { useWateringStreak } from '@/features/profile/use-watering-streak';
 
 import { ProfileScreen } from '../profile-screen';
 
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/profile/use-profile');
-jest.mock('@/features/profile/use-watering-streak');
 
 const mockedUseRouter = jest.mocked(useRouter);
 const mockedUseProfile = jest.mocked(useProfile);
-const mockedUseWateringStreak = jest.mocked(useWateringStreak);
 const push = jest.fn();
 const retry = jest.fn();
 const user = userEvent.setup();
@@ -21,7 +18,6 @@ const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: 'Fern
 beforeEach(() => {
   mockedUseRouter.mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
   mockedUseProfile.mockReturnValue({ user: jane, error: null, isLoading: false, retry });
-  mockedUseWateringStreak.mockReturnValue(7);
 });
 
 afterEach(() => {
@@ -127,19 +123,6 @@ describe('ProfileScreen', () => {
     await user.press(screen.getByLabelText('Dismiss menu'));
     expect(screen.queryByRole('button', { name: 'Open settings' })).toBeNull();
     expect(push).not.toHaveBeenCalled();
-  });
-
-  it("shows the user's watering streak", async () => {
-    await render(<ProfileScreen />);
-
-    expect(screen.getByLabelText('Watering streak: 7')).toBeOnTheScreen();
-  });
-
-  it('leaves the streak out until it has loaded', async () => {
-    mockedUseWateringStreak.mockReturnValue(null);
-    await render(<ProfileScreen />);
-
-    expect(screen.queryByLabelText(/Watering streak/)).toBeNull();
   });
 
   it('has no back button, because Profile is a tab', async () => {
