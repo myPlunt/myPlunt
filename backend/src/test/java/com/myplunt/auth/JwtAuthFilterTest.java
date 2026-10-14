@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -51,6 +52,7 @@ class JwtAuthFilterTest {
     void setsAuthenticationWhenTokenValid() throws Exception {
         UUID userId = UUID.randomUUID();
         User user = new User("jane", "jane@example.com", "hashed");
+        ReflectionTestUtils.setField(user, "id", userId);
         when(request.getHeader("Authorization")).thenReturn("Bearer valid-token");
         when(jwtService.parseAndValidate("valid-token")).thenReturn(userId);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));

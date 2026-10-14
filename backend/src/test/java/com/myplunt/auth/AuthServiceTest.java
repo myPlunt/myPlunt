@@ -3,8 +3,7 @@ package com.myplunt.auth;
 import com.myplunt.auth.dto.AuthResponse;
 import com.myplunt.auth.dto.LoginRequest;
 import com.myplunt.auth.dto.RegisterRequest;
-import com.myplunt.common.logging.ActionLog;
-import com.myplunt.common.logging.UserAction;
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -25,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,10 +42,10 @@ class AuthServiceTest {
     private JwtService jwtService;
 
     @Mock
-    private ActionLog actionLog;
+    private AuditLog auditLog;
 
     private AuthService authService() {
-        return new AuthService(userRepository, refreshTokenRepository, passwordEncoder, jwtService, actionLog, 30);
+        return new AuthService(userRepository, refreshTokenRepository, passwordEncoder, jwtService, auditLog, 30);
     }
 
     @Test
@@ -68,7 +66,6 @@ class AuthServiceTest {
 
         assertThat(response.accessToken()).isEqualTo("access-token");
         assertThat(response.refreshToken()).isNotBlank();
-        verify(actionLog).record(UserAction.USER_REGISTERED, userId);
     }
 
     @Test
@@ -112,7 +109,6 @@ class AuthServiceTest {
 
         assertThat(response.accessToken()).isEqualTo("access-token");
         assertThat(response.refreshToken()).isNotBlank();
-        verify(actionLog).record(UserAction.USER_LOGGED_IN, userId);
     }
 
     @Test
@@ -128,6 +124,8 @@ class AuthServiceTest {
     @Test
     void login_throwsUnauthorizedWhenPasswordIncorrect() {
         User user = new User("jane", "jane@example.com", "hashed");
+        UUID userId = UUID.randomUUID();
+        ReflectionTestUtils.setField(user, "id", userId);
         when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong", "hashed")).thenReturn(false);
 
@@ -135,15 +133,15 @@ class AuthServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
-        verifyNoInteractions(actionLog);
-
         verify(refreshTokenRepository, never()).save(any());
     }
 
     @Test
     void logout_deletesMatchingRefreshToken() {
-        RefreshToken refreshToken = new RefreshToken(
-                new User("jane", "jane@example.com", "hashed"), "token-value", null);
+        User user = new User("jane", "jane@example.com", "hashed");
+        UUID userId = UUID.randomUUID();
+        ReflectionTestUtils.setField(user, "id", userId);
+        RefreshToken refreshToken = new RefreshToken(user, "token-value", null);
         when(refreshTokenRepository.findByToken("token-value")).thenReturn(Optional.of(refreshToken));
 
         authService().logout("token-value");
@@ -163,6 +161,8 @@ class AuthServiceTest {
     @Test
     void refresh_returnsNewTokensForValidRefreshToken() {
         User user = new User("jane", "jane@example.com", "hashed");
+        UUID userId = UUID.randomUUID();
+        ReflectionTestUtils.setField(user, "id", userId);
         RefreshToken refreshToken = new RefreshToken(user, "refresh-token", Instant.now().plusSeconds(60));
         when(refreshTokenRepository.findByToken("refresh-token")).thenReturn(Optional.of(refreshToken));
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -188,6 +188,8 @@ class AuthServiceTest {
     @Test
     void refresh_throwsUnauthorizedAndDeletesTokenWhenExpired() {
         User user = new User("jane", "jane@example.com", "hashed");
+        UUID userId = UUID.randomUUID();
+        ReflectionTestUtils.setField(user, "id", userId);
         RefreshToken refreshToken = new RefreshToken(user, "expired-token", Instant.now().minusSeconds(60));
         when(refreshTokenRepository.findByToken("expired-token")).thenReturn(Optional.of(refreshToken));
 

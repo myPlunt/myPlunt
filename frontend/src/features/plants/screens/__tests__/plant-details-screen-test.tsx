@@ -181,7 +181,8 @@ describe('PlantDetailsScreen', () => {
   });
 
   it('shows why the plant could not be deleted and stays on the page', async () => {
-    deletePlant.mockRejectedValue(new ApiError(404, 'Not Found', { detail: 'Plant not found' }));
+    const error = new ApiError(404, 'Not Found', { detail: 'Plant not found' });
+    deletePlant.mockRejectedValue(error);
     await render(<PlantDetailsScreen plantId="p1" />);
 
     await user.press(screen.getByRole('button', { name: 'Delete plant' }));

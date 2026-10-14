@@ -7,6 +7,7 @@ import { AuthScreenLayout } from '@/features/auth/components/auth-screen-layout'
 import { FormField } from '@/components/ui/form-field';
 import { useAuthActions } from '@/features/auth/use-auth-actions';
 import { ApiError, describeError } from '@/lib/auth/api-client';
+import { logFailedUi } from '@/lib/logger';
 
 export function LoginScreen() {
   const { login } = useAuthActions();
@@ -24,6 +25,7 @@ export function LoginScreen() {
     try {
       await login({ email, password });
     } catch (err) {
+      logFailedUi('login_failed_ui', err);
       if (err instanceof ApiError && err.fieldErrors) {
         setFieldErrors(err.fieldErrors);
       } else {

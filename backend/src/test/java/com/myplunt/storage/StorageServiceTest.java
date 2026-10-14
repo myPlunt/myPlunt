@@ -1,5 +1,6 @@
 package com.myplunt.storage;
 
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.storage.dto.UploadUrlRequest;
 import com.myplunt.storage.dto.UploadUrlResponse;
@@ -44,8 +45,11 @@ class StorageServiceTest {
     @Mock
     private PresignedGetObjectRequest presignedGetObjectRequest;
 
+    @Mock
+    private AuditLog auditLog;
+
     private StorageService storageService() {
-        return new StorageService(s3Client, s3Presigner, "myplunt-dev", "", 5, 15, 5_242_880);
+        return new StorageService(s3Client, s3Presigner, "myplunt-dev", "", 5, 15, 5_242_880, auditLog);
     }
 
     @Test
@@ -68,7 +72,7 @@ class StorageServiceTest {
                 .thenReturn(presignedPutObjectRequest);
         when(presignedPutObjectRequest.url()).thenReturn(URI.create("http://localhost:9000/signed").toURL());
 
-        StorageService staging = new StorageService(s3Client, s3Presigner, "myplunt", "staging", 5, 15, 5_242_880);
+        StorageService staging = new StorageService(s3Client, s3Presigner, "myplunt", "staging", 5, 15, 5_242_880, auditLog);
 
         UploadUrlResponse response = staging.createUploadUrl(UUID.randomUUID(), new UploadUrlRequest(PhotoCategory.POST, "image/png"));
 

@@ -21,22 +21,16 @@ spring:
     placeholders:
       storagePrefix: ${app.storage.prefix}
 
-logging:
-  # Console stays human-readable. The file gets warnings, errors and user actions (see
-  # logback-spring.xml for which lines), one flat JSON object per line (see LogLineFormatter),
-  # so it can later be bulk-loaded into a database for the admin dashboard.
-  file:
-    name: ${LOG_FILE:logs/myplunt.log}
-  structured:
-    format:
-      file: com.myplunt.common.logging.LogLineFormatter
-  logback:
-    rollingpolicy:
-      max-file-size: 10MB
-      max-history: 14
-      total-size-cap: 200MB
-
 app:
+  # Filled in by Maven at build time; every backend log line carries it as backend_version.
+  version: '@project.version@'
+  # backend.log, audit.log and frontend.log (see logback-spring.xml). Retention is in days.
+  logging:
+    dir: ${LOG_DIR:logs}
+    retention-days:
+      backend: 14
+      audit: 365
+      frontend: 14
   jwt:
     secret: ${JWT_SECRET}
     access-token-ttl-minutes: 15

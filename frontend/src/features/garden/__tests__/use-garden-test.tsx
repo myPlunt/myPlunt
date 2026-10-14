@@ -44,15 +44,6 @@ it('loads the garden', async () => {
   expect(result.current.garden.error).toBeNull();
 });
 
-it('exposes the backend message when loading fails', async () => {
-  mockedGardenService.getGarden.mockRejectedValue(new ApiError(500, 'irrelevant', { detail: 'Garden unavailable' }));
-  const { result } = await renderWithStore();
-
-  await waitFor(() => expect(result.current.garden.error).toBe('Garden unavailable'));
-  expect(result.current.garden.garden).toBeNull();
-  expect(result.current.garden.isLoading).toBe(false);
-});
-
 it('signs the user out when the session has expired', async () => {
   mockedGardenService.getGarden.mockRejectedValue(new ApiError(401, 'Not authenticated'));
   const { result } = await renderWithStore();

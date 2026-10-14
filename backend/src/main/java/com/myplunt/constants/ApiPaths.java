@@ -10,7 +10,7 @@ public final class ApiPaths {
         private Ops() {}
     }
 
-    // Errors the app reports about itself, written to the backend's log file.
+    // What the app logs (actions, warnings, errors), written to the backend's log file.
     public static final class ClientLogs {
         public static final String BASE = "/v1/client-logs";
 

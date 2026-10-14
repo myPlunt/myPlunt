@@ -18,6 +18,7 @@ import { usePlant } from '@/features/plants/use-plant';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
+import { logAction, logFailedUi } from '@/lib/logger';
 import type { PlantDetails } from '@/lib/plant/types';
 
 /**
@@ -154,6 +155,7 @@ function DeletePlant({ plant }: { plant: PlantDetails }) {
         router.replace('/garden');
       }
     } catch (err) {
+      logFailedUi('plant_delete_failed_ui', err, { plant_id: plant.id });
       // An expired session already signed the user out (usePlantActions).
       if (!(err instanceof ApiError && err.status === 401)) {
         setError(describeError(err));
@@ -167,7 +169,10 @@ function DeletePlant({ plant }: { plant: PlantDetails }) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Delete plant"
-        onPress={() => setIsConfirming(true)}
+        onPress={() => {
+          logAction('plant_delete_started', { context: { plant_id: plant.id } });
+          setIsConfirming(true);
+        }}
         className="items-center py-2 active:opacity-70">
         <Text className="type-button-medium text-error">Delete plant</Text>
       </Pressable>
@@ -178,6 +183,7 @@ function DeletePlant({ plant }: { plant: PlantDetails }) {
         confirmLabel="Delete"
         onConfirm={confirm}
         onCancel={() => {
+          logAction('plant_delete_cancelled', { context: { plant_id: plant.id } });
           setIsConfirming(false);
           setError(null);
         }}

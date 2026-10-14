@@ -1,29 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Spring Boot's default console and structured file setup (see spring-boot's
-     logback/structured-file-appender.xml), except that the file uses LogFileFilter instead of
-     one threshold: warnings and errors from everything, plus our own INFO lines (user actions),
-     without Spring's startup chatter. The file name, format and rolling come from application.yml. -->
+<!-- Three files in app.logging.dir, each one JSON object per line (LogLineFormatter):
+     - backend.log:  the backend's warnings, errors and bugs from anywhere, plus our own INFO
+                     lines (LogFileFilter), without Spring's startup chatter.
+     - audit.log:    what happened to accounts and their data (AuditLog). Kept longest.
+     - frontend.log: what the app reports (ClientLog). Untrusted, so kept apart.
+     The console keeps Spring Boot's readable format and shows everything but the app's lines.
+     Each start gets fresh files (LogFileRotator); within a run they roll over at 10 MB. -->
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
 
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <springProperty name="LOG_DIR" source="app.logging.dir" defaultValue="logs"/>
+    <springProperty name="BACKEND_DAYS" source="app.logging.retention-days.backend" defaultValue="14"/>
+    <springProperty name="AUDIT_DAYS" source="app.logging.retention-days.audit" defaultValue="365"/>
+    <springProperty name="FRONTEND_DAYS" source="app.logging.retention-days.frontend" defaultValue="14"/>
+
+    <appender name="BACKEND" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <filter class="com.myplunt.common.logging.LogFileFilter"/>
         <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
-            <format>${FILE_LOG_STRUCTURED_FORMAT}</format>
-            <charset>${FILE_LOG_CHARSET}</charset>
+            <format>com.myplunt.common.logging.LogLineFormatter</format>
+            <charset>UTF-8</charset>
         </encoder>
-        <file>${LOG_FILE}</file>
+        <file>${LOG_DIR}/backend.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
-            <maxFileSize>${LOGBACK_ROLLINGPOLICY_MAX_FILE_SIZE:-10MB}</maxFileSize>
-            <totalSizeCap>${LOGBACK_ROLLINGPOLICY_TOTAL_SIZE_CAP:-0}</totalSizeCap>
-            <maxHistory>${LOGBACK_ROLLINGPOLICY_MAX_HISTORY:-7}</maxHistory>
+            <fileNamePattern>${LOG_DIR}/backend.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>${BACKEND_DAYS}</maxHistory>
         </rollingPolicy>
     </appender>
 
+    <appender name="AUDIT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+            <format>com.myplunt.common.logging.LogLineFormatter</format>
+            <charset>UTF-8</charset>
+        </encoder>
+        <file>${LOG_DIR}/audit.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/audit.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>${AUDIT_DAYS}</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="FRONTEND" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+            <format>com.myplunt.common.logging.LogLineFormatter</format>
+            <charset>UTF-8</charset>
+        </encoder>
+        <file>${LOG_DIR}/frontend.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/frontend.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>${FRONTEND_DAYS}</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <logger name="com.myplunt.audit" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="AUDIT"/>
+    </logger>
+
+    <logger name="com.myplunt.frontend" level="INFO" additivity="false">
+        <appender-ref ref="FRONTEND"/>
+    </logger>
+
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
+        <appender-ref ref="BACKEND"/>
     </root>
 </configuration>

@@ -26,8 +26,8 @@ describe('waterPlant', () => {
 
     await gardenService.waterPlant('p1');
 
-    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants/p1/waterings?zone=Europe%2FAmsterdam', {
-      method: 'POST',
-    });
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants/p1/waterings?zone=Europe%2FAmsterdam', expect.objectContaining({
+      method: 'POST'
+    }));
   });
 });

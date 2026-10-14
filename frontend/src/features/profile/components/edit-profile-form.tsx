@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { useProfileActions } from '@/features/profile/use-profile-actions';
 import { ApiError, describeError } from '@/lib/auth/api-client';
+import { logFailedUi } from '@/lib/logger';
 import type { User } from '@/lib/user/types';
 
 const BIO_MAX_LENGTH = 255;
@@ -35,6 +36,7 @@ export function EditProfileForm({ user }: { user: User }) {
       setBio(updated.bio ?? '');
       setJustSaved(true);
     } catch (err) {
+      logFailedUi('profile_update_failed_ui', err);
       if (err instanceof ApiError && err.fieldErrors) {
         setFieldErrors(err.fieldErrors);
       } else {

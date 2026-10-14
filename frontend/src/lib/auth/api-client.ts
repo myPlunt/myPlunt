@@ -1,4 +1,5 @@
-import { logError } from '@/lib/logger';
+import { logError, logWarning } from '@/lib/logger';
+import { createRequestId } from '@/lib/request-id';
 
 import { tokenStorage, type TokenPair } from './token-storage';
 import type { AuthResponse } from './types';
@@ -11,12 +12,19 @@ export class ApiError extends Error {
   detail?: string;
   /** Per-field bean-validation messages, keyed by field name, when the backend sent any. */
   fieldErrors?: Record<string, string>;
+  /** The X-Request-ID the request went out with, so a log line about the failure can name it. */
+  requestId?: string;
 
-  constructor(status: number, message: string, options?: { detail?: string; fieldErrors?: Record<string, string> }) {
+  constructor(
+    status: number,
+    message: string,
+    options?: { detail?: string; fieldErrors?: Record<string, string>; requestId?: string },
+  ) {
     super(message);
     this.status = status;
     this.detail = options?.detail;
     this.fieldErrors = options?.fieldErrors;
+    this.requestId = options?.requestId;
   }
 }
 
@@ -38,23 +46,65 @@ interface ProblemDetailBody {
 // status 0 marks "no response at all": the backend is down, or the device is offline.
 const NETWORK_ERROR_DETAIL = "Can't reach myPlunt right now. Check your connection and try again.";
 
-// silent skips logging the failure; only the logger's own reports use it.
-async function send(path: string, init: RequestInit, silent = false): Promise<Response> {
+// Slower than this, the user is left waiting long enough to notice.
+const SLOW_RESPONSE_MS = 3000;
+
+interface SendOptions {
+  method: string;
+  body?: unknown;
+  accessToken?: string;
+  requestId: string;
+  /** Don't log anything about this request (for the logger's own reports). */
+  silent: boolean;
+}
+
+// What a log line says about a request. The query string is left out: a search query can be
+// a person's name.
+function requestContext(method: string, path: string) {
+  return { method, path: path.split('?')[0] };
+}
+
+async function send(path: string, { method, body, accessToken, requestId, silent }: SendOptions): Promise<Response> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'X-Request-ID': requestId };
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  const startedAt = Date.now();
   try {
-    return await fetch(`${API_BASE_URL}${path}`, init);
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    const durationMs = Date.now() - startedAt;
+    if (!silent && durationMs >= SLOW_RESPONSE_MS) {
+      logWarning('slow_api_response', { requestId, context: { ...requestContext(method, path), duration_ms: durationMs } });
+    }
+    return response;
   } catch (err) {
-    if (!silent) logError(`${init.method} ${path} got no response (is the backend running at ${API_BASE_URL}?)`, err);
-    throw new ApiError(0, 'Network request failed', { detail: NETWORK_ERROR_DETAIL });
+    if (!silent) {
+      logError('api_request_failed', err, { requestId, context: { ...requestContext(method, path), status: 0 } });
+    }
+    throw new ApiError(0, 'Network request failed', { detail: NETWORK_ERROR_DETAIL, requestId });
   }
 }
 
-async function parseJsonOrThrow<T>(response: Response, request: string, silent = false): Promise<T> {
+async function parseJsonOrThrow<T>(response: Response, { method, requestId, silent }: SendOptions, path: string): Promise<T> {
   if (!response.ok) {
     const body: ProblemDetailBody | undefined = await response.json().catch(() => undefined);
-    if (!silent) logError(`${request} failed with ${response.status}`, body);
+    if (!silent) {
+      const context = { ...requestContext(method, path), status: response.status };
+      if (response.status >= 500) {
+        logError('api_request_failed', undefined, { requestId, context });
+      } else {
+        // Turned away (validation, not found, conflict): which fields, but not the backend's
+        // detail, which can name another user. The backend logs its own reason.
+        const fields = body?.errors ? Object.keys(body.errors).join(',') : undefined;
+        logWarning('api_request_rejected', { requestId, context: { ...context, fields } });
+      }
+    }
     throw new ApiError(response.status, body?.detail ?? `Request failed with status ${response.status}`, {
       detail: body?.detail,
       fieldErrors: body?.errors,
+      requestId,
     });
   }
   if (response.status === 204) {
@@ -63,17 +113,23 @@ async function parseJsonOrThrow<T>(response: Response, request: string, silent =
   return response.json() as Promise<T>;
 }
 
-/** For endpoints that don't need an access token: register, login, refresh. */
-export async function publicFetch<T>(path: string, body?: unknown): Promise<T> {
-  const response = await send(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  return parseJsonOrThrow<T>(response, `POST ${path}`);
+interface PublicFetchOptions {
+  /** Set when the caller already logged the request under this id (e.g. "login_submitted"). */
+  requestId?: string;
 }
 
-// Multiple requests can 401 at once, so share one 
+/** For endpoints that don't need an access token: register, login, refresh. */
+export async function publicFetch<T>(path: string, body?: unknown, options: PublicFetchOptions = {}): Promise<T> {
+  const sendOptions: SendOptions = {
+    method: 'POST',
+    body,
+    requestId: options.requestId ?? createRequestId(),
+    silent: false,
+  };
+  return parseJsonOrThrow<T>(await send(path, sendOptions), sendOptions, path);
+}
+
+// Multiple requests can 401 at once, so share one
 // in-flight refresh instead of hitting /auth/refresh once per request.
 let refreshPromise: Promise<TokenPair> | null = null;
 
@@ -86,6 +142,7 @@ async function refreshTokens(refreshToken: string): Promise<TokenPair> {
       })
       .catch(async (error) => {
         await tokenStorage.clearTokens();
+        logWarning('session_expired');
         throw error;
       })
       .finally(() => {
@@ -98,7 +155,9 @@ async function refreshTokens(refreshToken: string): Promise<TokenPair> {
 interface ApiFetchOptions {
   method?: string;
   body?: unknown;
-  /** Don't log a failure of this request (for the logger's own reports). */
+  /** Set when the caller already logged the request under this id (e.g. "plant_create_submitted"). */
+  requestId?: string;
+  /** Don't log anything about this request (for the logger's own reports). */
   silent?: boolean;
 }
 
@@ -109,23 +168,26 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     throw new ApiError(401, 'Not authenticated');
   }
 
-  const method = options.method ?? 'GET';
-  const makeRequest = (accessToken: string) =>
-    send(path, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-    }, options.silent);
+  // The retry keeps the same id: it's the same thing the user asked for.
+  const sendOptions: SendOptions = {
+    method: options.method ?? 'GET',
+    body: options.body,
+    requestId: options.requestId ?? createRequestId(),
+    silent: options.silent ?? false,
+  };
 
-  let response = await makeRequest(tokens.accessToken);
+  let response = await send(path, { ...sendOptions, accessToken: tokens.accessToken });
 
   if (response.status === 401) {
     const refreshed = await refreshTokens(tokens.refreshToken);
-    response = await makeRequest(refreshed.accessToken);
+    if (!sendOptions.silent) {
+      logWarning('request_retried_after_refresh', {
+        requestId: sendOptions.requestId,
+        context: requestContext(sendOptions.method, path),
+      });
+    }
+    response = await send(path, { ...sendOptions, accessToken: refreshed.accessToken });
   }
 
-  return parseJsonOrThrow<T>(response, `${method} ${path}`, options.silent);
+  return parseJsonOrThrow<T>(response, sendOptions, path);
 }

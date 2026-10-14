@@ -1,6 +1,7 @@
 package com.myplunt.ops;
 
 import com.myplunt.auth.JwtService;
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.user.UserRepository;
 import org.flywaydb.core.Flyway;
@@ -35,6 +36,9 @@ class DbResetControllerTest {
 
     @MockitoBean
     private UserRepository userRepository;
+
+    @MockitoBean
+    private AuditLog auditLog;
 
     @Test
     void resetDb_withCorrectSecret_cleansAndMigrates() {

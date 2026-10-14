@@ -1,5 +1,7 @@
 package com.myplunt.storage;
 
+import com.myplunt.common.logging.LogEvent;
+import com.myplunt.common.logging.StructuredLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -147,7 +149,7 @@ public class StorageConfig {
                         RequestBody.fromBytes(image.bytes()));
             }
         } catch (IOException | RuntimeException e) {
-            log.warn("Could not upload the seed images", e);
+            StructuredLog.warning(log, LogEvent.SEED_IMAGE_UNAVAILABLE, Map.of("reason", e.getClass().getSimpleName()));
         }
     }
 
@@ -173,18 +175,21 @@ public class StorageConfig {
                 if (response.statusCode() == 200 && contentType.startsWith("image/")) {
                     return new Image(response.body(), contentType);
                 }
-                log.warn("Seed image {} answered {} {} (attempt {})", url, response.statusCode(), contentType, attempt);
+                StructuredLog.warning(log, LogEvent.SEED_IMAGE_UNAVAILABLE, Map.of(
+                        "url", url, "status", response.statusCode(), "content_type", contentType, "attempt", attempt));
                 if (attempt < DOWNLOAD_ATTEMPTS) {
                     Thread.sleep(Duration.ofSeconds(2L * attempt));
                 }
             } catch (IOException e) {
-                log.warn("Could not download seed image {} (attempt {})", url, attempt, e);
+                StructuredLog.warning(log, LogEvent.SEED_IMAGE_UNAVAILABLE, Map.of(
+                        "url", url, "reason", e.getClass().getSimpleName(), "attempt", attempt));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
             }
         }
-        log.warn("Using a placeholder for seed image {}; it's retried on the next start", url);
+        // A fallback, so a warning: the garden shows a blank photo until the next start retries it.
+        StructuredLog.warning(log, LogEvent.SEED_IMAGE_PLACEHOLDER_USED, Map.of("url", url));
         return new Image(PLACEHOLDER_IMAGE, "image/png");
     }
 

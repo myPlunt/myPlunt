@@ -13,6 +13,7 @@ import { useGardenActions } from '@/features/garden/use-garden-actions';
 import { plantsNeedingWater } from '@/features/garden/watering';
 import { useTheme } from '@/hooks/use-theme';
 import { describeError } from '@/lib/auth/api-client';
+import { logFailedUi } from '@/lib/logger';
 
 export function GardenScreen() {
   const theme = useTheme();
@@ -39,6 +40,7 @@ export function GardenScreen() {
       await refresh();
       return true;
     } catch (err) {
+      logFailedUi('watering_failed_ui', err, { plant_count: plantIds.length });
       setWaterError(describeError(err));
       return false;
     } finally {

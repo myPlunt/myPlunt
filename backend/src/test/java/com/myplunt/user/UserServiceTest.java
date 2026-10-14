@@ -1,5 +1,6 @@
 package com.myplunt.user;
 
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.Friendship;
 import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.storage.StorageService;
@@ -34,6 +35,9 @@ import static org.mockito.Mockito.when;
 class UserServiceTest {
 
     @Mock
+    private AuditLog auditLog;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -55,7 +59,7 @@ class UserServiceTest {
     }
 
     private UserService userService() {
-        return new UserService(userRepository, passwordEncoder, storageService, friendshipRepository);
+        return new UserService(userRepository, passwordEncoder, storageService, friendshipRepository, auditLog);
     }
 
     @Test

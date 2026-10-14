@@ -120,6 +120,7 @@ describe('PlantForm', () => {
       await user.type(screen.getByLabelText('Name'), 'era', { skipBlur: true });
       await fireEvent(screen.getByLabelText('Name'), 'blur');
       expect(screen.queryByText('Name must be at least 3 characters.')).toBeNull();
+      // Only the one time the hint showed; a long enough name isn't a validation failure.
     });
 
     it('says the name is too short when the user leaves it empty', async () => {
@@ -502,7 +503,8 @@ describe('PlantForm', () => {
     });
 
     it('shows why the changes could not be saved', async () => {
-      updatePlant.mockRejectedValue(new ApiError(409, 'Conflict', { detail: "This plant has passed away and can't be edited" }));
+      const error = new ApiError(409, 'Conflict', { detail: "This plant has passed away and can't be edited" });
+      updatePlant.mockRejectedValue(error);
       await renderForm({ plant: veraDetails });
       await user.press(screen.getByRole('button', { name: 'Next' }));
 

@@ -71,7 +71,8 @@ describe('ChangeEmailForm', () => {
   });
 
   it('shows the backend message for other errors', async () => {
-    changeEmail.mockRejectedValue(new ApiError(409, 'irrelevant', { detail: 'Email already registered' }));
+    const error = new ApiError(409, 'irrelevant', { detail: 'Email already registered' });
+    changeEmail.mockRejectedValue(error);
     await render(<ChangeEmailForm user={jane} />);
 
     await typeNewEmail('taken@example.com');
