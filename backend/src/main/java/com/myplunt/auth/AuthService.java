@@ -5,7 +5,6 @@ import com.myplunt.auth.dto.LoginRequest;
 import com.myplunt.auth.dto.RegisterRequest;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
-import com.myplunt.common.logging.LogMasking;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,19 +46,19 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.findByEmail(request.email()).isPresent()) {
             auditLog.rejected(AuditEvent.REGISTRATION_REJECTED, null, "email_in_use",
-                    Map.of("email", LogMasking.email(request.email())));
+                    Map.of("email", request.email()));
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
         }
         if (userRepository.findByUsername(request.username()).isPresent()) {
             auditLog.rejected(AuditEvent.REGISTRATION_REJECTED, null, "username_taken",
-                    Map.of("username", LogMasking.username(request.username())));
+                    Map.of("username", request.username()));
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already taken");
         }
 
         User user = userRepository.save(new User(
                 request.username(), request.email(), passwordEncoder.encode(request.password())));
         auditLog.recorded(AuditEvent.USER_REGISTERED, user.getId(), user.getId(),
-                Map.of("email", LogMasking.email(user.getEmail())));
+                Map.of("email", user.getEmail()));
 
         return issueTokens(user);
     }
@@ -68,7 +67,7 @@ public class AuthService {
         User user = userRepository.findByEmail(request.email()).orElse(null);
         if (user == null) {
             auditLog.rejected(AuditEvent.LOGIN_FAILED, null, "unknown_email",
-                    Map.of("email", LogMasking.email(request.email())));
+                    Map.of("email", request.email()));
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {

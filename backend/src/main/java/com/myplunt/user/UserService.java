@@ -2,7 +2,6 @@ package com.myplunt.user;
 
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
-import com.myplunt.common.logging.LogMasking;
 import com.myplunt.friend.Friendship;
 import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.storage.StorageService;
@@ -128,13 +127,13 @@ public class UserService {
         user.setBio(request.bio() == null || request.bio().isBlank() ? null : request.bio().strip());
         User saved = userRepository.save(user);
 
-        // The bio is free text, so only whether it changed is logged; usernames go in masked.
+        // The bio is free text, so only whether it changed is logged.
         List<String> changedFields = new ArrayList<>();
         Map<String, Object> details = new LinkedHashMap<>();
         if (!oldUsername.equals(saved.getUsername())) {
             changedFields.add("username");
-            details.put("old_username", LogMasking.username(oldUsername));
-            details.put("new_username", LogMasking.username(saved.getUsername()));
+            details.put("old_username", oldUsername);
+            details.put("new_username", saved.getUsername());
         }
         if (!Objects.equals(oldBio, saved.getBio())) {
             changedFields.add("bio");
@@ -157,7 +156,7 @@ public class UserService {
         if (!user.getEmail().equalsIgnoreCase(request.email())
                 && userRepository.findByEmail(request.email()).isPresent()) {
             auditLog.rejected(AuditEvent.EMAIL_CHANGE_REJECTED, userId, "email_in_use",
-                    Map.of("new_email", LogMasking.email(request.email())));
+                    Map.of("new_email", request.email()));
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
         }
 
@@ -165,8 +164,8 @@ public class UserService {
         user.setEmail(request.email());
         User saved = userRepository.save(user);
         auditLog.recorded(AuditEvent.EMAIL_CHANGED, userId, userId, Map.of(
-                "old_email", LogMasking.email(oldEmail),
-                "new_email", LogMasking.email(saved.getEmail())));
+                "old_email", oldEmail,
+                "new_email", saved.getEmail()));
         return toResponse(saved);
     }
 
