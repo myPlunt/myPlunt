@@ -265,7 +265,7 @@ class UserControllerTest {
     @Test
     void search_returnsTheMatchingUsersWithoutTheirEmail() {
         UUID janeId = authenticateAsJane();
-        List<UserSummaryResponse> users = List.of(new UserSummaryResponse(UUID.randomUUID(), "jane_doe", "Fern collector", null));
+        List<UserSummaryResponse> users = List.of(new UserSummaryResponse(UUID.randomUUID(), "jane_doe", "Fern collector", null, null));
         when(userService.search(janeId, "jan")).thenReturn(users);
 
         restTestClient.get().uri("/v1/users/search?q=jan")
@@ -279,6 +279,28 @@ class UserControllerTest {
     @Test
     void search_rejectsRequestsWithoutAToken() {
         restTestClient.get().uri("/v1/users/search?q=jan")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void user_returnsAnotherUserForTheSignedInViewer() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+        UserSummaryResponse tom = new UserSummaryResponse(tomId, "tom", null, null, "friends");
+        when(userService.getSummary(janeId, tomId)).thenReturn(tom);
+
+        restTestClient.get().uri("/v1/users/" + tomId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(UserSummaryResponse.class)
+                .isEqualTo(tom);
+    }
+
+    @Test
+    void user_rejectsRequestsWithoutAToken() {
+        restTestClient.get().uri("/v1/users/" + UUID.randomUUID())
                 .exchange()
                 .expectStatus().isUnauthorized();
     }

@@ -1,5 +1,6 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
@@ -9,9 +10,10 @@ import { Shadow } from '@/constants/theme';
 import { useUserSearch } from '@/features/friends/use-user-search';
 import { useTheme } from '@/hooks/use-theme';
 
-// Everything social except posts: people search now; requests and the friends list go below it later.
+// Everything social except posts: people search now; Friends and Requests tabs join it later.
 export function FriendsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const { users, error, isLoading } = useUserSearch(query);
   const hasResults = users !== null && users.length > 0;
@@ -40,21 +42,33 @@ export function FriendsScreen() {
             // Results of the previous query stay, dimmed, while the next one loads.
             <View className={`gap-3 ${isLoading ? 'opacity-50' : ''}`}>
               {users.map((user) => (
-                // ponytail: not tappable yet; opens the friend profile once that exists.
-                <View
+                // Their profile shows whether either of you asked, and lets you add them.
+                <Pressable
                   key={user.id}
-                  className="flex-row items-center gap-3 rounded-2xl bg-background-element p-4"
+                  accessibilityRole="button"
+                  accessibilityLabel={user.username}
+                  onPress={() => router.push({ pathname: '/user/[id]', params: { id: user.id } })}
+                  className="flex-row items-center gap-3 rounded-2xl bg-background-element p-4 active:opacity-70"
                   style={Shadow.card}>
                   <UserAvatar size={44} url={user.avatarUrl} accessibilityLabel={`${user.username}'s profile picture`} />
                   <View className="flex-1 gap-1">
-                    <Text className="type-subtitle-small text-text">{user.username}</Text>
+                    <View className="flex-row items-center gap-2">
+                      <Text className="type-subtitle-small shrink text-text" numberOfLines={1}>
+                        {user.username}
+                      </Text>
+                      {user.friendship === 'friends' && (
+                        <View className="rounded-md bg-primary/15 px-1.5 py-0.5">
+                          <Text className="type-label text-primary">Friend</Text>
+                        </View>
+                      )}
+                    </View>
                     {user.bio && (
                       <Text className="type-body-medium text-text-secondary" numberOfLines={2}>
                         {user.bio}
                       </Text>
                     )}
                   </View>
-                </View>
+                </Pressable>
               ))}
             </View>
           ) : isLoading ? (

@@ -1,5 +1,6 @@
 package com.myplunt.user;
 
+import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.user.dto.UserSummaryResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,9 @@ class UserRepositoryTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private FriendshipRepository friendshipRepository;
+
     private User user(String username) {
         return userRepository.save(new User(username, username + "@example.com", "hashed"));
     }
@@ -34,7 +38,9 @@ class UserRepositoryTest {
     // Through UserService, which lowercases and escapes the query the way the repository expects.
     // No avatars here, so it never needs storage or the password encoder.
     private List<String> search(String query, User searcher) {
-        return new UserService(userRepository, null, null).search(searcher.getId(), query).stream()
+        return new UserService(userRepository, null, null, friendshipRepository)
+                .search(searcher.getId(), query)
+                .stream()
                 .map(UserSummaryResponse::username)
                 .toList();
     }
