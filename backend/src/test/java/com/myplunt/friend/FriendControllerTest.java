@@ -2,14 +2,17 @@ package com.myplunt.friend;
 
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
+import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.friend.dto.SendFriendRequest;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
+import com.myplunt.user.dto.UserSummaryResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -17,6 +20,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -93,5 +97,79 @@ class FriendControllerTest {
                 .body(new SendFriendRequest(UUID.randomUUID()))
                 .exchange()
                 .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void friends_returnsTheSignedInUsersFriends() {
+        UUID janeId = authenticateAsJane();
+        List<UserSummaryResponse> friends =
+                List.of(new UserSummaryResponse(UUID.randomUUID(), "tom", null, null, "friends"));
+        when(friendService.getFriends(janeId)).thenReturn(friends);
+
+        restTestClient.get().uri("/v1/friends")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(new ParameterizedTypeReference<List<UserSummaryResponse>>() {})
+                .isEqualTo(friends);
+    }
+
+    @Test
+    void requests_returnsReceivedAndSent() {
+        UUID janeId = authenticateAsJane();
+        FriendRequestsResponse requests = new FriendRequestsResponse(
+                List.of(new UserSummaryResponse(UUID.randomUUID(), "tom", null, null, "request_received")),
+                List.of());
+        when(friendService.getRequests(janeId)).thenReturn(requests);
+
+        restTestClient.get().uri("/v1/friends/requests")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(FriendRequestsResponse.class)
+                .isEqualTo(requests);
+    }
+
+    @Test
+    void accept_answersTheRequestFromThatUser() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+
+        postAnswer("/v1/friends/requests/" + tomId + "/accept").expectStatus().isNoContent();
+        verify(friendService).accept(janeId, tomId);
+    }
+
+    @Test
+    void decline_answersTheRequestFromThatUser() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+
+        postAnswer("/v1/friends/requests/" + tomId + "/decline").expectStatus().isNoContent();
+        verify(friendService).decline(janeId, tomId);
+    }
+
+    @Test
+    void accept_returnsNotFoundWithoutARequest() {
+        authenticateAsJane();
+        doThrow(new IllegalStateException("No friend request from this user"))
+                .when(friendService).accept(any(), any());
+
+        postAnswer("/v1/friends/requests/" + UUID.randomUUID() + "/accept").expectStatus().isNotFound();
+    }
+
+    @Test
+    void listsAndAnswers_rejectRequestsWithoutAToken() {
+        restTestClient.get().uri("/v1/friends").exchange().expectStatus().isUnauthorized();
+        restTestClient.get().uri("/v1/friends/requests").exchange().expectStatus().isUnauthorized();
+        restTestClient.post().uri("/v1/friends/requests/" + UUID.randomUUID() + "/accept")
+                .exchange()
+                .expectStatus().isUnauthorized();
+        restTestClient.post().uri("/v1/friends/requests/" + UUID.randomUUID() + "/decline")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    private RestTestClient.ResponseSpec postAnswer(String uri) {
+        return restTestClient.post().uri(uri).header("Authorization", "Bearer access-token").exchange();
     }
 }
