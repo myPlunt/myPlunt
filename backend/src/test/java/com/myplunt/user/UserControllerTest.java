@@ -282,4 +282,26 @@ class UserControllerTest {
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
+
+    @Test
+    void user_returnsAnotherUserForTheSignedInViewer() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+        UserSummaryResponse tom = new UserSummaryResponse(tomId, "tom", null, null, "friends");
+        when(userService.getSummary(janeId, tomId)).thenReturn(tom);
+
+        restTestClient.get().uri("/v1/users/" + tomId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(UserSummaryResponse.class)
+                .isEqualTo(tom);
+    }
+
+    @Test
+    void user_rejectsRequestsWithoutAToken() {
+        restTestClient.get().uri("/v1/users/" + UUID.randomUUID())
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
 }

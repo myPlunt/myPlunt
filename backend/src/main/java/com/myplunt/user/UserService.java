@@ -71,13 +71,20 @@ public class UserService {
                         f -> f.getRequesterId().equals(searcherId) ? f.getReceiverId() : f.getRequesterId(),
                         Function.identity()));
         return users.stream()
-                .map(user -> new UserSummaryResponse(
-                        user.getId(),
-                        user.getUsername(),
-                        user.getBio(),
-                        avatarUrl(user),
-                        friendship(friendships.get(user.getId()), searcherId)))
+                .map(user -> toSummary(user, friendships.get(user.getId()), searcherId))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public UserSummaryResponse getSummary(UUID viewerId, UUID userId) {
+        User user = loadUser(userId);
+        List<Friendship> friendship = friendshipRepository.findBetween(viewerId, List.of(userId));
+        return toSummary(user, friendship.isEmpty() ? null : friendship.getFirst(), viewerId);
+    }
+
+    private UserSummaryResponse toSummary(User user, Friendship friendship, UUID viewerId) {
+        return new UserSummaryResponse(
+                user.getId(), user.getUsername(), user.getBio(), avatarUrl(user), friendship(friendship, viewerId));
     }
 
     // ponytail: declined and blocked rows still read as a pending request; the decline PBI should

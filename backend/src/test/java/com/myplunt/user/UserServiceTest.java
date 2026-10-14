@@ -204,6 +204,31 @@ class UserServiceTest {
                 .containsExactly("friends", "request_sent", "request_received", null);
     }
 
+    @Test
+    void getSummary_returnsTheUserAndHowTheyRelateToTheViewer() {
+        UUID viewerId = UUID.randomUUID();
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(friendshipRepository.findBetween(viewerId, List.of(id)))
+                .thenReturn(List.of(new Friendship(id, viewerId)));
+
+        assertThat(userService().getSummary(viewerId, id))
+                .isEqualTo(new UserSummaryResponse(id, "jane", null, null, "request_received"));
+    }
+
+    @Test
+    void getSummary_hasNoFriendshipWhenNeitherAsked() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+
+        assertThat(userService().getSummary(UUID.randomUUID(), id).friendship()).isNull();
+    }
+
+    @Test
+    void getSummary_failsForAnUnknownUser() {
+        UUID ghostId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> userService().getSummary(id, ghostId)).isInstanceOf(IllegalStateException.class);
+    }
+
     private static User user(String username) {
         User user = new User(username, username + "@example.com", "hashed");
         ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
