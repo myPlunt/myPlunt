@@ -5,10 +5,10 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.spi.FilterReply;
 
-// Decides which lines reach the log file (wired up in logback-spring.xml): warnings and errors
+// Decides which lines reach the logs table (wired up in DatabaseLogging): warnings and errors
 // from anywhere, and INFO only from our own code, which is where user actions are logged.
 // Spring's and Hibernate's INFO lines stay on the console.
-public class LogFileFilter extends Filter<ILoggingEvent> {
+public class LogTableFilter extends Filter<ILoggingEvent> {
 
     @Override
     public FilterReply decide(ILoggingEvent event) {

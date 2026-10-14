@@ -5,31 +5,27 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import org.slf4j.event.KeyValuePair;
-import org.springframework.boot.json.JsonWriter;
-import org.springframework.boot.logging.structured.StructuredLogFormatter;
 import org.springframework.core.env.Environment;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-// The shape of every line in the log files (set in logback-spring.xml): one flat JSON object.
+// The shape of every structured log line: one flat JSON object, stored by DatabaseLogAppender.
 // Backend lines: {"timestamp","source":"backend","level","type","event","request_id",
 // "backend_version","user_id", <the event's fields>, "error":{...}}.
 // The app's lines (ClientLog) bring their own type, event, request_id and app_version.
-public class LogLineFormatter implements StructuredLogFormatter<ILoggingEvent> {
+public class LogLineFormatter {
 
     static final String FRONTEND_LOGGER = "com.myplunt.frontend";
 
-    private final JsonWriter<Map<String, Object>> writer = JsonWriter.<Map<String, Object>>standard().withNewLineAtEnd();
     private final String backendVersion;
 
     public LogLineFormatter(Environment environment) {
         this.backendVersion = environment.getProperty("app.version", "unknown");
     }
 
-    @Override
-    public String format(ILoggingEvent event) {
+    Map<String, Object> toLine(ILoggingEvent event) {
         boolean frontend = FRONTEND_LOGGER.equals(event.getLoggerName());
         Map<String, Object> fields = new LinkedHashMap<>();
         if (event.getKeyValuePairs() != null) {
@@ -72,7 +68,7 @@ public class LogLineFormatter implements StructuredLogFormatter<ILoggingEvent> {
         }
         // Fields that don't apply to this line are left out rather than written as null.
         line.values().removeIf(value -> value == null);
-        return writer.writeToString(line);
+        return line;
     }
 
     private static String typeOf(Level level) {

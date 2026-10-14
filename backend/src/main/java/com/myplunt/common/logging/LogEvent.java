@@ -1,6 +1,6 @@
 package com.myplunt.common.logging;
 
-// The "event" field of warnings, errors and bugs in backend.log (snake_case, like AuditEvent).
+// The "event" field of the backend's warnings, errors and bugs (snake_case, like AuditEvent).
 public enum LogEvent {
     // Warnings: a request was turned away, or something went wrong that the backend recovered from.
     REQUEST_VALIDATION_FAILED,

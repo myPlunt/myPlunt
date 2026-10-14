@@ -24,13 +24,6 @@ spring:
 app:
   # Filled in by Maven at build time; every backend log line carries it as backend_version.
   version: '@project.version@'
-  # backend.log, audit.log and frontend.log (see logback-spring.xml). Retention is in days.
-  logging:
-    dir: ${LOG_DIR:logs}
-    retention-days:
-      backend: 14
-      audit: 365
-      frontend: 14
   jwt:
     secret: ${JWT_SECRET}
     access-token-ttl-minutes: 15
