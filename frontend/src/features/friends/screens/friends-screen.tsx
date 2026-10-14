@@ -1,3 +1,4 @@
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,7 +7,7 @@ import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { SearchField } from '@/components/ui/search-field';
 import { UserAvatar } from '@/components/user/user-avatar';
-import { Shadow } from '@/constants/theme';
+import { Shadow, type ThemeColor } from '@/constants/theme';
 import { sendFriendRequest } from '@/features/friends/friends-service';
 import { useUserSearch } from '@/features/friends/use-user-search';
 import { useTheme } from '@/hooks/use-theme';
@@ -14,11 +15,34 @@ import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { UserSummary } from '@/lib/user/types';
 import { useAuthStore } from '@/stores/auth-store';
 
-const FRIENDSHIP_LABELS = {
-  friends: 'Friends',
-  request_sent: 'Requested',
-  request_received: 'Sent you a request',
-} as const;
+// Pills styled like WateringPill: the tone colour at low opacity behind text and icon in that colour.
+// `icon` is a theme key because tintColor takes a colour, not a class.
+const FRIENDSHIP_PILLS: Record<
+  NonNullable<UserSummary['friendship']>,
+  { label: string; symbol: SymbolViewProps['name']; pill: string; text: string; icon: ThemeColor }
+> = {
+  friends: {
+    label: 'Friends',
+    symbol: { ios: 'checkmark', android: 'check', web: 'check' },
+    pill: 'bg-primary/15',
+    text: 'text-primary',
+    icon: 'primary',
+  },
+  request_sent: {
+    label: 'Requested',
+    symbol: { ios: 'clock', android: 'schedule', web: 'schedule' },
+    pill: 'bg-text-secondary/10',
+    text: 'text-text-secondary',
+    icon: 'textSecondary',
+  },
+  request_received: {
+    label: 'Wants to be friends',
+    symbol: { ios: 'person.fill.badge.plus', android: 'person_add', web: 'person_add' },
+    pill: 'bg-accent/15',
+    text: 'text-accent',
+    icon: 'accent',
+  },
+};
 
 // Everything social except posts: people search now; Friends and Requests tabs join it later.
 export function FriendsScreen() {
@@ -88,12 +112,19 @@ export function FriendsScreen() {
 
 // Add for strangers; otherwise where the two stand. Answering a request comes with its own ticket.
 function FriendAction({ user, onSent }: { user: UserSummary; onSent: () => void }) {
+  const theme = useTheme();
   const { setUnauthenticated } = useAuthStore();
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (user.friendship) {
-    return <Text className="type-body-medium text-text-secondary">{FRIENDSHIP_LABELS[user.friendship]}</Text>;
+    const pill = FRIENDSHIP_PILLS[user.friendship];
+    return (
+      <View className={`flex-row items-center gap-1 rounded-full px-2.5 py-1 ${pill.pill}`}>
+        <SymbolView name={pill.symbol} tintColor={theme[pill.icon]} size={12} />
+        <Text className={`type-body-medium ${pill.text}`}>{pill.label}</Text>
+      </View>
+    );
   }
 
   async function add() {

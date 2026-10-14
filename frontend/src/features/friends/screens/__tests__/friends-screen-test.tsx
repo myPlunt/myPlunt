@@ -106,7 +106,7 @@ it('shows why a friend request failed and keeps the Add button', async () => {
 it.each([
   ['friends', 'Friends'],
   ['request_sent', 'Requested'],
-  ['request_received', 'Sent you a request'],
+  ['request_received', 'Wants to be friends'],
 ] as const)('shows %s people as "%s" instead of an Add button', async (friendship, label) => {
   mockedUseUserSearch.mockReturnValue({ users: [{ ...jane, friendship }], error: null, isLoading: false });
   await search('jan');
