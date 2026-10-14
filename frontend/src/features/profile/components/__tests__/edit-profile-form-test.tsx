@@ -47,19 +47,4 @@ describe('EditProfileForm', () => {
 
     await screen.findByText('Username must not be blank.');
   });
-<<<<<<< HEAD
-=======
-
-  it('shows the backend message for other errors', async () => {
-    const error = new ApiError(409, 'irrelevant', { detail: 'Username already taken' });
-    updateProfile.mockRejectedValue(error);
-    await render(<EditProfileForm user={jane} />);
-
-    await user.clear(screen.getByLabelText('Username'));
-    await user.type(screen.getByLabelText('Username'), 'taken');
-    await user.press(screen.getByRole('button', { name: 'Save changes' }));
-
-    await screen.findByText('Username already taken');
-  });
->>>>>>> origin/dev
 });

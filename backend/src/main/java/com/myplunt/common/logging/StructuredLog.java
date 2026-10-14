@@ -8,11 +8,7 @@ import java.util.Map;
 
 // Writes warnings, errors and bugs as structured lines: a "type" and an "event" plus their own
 // fields, which LogLineFormatter turns into one JSON object. Fields are ids, numbers and reasons;
-<<<<<<< HEAD
-// never personal data (mask it with LogMasking first). Actions go through AuditLog instead.
-=======
 // never personal data. Actions go through AuditLog instead.
->>>>>>> origin/dev
 public final class StructuredLog {
 
     private StructuredLog() {}

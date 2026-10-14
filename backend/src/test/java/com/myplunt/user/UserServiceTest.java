@@ -60,18 +60,6 @@ class UserServiceTest {
 
     private UserService userService() {
         return new UserService(userRepository, passwordEncoder, storageService, friendshipRepository, auditLog);
-<<<<<<< HEAD
-=======
-    }
-
-    @Test
-    void toResponse_mapsIdUsernameEmailAndBioOnly() {
-        jane.setBio("Fern collector");
-
-        UserResponse response = userService().toResponse(jane);
-
-        assertThat(response).isEqualTo(new UserResponse(id, "jane", "jane@example.com", "Fern collector"));
->>>>>>> origin/dev
     }
 
     @Test

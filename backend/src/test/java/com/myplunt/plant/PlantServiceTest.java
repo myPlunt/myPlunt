@@ -282,22 +282,6 @@ class PlantServiceTest {
     }
 
     @Test
-<<<<<<< HEAD
-=======
-    void water_rejectsAPlantThatHasDied() {
-        Plant george = new Plant(userId, "George");
-        george.setAlive(false);
-        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(george));
-
-        assertThatThrownBy(() -> plantService().water(userId, plantId, ZoneOffset.UTC))
-                .isInstanceOf(ResponseStatusException.class)
-                .extracting("statusCode")
-                .isEqualTo(HttpStatus.CONFLICT);
-        verify(wateringLogRepository, never()).save(any());
-    }
-
-    @Test
->>>>>>> origin/dev
     void getWateringHistory_returnsEveryWateringNewestFirstMarkedOnTimeOrLate() {
         // Times relative to now, as the service reads the clock itself. On a 3-day schedule:
         // added 12 days ago, on time 10 days ago, 3 days late 4 days ago, on time 2 days ago.

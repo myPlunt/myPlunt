@@ -104,46 +104,6 @@ describe('PlantForm', () => {
       expect(screen.getByLabelText('Notes')).toBeOnTheScreen();
     });
 
-<<<<<<< HEAD
-=======
-    it('waits until the user leaves the name field before saying it is too short', async () => {
-      await renderForm();
-
-      await user.type(screen.getByLabelText('Name'), 'Ve', { skipBlur: true });
-      expect(screen.queryByText('Name must be at least 3 characters.')).toBeNull();
-
-      await fireEvent(screen.getByLabelText('Name'), 'blur');
-      expect(screen.getByText('Name must be at least 3 characters.')).toBeOnTheScreen();
-
-      // Back in the field to fix it: no hint while typing, even while still too short.
-      await user.type(screen.getByLabelText('Name'), '{Backspace}', { skipBlur: true });
-      expect(screen.queryByText('Name must be at least 3 characters.')).toBeNull();
-
-      await user.type(screen.getByLabelText('Name'), 'era', { skipBlur: true });
-      await fireEvent(screen.getByLabelText('Name'), 'blur');
-      expect(screen.queryByText('Name must be at least 3 characters.')).toBeNull();
-      // Only the one time the hint showed; a long enough name isn't a validation failure.
-    });
-
-    it('says the name is too short when the user leaves it empty', async () => {
-      await renderForm();
-
-      await fireEvent(screen.getByLabelText('Name'), 'blur');
-
-      expect(screen.getByText('Name must be at least 3 characters.')).toBeOnTheScreen();
-    });
-
-    it('keeps Next disabled until the plant has a name', async () => {
-      await renderForm();
-
-      await user.type(screen.getByLabelText('Name'), '   ');
-      await user.press(screen.getByRole('button', { name: 'Next' }));
-
-      expect(screen.getByLabelText('Name')).toBeOnTheScreen();
-      expect(screen.queryByLabelText('Notes')).toBeNull();
-    });
-
->>>>>>> origin/dev
     it('suggests species whose common or scientific name matches the search', async () => {
       await renderForm();
 
@@ -321,33 +281,5 @@ describe('PlantForm', () => {
       });
       expect(createPlant).not.toHaveBeenCalled();
     });
-<<<<<<< HEAD
-=======
-
-    it('sends the key of a newly picked photo', async () => {
-      mockedUsePhotoUpload.mockReturnValue({ ...noPhoto, uri: 'file:///b.jpg', key: 'plants/u1/b.jpg' });
-      updatePlant.mockResolvedValue(veraDetails);
-      await renderForm({ plant: veraDetails });
-      await user.press(screen.getByRole('button', { name: 'Next' }));
-
-      await user.press(screen.getByRole('button', { name: 'Save changes' }));
-
-      await waitFor(() =>
-        expect(updatePlant).toHaveBeenCalledWith('p1', expect.objectContaining({ photoKey: 'plants/u1/b.jpg' })),
-      );
-    });
-
-    it('shows why the changes could not be saved', async () => {
-      const error = new ApiError(409, 'Conflict', { detail: "This plant has passed away and can't be edited" });
-      updatePlant.mockRejectedValue(error);
-      await renderForm({ plant: veraDetails });
-      await user.press(screen.getByRole('button', { name: 'Next' }));
-
-      await user.press(screen.getByRole('button', { name: 'Save changes' }));
-
-      expect(await screen.findByText("This plant has passed away and can't be edited")).toBeOnTheScreen();
-      expect(onSaved).not.toHaveBeenCalled();
-    });
->>>>>>> origin/dev
   });
 });

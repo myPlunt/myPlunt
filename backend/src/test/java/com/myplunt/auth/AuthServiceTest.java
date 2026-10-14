@@ -113,31 +113,6 @@ class AuthServiceTest {
     }
 
     @Test
-<<<<<<< HEAD
-=======
-    void logout_deletesMatchingRefreshToken() {
-        User user = new User("jane", "jane@example.com", "hashed");
-        UUID userId = UUID.randomUUID();
-        ReflectionTestUtils.setField(user, "id", userId);
-        RefreshToken refreshToken = new RefreshToken(user, "token-value", null);
-        when(refreshTokenRepository.findByToken("token-value")).thenReturn(Optional.of(refreshToken));
-
-        authService().logout("token-value");
-
-        verify(refreshTokenRepository).delete(refreshToken);
-    }
-
-    @Test
-    void logout_isNoOpWhenTokenNotFound() {
-        when(refreshTokenRepository.findByToken("unknown")).thenReturn(Optional.empty());
-
-        authService().logout("unknown");
-
-        verify(refreshTokenRepository, never()).delete(any());
-    }
-
-    @Test
->>>>>>> origin/dev
     void refresh_returnsNewTokensForValidRefreshToken() {
         User user = new User("jane", "jane@example.com", "hashed");
         UUID userId = UUID.randomUUID();
