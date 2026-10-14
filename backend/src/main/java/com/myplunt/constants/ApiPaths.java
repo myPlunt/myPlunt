@@ -37,6 +37,13 @@ public final class ApiPaths {
         private Users() {}
     }
 
+    public static final class Friends {
+        public static final String BASE = "/v1/friends";
+        public static final String REQUESTS = BASE + "/requests";
+
+        private Friends() {}
+    }
+
     public static final class Garden {
         public static final String BASE = "/v1/garden";
 
