@@ -4,7 +4,7 @@ import { AppState, Platform } from 'react-native';
 
 import { ApiError, apiFetch } from '@/lib/auth/api-client';
 
-// What the user tried to do and what they saw, sent to the backend's frontend.log. Event names
+// What the user tried to do and what they saw, stored by the backend in its logs table. Event names
 // describe intent or UI state ("_submitted", "_failed_ui"), never an outcome: only the backend
 // knows whether a change was saved, and logs it under its own names.
 export type FrontendEvent =

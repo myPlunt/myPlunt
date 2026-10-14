@@ -10,15 +10,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-// The record of what happened to accounts and their data, written to audit.log (see
-// logback-spring.xml). It's the source of truth, so services call it whatever the request came
+// The record of what happened to accounts and their data, stored in the logs table as "action"
+// lines (DatabaseLogging). It's the source of truth, so services call it whatever the request came
 // from. user_id is the account the change is about and changed_by who made it; they differ when
 // someone acts on another account. Old and new values (emails, usernames) are logged in full;
 // passwords and tokens never go in.
 @Component
 public class AuditLog {
 
-    private static final Logger log = LoggerFactory.getLogger("com.myplunt.audit");
+    static final String AUDIT_LOGGER = "com.myplunt.audit";
+
+    private static final Logger log = LoggerFactory.getLogger(AUDIT_LOGGER);
 
     // Inside a transaction the line waits for the commit, so a rollback never leaves an action
     // in the log that didn't happen.

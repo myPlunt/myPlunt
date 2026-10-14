@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 import java.util.Locale;
 import java.util.UUID;
 
-// Writes the app's lines to their own file, frontend.log (see logback-spring.xml), marked
-// "source":"frontend". They describe what the user tried and saw, and the app can send anything,
+// Writes the app's lines to the logs table (DatabaseLogging) with location "frontend"; they skip
+// the console. They describe what the user tried and saw, and the app can send anything,
 // so they're for debugging only: never proof that something happened (that's AuditLog).
 @Component
 public class ClientLog {
