@@ -7,16 +7,13 @@ import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/user/user-avatar';
 import { ProfileMenu, ProfileMenuButton } from '@/features/profile/components/profile-menu';
-import { WateringStreakBadge } from '@/features/profile/components/watering-streak';
 import { useProfile } from '@/features/profile/use-profile';
-import { useWateringStreak } from '@/features/profile/use-watering-streak';
 import { useTheme } from '@/hooks/use-theme';
 
 export function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { user, error, isLoading, retry } = useProfile();
-  const streak = useWateringStreak();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   // Where the header sits and where the burger ends inside it, so the menu's icons start
   // right under the burger's box and continue the column at the same 40px step.
@@ -45,11 +42,14 @@ export function ProfileScreen() {
           <View className="items-center gap-1">
             <View>
               <UserAvatar size={96} />
-              {streak !== null && (
+
+              /* TO think we need to show the streak badge here, but we don't have the streak data yet. */
+              /* The streak sould be just increasing never decreassing we dont know how to make that happen yet. */
+              {/* {streak !== null && (
                 <View className="absolute -bottom-1 -right-1">
                   <WateringStreakBadge streak={streak} />
                 </View>
-              )}
+              )} */}
             </View>
             {isLoading ? (
               <ActivityIndicator accessibilityLabel="Loading profile" color={theme.primary} className="mt-4" />
