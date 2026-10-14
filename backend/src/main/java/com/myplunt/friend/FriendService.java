@@ -51,17 +51,20 @@ public class FriendService {
     @Transactional
     public void accept(UUID userId, UUID requesterId) {
         pendingRequest(requesterId, userId).accept();
+        auditLog.recorded(AuditEvent.FRIEND_REQUEST_ACCEPTED, userId, userId, Map.of("other_user_id", requesterId));
     }
 
     // Deleted rather than marked declined: the pair index would otherwise stop either of them asking again.
     @Transactional
     public void decline(UUID userId, UUID requesterId) {
         friendshipRepository.delete(pendingRequest(requesterId, userId));
+        auditLog.recorded(AuditEvent.FRIEND_REQUEST_DECLINED, userId, userId, Map.of("other_user_id", requesterId));
     }
 
     @Transactional
     public void cancel(UUID userId, UUID receiverId) {
         friendshipRepository.delete(pendingRequest(userId, receiverId));
+        auditLog.recorded(AuditEvent.FRIEND_REQUEST_CANCELLED, userId, userId, Map.of("other_user_id", receiverId));
     }
 
     // Looked up by direction, so accept/decline can't touch the user's own request and cancel can't touch one they received.

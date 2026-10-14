@@ -1,5 +1,6 @@
 package com.myplunt.friend;
 
+import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.user.User;
@@ -16,6 +17,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -117,6 +119,7 @@ class FriendServiceTest {
         friendService().accept(janeId, tomId);
 
         assertThat(request.getStatus()).isEqualTo(Friendship.ACCEPTED);
+        verify(auditLog).recorded(AuditEvent.FRIEND_REQUEST_ACCEPTED, janeId, janeId, Map.of("other_user_id", tomId));
     }
 
     @Test
@@ -128,6 +131,7 @@ class FriendServiceTest {
         ArgumentCaptor<Friendship> deleted = ArgumentCaptor.forClass(Friendship.class);
         verify(friendshipRepository).delete(deleted.capture());
         assertThat(deleted.getValue().getRequesterId()).isEqualTo(tomId);
+        verify(auditLog).recorded(AuditEvent.FRIEND_REQUEST_DECLINED, janeId, janeId, Map.of("other_user_id", tomId));
     }
 
     // Covers a request the user sent themselves too: it's looked up with tom as the receiver, so it isn't found.
@@ -149,6 +153,7 @@ class FriendServiceTest {
         friendService().cancel(janeId, tomId);
 
         verify(friendshipRepository).delete(request);
+        verify(auditLog).recorded(AuditEvent.FRIEND_REQUEST_CANCELLED, janeId, janeId, Map.of("other_user_id", tomId));
     }
 
     // A request tom sent jane is looked up with jane as the requester, so she can't cancel it, only decline.
