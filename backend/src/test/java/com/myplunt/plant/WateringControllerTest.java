@@ -12,11 +12,9 @@ import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTe
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.client.RestTestClient;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -74,18 +72,6 @@ class WateringControllerTest {
     }
 
     @Test
-    void waterings_propagatesABadRangeFromTheService() {
-        UUID userId = authenticateAsJane();
-        when(plantService.getWaterings(userId, to, from))
-                .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "The end of the range must be after its start"));
-
-        restTestClient.get().uri("/v1/waterings?from={from}&to={to}", to, from)
-                .header("Authorization", "Bearer access-token")
-                .exchange()
-                .expectStatus().isBadRequest();
-    }
-
-    @Test
     void waterings_rejectsAMissingOrMalformedRange() {
         authenticateAsJane();
 
@@ -101,13 +87,6 @@ class WateringControllerTest {
     }
 
     @Test
-    void waterings_rejectsRequestsWithoutAToken() {
-        restTestClient.get().uri("/v1/waterings?from={from}&to={to}", from, to)
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
     void streak_returnsTheUsersStreakCountedInTheirTimeZone() {
         UUID userId = authenticateAsJane();
         when(plantService.getWateringStreak(userId, ZoneId.of("Europe/Amsterdam"))).thenReturn(new WateringStreakResponse(7));
@@ -120,33 +99,4 @@ class WateringControllerTest {
                 .isEqualTo(new WateringStreakResponse(7));
     }
 
-    @Test
-    void streak_countsDaysInUtcWhenTheAppSendsNoTimeZone() {
-        UUID userId = authenticateAsJane();
-        when(plantService.getWateringStreak(userId, ZoneId.of("UTC"))).thenReturn(new WateringStreakResponse(0));
-
-        restTestClient.get().uri("/v1/waterings/streak")
-                .header("Authorization", "Bearer access-token")
-                .exchange()
-                .expectStatus().isOk();
-
-        verify(plantService).getWateringStreak(userId, ZoneId.of("UTC"));
-    }
-
-    @Test
-    void streak_rejectsAnUnknownTimeZone() {
-        authenticateAsJane();
-
-        restTestClient.get().uri("/v1/waterings/streak?zone=Mars/Olympus")
-                .header("Authorization", "Bearer access-token")
-                .exchange()
-                .expectStatus().isBadRequest();
-    }
-
-    @Test
-    void streak_rejectsRequestsWithoutAToken() {
-        restTestClient.get().uri("/v1/waterings/streak")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
 }

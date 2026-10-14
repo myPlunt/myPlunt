@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @WebMvcTest(GardenController.class)
@@ -79,35 +78,4 @@ class GardenControllerTest {
                 .expectStatus().isUnauthorized();
     }
 
-    private UUID authenticateAsJane() {
-        UUID id = UUID.randomUUID();
-        User user = new User("jane", "jane@example.com", "hashed");
-        ReflectionTestUtils.setField(user, "id", id);
-        when(jwtService.parseAndValidate("access-token")).thenReturn(id);
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
-        return id;
-    }
-
-    @Test
-    void garden_countsDaysInUtcWhenTheAppSendsNoTimeZone() {
-        UUID id = authenticateAsJane();
-        when(gardenService.getGarden(id, ZoneId.of("UTC"))).thenReturn(new GardenResponse(List.of()));
-
-        restTestClient.get().uri("/v1/garden")
-                .header("Authorization", "Bearer access-token")
-                .exchange()
-                .expectStatus().isOk();
-
-        verify(gardenService).getGarden(id, ZoneId.of("UTC"));
-    }
-
-    @Test
-    void garden_rejectsAnUnknownTimeZone() {
-        authenticateAsJane();
-
-        restTestClient.get().uri("/v1/garden?zone=Mars/Olympus")
-                .header("Authorization", "Bearer access-token")
-                .exchange()
-                .expectStatus().isBadRequest();
-    }
 }

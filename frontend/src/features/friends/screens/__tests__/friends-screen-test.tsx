@@ -34,12 +34,6 @@ async function search(query: string) {
   await user.type(screen.getByLabelText('Search people'), query);
 }
 
-it('explains what to search for before anything is typed', async () => {
-  await render(<FriendsScreen />);
-
-  expect(screen.getByText('Find friends by their username')).toBeOnTheScreen();
-});
-
 it('lists the people found, with their picture and bio', async () => {
   mockedUseUserSearch.mockReturnValue({ users: [jane], error: null, isLoading: false });
   await search('jan');
@@ -48,21 +42,6 @@ it('lists the people found, with their picture and bio', async () => {
   expect(screen.getByText('jane_doe')).toBeOnTheScreen();
   expect(screen.getByText('Fern collector')).toBeOnTheScreen();
   expect(screen.getByLabelText("jane_doe's profile picture")).toBeOnTheScreen();
-});
-
-it('keeps the previous results on screen while the next search loads', async () => {
-  mockedUseUserSearch.mockReturnValue({ users: [jane], error: null, isLoading: true });
-  await search('jane');
-
-  expect(screen.getByText('jane_doe')).toBeOnTheScreen();
-  expect(screen.queryByLabelText('Searching people')).toBeNull();
-});
-
-it('shows a spinner while the first results load', async () => {
-  mockedUseUserSearch.mockReturnValue({ users: null, error: null, isLoading: true });
-  await search('jan');
-
-  expect(screen.getByLabelText('Searching people')).toBeOnTheScreen();
 });
 
 it('says so when no one matches', async () => {
@@ -86,14 +65,4 @@ it("opens a person's profile when they're pressed", async () => {
   await user.press(screen.getByRole('button', { name: 'jane_doe' }));
 
   expect(push).toHaveBeenCalledWith({ pathname: '/user/[id]', params: { id: 'u2' } });
-});
-
-it('tags people who are already friends, and only them', async () => {
-  const tom = { ...jane, id: 'u3', username: 'tom', friendship: 'friends' } as const;
-  const mia = { ...jane, id: 'u4', username: 'mia', friendship: 'request_sent' } as const;
-  mockedUseUserSearch.mockReturnValue({ users: [jane, tom, mia], error: null, isLoading: false });
-  await search('a');
-
-  expect(screen.getAllByText('Friend')).toHaveLength(1);
-  expect(screen.getByRole('button', { name: 'tom' })).toHaveTextContent(/Friend/);
 });

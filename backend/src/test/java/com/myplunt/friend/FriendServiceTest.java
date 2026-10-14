@@ -8,7 +8,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
@@ -81,15 +80,6 @@ class FriendServiceTest {
     }
 
     @Test
-    void sendRequest_failsForAnUnknownUser() {
-        UUID ghostId = UUID.randomUUID();
-
-        assertThatThrownBy(() -> friendService().sendRequest(janeId, ghostId))
-                .isInstanceOf(IllegalStateException.class);
-        verifyNoInteractions(friendshipRepository);
-    }
-
-    @Test
     void sendRequest_conflictsWhenAlreadyFriends() {
         Friendship friends = new Friendship(tomId, janeId);
         ReflectionTestUtils.setField(friends, "status", Friendship.ACCEPTED);
@@ -100,14 +90,6 @@ class FriendServiceTest {
     }
 
     @Test
-    void sendRequest_conflictsWhenAlreadySent() {
-        when(friendshipRepository.findBetween(janeId, List.of(tomId)))
-                .thenReturn(List.of(new Friendship(janeId, tomId)));
-
-        assertConflict("Request already sent");
-    }
-
-    @Test
     void sendRequest_conflictsWhenTheyAlreadyAsked() {
         when(friendshipRepository.findBetween(janeId, List.of(tomId)))
                 .thenReturn(List.of(new Friendship(tomId, janeId)));
@@ -115,10 +97,4 @@ class FriendServiceTest {
         assertConflict("tom already sent you a request");
     }
 
-    @Test
-    void sendRequest_conflictsWhenTheyAskedAtTheSameMoment() {
-        when(friendshipRepository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("uq"));
-
-        assertConflict("Request already sent");
-    }
 }

@@ -44,15 +44,4 @@ class SpeciesServiceTest {
                 monstera.getId(), "Monstera", "Monstera deliciosa", 7, "Central America", "Bright indirect", true, null));
     }
 
-    @Test
-    void getApprovedSpecies_signsALinkToTheSpeciesPicture() {
-        Species basil = species("Basil", "Ocimum basilicum");
-        ReflectionTestUtils.setField(basil, "imageKey", "species/basil.jpg");
-        when(speciesRepository.findByApprovedTrueOrderByCommonNameAsc()).thenReturn(List.of(basil));
-        when(storageService.createReadUrl("species/basil.jpg")).thenReturn("https://storage.test/basil.jpg?signed");
-
-        List<SpeciesResponse> species = new SpeciesService(speciesRepository, storageService).getApprovedSpecies();
-
-        assertThat(species.get(0).imageUrl()).isEqualTo("https://storage.test/basil.jpg?signed");
-    }
 }

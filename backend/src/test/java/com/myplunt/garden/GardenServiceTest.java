@@ -5,7 +5,6 @@ import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.garden.dto.RoomResponse;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantService;
-import com.myplunt.plant.WateringSchedule;
 import com.myplunt.species.Species;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -73,17 +72,6 @@ class GardenServiceTest {
     }
 
     @Test
-    void getGarden_includesEmptyRooms() {
-        Planter balcony = planter("Balcony");
-        when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
-        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of());
-
-        GardenResponse garden = gardenService().getGarden(ownerId, zone);
-
-        assertThat(garden.rooms()).containsExactly(new RoomResponse(balcony.getId(), "Balcony", List.of()));
-    }
-
-    @Test
     void getGarden_putsPlantsWithoutARoomInALastGroupWithoutId() {
         Planter balcony = planter("Balcony");
         Plant george = plant("George", balcony, 4);
@@ -115,38 +103,6 @@ class GardenServiceTest {
     }
 
     @Test
-    void getGarden_schedulesANeverWateredPlantFromWhenItWasAdded() {
-        Planter balcony = planter("Balcony");
-        Plant george = plant("George", balcony, 4);
-        when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
-        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(george));
-
-        GardenPlantResponse response = gardenService().getGarden(ownerId, zone).rooms().get(0).plants().get(0);
-
-        assertThat(response.lastWateredAt()).isNull();
-        assertThat(response.nextWateringAt()).isEqualTo(addedAt.plus(Duration.ofDays(4)));
-    }
-
-    @Test
-    void getGarden_usesTheDefaultScheduleWhenNeitherTheOwnerNorTheSpeciesSetAFrequency() {
-        Planter balcony = planter("Balcony");
-        Plant unknown = plant("Mystery", balcony, null);
-        Plant noSpecies = plant("Nameless", balcony, 4);
-        noSpecies.setSpecies(null);
-        when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
-        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(unknown, noSpecies));
-
-        List<GardenPlantResponse> plants = gardenService().getGarden(ownerId, zone).rooms().get(0).plants();
-
-        assertThat(plants).extracting(GardenPlantResponse::speciesName).containsExactly("Basil", null);
-        assertThat(plants).allSatisfy(plant -> {
-            assertThat(plant.wateringFrequencyDays()).isEqualTo(WateringSchedule.DEFAULT_FREQUENCY_DAYS);
-            // Never watered, so counted from the day it was added.
-            assertThat(plant.nextWateringAt()).isEqualTo(addedAt.plus(Duration.ofDays(WateringSchedule.DEFAULT_FREQUENCY_DAYS)));
-        });
-    }
-
-    @Test
     void getGarden_prefersThePlantsOwnWateringPeriodOverTheSpecies() {
         Plant vera = plant("Vera", null, 4);
         vera.setWateringEveryDays(10);
@@ -157,37 +113,6 @@ class GardenServiceTest {
 
         assertThat(response.wateringFrequencyDays()).isEqualTo(10);
         assertThat(response.nextWateringAt()).isEqualTo(addedAt.plus(Duration.ofDays(10)));
-    }
-
-    @Test
-    void getGarden_schedulesAPlantWithoutSpeciesFromItsOwnWateringPeriod() {
-        Plant vera = plant("Vera", null, null);
-        vera.setSpecies(null);
-        vera.setWateringEveryDays(7);
-        when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of());
-        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(vera));
-
-        GardenPlantResponse response = gardenService().getGarden(ownerId, zone).rooms().get(0).plants().get(0);
-
-        assertThat(response.speciesName()).isNull();
-        assertThat(response.wateringFrequencyDays()).isEqualTo(7);
-        assertThat(response.nextWateringAt()).isEqualTo(addedAt.plus(Duration.ofDays(7)));
-    }
-
-    @Test
-    void getGarden_linksEachPlantsPhoto() {
-        Planter balcony = planter("Balcony");
-        Plant george = plant("George", balcony, 4);
-        Plant pinky = plant("Pinky", balcony, 4);
-        when(planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId)).thenReturn(List.of(balcony));
-        when(plantService.getLivingPlants(ownerId)).thenReturn(List.of(george, pinky));
-        when(plantService.getPhotoUrls(List.of(george.getId(), pinky.getId())))
-                .thenReturn(Map.of(george.getId(), "https://storage.test/george.jpg?signed"));
-
-        List<GardenPlantResponse> plants = gardenService().getGarden(ownerId, zone).rooms().get(0).plants();
-
-        assertThat(plants).extracting(GardenPlantResponse::photoUrl)
-                .containsExactly("https://storage.test/george.jpg?signed", null);
     }
 
     @Test

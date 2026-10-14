@@ -8,11 +8,11 @@ describe('Typography', () => {
   const headlines = tokens.filter(([name]) => /^h\d$/.test(name));
   const others = tokens.filter(([name]) => !/^h\d$/.test(name));
 
-  it.each(headlines)('sets headline %s in Lateef', (_name, token) => {
-    expect(headlineFonts).toContain(token.fontFamily);
+  it('sets every headline in Lateef', () => {
+    for (const [, token] of headlines) expect(headlineFonts).toContain(token.fontFamily);
   });
 
-  it.each(others)('sets %s in DM Sans', (_name, token) => {
-    expect(bodyFonts).toContain(token.fontFamily);
+  it('sets every other token in DM Sans', () => {
+    for (const [, token] of others) expect(bodyFonts).toContain(token.fontFamily);
   });
 });

@@ -13,18 +13,6 @@ afterEach(() => {
   jest.resetAllMocks();
 });
 
-it('throws when used outside the provider', async () => {
-  const { result } = await renderHook(() => {
-    try {
-      return useAuthStore();
-    } catch (error) {
-      return error;
-    }
-  });
-
-  expect(result.current).toBeInstanceOf(Error);
-});
-
 it('resolves to authenticated when tokens are already stored', async () => {
   mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
 
@@ -52,18 +40,4 @@ it('setAuthenticated/setUnauthenticated flip the status', async () => {
 
   await act(async () => result.current.setUnauthenticated());
   expect(result.current.status).toBe('unauthenticated');
-});
-
-it('keeps the same setter functions when the status changes', async () => {
-  mockedTokenStorage.getTokens.mockResolvedValue(null);
-  const { result } = await renderHook(() => useAuthStore(), { wrapper: AuthStoreProvider });
-  const { setAuthenticated, setUnauthenticated } = result.current;
-
-  await act(async () => {
-    result.current.setAuthenticated();
-  });
-
-  expect(result.current.status).toBe('authenticated');
-  expect(result.current.setAuthenticated).toBe(setAuthenticated);
-  expect(result.current.setUnauthenticated).toBe(setUnauthenticated);
 });

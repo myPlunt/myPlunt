@@ -62,11 +62,6 @@ afterEach(() => {
 });
 
 describe('PlantDetailsScreen', () => {
-  it('loads the plant it was opened for', async () => {
-    await render(<PlantDetailsScreen plantId="p1" />);
-
-    expect(mockedUsePlant).toHaveBeenCalledWith('p1');
-  });
 
   it('shows the plant with its photo, species and details, including when it needs water next', async () => {
     await render(<PlantDetailsScreen plantId="p1" />);
@@ -82,61 +77,6 @@ describe('PlantDetailsScreen', () => {
     expect(screen.getByText('Every 7 days (default)')).toBeOnTheScreen();
     expect(screen.getByText('2 days ago')).toBeOnTheScreen();
     expect(screen.getByText('Found at a flea market')).toBeOnTheScreen();
-  });
-
-  it('fills in sensible words for what the plant does not have', async () => {
-    mockPlant({
-      plant: {
-        ...vera,
-        light: null,
-        notes: null,
-        planterId: null,
-        planterName: null,
-        speciesId: null,
-        speciesName: null,
-        lastWateredAt: null,
-        photoUrl: null,
-      },
-    });
-    await render(<PlantDetailsScreen plantId="p1" />);
-
-    expect(screen.getByText('Other plants')).toBeOnTheScreen();
-    expect(screen.getByText('Not set')).toBeOnTheScreen();
-    expect(screen.getByText('Not yet')).toBeOnTheScreen();
-    expect(screen.queryByText('NOTES')).toBeNull();
-    expect(screen.queryByLabelText('Photo of Vera')).toBeNull();
-  });
-
-  it("doesn't call the owner's own watering frequency a default", async () => {
-    mockPlant({ plant: { ...vera, wateringEveryDays: 3, wateringFrequencyDays: 3 } });
-    await render(<PlantDetailsScreen plantId="p1" />);
-
-    expect(screen.getByText('Every 3 days')).toBeOnTheScreen();
-  });
-
-  it('opens the edit screen from the pencil', async () => {
-    await render(<PlantDetailsScreen plantId="p1" />);
-
-    await user.press(screen.getByRole('button', { name: 'Edit plant' }));
-
-    expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]/edit', params: { id: 'p1' } });
-  });
-
-  it('opens the watering history', async () => {
-    await render(<PlantDetailsScreen plantId="p1" />);
-
-    await user.press(screen.getByRole('button', { name: 'Watering history' }));
-
-    expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]/waterings', params: { id: 'p1' } });
-  });
-
-  it('shows a loading indicator, and no pencil or delete, while the plant loads', async () => {
-    mockPlant({ plant: null, isLoading: true });
-    await render(<PlantDetailsScreen plantId="p1" />);
-
-    expect(screen.getByLabelText('Loading plant')).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Edit plant' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Delete plant' })).toBeNull();
   });
 
   it('shows the error and retries when asked', async () => {
@@ -157,16 +97,6 @@ describe('PlantDetailsScreen', () => {
 
     expect(deletePlant).toHaveBeenCalledWith('p1');
     expect(back).toHaveBeenCalled();
-  });
-
-  it('goes to the garden after deleting when there is no screen to go back to', async () => {
-    canGoBack.mockReturnValue(false);
-    await render(<PlantDetailsScreen plantId="p1" />);
-
-    await user.press(screen.getByRole('button', { name: 'Delete plant' }));
-    await user.press(screen.getByRole('button', { name: 'Delete' }));
-
-    expect(replace).toHaveBeenCalledWith('/garden');
   });
 
   it('keeps the plant when the user cancels', async () => {

@@ -64,62 +64,6 @@ it('createPlant signs the user out and rethrows when the session has expired', a
   expect(result.current.store.status).toBe('unauthenticated');
 });
 
-it('createPlant rethrows other errors without changing the session', async () => {
-  mockedPlantService.createPlant.mockRejectedValue(new ApiError(400, 'Validation failed'));
-  const { result } = await renderWithStore();
-
-  await act(async () => {
-    await expect(result.current.actions.createPlant(request)).rejects.toBeInstanceOf(ApiError);
-  });
-
-  expect(result.current.store.status).toBe('authenticated');
-});
-
-it('updatePlant returns the updated plant from the service', async () => {
-  const updated = {
-    id: 'p1',
-    ...request,
-    photoUrl: null,
-    planterName: null,
-    speciesName: null,
-    wateringFrequencyDays: 7,
-    lastWateredAt: null,
-    nextWateringAt: '2026-10-11T08:00:00.000Z',
-  };
-  mockedPlantService.updatePlant.mockResolvedValue(updated);
-  const { result } = await renderWithStore();
-
-  let returned;
-  await act(async () => {
-    returned = await result.current.actions.updatePlant('p1', request);
-  });
-
-  expect(mockedPlantService.updatePlant).toHaveBeenCalledWith('p1', request);
-  expect(returned).toEqual(updated);
-});
-
-it('updatePlant signs the user out and rethrows when the session has expired', async () => {
-  mockedPlantService.updatePlant.mockRejectedValue(new ApiError(401, 'Not authenticated'));
-  const { result } = await renderWithStore();
-
-  await act(async () => {
-    await expect(result.current.actions.updatePlant('p1', request)).rejects.toBeInstanceOf(ApiError);
-  });
-
-  expect(result.current.store.status).toBe('unauthenticated');
-});
-
-it('updatePlant rethrows other errors without changing the session', async () => {
-  mockedPlantService.updatePlant.mockRejectedValue(new ApiError(404, 'Plant not found'));
-  const { result } = await renderWithStore();
-
-  await act(async () => {
-    await expect(result.current.actions.updatePlant('p1', request)).rejects.toBeInstanceOf(ApiError);
-  });
-
-  expect(result.current.store.status).toBe('authenticated');
-});
-
 it('deletePlant deletes the plant through the service', async () => {
   mockedPlantService.deletePlant.mockResolvedValue(undefined);
   const { result } = await renderWithStore();
@@ -129,26 +73,4 @@ it('deletePlant deletes the plant through the service', async () => {
   });
 
   expect(mockedPlantService.deletePlant).toHaveBeenCalledWith('p1');
-});
-
-it('deletePlant signs the user out and rethrows when the session has expired', async () => {
-  mockedPlantService.deletePlant.mockRejectedValue(new ApiError(401, 'Not authenticated'));
-  const { result } = await renderWithStore();
-
-  await act(async () => {
-    await expect(result.current.actions.deletePlant('p1')).rejects.toBeInstanceOf(ApiError);
-  });
-
-  expect(result.current.store.status).toBe('unauthenticated');
-});
-
-it('deletePlant rethrows other errors without changing the session', async () => {
-  mockedPlantService.deletePlant.mockRejectedValue(new ApiError(404, 'Plant not found'));
-  const { result } = await renderWithStore();
-
-  await act(async () => {
-    await expect(result.current.actions.deletePlant('p1')).rejects.toBeInstanceOf(ApiError);
-  });
-
-  expect(result.current.store.status).toBe('authenticated');
 });

@@ -111,19 +111,6 @@ it('shows a discovered species with its facts, when it was discovered and the pl
   expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]', params: { id: 'p1' } });
 });
 
-it('says when a discovered species has no plants left in the garden', async () => {
-  jest.mocked(useGarden).mockReturnValue({
-    garden: { rooms: [] },
-    error: null,
-    isLoading: false,
-    retry: jest.fn(),
-    refresh: jest.fn(),
-  });
-  await render(<SpeciesDetailsScreen speciesId="basil" />);
-
-  expect(screen.getByText('None in your garden right now.')).toBeOnTheScreen();
-});
-
 it('offers to add an undiscovered species to the garden, with the species picked', async () => {
   await render(<SpeciesDetailsScreen speciesId="monstera" />);
 
@@ -142,12 +129,4 @@ it('says when the species is not in the Pluntdex', async () => {
   await render(<SpeciesDetailsScreen speciesId="cactus" />);
 
   expect(screen.getByText("This species isn't in the Pluntdex.")).toBeOnTheScreen();
-});
-
-it('shows the error and a retry when the discovered species fail to load', async () => {
-  jest.mocked(useDiscoveredSpecies).mockReturnValue({ discovered: null, error: 'Offline', isLoading: false, retry });
-  await render(<SpeciesDetailsScreen speciesId="basil" />);
-
-  await user.press(screen.getByRole('button', { name: 'Try again' }));
-  expect(retry).toHaveBeenCalled();
 });

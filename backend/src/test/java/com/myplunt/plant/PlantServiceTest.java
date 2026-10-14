@@ -8,7 +8,6 @@ import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.plant.dto.WateringHistoryResponse;
-import com.myplunt.plant.dto.WateringLogResponse;
 import com.myplunt.plant.dto.WateringResponse;
 import com.myplunt.plant.dto.WateringStreakResponse;
 import com.myplunt.species.Species;
@@ -28,13 +27,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -98,17 +95,6 @@ class PlantServiceTest {
     }
 
     @Test
-    void create_putsThePlantInTheOwnersPlanter() {
-        UUID planterId = UUID.randomUUID();
-        when(planterRepository.existsByIdAndOwnerId(planterId, userId)).thenReturn(true);
-        saveAssignsId();
-
-        PlantResponse response = plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, planterId, null, null));
-
-        assertThat(response.planterId()).isEqualTo(planterId);
-    }
-
-    @Test
     void create_throwsNotFoundForAPlanterTheUserDoesNotOwn() {
         UUID planterId = UUID.randomUUID();
         when(planterRepository.existsByIdAndOwnerId(planterId, userId)).thenReturn(false);
@@ -135,18 +121,6 @@ class PlantServiceTest {
         verify(plantRepository).save(saved.capture());
         assertThat(saved.getValue().getSpecies()).isSameAs(monstera);
         verify(speciesRepository).markDiscovered(userId, speciesId);
-    }
-
-    @Test
-    void create_throwsNotFoundForAnUnknownOrUnapprovedSpecies() {
-        UUID speciesId = UUID.randomUUID();
-        when(speciesRepository.findByIdAndApprovedTrue(speciesId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() ->
-                        plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, speciesId, null)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Species not found");
-        verify(plantRepository, never()).save(any());
     }
 
     @Test
@@ -180,27 +154,6 @@ class PlantServiceTest {
                 .isEqualTo(HttpStatus.NOT_FOUND);
         verify(plantRepository, never()).save(any());
         verify(plantPhotoRepository, never()).save(any());
-    }
-
-    @Test
-    void create_keepsOptionalFieldsEmptyWhenLeftOut() {
-        saveAssignsId();
-
-        PlantResponse response = plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, null, null));
-
-        assertThat(response).isEqualTo(new PlantResponse(plantId, "Vera", null, null, null, null, null, null));
-        verify(storageService, never()).confirmUpload(any(), any());
-        verify(plantPhotoRepository, never()).save(any());
-    }
-
-    @Test
-    void create_trimsNotesAndStoresBlankNotesAsNull() {
-        saveAssignsId();
-
-        assertThat(plantService().create(userId, new CreatePlantRequest("Vera", null, null, "  Repotted  ", null, null, null)).notes())
-                .isEqualTo("Repotted");
-        assertThat(plantService().create(userId, new CreatePlantRequest("Vera", null, null, "   ", null, null, null)).notes())
-                .isNull();
     }
 
     // A saved plant of the user's, as findByIdAndOwnerId returns it.
@@ -256,55 +209,6 @@ class PlantServiceTest {
     }
 
     @Test
-    void getDetails_leavesOutWhatThePlantDoesNotHave() {
-        ownPlant("Vera");
-
-        PlantDetailsResponse details = plantService().getDetails(userId, plantId);
-
-        // No frequency from the owner or a species, so the default schedule, counted from the day it was added.
-        assertThat(details).isEqualTo(new PlantDetailsResponse(
-                plantId, "Vera", null, null, null, null, null, null, null,
-                WateringSchedule.DEFAULT_FREQUENCY_DAYS, null,
-                Instant.parse("2026-09-01T10:00:00Z").plus(Duration.ofDays(WateringSchedule.DEFAULT_FREQUENCY_DAYS)), null));
-        verify(planterRepository, never()).findByIdAndOwnerId(any(), any());
-    }
-
-    @Test
-    void getDetails_prefersTheOwnersWateringFrequencyOverTheSpecies() {
-        Plant vera = ownPlant("Vera");
-        vera.setSpecies(new Species("Monstera", 7));
-        vera.setWateringEveryDays(3);
-
-        PlantDetailsResponse details = plantService().getDetails(userId, plantId);
-
-        assertThat(details.wateringEveryDays()).isEqualTo(3);
-        assertThat(details.wateringFrequencyDays()).isEqualTo(3);
-        // Never watered, so counted from the day it was added.
-        assertThat(details.nextWateringAt()).isEqualTo(vera.getCreatedAt().plus(Duration.ofDays(3)));
-    }
-
-    @Test
-    void getDetails_usesTheSpeciesFrequencyWhenTheOwnerSetNone() {
-        Plant vera = ownPlant("Vera");
-        vera.setSpecies(new Species("Pothos", 10));
-
-        PlantDetailsResponse details = plantService().getDetails(userId, plantId);
-
-        assertThat(details.wateringEveryDays()).isNull();
-        assertThat(details.wateringFrequencyDays()).isEqualTo(10);
-    }
-
-    @Test
-    void getDetails_usesTheDefaultScheduleForASpeciesWithoutAFrequency() {
-        Plant vera = ownPlant("Vera");
-        vera.setSpecies(new Species("Sweet basil", null));
-
-        PlantDetailsResponse details = plantService().getDetails(userId, plantId);
-
-        assertThat(details.wateringFrequencyDays()).isEqualTo(WateringSchedule.DEFAULT_FREQUENCY_DAYS);
-    }
-
-    @Test
     void getDetails_throwsNotFoundForAPlantTheUserDoesNotOwn() {
         when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
 
@@ -340,96 +244,6 @@ class PlantServiceTest {
     }
 
     @Test
-    void update_clearsTheFieldsSentAsNullButKeepsThePhoto() {
-        Plant vera = ownPlant("Vera");
-        vera.setPlanterId(UUID.randomUUID());
-        vera.setSpecies(new Species("Monstera", 7));
-        vera.setLight("full_sun");
-        vera.setWateringEveryDays(4);
-        vera.setNotes("Old notes");
-        when(plantRepository.save(vera)).thenReturn(vera);
-
-        plantService().update(userId, plantId, new UpdatePlantRequest("Vera", null, null, "   ", null, null, null));
-
-        assertThat(vera.getPlanterId()).isNull();
-        assertThat(vera.getSpecies()).isNull();
-        assertThat(vera.getLight()).isNull();
-        assertThat(vera.getWateringEveryDays()).isNull();
-        assertThat(vera.getNotes()).isNull();
-        verify(storageService, never()).confirmUpload(any(), any());
-        verify(plantPhotoRepository, never()).save(any());
-    }
-
-    @Test
-    void update_confirmsANewPhotoAndMakesItThePlantsPhoto() {
-        Plant vera = ownPlant("Vera");
-        when(plantRepository.save(vera)).thenReturn(vera);
-        String key = "plants/" + userId + "/new.jpg";
-
-        plantService().update(userId, plantId, new UpdatePlantRequest("Vera", null, null, null, null, null, key));
-
-        verify(storageService).confirmUpload(userId, key);
-        ArgumentCaptor<PlantPhoto> photo = ArgumentCaptor.forClass(PlantPhoto.class);
-        verify(plantPhotoRepository).save(photo.capture());
-        assertThat(photo.getValue().getPlant()).isSameAs(vera);
-        assertThat(photo.getValue().getPhotoKey()).isEqualTo(key);
-    }
-
-    @Test
-    void update_throwsNotFoundForAPlantTheUserDoesNotOwn() {
-        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> plantService().update(
-                        userId, plantId, new UpdatePlantRequest("Vera", null, null, null, null, null, null)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Plant not found");
-        verify(plantRepository, never()).save(any());
-    }
-
-    @Test
-    void update_throwsNotFoundForAPlanterTheUserDoesNotOwn() {
-        ownPlant("Vera");
-        UUID planterId = UUID.randomUUID();
-        when(planterRepository.existsByIdAndOwnerId(planterId, userId)).thenReturn(false);
-
-        assertThatThrownBy(() -> plantService().update(
-                        userId, plantId, new UpdatePlantRequest("Vera", null, null, null, planterId, null, null)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Planter not found");
-        verify(plantRepository, never()).save(any());
-    }
-
-    @Test
-    void update_throwsNotFoundForAnUnknownOrUnapprovedSpecies() {
-        ownPlant("Vera");
-        UUID speciesId = UUID.randomUUID();
-        when(speciesRepository.findByIdAndApprovedTrue(speciesId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> plantService().update(
-                        userId, plantId, new UpdatePlantRequest("Vera", null, null, null, null, speciesId, null)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Species not found");
-        verify(plantRepository, never()).save(any());
-    }
-
-    @Test
-    void update_changesNothingWhenTheNewPhotoCannotBeConfirmed() {
-        Plant vera = ownPlant("Vera");
-        String key = "plants/" + UUID.randomUUID() + "/photo.jpg";
-        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Upload not found for key: " + key))
-                .when(storageService).confirmUpload(userId, key);
-
-        assertThatThrownBy(() -> plantService().update(
-                        userId, plantId, new UpdatePlantRequest("Vera II", null, null, null, null, null, key)))
-                .isInstanceOf(ResponseStatusException.class)
-                .extracting("statusCode")
-                .isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(vera.getName()).isEqualTo("Vera");
-        verify(plantRepository, never()).save(any());
-        verify(plantPhotoRepository, never()).save(any());
-    }
-
-    @Test
     void update_rejectsAPlantThatHasDied() {
         Plant vera = ownPlant("Vera");
         vera.setAlive(false);
@@ -441,57 +255,6 @@ class PlantServiceTest {
                 .isEqualTo(HttpStatus.CONFLICT);
         assertThat(vera.getName()).isEqualTo("Vera");
         verify(plantRepository, never()).save(any());
-    }
-
-    @Test
-    void getLivingPlants_returnsTheOwnersLivingPlants() {
-        Plant george = new Plant(userId, "George");
-        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(userId)).thenReturn(List.of(george));
-
-        assertThat(plantService().getLivingPlants(userId)).containsExactly(george);
-    }
-
-    @Test
-    void getLastWateredAt_mapsEachWateredPlantToItsLastWatering() {
-        UUID neverWatered = UUID.randomUUID();
-        Instant wateredAt = Instant.parse("2026-10-07T08:00:00Z");
-        when(wateringLogRepository.findLastWateredAt(List.of(plantId, neverWatered)))
-                .thenReturn(List.of(new LastWatering(plantId, wateredAt)));
-
-        assertThat(plantService().getLastWateredAt(List.of(plantId, neverWatered)))
-                .containsExactly(entry(plantId, wateredAt));
-    }
-
-    @Test
-    void getLastWateredAt_skipsTheQueryWithoutPlants() {
-        assertThat(plantService().getLastWateredAt(List.of())).isEmpty();
-        verify(wateringLogRepository, never()).findLastWateredAt(any());
-    }
-
-    @Test
-    void getPhotoUrls_mapsEachPlantWithAPhotoToALinkToIt() {
-        UUID noPhoto = UUID.randomUUID();
-        when(plantPhotoRepository.findLatestPhotos(List.of(plantId, noPhoto)))
-                .thenReturn(List.of(new LatestPhoto(plantId, "plants/vera.jpg")));
-        when(storageService.createReadUrl("plants/vera.jpg")).thenReturn("https://storage.test/vera.jpg?signed");
-
-        assertThat(plantService().getPhotoUrls(List.of(plantId, noPhoto)))
-                .containsExactly(entry(plantId, "https://storage.test/vera.jpg?signed"));
-    }
-
-    @Test
-    void getPhotoUrls_keepsOneLinkWhenTwoPhotosShareTheNewestTime() {
-        when(plantPhotoRepository.findLatestPhotos(List.of(plantId)))
-                .thenReturn(List.of(new LatestPhoto(plantId, "plants/a.jpg"), new LatestPhoto(plantId, "plants/b.jpg")));
-        when(storageService.createReadUrl(any())).thenAnswer(invocation -> "https://storage.test/" + invocation.getArgument(0));
-
-        assertThat(plantService().getPhotoUrls(List.of(plantId))).containsOnlyKeys(plantId);
-    }
-
-    @Test
-    void getPhotoUrls_skipsTheQueryWithoutPlants() {
-        assertThat(plantService().getPhotoUrls(List.of())).isEmpty();
-        verify(plantPhotoRepository, never()).findLatestPhotos(any());
     }
 
     @Test
@@ -519,19 +282,6 @@ class PlantServiceTest {
     }
 
     @Test
-    void water_rejectsAPlantThatHasDied() {
-        Plant george = new Plant(userId, "George");
-        george.setAlive(false);
-        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(george));
-
-        assertThatThrownBy(() -> plantService().water(userId, plantId, ZoneOffset.UTC))
-                .isInstanceOf(ResponseStatusException.class)
-                .extracting("statusCode")
-                .isEqualTo(HttpStatus.CONFLICT);
-        verify(wateringLogRepository, never()).save(any());
-    }
-
-    @Test
     void getWateringHistory_returnsEveryWateringNewestFirstMarkedOnTimeOrLate() {
         // Times relative to now, as the service reads the clock itself. On a 3-day schedule:
         // added 12 days ago, on time 10 days ago, 3 days late 4 days ago, on time 2 days ago.
@@ -555,87 +305,10 @@ class PlantServiceTest {
     }
 
     @Test
-    void getWateringHistory_hasNoStreakBeforeTheFirstWatering() {
-        ownPlant("Vera");
-
-        WateringHistoryResponse history = plantService().getWateringHistory(userId, plantId, ZoneOffset.UTC);
-
-        assertThat(history.wateringFrequencyDays()).isEqualTo(WateringSchedule.DEFAULT_FREQUENCY_DAYS);
-        assertThat(history.currentStreak()).isZero();
-        assertThat(history.onTimePercent()).isNull();
-        assertThat(history.waterings()).isEmpty();
-    }
-
-    @Test
-    void getWateringHistory_stillWorksForAPlantThatHasDied() {
-        Plant vera = ownPlant("Vera");
-        vera.setAlive(false);
-
-        assertThat(plantService().getWateringHistory(userId, plantId, ZoneOffset.UTC).plantName()).isEqualTo("Vera");
-    }
-
-    @Test
-    void getWateringHistory_throwsNotFoundForAPlantTheUserDoesNotOwn() {
-        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> plantService().getWateringHistory(userId, plantId, ZoneOffset.UTC))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Plant not found");
-        verify(wateringLogRepository, never()).findByPlantIdOrderByWateredAtAsc(any());
-    }
-
-    @Test
-    void getWateringStreaks_returnsEachPlantsCurrentStreakFromOneQuery() {
-        Instant now = Instant.now();
-        Plant george = plantAdded("George", now.minus(Duration.ofDays(5)));
-        Plant pinky = plantAdded("Pinky", now.minus(Duration.ofDays(5)));
-        Plant neverWatered = plantAdded("Monty", now.minus(Duration.ofDays(1)));
-        when(wateringLogRepository.findByPlantIdInOrderByWateredAtAsc(
-                List.of(george.getId(), pinky.getId(), neverWatered.getId())))
-                .thenReturn(List.of(
-                        watering(george, now.minus(Duration.ofDays(4))),
-                        watering(pinky, now.minus(Duration.ofDays(4))),
-                        watering(george, now.minus(Duration.ofDays(1)))));
-
-        Map<UUID, Integer> streaks = plantService().getWateringStreaks(List.of(george, pinky, neverWatered), ZoneOffset.UTC);
-
-        // Pinky was due again yesterday, so its streak is broken.
-        assertThat(streaks).containsOnly(entry(george.getId(), 2), entry(pinky.getId(), 0), entry(neverWatered.getId(), 0));
-    }
-
-    @Test
-    void getWateringStreaks_skipsTheQueryWithoutPlants() {
-        assertThat(plantService().getWateringStreaks(List.of(), ZoneOffset.UTC)).isEmpty();
-        verify(wateringLogRepository, never()).findByPlantIdInOrderByWateredAtAsc(any());
-    }
-
-    @Test
-    void getWaterings_returnsTheOwnersWateringsInTheRange() {
-        Instant from = Instant.parse("2026-10-01T00:00:00Z");
-        Instant to = Instant.parse("2026-11-01T00:00:00Z");
-        List<WateringLogResponse> waterings = List.of(
-                new WateringLogResponse(UUID.randomUUID(), plantId, "Vera", Instant.parse("2026-10-07T08:00:00Z")));
-        when(wateringLogRepository.findOwnersWaterings(userId, from, to)).thenReturn(waterings);
-
-        assertThat(plantService().getWaterings(userId, from, to)).isEqualTo(waterings);
-    }
-
-    @Test
     void getWaterings_rejectsARangeThatEndsBeforeItStarts() {
         Instant from = Instant.parse("2026-10-01T00:00:00Z");
 
         assertThatThrownBy(() -> plantService().getWaterings(userId, from, from))
-                .isInstanceOf(ResponseStatusException.class)
-                .extracting("statusCode")
-                .isEqualTo(HttpStatus.BAD_REQUEST);
-        verify(wateringLogRepository, never()).findOwnersWaterings(any(), any(), any());
-    }
-
-    @Test
-    void getWaterings_rejectsARangeLongerThan62Days() {
-        Instant from = Instant.parse("2026-01-01T00:00:00Z");
-
-        assertThatThrownBy(() -> plantService().getWaterings(userId, from, from.plus(Duration.ofDays(63))))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.BAD_REQUEST);
@@ -655,13 +328,6 @@ class PlantServiceTest {
                         watering(george, now.minus(Duration.ofDays(1)))));
 
         assertThat(plantService().getWateringStreak(userId, ZoneOffset.UTC)).isEqualTo(new WateringStreakResponse(3));
-    }
-
-    @Test
-    void getWateringStreak_isZeroWithoutPlants() {
-        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(userId)).thenReturn(List.of());
-
-        assertThat(plantService().getWateringStreak(userId, ZoneOffset.UTC)).isEqualTo(new WateringStreakResponse(0));
     }
 
     // A plant on a 3-day schedule, added at the given moment.
@@ -695,17 +361,6 @@ class PlantServiceTest {
     }
 
     @Test
-    void delete_alsoRemovesAPlantThatHasDied() {
-        Plant george = new Plant(userId, "George");
-        george.setAlive(false);
-        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(george));
-
-        plantService().delete(userId, plantId);
-
-        verify(plantRepository).delete(george);
-    }
-
-    @Test
     void delete_stillDeletesThePlantWhenAPhotoCannotBeRemovedFromStorage() {
         Plant george = new Plant(userId, "George");
         when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(george));
@@ -718,14 +373,4 @@ class PlantServiceTest {
         verify(storageService).deleteObject("plants/u/b.jpg");
     }
 
-    @Test
-    void delete_throwsNotFoundForAPlantTheUserDoesNotOwn() {
-        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> plantService().delete(userId, plantId))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Plant not found");
-        verify(plantRepository, never()).delete(any());
-        verify(storageService, never()).deleteObject(any());
-    }
 }

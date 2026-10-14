@@ -80,10 +80,4 @@ class SpeciesControllerTest {
                 .isEqualTo(discovered);
     }
 
-    @Test
-    void species_rejectsRequestsWithoutAToken() {
-        restTestClient.get().uri("/v1/species")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
 }

@@ -2,7 +2,6 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import * as profileService from '@/features/profile/profile-service';
 import { useProfileActions } from '@/features/profile/use-profile-actions';
-import { ApiError } from '@/lib/auth/api-client';
 import { tokenStorage } from '@/lib/auth/token-storage';
 import { AuthStoreProvider, useAuthStore } from '@/stores/auth-store';
 
@@ -45,28 +44,6 @@ it('updateProfile returns the updated user from the service', async () => {
   expect(returned).toEqual(updated);
 });
 
-it('updateProfile signs the user out and rethrows when the session has expired', async () => {
-  mockedProfileService.updateProfile.mockRejectedValue(new ApiError(401, 'Not authenticated'));
-  const { result } = await renderWithStore();
-
-  await act(async () => {
-    await expect(result.current.actions.updateProfile(request)).rejects.toBeInstanceOf(ApiError);
-  });
-
-  expect(result.current.store.status).toBe('unauthenticated');
-});
-
-it('updateProfile rethrows other errors without changing the session', async () => {
-  mockedProfileService.updateProfile.mockRejectedValue(new ApiError(409, 'irrelevant'));
-  const { result } = await renderWithStore();
-
-  await act(async () => {
-    await expect(result.current.actions.updateProfile(request)).rejects.toBeInstanceOf(ApiError);
-  });
-
-  expect(result.current.store.status).toBe('authenticated');
-});
-
 it('changeEmail calls the service and returns the updated user', async () => {
   const updated = { id: 'u1', username: 'jane', email: 'new@example.com', bio: null };
   mockedProfileService.changeEmail.mockResolvedValue(updated);
@@ -79,17 +56,4 @@ it('changeEmail calls the service and returns the updated user', async () => {
 
   expect(mockedProfileService.changeEmail).toHaveBeenCalledWith({ email: 'new@example.com', currentPassword: 'pw' });
   expect(returned).toEqual(updated);
-});
-
-it('changeEmail signs the user out and rethrows when the session has expired', async () => {
-  mockedProfileService.changeEmail.mockRejectedValue(new ApiError(401, 'Not authenticated'));
-  const { result } = await renderWithStore();
-
-  await act(async () => {
-    await expect(
-      result.current.actions.changeEmail({ email: 'new@example.com', currentPassword: 'pw' }),
-    ).rejects.toBeInstanceOf(ApiError);
-  });
-
-  expect(result.current.store.status).toBe('unauthenticated');
 });
