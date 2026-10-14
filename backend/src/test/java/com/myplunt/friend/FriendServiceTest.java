@@ -1,5 +1,6 @@
 package com.myplunt.friend;
 
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class FriendServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private AuditLog auditLog;
+
     private final UUID janeId = UUID.randomUUID();
     private final UUID tomId = UUID.randomUUID();
 
@@ -44,7 +48,7 @@ class FriendServiceTest {
     }
 
     private FriendService friendService() {
-        return new FriendService(friendshipRepository, userRepository);
+        return new FriendService(friendshipRepository, userRepository, auditLog);
     }
 
     private void assertConflict(String message) {

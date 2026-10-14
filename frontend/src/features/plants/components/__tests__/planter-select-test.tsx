@@ -115,9 +115,8 @@ describe('PlanterSelect', () => {
   });
 
   it('shows a name validation error next to the input', async () => {
-    createPlanter.mockRejectedValue(
-      new ApiError(400, 'Validation failed', { fieldErrors: { name: 'Name must be at most 255 characters.' } }),
-    );
+    const error = new ApiError(400, 'Validation failed', { fieldErrors: { name: 'Name must be at most 255 characters.' } });
+    createPlanter.mockRejectedValue(error);
     await renderSelect();
     await openAndStartAdding();
 

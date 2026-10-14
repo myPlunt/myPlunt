@@ -21,11 +21,13 @@ describe('getGarden', () => {
 });
 
 describe('waterPlant', () => {
-  it('POSTs a watering for the plant to /v1/plants/:id/waterings', async () => {
+  it("POSTs a watering for the plant to /v1/plants/:id/waterings, with the device's time zone for the streak", async () => {
     mockedApiFetch.mockResolvedValue(undefined);
 
     await gardenService.waterPlant('p1');
 
-    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants/p1/waterings', { method: 'POST' });
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants/p1/waterings?zone=Europe%2FAmsterdam', expect.objectContaining({
+      method: 'POST'
+    }));
   });
 });

@@ -1,7 +1,17 @@
 spring:
   application:
     name: backend
+  # We authenticate with JWT only; without this Spring creates a default user and
+  # logs its generated password on every start.
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  mvc:
+    # Devtools turns this on, and its log line includes rejected request values such as
+    # passwords. GlobalExceptionHandler already logs failures without the values.
+    log-resolved-exception: false
   jpa:
+    # Set explicitly (same as the default) to silence its startup warning in the log file.
+    open-in-view: true
     hibernate:
       ddl-auto: validate
     show-sql: false
@@ -12,6 +22,15 @@ spring:
       storagePrefix: ${app.storage.prefix}
 
 app:
+  # Filled in by Maven at build time; every backend log line carries it as backend_version.
+  version: '@project.version@'
+  # backend.log, audit.log and frontend.log (see logback-spring.xml). Retention is in days.
+  logging:
+    dir: ${LOG_DIR:logs}
+    retention-days:
+      backend: 14
+      audit: 365
+      frontend: 14
   jwt:
     secret: ${JWT_SECRET}
     access-token-ttl-minutes: 15

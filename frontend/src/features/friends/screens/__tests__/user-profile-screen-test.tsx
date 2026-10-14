@@ -52,7 +52,8 @@ it('sends a friend request and then shows it as requested', async () => {
 });
 
 it('shows why a friend request failed and keeps Add friend', async () => {
-  mockedSendFriendRequest.mockRejectedValue(new ApiError(409, 'conflict', { detail: 'Request already sent' }));
+  const error = new ApiError(409, 'conflict', { detail: 'Request already sent' });
+  mockedSendFriendRequest.mockRejectedValue(error);
   await showProfile({});
 
   await user.press(screen.getByRole('button', { name: 'Add friend' }));

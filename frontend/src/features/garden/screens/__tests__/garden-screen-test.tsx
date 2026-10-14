@@ -162,7 +162,8 @@ describe('GardenScreen', () => {
   });
 
   it('shows the backend message when watering fails', async () => {
-    waterPlants.mockRejectedValue(new ApiError(404, 'irrelevant', { detail: 'Plant not found' }));
+    const error = new ApiError(404, 'irrelevant', { detail: 'Plant not found' });
+    waterPlants.mockRejectedValue(error);
     await render(<GardenScreen />);
 
     await user.press(screen.getByRole('button', { name: 'Water Pinky and Basil' }));

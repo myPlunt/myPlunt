@@ -3,9 +3,24 @@ import { useCallback, useState } from 'react';
 
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { Garden } from '@/lib/garden/types';
+import { logBug } from '@/lib/logger';
 import { useAuthStore } from '@/stores/auth-store';
 
 import * as gardenService from './garden-service';
+
+// The backend always sends a date the watering pill can count down to. Without one the pill
+// reads "In NaN days", so it's a bug on one side or the other.
+function reportUnusableWateringDates(garden: Garden) {
+  const plantIds = garden.rooms
+    .flatMap((room) => room.plants)
+    .filter((plant) => Number.isNaN(Date.parse(plant.nextWateringAt)))
+    .map((plant) => plant.id);
+  if (plantIds.length > 0) {
+    logBug('unexpected_api_response', {
+      context: { endpoint: '/v1/garden', problem: 'invalid_next_watering_at', plant_ids: plantIds.join(',') },
+    });
+  }
+}
 
 export function useGarden() {
   const { setUnauthenticated } = useAuthStore();
@@ -20,6 +35,7 @@ export function useGarden() {
         .getGarden()
         .then((result) => {
           if (isCancelled()) return;
+          reportUnusableWateringDates(result);
           setGarden(result);
           setError(null);
         })

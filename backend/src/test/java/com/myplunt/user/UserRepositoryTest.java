@@ -38,7 +38,7 @@ class UserRepositoryTest {
     // Through UserService, which lowercases and escapes the query the way the repository expects.
     // No avatars here, so it never needs storage or the password encoder.
     private List<String> search(String query, User searcher) {
-        return new UserService(userRepository, null, null, friendshipRepository)
+        return new UserService(userRepository, null, null, friendshipRepository, null)
                 .search(searcher.getId(), query)
                 .stream()
                 .map(UserSummaryResponse::username)

@@ -34,7 +34,8 @@ describe('LoginScreen', () => {
   });
 
   it('shows the backend-provided message when login is rejected', async () => {
-    login.mockRejectedValue(new ApiError(401, 'irrelevant', { detail: 'Invalid credentials' }));
+    const error = new ApiError(401, 'irrelevant', { detail: 'Invalid credentials' });
+    login.mockRejectedValue(error);
     await render(<LoginScreen />);
 
     await user.press(screen.getByRole('button', { name: 'Log in' }));

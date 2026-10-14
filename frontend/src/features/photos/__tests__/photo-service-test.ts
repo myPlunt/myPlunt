@@ -27,10 +27,10 @@ describe('uploadPhoto', () => {
 
     await expect(uploadPhoto('file:///photo.jpg', 'PLANT')).resolves.toBe('plants/u1/a.jpg');
 
-    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/photos/upload-url', {
-      method: 'POST',
-      body: { category: 'PLANT', contentType: 'image/jpeg' },
-    });
+    expect(mockedApiFetch).toHaveBeenCalledWith(
+      '/v1/photos/upload-url',
+      expect.objectContaining({ method: 'POST', body: { category: 'PLANT', contentType: 'image/jpeg' } }),
+    );
     expect(fetchMock).toHaveBeenNthCalledWith(1, 'file:///photo.jpg');
     expect(fetchMock).toHaveBeenNthCalledWith(2, 'https://storage.test/upload?signed', {
       method: 'PUT',
@@ -48,7 +48,8 @@ describe('uploadPhoto', () => {
   });
 
   it('throws a user-safe error when storage cannot be reached', async () => {
-    fetchMock.mockRejectedValueOnce(new TypeError('Network request failed'));
+    const networkError = new TypeError('Network request failed');
+    fetchMock.mockReset().mockResolvedValueOnce({ blob: () => Promise.resolve(file) }).mockRejectedValueOnce(networkError);
 
     const error = await uploadPhoto('file:///photo.jpg', 'PLANT').catch((err) => err);
 

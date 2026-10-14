@@ -8,6 +8,7 @@ import { boxHeight, oneLine, singleLineInputText } from '@/features/plants/compo
 import { usePlanterActions } from '@/features/planters/use-planter-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
+import { logFailedUi } from '@/lib/logger';
 import type { Planter } from '@/lib/planter/types';
 
 // Without a planter the plant goes in the garden's group without a room.
@@ -57,6 +58,7 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
       onAdded(planter);
       choose(planter.id);
     } catch (err) {
+      logFailedUi('planter_create_failed_ui', err);
       setAddError(err instanceof ApiError && err.fieldErrors?.name ? err.fieldErrors.name : describeError(err));
     } finally {
       setIsSaving(false);

@@ -74,7 +74,8 @@ describe('EditProfileForm', () => {
   });
 
   it('shows the backend message for other errors', async () => {
-    updateProfile.mockRejectedValue(new ApiError(409, 'irrelevant', { detail: 'Username already taken' }));
+    const error = new ApiError(409, 'irrelevant', { detail: 'Username already taken' });
+    updateProfile.mockRejectedValue(error);
     await render(<EditProfileForm user={jane} />);
 
     await user.clear(screen.getByLabelText('Username'));

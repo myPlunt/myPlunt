@@ -15,7 +15,10 @@ describe('createPlanter', () => {
     mockedApiFetch.mockResolvedValue(saved);
 
     await expect(planterService.createPlanter({ name: 'Balcony' })).resolves.toEqual(saved);
-    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/planters', { method: 'POST', body: { name: 'Balcony' } });
+    expect(mockedApiFetch).toHaveBeenCalledWith(
+      '/v1/planters',
+      expect.objectContaining({ method: 'POST', body: { name: 'Balcony' } }),
+    );
   });
 });
  

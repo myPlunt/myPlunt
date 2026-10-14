@@ -1,5 +1,7 @@
 package com.myplunt.user;
 
+import com.myplunt.common.logging.AuditEvent;
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.Friendship;
 import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.storage.StorageService;
@@ -14,9 +16,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -30,16 +35,19 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final StorageService storageService;
     private final FriendshipRepository friendshipRepository;
+    private final AuditLog auditLog;
 
     public UserService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             StorageService storageService,
-            FriendshipRepository friendshipRepository) {
+            FriendshipRepository friendshipRepository,
+            AuditLog auditLog) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.storageService = storageService;
         this.friendshipRepository = friendshipRepository;
+        this.auditLog = auditLog;
     }
 
     // Maps the principal JwtAuthFilter already loaded, so read-only endpoints like
@@ -113,10 +121,26 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already taken");
         }
 
+        String oldUsername = user.getUsername();
+        String oldBio = user.getBio();
         user.setUsername(request.username());
         user.setBio(request.bio() == null || request.bio().isBlank() ? null : request.bio().strip());
+        User saved = userRepository.save(user);
 
-        return toResponse(userRepository.save(user));
+        // The bio is free text, so only whether it changed is logged.
+        List<String> changedFields = new ArrayList<>();
+        Map<String, Object> details = new LinkedHashMap<>();
+        if (!oldUsername.equals(saved.getUsername())) {
+            changedFields.add("username");
+            details.put("old_username", oldUsername);
+            details.put("new_username", saved.getUsername());
+        }
+        if (!Objects.equals(oldBio, saved.getBio())) {
+            changedFields.add("bio");
+        }
+        details.put("changed_fields", changedFields);
+        auditLog.recorded(AuditEvent.PROFILE_UPDATED, userId, userId, details);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -125,17 +149,24 @@ public class UserService {
 
         // 403, not 401: the frontend treats 401 as an expired session.
         if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            auditLog.rejected(AuditEvent.EMAIL_CHANGE_REJECTED, userId, "wrong_password", Map.of());
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Current password is incorrect");
         }
         // email is citext too: the user's own address in different case isn't taken.
         if (!user.getEmail().equalsIgnoreCase(request.email())
                 && userRepository.findByEmail(request.email()).isPresent()) {
+            auditLog.rejected(AuditEvent.EMAIL_CHANGE_REJECTED, userId, "email_in_use",
+                    Map.of("new_email", request.email()));
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
         }
 
+        String oldEmail = user.getEmail();
         user.setEmail(request.email());
-
-        return toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        auditLog.recorded(AuditEvent.EMAIL_CHANGED, userId, userId, Map.of(
+                "old_email", oldEmail,
+                "new_email", saved.getEmail()));
+        return toResponse(saved);
     }
 
     private User loadUser(UUID userId) {

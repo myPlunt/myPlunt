@@ -27,7 +27,7 @@ describe('updateProfile', () => {
     const request = { username: 'janey', bio: 'Fern collector' };
 
     await expect(profileService.updateProfile(request)).resolves.toEqual(updated);
-    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/users/me', { method: 'PUT', body: request });
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/users/me', expect.objectContaining({ method: 'PUT', body: request }));
   });
 });
 
@@ -38,7 +38,7 @@ describe('changeEmail', () => {
     const request = { email: 'new@example.com', currentPassword: 'password123' };
 
     await expect(profileService.changeEmail(request)).resolves.toEqual(updated);
-    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/users/me/email', { method: 'PUT', body: request });
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/users/me/email', expect.objectContaining({ method: 'PUT', body: request }));
   });
 });
 

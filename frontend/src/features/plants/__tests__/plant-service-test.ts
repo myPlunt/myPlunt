@@ -26,7 +26,7 @@ describe('createPlant', () => {
     mockedApiFetch.mockResolvedValue(saved);
 
     await expect(plantService.createPlant(request)).resolves.toEqual(saved);
-    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants', { method: 'POST', body: request });
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants', expect.objectContaining({ method: 'POST', body: request}));
   });
 });
 
@@ -55,7 +55,7 @@ describe('updatePlant', () => {
     mockedApiFetch.mockResolvedValue(details);
 
     await expect(plantService.updatePlant('p1', request)).resolves.toEqual(details);
-    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants/p1', { method: 'PUT', body: request });
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants/p1', expect.objectContaining({ method: 'PUT', body: request}));
   });
 });
 
@@ -64,7 +64,7 @@ describe('deletePlant', () => {
     mockedApiFetch.mockResolvedValue(undefined);
 
     await expect(plantService.deletePlant('p1')).resolves.toBeUndefined();
-    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants/p1', { method: 'DELETE' });
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/plants/p1', expect.objectContaining({ method: 'DELETE' }));
   });
 });
 

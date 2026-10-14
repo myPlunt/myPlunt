@@ -20,6 +20,7 @@ import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { matchesSpecies } from '@/features/species/matches-species';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
+import { logFailedUi, logWarning } from '@/lib/logger';
 import type { Light, Plant, PlantDetails } from '@/lib/plant/types';
 import type { Planter } from '@/lib/planter/types';
 import type { Species } from '@/lib/species/types';
@@ -129,6 +130,7 @@ export function PlantForm({
       };
       onSaved(plant ? await updatePlant(plant.id, request) : await createPlant(request));
     } catch (err) {
+      logFailedUi('plant_save_failed_ui', err, { mode: plant ? 'edit' : 'create' });
       if (err instanceof ApiError && err.fieldErrors) {
         setFieldErrors(err.fieldErrors);
         if (Object.keys(err.fieldErrors).some((field) => STEP_1_FIELDS.includes(field))) {
@@ -154,6 +156,10 @@ export function PlantForm({
             onBlur={() => {
               setIsNameFocused(false);
               setHasLeftName(true);
+              // The same moment the length hint appears under the field.
+              if (nameLength < NAME_MIN_LENGTH) {
+                logWarning('form_validation_failed', { context: { form: 'plant', fields: 'name' } });
+              }
             }}
             error={fieldErrors.name ?? (nameTooShort ? `Name must be at least ${NAME_MIN_LENGTH} characters.` : undefined)}
             placeholder="Vera the slow Monstera"

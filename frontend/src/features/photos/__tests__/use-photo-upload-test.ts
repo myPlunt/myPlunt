@@ -118,9 +118,8 @@ describe('usePhotoUpload', () => {
   });
 
   it('drops the photo and shows why when the upload fails', async () => {
-    mockedUploadPhoto.mockRejectedValue(
-      new ApiError(0, 'Photo upload failed', { detail: "Couldn't upload the photo. Please try again." }),
-    );
+    const error = new ApiError(0, 'Photo upload failed', { detail: "Couldn't upload the photo. Please try again." });
+    mockedUploadPhoto.mockRejectedValue(error);
     const { result } = await renderHook(() => usePhotoUpload('PLANT'));
 
     await act(() => result.current.chooseFromLibrary());

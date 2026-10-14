@@ -39,7 +39,8 @@ describe('RegisterScreen', () => {
   });
 
   it('shows the backend-provided message distinguishing email vs username conflicts', async () => {
-    register.mockRejectedValue(new ApiError(409, 'irrelevant', { detail: 'Username already taken' }));
+    const error = new ApiError(409, 'irrelevant', { detail: 'Username already taken' });
+    register.mockRejectedValue(error);
     await render(<RegisterScreen />);
 
     await user.press(screen.getByRole('button', { name: 'Create account' }));

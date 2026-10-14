@@ -9,12 +9,16 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
 import { SplashOverlay } from '@/components/splash/splash-overlay';
+import { useScreenViewLogging } from '@/hooks/use-screen-view-logging';
+import { startLogging } from '@/lib/logger';
 import { AuthStoreProvider, useAuthStore } from '@/stores/auth-store';
 
 SplashScreen.preventAutoHideAsync();
+startLogging();
 
 function RootNavigator() {
   const { status } = useAuthStore();
+  useScreenViewLogging();
   const [fontsLoaded] = useFonts({
     Lateef_600SemiBold,
     Lateef_500Medium,

@@ -1,5 +1,6 @@
 package com.myplunt.garden;
 
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.garden.dto.CreatePlanterRequest;
 import com.myplunt.garden.dto.PlanterResponse;
 import org.junit.jupiter.api.Test;
@@ -26,11 +27,14 @@ class PlanterServiceTest {
     @Mock
     private PlanterRepository planterRepository;
 
+    @Mock
+    private AuditLog auditLog;
+
     private final UUID userId = UUID.randomUUID();
     private final UUID planterId = UUID.randomUUID();
 
     private PlanterService planterService() {
-        return new PlanterService(planterRepository);
+        return new PlanterService(planterRepository, auditLog);
     }
 
     @Test
