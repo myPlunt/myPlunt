@@ -1,12 +1,17 @@
 package com.myplunt.species;
 
+import com.myplunt.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import java.time.Instant;
 import java.util.UUID;
 
 // Only the columns the garden, the add-plant species search and the Pluntdex need so far.
@@ -43,6 +48,15 @@ public class Species {
     // Species users submit stay hidden until someone approves them.
     @Column(name = "is_approved", nullable = false)
     private boolean approved;
+
+    // Who submitted it; null for species added by us, or when the account was deleted.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "submitted_by")
+    private User submittedBy;
+
+    // Set by the database (default now()); for a species awaiting approval, when it was submitted.
+    @Column(name = "updated_at", insertable = false, updatable = false)
+    private Instant updatedAt;
 
     protected Species() {}
 
@@ -85,5 +99,13 @@ public class Species {
 
     public boolean isCommon() {
         return common;
+    }
+
+    public User getSubmittedBy() {
+        return submittedBy;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 }
