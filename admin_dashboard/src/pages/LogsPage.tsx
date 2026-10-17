@@ -43,7 +43,7 @@ function LogsPage() {
   return (
     <>
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-        <PageHeader title="Logs" description="Everything the backend and the app have logged." />
+        <PageHeader title="Logs"/>
         <div className="flex shrink-0 gap-1 self-start rounded-full bg-cream p-1 shadow-card sm:self-auto" role="group" aria-label="Period">
           {RANGES.map((range) => (
             <button
