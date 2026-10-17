@@ -24,6 +24,10 @@ function SpeciesPage() {
 
   const species = result?.species
 
+  function removeReviewed(id: string) {
+    setResult((current) => ({ species: current?.species?.filter((item) => item.id !== id) }))
+  }
+
   return (
     <>
       <PageHeader
@@ -49,7 +53,7 @@ function SpeciesPage() {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {species.map((item) => (
-                <PendingSpeciesCard key={item.id} species={item} />
+                <PendingSpeciesCard key={item.id} species={item} onReviewed={removeReviewed} />
               ))}
             </div>
           )}

@@ -81,6 +81,10 @@ public class Species {
         return approved;
     }
 
+    public void approve() {
+        this.approved = true;
+    }
+
     public Integer getWateringFrequencyDays() {
         return wateringFrequencyDays;
     }

@@ -14,6 +14,8 @@ public interface SpeciesRepository extends JpaRepository<Species, UUID> {
 
     Optional<Species> findByIdAndApprovedTrue(UUID id);
 
+    Optional<Species> findByIdAndApprovedFalse(UUID id);
+
     // Oldest submission first, so admins review them in the order they came in. The submitter is
     // fetched in the same query because every row shows their username.
     @Query("select s from Species s left join fetch s.submittedBy where s.approved = false order by s.updatedAt asc")

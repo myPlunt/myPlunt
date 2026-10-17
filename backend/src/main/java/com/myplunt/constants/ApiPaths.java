@@ -21,6 +21,8 @@ public final class ApiPaths {
         public static final String LOGS = BASE + "/logs";
         public static final String LOGS_OVERVIEW = LOGS + "/overview";
         public static final String PENDING_SPECIES = BASE + "/species/pending";
+        public static final String PENDING_SPECIES_BY_ID = PENDING_SPECIES + "/{id}";
+        public static final String APPROVE_SPECIES = PENDING_SPECIES_BY_ID + "/approve";
 
         private Admin() {}
     }

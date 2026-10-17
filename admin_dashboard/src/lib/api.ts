@@ -75,19 +75,28 @@ export function refreshSession(): Promise<Admin | null> {
   return refreshing
 }
 
-// For the dashboard's data. A 401 means the access token expired: refresh once and retry; if that
-// fails too, the session is over.
-export async function apiGet<T>(path: string): Promise<T> {
-  let response = await send(path)
+// For the dashboard's requests. A 401 means the access token expired: refresh once and retry; if
+// that fails too, the session is over.
+async function authorizedSend(path: string, init?: RequestInit): Promise<Response> {
+  let response = await send(path, init)
   if (response.status === 401) {
     if (!(await refreshSession())) {
       sessionEnded()
       throw await toError(response)
     }
-    response = await send(path)
+    response = await send(path, init)
   }
   if (!response.ok) throw await toError(response)
-  return response.json()
+  return response
+}
+
+export async function apiGet<T>(path: string): Promise<T> {
+  return (await authorizedSend(path)).json()
+}
+
+// For actions that answer 204 No Content.
+export async function apiAction(path: string, method: 'POST' | 'DELETE'): Promise<void> {
+  await authorizedSend(path, { method })
 }
 
 export async function logout(): Promise<void> {

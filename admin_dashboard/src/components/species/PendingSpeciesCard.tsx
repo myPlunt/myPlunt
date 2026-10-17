@@ -1,10 +1,36 @@
-import type { PendingSpecies } from '../../lib/species'
+import { useState } from 'react'
+
+import { ApiError } from '../../lib/api'
+import { approveSpecies, rejectSpecies, type PendingSpecies } from '../../lib/species'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function PendingSpeciesCard({ species }: { species: PendingSpecies }) {
+type PendingSpeciesCardProps = {
+  species: PendingSpecies
+  // Called once the species is approved or rejected, so the page can drop it from the list.
+  onReviewed: (id: string) => void
+}
+
+function PendingSpeciesCard({ species, onReviewed }: PendingSpeciesCardProps) {
+  const [busy, setBusy] = useState(false)
+  const [confirmingReject, setConfirmingReject] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function review(action: (id: string) => Promise<void>) {
+    setBusy(true)
+    setError(null)
+    try {
+      await action(species.id)
+      onReviewed(species.id)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Can't reach the server.")
+      setBusy(false)
+      setConfirmingReject(false)
+    }
+  }
+
   const details = [
     { label: 'Region', value: species.region },
     {
@@ -44,6 +70,53 @@ function PendingSpeciesCard({ species }: { species: PendingSpecies }) {
           )}{' '}
           on {formatDate(species.submittedAt)}
         </p>
+        {error && (
+          <p role="alert" className="text-sm font-semibold text-soil">
+            {error}
+          </p>
+        )}
+        {/* Rejecting deletes the submission, so it asks once more before doing it. */}
+        <div className="flex gap-2">
+          {confirmingReject ? (
+            <>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => review(rejectSpecies)}
+                className="flex-1 rounded-full bg-charcoal px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+              >
+                Yes, reject
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setConfirmingReject(false)}
+                className="flex-1 rounded-full border border-green px-4 py-2 text-sm font-semibold text-green transition-opacity hover:opacity-80 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => review(approveSpecies)}
+                className="flex-1 rounded-full bg-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+              >
+                Approve
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setConfirmingReject(true)}
+                className="flex-1 rounded-full border border-green px-4 py-2 text-sm font-semibold text-green transition-opacity hover:opacity-80 disabled:opacity-50"
+              >
+                Reject
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </article>
   )

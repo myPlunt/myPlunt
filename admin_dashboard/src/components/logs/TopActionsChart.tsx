@@ -30,7 +30,7 @@ function TopActionsChart({ actions }: { actions: LogEventCount[] }) {
                 axisLine={false}
                 tickLine={false}
               />
-              <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-sand)', opacity: 0.5 }} />
+              <Tooltip content={<ChartTooltip />} cursor={false} />
               <Bar dataKey="count" name="Times" radius={[0, 6, 6, 0]} barSize={20}>
                 {data.map((item) => (
                   <Cell key={`${item.event}-${item.location}`} fill={item.color} />

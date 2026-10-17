@@ -37,7 +37,7 @@ function LogsPerDayChart({ perDay, days }: { perDay: LogDayCount[]; days: number
             <CartesianGrid vertical={false} stroke="var(--color-sand)" />
             <XAxis dataKey="day" tick={{ fill: 'var(--color-ink)', fontSize: 12 }} axisLine={false} tickLine={false} />
             <YAxis allowDecimals={false} tick={{ fill: 'var(--color-ink)', fontSize: 12 }} axisLine={false} tickLine={false} />
-            <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-sand)', opacity: 0.5 }} />
+            <Tooltip content={<ChartTooltip />} cursor={false} />
             {levels.map((level, index) => (
               <Bar
                 key={level}
