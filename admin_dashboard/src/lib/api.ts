@@ -25,6 +25,12 @@ export class ApiError extends Error {
 // credentials: 'include' makes the browser send it.
 let accessToken: string | null = null
 let refreshing: Promise<Admin | null> | null = null
+let sessionEnded: () => void = () => {}
+
+// AuthProvider registers this to show the login page when a request finds the session is over.
+export function onSessionEnded(callback: () => void) {
+  sessionEnded = callback
+}
 
 function send(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers)
@@ -67,6 +73,21 @@ export function refreshSession(): Promise<Admin | null> {
     }
   })()
   return refreshing
+}
+
+// For the dashboard's data. A 401 means the access token expired: refresh once and retry; if that
+// fails too, the session is over.
+export async function apiGet<T>(path: string): Promise<T> {
+  let response = await send(path)
+  if (response.status === 401) {
+    if (!(await refreshSession())) {
+      sessionEnded()
+      throw await toError(response)
+    }
+    response = await send(path)
+  }
+  if (!response.ok) throw await toError(response)
+  return response.json()
 }
 
 export async function logout(): Promise<void> {

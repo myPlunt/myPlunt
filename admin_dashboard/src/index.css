@@ -5,7 +5,8 @@
  * dashboard must be defined here and referenced via its utility (bg-sand, text-green...).
  */
 
-@theme {
+/* static: the charts read the colors as CSS variables (var(--color-leaf)), so every one is emitted. */
+@theme static {
   --color-*: initial;
 
   /* Brand main colors */

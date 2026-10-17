@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react'
 
-import { login, logout, refreshSession } from '../lib/api'
+import { login, logout, onSessionEnded, refreshSession } from '../lib/api'
 import { AuthContext, type AuthState } from './auth-context'
 
 function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'loading' })
 
   useEffect(() => {
+    onSessionEnded(() => setState({ status: 'signedOut' }))
     refreshSession()
       .then((admin) => setState(admin ? { status: 'signedIn', admin } : { status: 'signedOut' }))
       .catch(() => setState({ status: 'signedOut' }))
