@@ -15,7 +15,7 @@ type SidebarProps = {
 
 function Sidebar({ admin, onSignOut }: SidebarProps) {
   return (
-    <aside className="flex shrink-0 flex-col gap-8 bg-cream px-5 py-6 text-green md:w-64 md:py-8">
+    <aside className="flex shrink-0 flex-col gap-8 bg-cream px-5 py-6 text-green md:sticky md:top-0 md:h-screen md:w-64 md:overflow-y-auto md:py-8">
       <div className="flex items-center gap-3">
         <img src={logoMyPlunt} alt="" width={34} height={36} />
         <div className="flex flex-col">

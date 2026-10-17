@@ -106,9 +106,10 @@ function RecentLogs() {
             type="button"
             disabled={filters.page === 0 || loading}
             onClick={() => filter({ page: filters.page - 1 })}
+            aria-label="Newer logs"
             className="rounded-full bg-white px-4 py-2 font-semibold text-green disabled:opacity-50"
           >
-            Newer
+            &lt;
           </button>
           <span className="text-ink">
             Page {filters.page + 1} of {lastPage + 1}
@@ -117,9 +118,10 @@ function RecentLogs() {
             type="button"
             disabled={filters.page >= lastPage || loading}
             onClick={() => filter({ page: filters.page + 1 })}
+            aria-label="Older logs"
             className="rounded-full bg-white px-4 py-2 font-semibold text-green disabled:opacity-50"
           >
-            Older
+            &gt;
           </button>
         </div>
       )}

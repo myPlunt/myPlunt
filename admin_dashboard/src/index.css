@@ -36,4 +36,9 @@
     @apply bg-sand font-secondary text-charcoal antialiased;
     font-variation-settings: 'opsz' 14;
   }
+
+  .recharts-wrapper,
+  .recharts-wrapper * {
+    outline: none;
+  }
 }
