@@ -14,6 +14,22 @@ export type PendingSpecies = {
   submittedAt: string
 }
 
+// An approved species, as the app's Pluntdex shows it. common marks the species most people grow.
+export type Species = {
+  id: string
+  commonName: string
+  scientificName: string
+  wateringFrequencyDays: number | null
+  region: string | null
+  sunlightNeeds: string | null
+  common: boolean
+  imageUrl: string | null
+}
+
+export function getApprovedSpecies(): Promise<Species[]> {
+  return apiGet('/v1/admin/species')
+}
+
 export function getPendingSpecies(): Promise<PendingSpecies[]> {
   return apiGet('/v1/admin/species/pending')
 }

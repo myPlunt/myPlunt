@@ -2,6 +2,8 @@ package com.myplunt.admin;
 
 import com.myplunt.admin.dto.PendingSpeciesResponse;
 import com.myplunt.constants.ApiPaths;
+import com.myplunt.species.SpeciesService;
+import com.myplunt.species.dto.SpeciesResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,9 +20,17 @@ import java.util.UUID;
 public class AdminSpeciesController {
 
     private final AdminSpeciesService adminSpeciesService;
+    private final SpeciesService speciesService;
 
-    public AdminSpeciesController(AdminSpeciesService adminSpeciesService) {
+    public AdminSpeciesController(AdminSpeciesService adminSpeciesService, SpeciesService speciesService) {
         this.adminSpeciesService = adminSpeciesService;
+        this.speciesService = speciesService;
+    }
+
+    // The same approved list the app's Pluntdex shows.
+    @GetMapping(ApiPaths.Admin.SPECIES)
+    public List<SpeciesResponse> approved() {
+        return speciesService.getApprovedSpecies();
     }
 
     @GetMapping(ApiPaths.Admin.PENDING_SPECIES)
