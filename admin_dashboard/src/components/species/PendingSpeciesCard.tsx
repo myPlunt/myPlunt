@@ -47,7 +47,7 @@ function PendingSpeciesCard({ species, onReviewed }: PendingSpeciesCardProps) {
       ) : (
         <div className="flex aspect-[4/3] w-full items-center justify-center bg-sand text-sm text-ink">No picture</div>
       )}
-      <div className="flex flex-1 flex-col gap-4 p-5">
+      <div className="flex flex-1 flex-col gap-4 p-4">
         <header className="flex flex-col gap-0.5">
           <h2 className="text-lg font-semibold text-green">{species.commonName}</h2>
           <p className="text-sm text-ink italic">{species.scientificName}</p>

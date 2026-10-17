@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 // Reads the logs table (V10) for the dashboard. Plain SQL: the table has no entity, it's written
-// by DatabaseLogAppender. Nothing the admin app does is logged (see CLAUDE.md).
+// by DatabaseLogAppender. The admin app only logs species approvals and rejections (see CLAUDE.md).
 @Service
 public class AdminLogService {
 

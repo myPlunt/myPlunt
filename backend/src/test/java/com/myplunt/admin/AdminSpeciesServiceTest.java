@@ -1,6 +1,8 @@
 package com.myplunt.admin;
 
 import com.myplunt.admin.dto.PendingSpeciesResponse;
+import com.myplunt.common.logging.AuditEvent;
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesRepository;
 import com.myplunt.storage.StorageService;
@@ -13,12 +15,15 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +36,15 @@ class AdminSpeciesServiceTest {
 
     @Mock
     private StorageService storageService;
+
+    @Mock
+    private AuditLog auditLog;
+
+    private final UUID adminId = UUID.randomUUID();
+
+    private AdminSpeciesService service() {
+        return new AdminSpeciesService(speciesRepository, storageService, auditLog);
+    }
 
     private Species species(String commonName, String scientificName) {
         Species species = new Species(commonName, 14);
@@ -53,7 +67,7 @@ class AdminSpeciesServiceTest {
         when(speciesRepository.findPendingWithSubmitter()).thenReturn(List.of(olive, sage));
         when(storageService.createReadUrl("species/olive/seed.jpg")).thenReturn("https://storage.test/olive");
 
-        List<PendingSpeciesResponse> pending = new AdminSpeciesService(speciesRepository, storageService).getPendingSpecies();
+        List<PendingSpeciesResponse> pending = service().getPendingSpecies();
 
         assertThat(pending).containsExactly(
                 new PendingSpeciesResponse(olive.getId(), "Olive tree", "Olea europaea", "Mediterranean", 14, "Full sun",
@@ -63,23 +77,29 @@ class AdminSpeciesServiceTest {
     }
 
     @Test
-    void approve_marksThePendingSpeciesApproved() {
+    void approve_marksThePendingSpeciesApprovedAndLogsItForTheSubmitter() {
         Species olive = species("Olive tree", "Olea europaea");
+        User submitter = new User("plantdad", "plantdad@example.com", "hashed");
+        ReflectionTestUtils.setField(submitter, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(olive, "submittedBy", submitter);
         when(speciesRepository.findByIdAndApprovedFalse(olive.getId())).thenReturn(Optional.of(olive));
 
-        new AdminSpeciesService(speciesRepository, storageService).approve(olive.getId());
+        service().approve(olive.getId(), adminId);
 
         assertThat(olive.isApproved()).isTrue();
+        verify(auditLog).recorded(AuditEvent.SPECIES_APPROVED, submitter.getId(), adminId, Map.of(
+                "species_id", olive.getId(), "common_name", "Olive tree", "scientific_name", "Olea europaea"));
     }
 
     @Test
-    void reject_deletesThePendingSpecies() {
+    void reject_deletesThePendingSpeciesAndLogsIt() {
         Species olive = species("Olive tree", "Olea europaea");
         when(speciesRepository.findByIdAndApprovedFalse(olive.getId())).thenReturn(Optional.of(olive));
 
-        new AdminSpeciesService(speciesRepository, storageService).reject(olive.getId());
+        service().reject(olive.getId(), adminId);
 
         verify(speciesRepository).delete(olive);
+        verify(auditLog).recorded(eq(AuditEvent.SPECIES_REJECTED), eq(null), eq(adminId), anyMap());
     }
 
     @Test
@@ -87,8 +107,9 @@ class AdminSpeciesServiceTest {
         UUID approvedId = UUID.randomUUID();
         when(speciesRepository.findByIdAndApprovedFalse(approvedId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> new AdminSpeciesService(speciesRepository, storageService).reject(approvedId))
+        assertThatThrownBy(() -> service().reject(approvedId, adminId))
                 .isInstanceOf(IllegalStateException.class);
         verify(speciesRepository, never()).delete(any());
+        verify(auditLog, never()).recorded(any(), any(), any(), anyMap());
     }
 }

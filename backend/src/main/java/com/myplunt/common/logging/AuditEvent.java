@@ -31,6 +31,10 @@ public enum AuditEvent {
     WATERING_STREAK_BROKEN,
     // reason: too_large. The upload was deleted from storage.
     PHOTO_UPLOAD_REJECTED,
+    // The only actions from the admin dashboard that are logged: changed_by is the admin's id
+    // (admin_users), user_id the account that submitted the species.
+    SPECIES_APPROVED,
+    SPECIES_REJECTED,
     DATABASE_RESET,
     // reason: wrong_secret.
     DATABASE_RESET_REJECTED

@@ -1,8 +1,7 @@
-import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 
 import type { LogEventCount } from '../../lib/logs'
 import Card from './Card'
-import ChartTooltip from './ChartTooltip'
 import Legend from './Legend'
 import { LOCATIONS, eventLabel } from './levels'
 
@@ -20,7 +19,7 @@ function TopActionsChart({ actions }: { actions: LogEventCount[] }) {
       ) : (
         <div style={{ height: data.length * 34 + 16 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
+            <BarChart data={data} layout="vertical" margin={{ top: 0, right: 40, bottom: 0, left: 0 }}>
               <XAxis type="number" hide allowDecimals={false} />
               <YAxis
                 type="category"
@@ -30,11 +29,11 @@ function TopActionsChart({ actions }: { actions: LogEventCount[] }) {
                 axisLine={false}
                 tickLine={false}
               />
-              <Tooltip content={<ChartTooltip />} cursor={false} />
               <Bar dataKey="count" name="Times" radius={[0, 6, 6, 0]} barSize={20}>
                 {data.map((item) => (
                   <Cell key={`${item.event}-${item.location}`} fill={item.color} />
                 ))}
+                <LabelList dataKey="count" position="right" fill="var(--color-charcoal)" fontSize={12} fontWeight={600} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>

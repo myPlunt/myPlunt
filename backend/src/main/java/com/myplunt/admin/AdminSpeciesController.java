@@ -3,6 +3,7 @@ package com.myplunt.admin;
 import com.myplunt.admin.dto.PendingSpeciesResponse;
 import com.myplunt.constants.ApiPaths;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,13 +30,13 @@ public class AdminSpeciesController {
 
     @PostMapping(ApiPaths.Admin.APPROVE_SPECIES)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void approve(@PathVariable UUID id) {
-        adminSpeciesService.approve(id);
+    public void approve(@AuthenticationPrincipal AdminUser admin, @PathVariable UUID id) {
+        adminSpeciesService.approve(id, admin.getId());
     }
 
     @DeleteMapping(ApiPaths.Admin.PENDING_SPECIES_BY_ID)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void reject(@PathVariable UUID id) {
-        adminSpeciesService.reject(id);
+    public void reject(@AuthenticationPrincipal AdminUser admin, @PathVariable UUID id) {
+        adminSpeciesService.reject(id, admin.getId());
     }
 }
