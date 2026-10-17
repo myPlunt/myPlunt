@@ -4,7 +4,6 @@ import logoMyPlunt from '../assets/logo-myplunt.svg'
 import type { Admin } from '../lib/api'
 
 const links = [
-  { label: 'Overview', to: '/' },
   { label: 'Species', to: '/species' },
   { label: 'Logs', to: '/logs' },
 ]

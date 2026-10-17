@@ -10,7 +10,7 @@
     "dev:ios": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend:ios\"",
     "dev:android": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend:android\"",
     "dev:landing": "cd web_landing && npm run dev",
-    "dev:admin": "cd admin_dashboard && npm run dev",
+    "dev:admin": "concurrently -n backend,admin -c blue,magenta \"npm run dev:backend\" \"cd admin_dashboard && npm run dev\"",
     "dev:backend": "cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev",
     "dev:frontend": "cd frontend && npm start",
     "dev:frontend:ios": "cd frontend && npm run ios",

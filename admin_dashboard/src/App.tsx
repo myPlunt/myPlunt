@@ -4,7 +4,6 @@ import { Navigate, Route, Routes } from 'react-router'
 import { useAuth } from './auth/auth-context'
 import AppLayout from './components/AppLayout'
 import LoginPage from './components/LoginPage'
-import OverviewPage from './pages/OverviewPage'
 import SpeciesPage from './pages/SpeciesPage'
 
 // Loaded on first visit: its chart library is most of the bundle.
@@ -21,7 +20,7 @@ function App() {
   return (
     <Routes>
       <Route element={<AppLayout admin={state.admin} onSignOut={signOut} />}>
-        <Route index element={<OverviewPage />} />
+        <Route index element={<Navigate to="/species" replace />} />
         <Route path="species" element={<SpeciesPage />} />
         <Route
           path="logs"
@@ -31,7 +30,7 @@ function App() {
             </Suspense>
           }
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/species" replace />} />
       </Route>
     </Routes>
   )
