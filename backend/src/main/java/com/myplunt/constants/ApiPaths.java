@@ -18,6 +18,8 @@ public final class ApiPaths {
         public static final String REFRESH = AUTH + "/refresh";
         public static final String LOGOUT = AUTH + "/logout";
         public static final String ME = BASE + "/me";
+        public static final String LOGS = BASE + "/logs";
+        public static final String LOGS_OVERVIEW = LOGS + "/overview";
 
         private Admin() {}
     }
