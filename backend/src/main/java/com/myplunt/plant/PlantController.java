@@ -1,8 +1,10 @@
 package com.myplunt.plant;
 
 import com.myplunt.constants.ApiPaths;
+import com.myplunt.plant.dto.AddPlantPhotoRequest;
 import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
+import com.myplunt.plant.dto.PlantPhotoResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.plant.dto.WateringHistoryResponse;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.ZoneId;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -56,6 +59,20 @@ public class PlantController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@AuthenticationPrincipal User principal, @PathVariable UUID plantId) {
         plantService.delete(principal.getId(), plantId);
+    }
+
+    @GetMapping(ApiPaths.Plants.PHOTOS)
+    public List<PlantPhotoResponse> photos(@AuthenticationPrincipal User principal, @PathVariable UUID plantId) {
+        return plantService.getPhotos(principal.getId(), plantId);
+    }
+
+    @PostMapping(ApiPaths.Plants.PHOTOS)
+    @ResponseStatus(HttpStatus.CREATED)
+    public PlantPhotoResponse addPhoto(
+            @AuthenticationPrincipal User principal,
+            @PathVariable UUID plantId,
+            @Valid @RequestBody AddPlantPhotoRequest request) {
+        return plantService.addPhoto(principal.getId(), plantId, request);
     }
 
     // zone is the app's IANA time zone ("Europe/Amsterdam"); streaks count days in it.
