@@ -66,6 +66,10 @@ public class PlantPhoto {
         return takenAt;
     }
 
+    public void setTakenAt(Instant takenAt) {
+        this.takenAt = takenAt;
+    }
+
     public String getCaption() {
         return caption;
     }

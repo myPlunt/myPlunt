@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface PlantPhotoRepository extends JpaRepository<PlantPhoto, UUID> {
@@ -17,6 +18,9 @@ public interface PlantPhotoRepository extends JpaRepository<PlantPhoto, UUID> {
               and p.takenAt = (select max(p2.takenAt) from PlantPhoto p2 where p2.plant = p.plant)
             """)
     List<LatestPhoto> findLatestPhotos(Collection<UUID> plantIds);
+
+    // A photo of this plant only, so a photo id from another plant answers "not found".
+    Optional<PlantPhoto> findByIdAndPlantId(UUID id, UUID plantId);
 
     // The growth timeline, oldest first.
     List<PlantPhoto> findByPlantIdOrderByTakenAtAsc(UUID plantId);

@@ -32,6 +32,8 @@ public enum AuditEvent {
     PLANT_UPDATED,
     PLANT_DELETED,
     PLANT_PHOTO_ADDED,
+    PLANT_PHOTO_UPDATED,
+    PLANT_PHOTO_DELETED,
     PLANT_WATERED,
     // Not something the user did: the late watering that ended a streak.
     WATERING_STREAK_BROKEN,

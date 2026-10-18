@@ -6,6 +6,7 @@ import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantPhotoResponse;
 import com.myplunt.plant.dto.PlantResponse;
+import com.myplunt.plant.dto.UpdatePlantPhotoRequest;
 import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.plant.dto.WateringHistoryResponse;
 import com.myplunt.user.User;
@@ -73,6 +74,21 @@ public class PlantController {
             @PathVariable UUID plantId,
             @Valid @RequestBody AddPlantPhotoRequest request) {
         return plantService.addPhoto(principal.getId(), plantId, request);
+    }
+
+    @PutMapping(ApiPaths.Plants.PHOTO_BY_ID)
+    public PlantPhotoResponse updatePhoto(
+            @AuthenticationPrincipal User principal,
+            @PathVariable UUID plantId,
+            @PathVariable UUID photoId,
+            @Valid @RequestBody UpdatePlantPhotoRequest request) {
+        return plantService.updatePhoto(principal.getId(), plantId, photoId, request);
+    }
+
+    @DeleteMapping(ApiPaths.Plants.PHOTO_BY_ID)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePhoto(@AuthenticationPrincipal User principal, @PathVariable UUID plantId, @PathVariable UUID photoId) {
+        plantService.deletePhoto(principal.getId(), plantId, photoId);
     }
 
     // zone is the app's IANA time zone ("Europe/Amsterdam"); streaks count days in it.
