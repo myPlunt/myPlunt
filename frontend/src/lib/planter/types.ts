@@ -8,3 +8,8 @@ export interface Planter {
 export interface CreatePlanterRequest {
   name: string;
 }
+
+/** Mirrors UpdatePlanterRequest (PUT /v1/planters/{planterId}). */
+export interface UpdatePlanterRequest {
+  name: string;
+}

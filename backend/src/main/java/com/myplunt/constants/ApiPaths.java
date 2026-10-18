@@ -82,6 +82,7 @@ public final class ApiPaths {
 
     public static final class Planters {
         public static final String BASE = "/v1/planters";
+        public static final String BY_ID = BASE + "/{planterId}";
 
         private Planters() {}
     }

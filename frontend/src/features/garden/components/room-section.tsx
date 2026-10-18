@@ -1,6 +1,8 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SymbolView } from 'expo-symbols';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/hooks/use-theme';
 import type { Room } from '@/lib/garden/types';
 
 import { plantsNeedingWater, roomSummary, sortByNextWatering } from '../watering';
@@ -16,11 +18,14 @@ interface RoomSectionProps {
     /** Selects (or, with false, deselects) all of the given plants at once. */
     onSelectMany: (plantIds: string[], selected: boolean) => void;
   };
+  /** Opens the rename/delete dialog. Left out for "Other plants", which isn't a planter. */
+  onEdit?: () => void;
 }
 
 // One room of the garden: its name and a sideways-scrolling row of plant cards,
 // the one due soonest first.
-export function RoomSection({ room, now, selection }: RoomSectionProps) {
+export function RoomSection({ room, now, selection, onEdit }: RoomSectionProps) {
+  const theme = useTheme();
   const needsWater = plantsNeedingWater({ rooms: [room] }, now).length > 0;
   const plantIds = room.plants.map((plant) => plant.id);
   const allSelected = selection !== undefined && plantIds.every((id) => selection.selectedIds.has(id));
@@ -29,9 +34,30 @@ export function RoomSection({ room, now, selection }: RoomSectionProps) {
     <View className="gap-3">
       <View className="flex-row items-center gap-3">
         <View className="flex-1">
-          <Text accessibilityRole="header" className="type-h5 text-action-primary" style={styles.title}>
-            {room.name}
-          </Text>
+          <View className="flex-row items-center gap-2">
+            {onEdit &&
+              (selection ? (
+                // Same width as the pencil, so the name doesn't shift while picking plants.
+                <View className="w-6" />
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Edit ${room.name}`}
+                  onPress={onEdit}
+                  hitSlop={8}
+                  className="h-6 w-6 items-center justify-center active:opacity-70">
+                  {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
+                  <SymbolView
+                    name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
+                    tintColor={theme.textSecondary}
+                    size={18}
+                  />
+                </Pressable>
+              ))}
+            <Text accessibilityRole="header" className="type-h5 text-action-primary" style={styles.title}>
+              {room.name}
+            </Text>
+          </View>
           <Text className={`type-body-medium ${needsWater ? 'text-accent' : 'text-text-secondary'}`}>
             {roomSummary(room, now)}
           </Text>

@@ -159,7 +159,7 @@ describe('GardenScreen', () => {
       expect(await screen.findByRole('button', { name: 'George' })).toBeOnTheScreen();
     });
 
-    it('selects and waters every plant in the garden with the Select all at the top', async () => {
+    it('selects and waters every plant in the garden with the Select all in the header', async () => {
       await render(<GardenScreen />);
       await user.press(screen.getByRole('button', { name: 'Water plants' }));
 

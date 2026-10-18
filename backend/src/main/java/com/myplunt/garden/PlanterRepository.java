@@ -14,4 +14,6 @@ public interface PlanterRepository extends JpaRepository<Planter, UUID> {
     Optional<Planter> findByIdAndOwnerId(UUID id, UUID ownerId);
 
     boolean existsByOwnerIdAndNameIgnoreCase(UUID ownerId, String name);
+
+    boolean existsByOwnerIdAndNameIgnoreCaseAndIdNot(UUID ownerId, String name, UUID id);
 }
