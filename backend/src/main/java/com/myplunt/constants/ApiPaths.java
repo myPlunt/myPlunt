@@ -89,6 +89,10 @@ public final class ApiPaths {
         public static final String BY_ID = BASE + "/{plantId}";
         // POST waters the plant, GET returns its watering history.
         public static final String WATERINGS = BASE + "/{plantId}/waterings";
+        // POST adds a growth photo, GET returns them all, oldest first.
+        public static final String PHOTOS = BASE + "/{plantId}/photos";
+        // PUT changes a growth photo's date and note, DELETE removes it.
+        public static final String PHOTO_BY_ID = PHOTOS + "/{photoId}";
 
         private Plants() {}
     }

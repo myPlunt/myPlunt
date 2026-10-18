@@ -86,3 +86,28 @@ export interface WateringLog {
 export interface WateringStreak {
   wateringStreak: number;
 }
+
+/**
+ * Mirrors PlantPhotoResponse (GET /v1/plants/{id}/photos, oldest first): one photo in the
+ * plant's growth timeline. `url` is a short-lived link; `takenAt` is null only for photos
+ * from before the timeline existed.
+ */
+export interface PlantPhoto {
+  id: string;
+  url: string;
+  takenAt: string | null;
+  caption: string | null;
+}
+
+/** Mirrors UpdatePlantPhotoRequest (PUT /v1/plants/{id}/photos/{photoId}); a null `caption` removes the note. */
+export interface UpdatePlantPhotoRequest {
+  takenAt: string;
+  caption: string | null;
+}
+
+/** Mirrors AddPlantPhotoRequest (POST /v1/plants/{id}/photos). A null `takenAt` means now. */
+export interface AddPlantPhotoRequest {
+  photoKey: string;
+  takenAt: string | null;
+  caption: string | null;
+}

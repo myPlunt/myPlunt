@@ -2,9 +2,12 @@ package com.myplunt.plant;
 
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
+import com.myplunt.plant.dto.AddPlantPhotoRequest;
 import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
+import com.myplunt.plant.dto.PlantPhotoResponse;
 import com.myplunt.plant.dto.PlantResponse;
+import com.myplunt.plant.dto.UpdatePlantPhotoRequest;
 import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.plant.dto.WateringHistoryResponse;
 import com.myplunt.plant.dto.WateringResponse;
@@ -216,6 +219,68 @@ class PlantControllerTest {
                 .expectStatus().isOk()
                 .expectBody(WateringHistoryResponse.class)
                 .isEqualTo(history);
+    }
+
+    @Test
+    void addPhoto_returnsTheCreatedPhoto() {
+        UUID userId = authenticateAsJane();
+        AddPlantPhotoRequest request = new AddPlantPhotoRequest("plants/u/growth.jpg", null, "First split leaf!");
+        PlantPhotoResponse photo = new PlantPhotoResponse(
+                UUID.randomUUID(), "https://storage.test/growth.jpg?signed", Instant.parse("2026-10-18T08:00:00Z"), "First split leaf!");
+        when(plantService.addPhoto(userId, plantId, request)).thenReturn(photo);
+
+        restTestClient.post().uri("/v1/plants/{plantId}/photos", plantId)
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody(PlantPhotoResponse.class)
+                .isEqualTo(photo);
+    }
+
+    @Test
+    void updatePhoto_returnsTheUpdatedPhoto() {
+        UUID userId = authenticateAsJane();
+        UUID photoId = UUID.randomUUID();
+        UpdatePlantPhotoRequest request = new UpdatePlantPhotoRequest(Instant.parse("2025-08-05T12:00:00Z"), "Repotted");
+        PlantPhotoResponse photo = new PlantPhotoResponse(
+                photoId, "https://storage.test/jun.jpg?signed", Instant.parse("2025-08-05T12:00:00Z"), "Repotted");
+        when(plantService.updatePhoto(userId, plantId, photoId, request)).thenReturn(photo);
+
+        restTestClient.put().uri("/v1/plants/{plantId}/photos/{photoId}", plantId, photoId)
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PlantPhotoResponse.class)
+                .isEqualTo(photo);
+    }
+
+    @Test
+    void deletePhoto_returnsNotFoundForAPhotoOfAnotherPlant() {
+        UUID userId = authenticateAsJane();
+        UUID photoId = UUID.randomUUID();
+        doThrow(new IllegalStateException("Photo not found")).when(plantService).deletePhoto(userId, plantId, photoId);
+
+        restTestClient.delete().uri("/v1/plants/{plantId}/photos/{photoId}", plantId, photoId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void addPhoto_rejectsAMissingPhotoKey() {
+        authenticateAsJane();
+
+        restTestClient.post().uri("/v1/plants/{plantId}/photos", plantId)
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"caption\": \"New leaf\"}")
+                .exchange()
+                .expectStatus().isBadRequest();
+        verify(plantService, never()).addPhoto(any(), any(), any());
     }
 
 }

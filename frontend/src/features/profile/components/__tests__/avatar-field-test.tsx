@@ -22,6 +22,7 @@ const noPhoto: PhotoUpload = {
   key: null,
   isUploading: false,
   error: null,
+  takenAt: null,
   takePhoto: jest.fn(),
   chooseFromLibrary: jest.fn(),
   uploadLibraryPhoto: jest.fn(),

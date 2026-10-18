@@ -19,6 +19,8 @@ const PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
   // Lets the user crop to a square, so every plant photo has the same shape.
   allowsEditing: true,
   aspect: [1, 1],
+  // For the date the photo was taken, so an older one lands at the right place in a plant's growth timeline.
+  exif: true,
 };
 
 export interface PhotoUpload {
@@ -26,6 +28,8 @@ export interface PhotoUpload {
   uri: string | null;
   /** Storage key once the upload finished; null before that or without a photo. */
   key: string | null;
+  /** When the photo was taken (ISO), if its metadata says; null for "now" or unknown. */
+  takenAt: string | null;
   isUploading: boolean;
   error: string | null;
   takePhoto: () => Promise<void>;
@@ -43,6 +47,7 @@ export interface PhotoUpload {
 export function usePhotoUpload(category: PhotoCategory, onUploaded?: (key: string) => Promise<void>): PhotoUpload {
   const [uri, setUri] = useState<string | null>(null);
   const [key, setKey] = useState<string | null>(null);
+  const [takenAt, setTakenAt] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Bumped on every pick and remove, so a slow upload can't overwrite a newer choice.
@@ -70,13 +75,19 @@ export function usePhotoUpload(category: PhotoCategory, onUploaded?: (key: strin
       return;
     }
     const [asset] = result.assets;
-    await uploadLibraryPhoto({ uri: asset.uri, width: asset.width, height: asset.height });
+    await uploadLibraryPhoto({
+      uri: asset.uri,
+      width: asset.width,
+      height: asset.height,
+      takenAt: exifDate(asset.exif?.DateTimeOriginal),
+    });
   }
 
-  async function uploadLibraryPhoto(photo: { uri: string; width: number; height: number }) {
+  async function uploadLibraryPhoto(photo: { uri: string; width: number; height: number; takenAt: string | null }) {
     const current = ++attempt.current;
     setUri(photo.uri);
     setKey(null);
+    setTakenAt(photo.takenAt);
     setError(null);
     setIsUploading(true);
     try {
@@ -99,11 +110,12 @@ export function usePhotoUpload(category: PhotoCategory, onUploaded?: (key: strin
     attempt.current++;
     setUri(null);
     setKey(null);
+    setTakenAt(null);
     setError(null);
     setIsUploading(false);
   }
 
-  return { uri, key, isUploading, error, takePhoto, chooseFromLibrary, uploadLibraryPhoto, remove };
+  return { uri, key, takenAt, isUploading, error, takePhoto, chooseFromLibrary, uploadLibraryPhoto, remove };
 }
 
 /**
@@ -119,4 +131,17 @@ async function squareJpeg({ uri, width, height }: { uri: string; width: number; 
   if (side > MAX_WIDTH) context.resize({ width: MAX_WIDTH });
   const image = await (await context.renderAsync()).saveAsync({ format: SaveFormat.JPEG, compress: JPEG_QUALITY });
   return image.uri;
+}
+
+/**
+ * EXIF's DateTimeOriginal ("2026:08:20 14:22:01", the phone's local time) as an ISO string.
+ * Null when it's missing or unreadable, and never later than now, which the backend refuses.
+ */
+function exifDate(value: unknown): string | null {
+  const match = typeof value === 'string' && /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(value);
+  if (!match) return null;
+  const [, year, month, day, hours, minutes, seconds] = match.map(Number);
+  const date = new Date(year, month - 1, day, hours, minutes, seconds);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(Math.min(date.getTime(), Date.now())).toISOString();
 }

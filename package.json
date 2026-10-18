@@ -10,10 +10,11 @@
     "dev:ios": "concurrently -n backend,frontend,admin -c blue,green,magenta \"npm run dev:backend\" \"npm run dev:frontend:ios\" \"npm run dev:admin-ui\"",
     "dev:android": "concurrently -n backend,frontend,admin -c blue,green,magenta \"npm run dev:backend\" \"npm run dev:frontend:android\" \"npm run dev:admin-ui\"",
     "dev:landing": "cd web_landing && npm run dev",
-    "dev:admin": "concurrently -n backend,admin -c blue,magenta \"npm run dev:backend\" \"cd admin_dashboard && npm run dev\"",
+    "dev:admin": "concurrently -n backend,admin -c blue,magenta \"npm run dev:backend\" \"npm run dev:admin-ui\"",
     "dev:backend": "cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev",
     "dev:frontend": "cd frontend && npm start",
     "dev:frontend:ios": "cd frontend && npm run ios",
-    "dev:frontend:android": "cd frontend && npm run android"
+    "dev:frontend:android": "cd frontend && npm run android",
+    "dev:admin-ui": "cd admin_dashboard && npm run dev"
   }
 }
