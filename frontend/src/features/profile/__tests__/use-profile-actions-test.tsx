@@ -31,7 +31,7 @@ async function renderWithStore() {
 }
 
 it('updateProfile returns the updated user from the service', async () => {
-  const updated = { id: 'u1', email: 'jane@example.com', ...request };
+  const updated = { id: 'u1', email: 'jane@example.com', avatarUrl: null, ...request };
   mockedProfileService.updateProfile.mockResolvedValue(updated);
   const { result } = await renderWithStore();
 
@@ -45,7 +45,7 @@ it('updateProfile returns the updated user from the service', async () => {
 });
 
 it('changeEmail calls the service and returns the updated user', async () => {
-  const updated = { id: 'u1', username: 'jane', email: 'new@example.com', bio: null };
+  const updated = { id: 'u1', username: 'jane', email: 'new@example.com', bio: null, avatarUrl: null };
   mockedProfileService.changeEmail.mockResolvedValue(updated);
   const { result } = await renderWithStore();
 

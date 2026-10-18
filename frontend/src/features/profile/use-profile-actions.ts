@@ -1,5 +1,5 @@
 import { ApiError } from '@/lib/auth/api-client';
-import type { ChangeEmailRequest, UpdateProfileRequest, User } from '@/lib/user/types';
+import type { ChangeEmailRequest, UpdateAvatarRequest, UpdateProfileRequest } from '@/lib/user/types';
 import { useAuthStore } from '@/stores/auth-store';
 
 import * as profileService from './profile-service';
@@ -7,7 +7,7 @@ import * as profileService from './profile-service';
 export function useProfileActions() {
   const { setUnauthenticated } = useAuthStore();
 
-  async function signOutIfExpired(request: Promise<User>): Promise<User> {
+  async function signOutIfExpired<T>(request: Promise<T>): Promise<T> {
     try {
       return await request;
     } catch (err) {
@@ -26,6 +26,14 @@ export function useProfileActions() {
 
     changeEmail(request: ChangeEmailRequest) {
       return signOutIfExpired(profileService.changeEmail(request));
+    },
+
+    updateAvatar(request: UpdateAvatarRequest) {
+      return signOutIfExpired(profileService.updateAvatar(request));
+    },
+
+    removeAvatar() {
+      return signOutIfExpired(profileService.removeAvatar());
     },
   };
 }

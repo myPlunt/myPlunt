@@ -3,7 +3,7 @@ import { logAction } from '@/lib/logger';
 import type { WateringLog, WateringStreak } from '@/lib/plant/types';
 import { createRequestId } from '@/lib/request-id';
 import { timeZoneQuery } from '@/lib/time-zone';
-import type { ChangeEmailRequest, UpdateProfileRequest, User } from '@/lib/user/types';
+import type { ChangeEmailRequest, UpdateAvatarRequest, UpdateProfileRequest, User } from '@/lib/user/types';
 
 export async function getCurrentUser(): Promise<User> {
   return apiFetch<User>('/v1/users/me');
@@ -19,6 +19,19 @@ export async function changeEmail(request: ChangeEmailRequest): Promise<User> {
   const requestId = createRequestId();
   logAction('email_change_submitted', { requestId });
   return apiFetch<User>('/v1/users/me/email', { method: 'PUT', body: request, requestId });
+}
+
+/** Makes an uploaded photo (see uploadPhoto) the profile picture; the old one is deleted. */
+export async function updateAvatar(request: UpdateAvatarRequest): Promise<User> {
+  const requestId = createRequestId();
+  logAction('avatar_update_submitted', { requestId });
+  return apiFetch<User>('/v1/users/me/avatar', { method: 'PUT', body: request, requestId });
+}
+
+export async function removeAvatar(): Promise<void> {
+  const requestId = createRequestId();
+  logAction('avatar_remove_submitted', { requestId });
+  return apiFetch<void>('/v1/users/me/avatar', { method: 'DELETE', requestId });
 }
 
 export async function getWateringStreak(): Promise<WateringStreak> {

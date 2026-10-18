@@ -35,8 +35,12 @@ export interface PhotoUpload {
   remove: () => void;
 }
 
-/** Picks a photo from the camera or the library, crops and shrinks it, and uploads it right away. */
-export function usePhotoUpload(category: PhotoCategory): PhotoUpload {
+/**
+ * Picks a photo from the camera or the library, crops and shrinks it, and uploads it right away.
+ * onUploaded runs with the new key before isUploading turns false (e.g. to save a profile picture
+ * straight away); if it throws, the photo is dropped and its error shown like an upload error.
+ */
+export function usePhotoUpload(category: PhotoCategory, onUploaded?: (key: string) => Promise<void>): PhotoUpload {
   const [uri, setUri] = useState<string | null>(null);
   const [key, setKey] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -77,6 +81,8 @@ export function usePhotoUpload(category: PhotoCategory): PhotoUpload {
     setIsUploading(true);
     try {
       const uploadedKey = await uploadPhoto(await squareJpeg(photo), category);
+      if (current !== attempt.current) return;
+      await onUploaded?.(uploadedKey);
       if (current === attempt.current) setKey(uploadedKey);
     } catch (err) {
       if (current === attempt.current) {
