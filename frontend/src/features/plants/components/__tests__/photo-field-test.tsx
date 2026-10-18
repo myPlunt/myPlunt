@@ -11,7 +11,7 @@ jest.mock('@/features/photos/use-recent-photos');
 
 const user = userEvent.setup();
 const uploadLibraryPhoto = jest.fn();
-const fern = { id: 'a1', uri: 'file:///fern.jpg', width: 3000, height: 4000 };
+const fern = { id: 'a1', uri: 'file:///fern.jpg', width: 3000, height: 4000, takenAt: null };
 const takePhoto = jest.fn();
 const chooseFromLibrary = jest.fn();
 const remove = jest.fn();
@@ -28,6 +28,7 @@ function photo(overrides: Partial<PhotoUpload> = {}): PhotoUpload {
   return {
     uri: null,
     key: null,
+    takenAt: null,
     isUploading: false,
     error: null,
     takePhoto,

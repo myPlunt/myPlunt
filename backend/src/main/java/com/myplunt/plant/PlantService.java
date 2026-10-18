@@ -6,9 +6,12 @@ import com.myplunt.common.logging.LogEvent;
 import com.myplunt.common.logging.StructuredLog;
 import com.myplunt.garden.Planter;
 import com.myplunt.garden.PlanterRepository;
+import com.myplunt.plant.dto.AddPlantPhotoRequest;
 import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
+import com.myplunt.plant.dto.PlantPhotoResponse;
 import com.myplunt.plant.dto.PlantResponse;
+import com.myplunt.plant.dto.UpdatePlantPhotoRequest;
 import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.plant.dto.WateringHistoryResponse;
 import com.myplunt.plant.dto.WateringLogResponse;
@@ -243,6 +246,86 @@ public class PlantService {
                 consistency.onTimePercent(),
                 consistency.overdue(),
                 newestFirst);
+    }
+
+    // Also for plants that have died, so their growth stays viewable.
+    @Transactional(readOnly = true)
+    public List<PlantPhotoResponse> getPhotos(UUID ownerId, UUID plantId) {
+        findOwnPlant(ownerId, plantId);
+        return plantPhotoRepository.findByPlantIdOrderByTakenAtAsc(plantId).stream()
+                .map(this::toPhotoResponse)
+                .toList();
+    }
+
+    // The newest photo (by takenAt) is the plant's main photo, so an old library photo lands
+    // in the middle of the timeline without replacing it.
+    @Transactional
+    public PlantPhotoResponse addPhoto(UUID ownerId, UUID plantId, AddPlantPhotoRequest request) {
+        Plant plant = findOwnPlant(ownerId, plantId);
+        if (!plant.isAlive()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't get new photos");
+        }
+        // Confirmed before saving, for the same reasons as in create.
+        storageService.confirmUpload(ownerId, request.photoKey());
+
+        PlantPhoto photo = new PlantPhoto(
+                plant, ownerId, request.photoKey(), request.takenAt() == null ? Instant.now() : request.takenAt());
+        photo.setCaption(cleanNotes(request.caption()));
+        PlantPhoto saved = plantPhotoRepository.save(photo);
+        auditLog.recorded(AuditEvent.PLANT_PHOTO_ADDED, ownerId, ownerId,
+                Map.of("plant_id", plantId, "photo_id", saved.getId(), "has_caption", saved.getCaption() != null));
+        return toPhotoResponse(saved);
+    }
+
+    // Changing the date moves the photo in the timeline; the newest one is the main photo.
+    @Transactional
+    public PlantPhotoResponse updatePhoto(UUID ownerId, UUID plantId, UUID photoId, UpdatePlantPhotoRequest request) {
+        Plant plant = findOwnPlant(ownerId, plantId);
+        if (!plant.isAlive()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and its photos can't be edited");
+        }
+        PlantPhoto photo = findPhoto(plantId, photoId);
+        String caption = cleanNotes(request.caption());
+        // Names only: the note is the user's own words, so its value stays out of the log.
+        List<String> changedFields = new ArrayList<>();
+        if (!Objects.equals(photo.getTakenAt(), request.takenAt())) changedFields.add("taken_at");
+        if (!Objects.equals(photo.getCaption(), caption)) changedFields.add("caption");
+        photo.setTakenAt(request.takenAt());
+        photo.setCaption(caption);
+
+        PlantPhoto saved = plantPhotoRepository.save(photo);
+        auditLog.recorded(AuditEvent.PLANT_PHOTO_UPDATED, ownerId, ownerId,
+                Map.of("plant_id", plantId, "photo_id", photoId, "changed_fields", changedFields));
+        return toPhotoResponse(saved);
+    }
+
+    // Also for plants that have died, as deleting the whole plant is. Feed posts of the photo
+    // go with it (ON DELETE CASCADE in V1).
+    @Transactional
+    public void deletePhoto(UUID ownerId, UUID plantId, UUID photoId) {
+        findOwnPlant(ownerId, plantId);
+        PlantPhoto photo = findPhoto(plantId, photoId);
+        plantPhotoRepository.delete(photo);
+        auditLog.recorded(AuditEvent.PLANT_PHOTO_DELETED, ownerId, ownerId, Map.of("plant_id", plantId, "photo_id", photoId));
+        // Flushed first so the row is really gone before its file is, as in delete().
+        plantPhotoRepository.flush();
+        // The photo is already gone for the user, so a leftover file only costs storage.
+        try {
+            storageService.deleteObject(photo.getPhotoKey());
+        } catch (RuntimeException e) {
+            StructuredLog.warning(log, LogEvent.PHOTO_CLEANUP_FAILED, Map.of(
+                    "plant_id", plantId, "photo_key", photo.getPhotoKey(), "reason", e.getClass().getSimpleName()));
+        }
+    }
+
+    private PlantPhoto findPhoto(UUID plantId, UUID photoId) {
+        return plantPhotoRepository.findByIdAndPlantId(photoId, plantId)
+                .orElseThrow(() -> new IllegalStateException("Photo not found"));
+    }
+
+    private PlantPhotoResponse toPhotoResponse(PlantPhoto photo) {
+        return new PlantPhotoResponse(
+                photo.getId(), storageService.createReadUrl(photo.getPhotoKey()), photo.getTakenAt(), photo.getCaption());
     }
 
     // Each plant's current watering streak (see WateringConsistency), in one query for all of them.

@@ -1,9 +1,12 @@
 package com.myplunt.plant;
 
 import com.myplunt.constants.ApiPaths;
+import com.myplunt.plant.dto.AddPlantPhotoRequest;
 import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
+import com.myplunt.plant.dto.PlantPhotoResponse;
 import com.myplunt.plant.dto.PlantResponse;
+import com.myplunt.plant.dto.UpdatePlantPhotoRequest;
 import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.plant.dto.WateringHistoryResponse;
 import com.myplunt.user.User;
@@ -21,6 +24,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.ZoneId;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -56,6 +60,35 @@ public class PlantController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@AuthenticationPrincipal User principal, @PathVariable UUID plantId) {
         plantService.delete(principal.getId(), plantId);
+    }
+
+    @GetMapping(ApiPaths.Plants.PHOTOS)
+    public List<PlantPhotoResponse> photos(@AuthenticationPrincipal User principal, @PathVariable UUID plantId) {
+        return plantService.getPhotos(principal.getId(), plantId);
+    }
+
+    @PostMapping(ApiPaths.Plants.PHOTOS)
+    @ResponseStatus(HttpStatus.CREATED)
+    public PlantPhotoResponse addPhoto(
+            @AuthenticationPrincipal User principal,
+            @PathVariable UUID plantId,
+            @Valid @RequestBody AddPlantPhotoRequest request) {
+        return plantService.addPhoto(principal.getId(), plantId, request);
+    }
+
+    @PutMapping(ApiPaths.Plants.PHOTO_BY_ID)
+    public PlantPhotoResponse updatePhoto(
+            @AuthenticationPrincipal User principal,
+            @PathVariable UUID plantId,
+            @PathVariable UUID photoId,
+            @Valid @RequestBody UpdatePlantPhotoRequest request) {
+        return plantService.updatePhoto(principal.getId(), plantId, photoId, request);
+    }
+
+    @DeleteMapping(ApiPaths.Plants.PHOTO_BY_ID)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePhoto(@AuthenticationPrincipal User principal, @PathVariable UUID plantId, @PathVariable UUID photoId) {
+        plantService.deletePhoto(principal.getId(), plantId, photoId);
     }
 
     // zone is the app's IANA time zone ("Europe/Amsterdam"); streaks count days in it.

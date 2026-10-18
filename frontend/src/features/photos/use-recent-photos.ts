@@ -9,6 +9,8 @@ export interface LibraryPhoto {
   uri: string;
   width: number;
   height: number;
+  /** When the photo was taken (ISO); null when the library doesn't know. */
+  takenAt: string | null;
 }
 
 export type RecentPhotos =
@@ -46,7 +48,13 @@ export function useRecentPhotos(enabled: boolean, count: number): RecentPhotos {
         const photos = await Promise.all(
           assets.map(async (asset) => {
             const info = await asset.getInfo();
-            return { id: info.id, uri: info.uri, width: info.width, height: info.height };
+            return {
+              id: info.id,
+              uri: info.uri,
+              width: info.width,
+              height: info.height,
+              takenAt: info.creationTime === null ? null : new Date(Math.min(info.creationTime, Date.now())).toISOString(),
+            };
           }),
         );
         if (!cancelled) setState({ status: 'ready', photos });
