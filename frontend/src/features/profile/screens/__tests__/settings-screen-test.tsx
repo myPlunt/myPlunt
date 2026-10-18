@@ -20,13 +20,13 @@ const back = jest.fn();
 const logout = jest.fn();
 const retry = jest.fn();
 const user = userEvent.setup();
-const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: null };
+const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: null, avatarUrl: null };
 
 beforeEach(() => {
   mockedUseRouter.mockReturnValue({ back, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
   mockedUseAuthActions.mockReturnValue({ login: jest.fn(), register: jest.fn(), logout });
   mockedUseProfile.mockReturnValue({ user: jane, error: null, isLoading: false, retry });
-  mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail: jest.fn() });
+  mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail: jest.fn(), updateAvatar: jest.fn(), removeAvatar: jest.fn() });
 });
 
 afterEach(() => {

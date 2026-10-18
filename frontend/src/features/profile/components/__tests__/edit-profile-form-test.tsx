@@ -10,10 +10,10 @@ jest.mock('@/features/profile/use-profile-actions');
 const mockedUseProfileActions = jest.mocked(useProfileActions);
 const updateProfile = jest.fn();
 const user = userEvent.setup();
-const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: 'Fern collector' };
+const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: 'Fern collector', avatarUrl: null };
 
 beforeEach(() => {
-  mockedUseProfileActions.mockReturnValue({ updateProfile, changeEmail: jest.fn() });
+  mockedUseProfileActions.mockReturnValue({ updateProfile, changeEmail: jest.fn(), updateAvatar: jest.fn(), removeAvatar: jest.fn() });
 });
 
 afterEach(() => {
