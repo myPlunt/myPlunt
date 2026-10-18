@@ -51,7 +51,14 @@ function mockPlant(state: Partial<ReturnType<typeof usePlant>>) {
 beforeEach(() => {
   canGoBack.mockReturnValue(true);
   jest.mocked(useRouter).mockReturnValue({ back, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
-  jest.mocked(usePlantActions).mockReturnValue({ createPlant: jest.fn(), updatePlant, deletePlant: jest.fn(), addPlantPhoto: jest.fn() });
+  jest.mocked(usePlantActions).mockReturnValue({
+    createPlant: jest.fn(),
+    updatePlant,
+    deletePlant: jest.fn(),
+    addPlantPhoto: jest.fn(),
+    updatePlantPhoto: jest.fn(),
+    deletePlantPhoto: jest.fn(),
+  });
   jest.mocked(usePlanterActions).mockReturnValue({ createPlanter: jest.fn(), renamePlanter: jest.fn(), deletePlanter: jest.fn() });
   jest.mocked(useSpecies).mockReturnValue({ species: [], error: null, retry: jest.fn() });
   jest.mocked(useGarden).mockReturnValue({

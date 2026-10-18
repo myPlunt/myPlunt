@@ -41,6 +41,8 @@ beforeEach(() => {
     updatePlant: jest.fn(),
     deletePlant: jest.fn(),
     addPlantPhoto,
+    updatePlantPhoto: jest.fn(),
+    deletePlantPhoto: jest.fn(),
   });
   addPlantPhoto.mockResolvedValue({ id: 'ph1', url: 'https://storage.test/growth.jpg', takenAt: null, caption: null });
   mockPhoto({});

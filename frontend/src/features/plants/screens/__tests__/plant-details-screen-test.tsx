@@ -58,6 +58,8 @@ beforeEach(() => {
     updatePlant: jest.fn(),
     deletePlant,
     addPlantPhoto: jest.fn(),
+    updatePlantPhoto: jest.fn(),
+    deletePlantPhoto: jest.fn(),
   });
   jest.mocked(usePlantPhotos).mockReturnValue({ photos: [], error: null, isLoading: false, retry });
   canGoBack.mockReturnValue(true);
