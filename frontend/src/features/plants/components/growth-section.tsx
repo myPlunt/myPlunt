@@ -35,7 +35,7 @@ export function GrowthSection({ plantName, photos, selectedIndex, onSelect, onSe
     <View className="gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4" style={Shadow.card}>
       <View className="flex-row items-center justify-between gap-4">
         <Text className="type-label text-accent" numberOfLines={1}>
-          {span && span !== 'Same day' ? `Growing for ${span}` : 'GROWTH'}
+          {span && span !== 'Same day' ? `Growing ${plantName} for ${span}` : 'GROWTH'}
         </Text>
         {photos.length > 0 && (
             <Pressable accessibilityRole="button" accessibilityLabel="See all growth photos" onPress={onSeeAll} hitSlop={8} className="active:opacity-70">

@@ -102,7 +102,7 @@ describe('PlantDetailsScreen', () => {
     await render(<PlantDetailsScreen plantId="p1" />);
 
     expect(screen.getByText('2 / 2')).toBeOnTheScreen();
-    expect(screen.getByText('Growing for 5 months')).toBeOnTheScreen();
+    expect(screen.getByText('Growing Vera for 5 months')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Previous photo' }));
 
     expect(screen.getByText('1 / 2')).toBeOnTheScreen();
