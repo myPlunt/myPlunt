@@ -15,6 +15,7 @@ import {
 } from '@/features/plants/components/notebook-paper';
 import { PhotoField } from '@/features/plants/components/photo-field';
 import { PlanterSelect } from '@/features/plants/components/planter-select';
+import { ShareToFeedCheckbox } from '@/features/plants/components/share-to-feed-checkbox';
 import { lightOptions } from '@/features/plants/light-options';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { matchesSpecies } from '@/features/species/matches-species';
@@ -83,6 +84,8 @@ export function PlantForm({
   // The owner's own setting only: left empty, the species' frequency keeps applying.
   const [wateringEveryDays, setWateringEveryDays] = useState(plant?.wateringEveryDays?.toString() ?? '');
   const [notes, setNotes] = useState(plant?.notes ?? '');
+  // Placeholder: not sent yet, waiting for the feed's post endpoint.
+  const [shareToFeed, setShareToFeed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -310,6 +313,8 @@ export function PlantForm({
               onAdded={(planter) => setAddedPlanters((current) => [...current, planter])}
             />
           )}
+          {/* Only a new plant is news for the feed, not an edit. */}
+          {!plant && <ShareToFeedCheckbox checked={shareToFeed} onChange={setShareToFeed} />}
         </>
       )}
 
