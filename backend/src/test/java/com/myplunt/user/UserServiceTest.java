@@ -4,7 +4,9 @@ import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.Friendship;
 import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.storage.StorageService;
+import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.dto.ChangeEmailRequest;
+import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
 import com.myplunt.user.dto.UserSummaryResponse;
@@ -70,7 +72,7 @@ class UserServiceTest {
 
         UserResponse response = userService().updateProfile(id, new UpdateProfileRequest("janey", "  Fern collector  "));
 
-        assertThat(response).isEqualTo(new UserResponse(id, "janey", "jane@example.com", "Fern collector"));
+        assertThat(response).isEqualTo(new UserResponse(id, "janey", "jane@example.com", "Fern collector", null));
     }
 
     @Test
@@ -120,6 +122,49 @@ class UserServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Email already registered");
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void updateAvatar_confirmsTheUploadAndDeletesThePreviousPicture() {
+        String newKey = "avatars/" + id + "/new.jpg";
+        jane.setAvatarKey("avatars/" + id + "/old.jpg");
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(storageService.isCategory(newKey, PhotoCategory.AVATAR)).thenReturn(true);
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(storageService.createReadUrl(newKey)).thenReturn("https://storage/new.jpg");
+
+        UserResponse response = userService().updateAvatar(id, new UpdateAvatarRequest(newKey));
+
+        verify(storageService).confirmUpload(id, newKey);
+        verify(storageService).deleteObject("avatars/" + id + "/old.jpg");
+        assertThat(jane.getAvatarKey()).isEqualTo(newKey);
+        assertThat(response.avatarUrl()).isEqualTo("https://storage/new.jpg");
+    }
+
+    @Test
+    void updateAvatar_rejectsAKeyThatIsNotAProfilePicture() {
+        String plantKey = "plants/" + id + "/photo.jpg";
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(storageService.isCategory(plantKey, PhotoCategory.AVATAR)).thenReturn(false);
+
+        assertThatThrownBy(() -> userService().updateAvatar(id, new UpdateAvatarRequest(plantKey)))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(storageService, never()).confirmUpload(any(), any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void removeAvatar_clearsThePictureAndDeletesItsFile() {
+        jane.setAvatarKey("avatars/" + id + "/old.jpg");
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+
+        userService().removeAvatar(id);
+
+        assertThat(jane.getAvatarKey()).isNull();
+        verify(userRepository).save(jane);
+        verify(storageService).deleteObject("avatars/" + id + "/old.jpg");
     }
 
     @Test
