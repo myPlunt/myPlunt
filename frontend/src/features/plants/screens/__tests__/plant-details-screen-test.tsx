@@ -1,4 +1,4 @@
-import { render, screen, userEvent } from '@testing-library/react-native';
+import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 
 import { usePlant } from '@/features/plants/use-plant';
@@ -106,6 +106,26 @@ describe('PlantDetailsScreen', () => {
     expect(screen.getByText('1 / 2')).toBeOnTheScreen();
     expect(screen.getByText('Just brought her home')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Previous photo' })).toBeDisabled();
+  });
+
+  it('shows the photo the user swiped to', async () => {
+    jest.mocked(usePlantPhotos).mockReturnValue({
+      photos: [
+        { id: 'a', url: 'https://storage.test/jan.jpg', takenAt: '2026-01-12T12:00:00Z', caption: 'Just brought her home' },
+        { id: 'b', url: 'https://storage.test/jun.jpg', takenAt: '2026-06-14T12:00:00Z', caption: null },
+      ],
+      error: null,
+      isLoading: false,
+      retry,
+    });
+    await render(<PlantDetailsScreen plantId="p1" />);
+    const carousel = screen.getByLabelText('Photos of Vera');
+    // The carousel measures its page width from its own layout.
+    await fireEvent(carousel, 'layout', { nativeEvent: { layout: { width: 300, height: 300 } } });
+
+    await fireEvent(carousel, 'momentumScrollEnd', { nativeEvent: { contentOffset: { x: 0, y: 0 } } });
+
+    expect(screen.getByText('1 / 2')).toBeOnTheScreen();
   });
 
   it('opens the growth journal and the add-photo screen from the Growth section', async () => {
