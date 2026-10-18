@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { AvatarField } from '@/features/profile/components/avatar-field';
 import { EditProfileForm } from '@/features/profile/components/edit-profile-form';
 import { useProfile } from '@/features/profile/use-profile';
 import { Shadow } from '@/constants/theme';
@@ -22,11 +23,6 @@ export function EditProfileScreen() {
           keyboardShouldPersistTaps="handled">
           <View className="gap-3 rounded-2xl bg-background-element p-4" style={Shadow.card}>
             <Text className="type-label text-accent">PROFILE</Text>
-            {/* Needs file storage on the backend before it can be built. */}
-            <View className="flex-row items-center justify-between">
-              <Text className="type-body-large text-text-secondary">Profile picture</Text>
-              <Text className="type-caption text-text-secondary">Coming soon</Text>
-            </View>
             {isLoading ? (
               // A colour prop, so it reads the theme instead of a class.
               <ActivityIndicator accessibilityLabel="Loading profile" color={theme.primary} />
@@ -36,7 +32,12 @@ export function EditProfileScreen() {
                 <Button label="Try again" variant="secondary" onPress={retry} />
               </View>
             ) : (
-              user && <EditProfileForm key={user.id} user={user} />
+              user && (
+                <>
+                  <AvatarField key={`avatar-${user.id}`} user={user} />
+                  <EditProfileForm key={user.id} user={user} />
+                </>
+              )
             )}
           </View>
         </ScrollView>

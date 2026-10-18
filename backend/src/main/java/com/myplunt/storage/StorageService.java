@@ -112,6 +112,13 @@ public class StorageService {
         return segments.length >= 2 && segments[segments.length - 2].equals(userId.toString());
     }
 
+    // Whether the key was made for this category by createUploadUrl, so e.g. a plant photo's
+    // key can't become a profile picture (and get deleted along with it later).
+    public boolean isCategory(String key, PhotoCategory category) {
+        String[] segments = key.split("/");
+        return segments.length >= 3 && segments[segments.length - 3].equals(categorySegment(category));
+    }
+
     // Caller (post/profile service) is responsible for checking visibility/ownership
     // before calling this - this just mints a URL for whatever key it's given.
     public String createReadUrl(String key) {
@@ -129,8 +136,11 @@ public class StorageService {
     }
 
     private String buildKey(PhotoCategory category, UUID userId, String extension) {
-        String categorySegment = category.name().toLowerCase() + "s"; // avatar -> avatars, post -> posts
-        String base = "%s/%s/%s.%s".formatted(categorySegment, userId, UUID.randomUUID(), extension);
+        String base = "%s/%s/%s.%s".formatted(categorySegment(category), userId, UUID.randomUUID(), extension);
         return prefix.isBlank() ? base : prefix + "/" + base;
+    }
+
+    private static String categorySegment(PhotoCategory category) {
+        return category.name().toLowerCase() + "s"; // avatar -> avatars, post -> posts
     }
 }

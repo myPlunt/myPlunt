@@ -100,4 +100,16 @@ describe('usePhotoUpload', () => {
       }),
     );
   });
+
+  it('drops the photo when saving the uploaded key fails', async () => {
+    const onUploaded = jest.fn().mockRejectedValue(new ApiError(500, 'Server error', { detail: 'Something went wrong.' }));
+    const { result } = await renderHook(() => usePhotoUpload('AVATAR', onUploaded));
+
+    await act(() => result.current.chooseFromLibrary());
+
+    expect(onUploaded).toHaveBeenCalledWith('plants/u1/a.jpg');
+    expect(result.current).toEqual(
+      expect.objectContaining({ uri: null, key: null, isUploading: false, error: 'Something went wrong.' }),
+    );
+  });
 });

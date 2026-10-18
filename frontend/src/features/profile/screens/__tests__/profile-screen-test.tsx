@@ -13,7 +13,7 @@ const mockedUseProfile = jest.mocked(useProfile);
 const push = jest.fn();
 const retry = jest.fn();
 const user = userEvent.setup();
-const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: 'Fern collector' };
+const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: 'Fern collector', avatarUrl: null };
 
 beforeEach(() => {
   mockedUseRouter.mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);

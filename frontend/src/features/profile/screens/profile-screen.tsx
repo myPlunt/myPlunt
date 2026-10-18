@@ -41,7 +41,7 @@ export function ProfileScreen() {
         <ScrollView contentContainerClassName="w-full max-w-content grow gap-6 self-center p-6">
           <View className="items-center gap-1">
             <View>
-              <UserAvatar size={96} />
+              <UserAvatar size={96} url={user?.avatarUrl} accessibilityLabel="Your profile picture" />
 
 
               {/* TO think we need to show the streak badge here, but we don't have the streak data yet. */}

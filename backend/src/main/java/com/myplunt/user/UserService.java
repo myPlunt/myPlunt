@@ -2,13 +2,19 @@ package com.myplunt.user;
 
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
+import com.myplunt.common.logging.LogEvent;
+import com.myplunt.common.logging.StructuredLog;
 import com.myplunt.friend.Friendship;
 import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.storage.StorageService;
+import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.dto.ChangeEmailRequest;
+import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
 import com.myplunt.user.dto.UserSummaryResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Limit;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +34,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserService {
+
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private static final int SEARCH_LIMIT = 20;
 
@@ -54,7 +62,7 @@ public class UserService {
     // /me don't query the same row twice. Endpoints that modify the user load it
     // fresh instead of reusing the principal (see updateProfile, changeEmail).
     public UserResponse toResponse(User user) {
-        return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), user.getBio());
+        return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), user.getBio(), avatarUrl(user));
     }
 
     // Other users whose username contains the query, best matches first (see UserRepository.search),
@@ -170,6 +178,54 @@ public class UserService {
                 "old_email", oldEmail,
                 "new_email", saved.getEmail()));
         return toResponse(saved);
+    }
+
+    // The photo is already in storage (uploaded straight from the app); this confirms it and
+    // makes it the profile picture. The previous picture's file is deleted.
+    @Transactional
+    public UserResponse updateAvatar(UUID userId, UpdateAvatarRequest request) {
+        User user = loadUser(userId);
+        if (!storageService.isCategory(request.key(), PhotoCategory.AVATAR)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "That photo can't be used as a profile picture.");
+        }
+        // Checks the key is the user's own and within the size limit.
+        storageService.confirmUpload(userId, request.key());
+
+        String oldKey = user.getAvatarKey();
+        user.setAvatarKey(request.key());
+        User saved = userRepository.save(user);
+        auditLog.recorded(AuditEvent.AVATAR_UPDATED, userId, userId, Map.of("photo_key", request.key()));
+        if (oldKey != null && !oldKey.equals(request.key())) {
+            deleteAvatarFile(userId, oldKey);
+        }
+        return toResponse(saved);
+    }
+
+    // Removing a picture the user doesn't have is a no-op, so a retried request still succeeds.
+    @Transactional
+    public void removeAvatar(UUID userId) {
+        User user = loadUser(userId);
+        String oldKey = user.getAvatarKey();
+        if (oldKey == null) {
+            return;
+        }
+        user.setAvatarKey(null);
+        userRepository.save(user);
+        auditLog.recorded(AuditEvent.AVATAR_REMOVED, userId, userId, Map.of("photo_key", oldKey));
+        deleteAvatarFile(userId, oldKey);
+    }
+
+    // Flushed first so the user no longer points at the file before it's gone; a failed
+    // save then leaves the file in place. Same as PlantService.delete.
+    private void deleteAvatarFile(UUID userId, String key) {
+        userRepository.flush();
+        // The user already has their new picture (or none), so a leftover file only costs storage.
+        try {
+            storageService.deleteObject(key);
+        } catch (RuntimeException e) {
+            StructuredLog.warning(log, LogEvent.PHOTO_CLEANUP_FAILED, Map.of(
+                    "user_id", userId, "photo_key", key, "reason", e.getClass().getSimpleName()));
+        }
     }
 
     private User loadUser(UUID userId) {

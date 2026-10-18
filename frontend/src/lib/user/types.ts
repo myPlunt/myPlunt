@@ -4,6 +4,13 @@ export interface User {
   username: string;
   email: string;
   bio: string | null;
+  /** Short-lived link to the profile picture; null when there is none. */
+  avatarUrl: string | null;
+}
+
+/** Mirrors UpdateAvatarRequest (PUT /v1/users/me/avatar): the key of an uploaded AVATAR photo. */
+export interface UpdateAvatarRequest {
+  key: string;
 }
 
 /** Mirrors UpdateProfileRequest (PUT /v1/users/me). */

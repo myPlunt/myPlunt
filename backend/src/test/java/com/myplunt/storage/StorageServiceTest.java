@@ -68,6 +68,14 @@ class StorageServiceTest {
     }
 
     @Test
+    void isCategory_checksTheFolderTheKeyWasMadeFor() {
+        UUID userId = UUID.randomUUID();
+
+        assertThat(storageService().isCategory("staging/avatars/" + userId + "/a.jpg", PhotoCategory.AVATAR)).isTrue();
+        assertThat(storageService().isCategory("plants/" + userId + "/a.jpg", PhotoCategory.AVATAR)).isFalse();
+    }
+
+    @Test
     void confirmUpload_throwsNotFoundWhenKeyBelongsToDifferentUser() {
         UUID userId = UUID.randomUUID();
         UUID otherUserId = UUID.randomUUID();

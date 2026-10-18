@@ -2,16 +2,20 @@ package com.myplunt.user;
 
 import com.myplunt.constants.ApiPaths;
 import com.myplunt.user.dto.ChangeEmailRequest;
+import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
 import com.myplunt.user.dto.UserSummaryResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -54,5 +58,18 @@ public class UserController {
     public UserResponse changeEmail(
             @AuthenticationPrincipal User principal, @Valid @RequestBody ChangeEmailRequest request) {
         return userService.changeEmail(principal.getId(), request);
+    }
+
+    // The app uploads the photo itself (POST /v1/photos/upload-url), then sends its key here.
+    @PutMapping(ApiPaths.Users.ME_AVATAR)
+    public UserResponse updateAvatar(
+            @AuthenticationPrincipal User principal, @Valid @RequestBody UpdateAvatarRequest request) {
+        return userService.updateAvatar(principal.getId(), request);
+    }
+
+    @DeleteMapping(ApiPaths.Users.ME_AVATAR)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeAvatar(@AuthenticationPrincipal User principal) {
+        userService.removeAvatar(principal.getId());
     }
 }
