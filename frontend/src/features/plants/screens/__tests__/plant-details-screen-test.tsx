@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 
 import { usePlant } from '@/features/plants/use-plant';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
+import { usePlantPhotos } from '@/features/plants/use-plant-photos';
 import { ApiError } from '@/lib/auth/api-client';
 import type { PlantDetails } from '@/lib/plant/types';
 
@@ -11,6 +12,7 @@ import { PlantDetailsScreen } from '../plant-details-screen';
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/plants/use-plant');
 jest.mock('@/features/plants/use-plant-actions');
+jest.mock('@/features/plants/use-plant-photos');
 
 const mockedUsePlant = jest.mocked(usePlant);
 const push = jest.fn();
@@ -51,7 +53,13 @@ function mockPlant(state: Partial<ReturnType<typeof usePlant>>) {
 
 beforeEach(() => {
   jest.mocked(useRouter).mockReturnValue({ push, back, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
-  jest.mocked(usePlantActions).mockReturnValue({ createPlant: jest.fn(), updatePlant: jest.fn(), deletePlant });
+  jest.mocked(usePlantActions).mockReturnValue({
+    createPlant: jest.fn(),
+    updatePlant: jest.fn(),
+    deletePlant,
+    addPlantPhoto: jest.fn(),
+  });
+  jest.mocked(usePlantPhotos).mockReturnValue({ photos: [], error: null, isLoading: false, retry });
   canGoBack.mockReturnValue(true);
   deletePlant.mockResolvedValue(undefined);
   mockPlant({});
@@ -77,6 +85,42 @@ describe('PlantDetailsScreen', () => {
     expect(screen.getByText('Every 7 days (default)')).toBeOnTheScreen();
     expect(screen.getByText('2 days ago')).toBeOnTheScreen();
     expect(screen.getByText('Found at a flea market')).toBeOnTheScreen();
+  });
+
+  it('opens on the newest growth photo and steps back through older ones with the arrows', async () => {
+    jest.mocked(usePlantPhotos).mockReturnValue({
+      photos: [
+        { id: 'a', url: 'https://storage.test/jan.jpg', takenAt: '2026-01-12T12:00:00Z', caption: 'Just brought her home' },
+        { id: 'b', url: 'https://storage.test/jun.jpg', takenAt: '2026-06-14T12:00:00Z', caption: null },
+      ],
+      error: null,
+      isLoading: false,
+      retry,
+    });
+    await render(<PlantDetailsScreen plantId="p1" />);
+
+    expect(screen.getByText('2 / 2')).toBeOnTheScreen();
+    expect(screen.getByText('GROWTH · 5 MONTHS')).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Previous photo' }));
+
+    expect(screen.getByText('1 / 2')).toBeOnTheScreen();
+    expect(screen.getByText('Just brought her home')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Previous photo' })).toBeDisabled();
+  });
+
+  it('opens the growth journal and the add-photo screen from the Growth section', async () => {
+    jest.mocked(usePlantPhotos).mockReturnValue({
+      photos: [{ id: 'a', url: 'https://storage.test/jan.jpg', takenAt: '2026-01-12T12:00:00Z', caption: null }],
+      error: null,
+      isLoading: false,
+      retry,
+    });
+    await render(<PlantDetailsScreen plantId="p1" />);
+
+    await user.press(screen.getByRole('button', { name: 'See all growth photos' }));
+    expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]/growth', params: { id: 'p1' } });
+    await user.press(screen.getByRole('button', { name: 'Add a growth photo' }));
+    expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]/add-photo', params: { id: 'p1' } });
   });
 
   it('shows the error and retries when asked', async () => {

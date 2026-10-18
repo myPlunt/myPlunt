@@ -18,6 +18,7 @@ const createPlanter = jest.fn();
 const noPhoto: PhotoUpload = {
   uri: null,
   key: null,
+  takenAt: null,
   isUploading: false,
   error: null,
   takePhoto: jest.fn(),
@@ -50,7 +51,7 @@ const planters = [
 ];
 
 beforeEach(() => {
-  mockedUsePlantActions.mockReturnValue({ createPlant, updatePlant, deletePlant: jest.fn() });
+  mockedUsePlantActions.mockReturnValue({ createPlant, updatePlant, deletePlant: jest.fn(), addPlantPhoto: jest.fn() });
   mockedUsePhotoUpload.mockReturnValue(noPhoto);
   jest.mocked(usePlanterActions).mockReturnValue({ createPlanter, renamePlanter: jest.fn(), deletePlanter: jest.fn() });
   createPlant.mockResolvedValue(vera);

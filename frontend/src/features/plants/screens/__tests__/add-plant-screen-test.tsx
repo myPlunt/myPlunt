@@ -58,7 +58,7 @@ async function addVeraAsMonstera() {
 beforeEach(() => {
   canGoBack.mockReturnValue(true);
   mockedUseRouter.mockReturnValue({ back, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
-  mockedUsePlantActions.mockReturnValue({ createPlant, updatePlant: jest.fn(), deletePlant: jest.fn() });
+  mockedUsePlantActions.mockReturnValue({ createPlant, updatePlant: jest.fn(), deletePlant: jest.fn(), addPlantPhoto: jest.fn() });
   jest.mocked(usePlanterActions).mockReturnValue({ createPlanter: jest.fn(), renamePlanter: jest.fn(), deletePlanter: jest.fn() });
   mockedUseSpecies.mockReturnValue({
     species: [{ id: 's1', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7, region: null, sunlightNeeds: null, common: false, imageUrl: null }],
