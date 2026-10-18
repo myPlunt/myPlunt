@@ -51,6 +51,23 @@ workflow:
       changes:
         - "web_landing/**/*"
 
+.rules-admin:
+  rules:
+    - changes:
+        - "admin_dashboard/**/*"
+
+.rules-admin-dev:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      changes:
+        - "admin_dashboard/**/*"
+
+.rules-admin-main:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - "admin_dashboard/**/*"
+
 # Job templates
 .node:
   image: node:22-alpine
@@ -75,8 +92,9 @@ workflow:
     DOCKER_TLS_CERTDIR: "/certs"
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  # BUILD_ARGS is optional (e.g. the admin dashboard's API URL, baked in at build time).
   script:
-    - docker build -t "$CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG" "$BUILD_DIR/"
+    - docker build $BUILD_ARGS -t "$CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG" "$BUILD_DIR/"
     - docker push "$CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG"
 
 .deploy-coolify:
@@ -137,6 +155,22 @@ test-backend:
     - cd backend
     - ./mvnw -B test
 
+check-admin:
+  extends: .rules-admin
+  stage: test
+  image: node:22-alpine
+  cache:
+    key:
+      files:
+        - admin_dashboard/package-lock.json
+    paths:
+      - admin_dashboard/.npm/
+  script:
+    - cd admin_dashboard
+    - npm ci --cache .npm --prefer-offline
+    - npm run lint
+    - npm run build
+
 # BUILD STAGE
 build-backend-staging:
   extends: [.docker-build, .rules-backend-dev]
@@ -165,6 +199,28 @@ build-landing:
     IMAGE_NAME: web-landing
     IMAGE_TAG: latest
   needs: []
+
+build-admin-staging:
+  extends: [.docker-build, .rules-admin-dev]
+  variables:
+    BUILD_DIR: admin_dashboard
+    IMAGE_NAME: admin-dashboard
+    IMAGE_TAG: staging
+    BUILD_ARGS: "--build-arg VITE_API_URL=https://api-staging.myplunt.com"
+  needs:
+    - job: check-admin
+      optional: true
+
+build-admin-prod:
+  extends: [.docker-build, .rules-admin-main]
+  variables:
+    BUILD_DIR: admin_dashboard
+    IMAGE_NAME: admin-dashboard
+    IMAGE_TAG: latest
+    BUILD_ARGS: "--build-arg VITE_API_URL=https://api.myplunt.com"
+  needs:
+    - job: check-admin
+      optional: true
 
 build-mobile-staging:
   extends: [.build-mobile, .rules-frontend-dev]
@@ -228,6 +284,22 @@ deploy-landing:
   environment:
     name: production
   needs: ["build-landing"]
+
+deploy-admin-staging:
+  extends: [.deploy-coolify, .rules-admin-dev]
+  variables:
+    WEBHOOK_URL: $COOLIFY_ADMIN_STAGING_WEBHOOK_URL
+  environment:
+    name: staging
+  needs: ["build-admin-staging"]
+
+deploy-admin-prod:
+  extends: [.deploy-coolify, .rules-admin-main]
+  variables:
+    WEBHOOK_URL: $COOLIFY_ADMIN_PROD_WEBHOOK_URL
+  environment:
+    name: production
+  needs: ["build-admin-prod"]
 
 submit-mobile-staging:
   extends: [.submit-mobile, .rules-frontend-dev]

@@ -24,6 +24,19 @@ spring:
 app:
   # Filled in by Maven at build time; every backend log line carries it as backend_version.
   version: '@project.version@'
+  # The admin dashboard (admin_dashboard/). Its secret must differ from app.jwt.secret and be at
+  # least 32 bytes. allowed-origins: the dashboard's URL(s), comma-separated, for CORS.
+  admin:
+    jwt:
+      secret: ${ADMIN_JWT_SECRET}
+      access-token-ttl-minutes: 15
+    # A login lasts this long, however active the admin is.
+    session-ttl-hours: 12
+    cookie-secure: true
+    allowed-origins: ${ADMIN_ALLOWED_ORIGINS:}
+    bootstrap:
+      email: ${ADMIN_BOOTSTRAP_EMAIL:}
+      password: ${ADMIN_BOOTSTRAP_PASSWORD:}
   jwt:
     secret: ${JWT_SECRET}
     access-token-ttl-minutes: 15
