@@ -99,6 +99,12 @@ export interface PlantPhoto {
   caption: string | null;
 }
 
+/** Mirrors UpdatePlantPhotoRequest (PUT /v1/plants/{id}/photos/{photoId}); a null `caption` removes the note. */
+export interface UpdatePlantPhotoRequest {
+  takenAt: string;
+  caption: string | null;
+}
+
 /** Mirrors AddPlantPhotoRequest (POST /v1/plants/{id}/photos). A null `takenAt` means now. */
 export interface AddPlantPhotoRequest {
   photoKey: string;

@@ -1,5 +1,10 @@
 import { ApiError } from '@/lib/auth/api-client';
-import type { AddPlantPhotoRequest, CreatePlantRequest, UpdatePlantRequest } from '@/lib/plant/types';
+import type {
+  AddPlantPhotoRequest,
+  CreatePlantRequest,
+  UpdatePlantPhotoRequest,
+  UpdatePlantRequest,
+} from '@/lib/plant/types';
 import { useAuthStore } from '@/stores/auth-store';
 
 import * as plantService from './plant-service';
@@ -31,6 +36,12 @@ export function usePlantActions() {
     },
     addPlantPhoto(plantId: string, request: AddPlantPhotoRequest) {
       return withSession(() => plantService.addPlantPhoto(plantId, request));
+    },
+    updatePlantPhoto(plantId: string, photoId: string, request: UpdatePlantPhotoRequest) {
+      return withSession(() => plantService.updatePlantPhoto(plantId, photoId, request));
+    },
+    deletePlantPhoto(plantId: string, photoId: string) {
+      return withSession(() => plantService.deletePlantPhoto(plantId, photoId));
     },
   };
 }

@@ -1,5 +1,8 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** A growth photo's note; same limit as the backend's AddPlantPhotoRequest and UpdatePlantPhotoRequest. */
+export const CAPTION_MAX_LENGTH = 280;
+
 /**
  * The time between two growth photos, in whole calendar months once it's a month or more,
  * otherwise in days: "5 months", "1 month", "12 days", "Same day". `short` is for the
