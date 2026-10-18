@@ -11,8 +11,10 @@ import { WaterSelectionBar } from '@/features/garden/components/water-selection-
 import { useGarden } from '@/features/garden/use-garden';
 import { useGardenActions } from '@/features/garden/use-garden-actions';
 import { plantsNeedingWater } from '@/features/garden/watering';
+import { EditPlanterDialog } from '@/features/planters/components/edit-planter-dialog';
 import { useTheme } from '@/hooks/use-theme';
 import { describeError } from '@/lib/auth/api-client';
+import type { Room } from '@/lib/garden/types';
 import { logFailedUi } from '@/lib/logger';
 
 export function GardenScreen() {
@@ -23,6 +25,8 @@ export function GardenScreen() {
   const [waterError, setWaterError] = useState<string | null>(null);
   // The plants picked to water; null when the user isn't picking.
   const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null);
+  // The planter whose rename/delete dialog is open.
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
 
   // Taken per render, so "today" moves on if the screen stays open past midnight.
   const now = new Date();
@@ -84,21 +88,31 @@ export function GardenScreen() {
         {/* A tab, so no back button; plants are added with the tab bar's + button. */}
         <AppHeader
           right={
-            hasPlants &&
-            !selectedIds && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Water plants"
-                accessibilityHint="Pick the plants you watered"
-                onPress={startSelecting}
-                className="h-10 w-10 items-center justify-center active:opacity-70">
-                {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
-                <SymbolView
-                  name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
-                  tintColor={theme.water}
-                  size={22}
-                />
-              </Pressable>
+            // While picking plants, Select all takes the water icon's spot (both are h-10),
+            // so nothing on the page moves when selection mode starts.
+            selectedIds ? (
+              <Button
+                label={allSelected ? 'Deselect all' : 'Select all'}
+                accessibilityLabel={`${allSelected ? 'Deselect' : 'Select'} all plants in the garden`}
+                variant="ghost"
+                onPress={() => selectMany(allPlantIds, !allSelected)}
+              />
+            ) : (
+              hasPlants && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Water plants"
+                  accessibilityHint="Pick the plants you watered"
+                  onPress={startSelecting}
+                  className="h-10 w-10 items-center justify-center active:opacity-70">
+                  {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
+                  <SymbolView
+                    name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
+                    tintColor={theme.water}
+                    size={22}
+                  />
+                </Pressable>
+              )
             )
           }
         />
@@ -123,18 +137,6 @@ export function GardenScreen() {
               </View>
             ) : (
               <>
-                {/* Only while picking plants. It takes the place of the water card, which hides
-                    then, so the rooms barely move when selection mode starts. */}
-                {selectedIds && (
-                  <View className="flex-row justify-end">
-                    <Button
-                      label={allSelected ? 'Deselect all' : 'Select all'}
-                      accessibilityLabel={`${allSelected ? 'Deselect' : 'Select'} all plants in the garden`}
-                      variant="ghost"
-                      onPress={() => selectMany(allPlantIds, !allSelected)}
-                    />
-                  </View>
-                )}
                 {/* Hidden while picking plants, so there's only one Water button on screen. */}
                 {due.length > 0 && !selectedIds && (
                   <WaterDueCard
@@ -152,6 +154,7 @@ export function GardenScreen() {
                     selection={
                       selectedIds ? { selectedIds, onToggle: toggleSelected, onSelectMany: selectMany } : undefined
                     }
+                    onEdit={room.id !== null ? () => setEditingRoom(room) : undefined}
                   />
                 ))}
               </>
@@ -166,6 +169,18 @@ export function GardenScreen() {
             onCancel={() => setSelectedIds(null)}
             loading={isWatering}
             error={waterError}
+          />
+        )}
+
+        {editingRoom?.id && (
+          <EditPlanterDialog
+            planter={{ id: editingRoom.id, name: editingRoom.name, plantCount: editingRoom.plants.length }}
+            onClose={() => setEditingRoom(null)}
+            onChanged={() => {
+              setEditingRoom(null);
+              // A deleted planter's plants now show up under "Other plants".
+              refresh();
+            }}
           />
         )}
       </SafeAreaView>

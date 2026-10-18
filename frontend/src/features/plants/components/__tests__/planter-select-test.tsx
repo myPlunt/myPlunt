@@ -18,7 +18,7 @@ const planters = [
 ];
 
 beforeEach(() => {
-  jest.mocked(usePlanterActions).mockReturnValue({ createPlanter });
+  jest.mocked(usePlanterActions).mockReturnValue({ createPlanter, renamePlanter: jest.fn(), deletePlanter: jest.fn() });
 });
 
 afterEach(() => {
