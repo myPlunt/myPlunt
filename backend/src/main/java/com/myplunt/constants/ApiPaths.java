@@ -10,7 +10,25 @@ public final class ApiPaths {
         private Ops() {}
     }
 
-    // What the app logs (actions, warnings, errors), written to the backend's log file.
+    // The admin dashboard's API. Its own security chain (AdminSecurityConfig): only admin tokens work here.
+    public static final class Admin {
+        public static final String BASE = "/v1/admin";
+        public static final String AUTH = BASE + "/auth";
+        public static final String LOGIN = AUTH + "/login";
+        public static final String REFRESH = AUTH + "/refresh";
+        public static final String LOGOUT = AUTH + "/logout";
+        public static final String ME = BASE + "/me";
+        public static final String LOGS = BASE + "/logs";
+        public static final String LOGS_OVERVIEW = LOGS + "/overview";
+        public static final String SPECIES = BASE + "/species";
+        public static final String PENDING_SPECIES = SPECIES + "/pending";
+        public static final String PENDING_SPECIES_BY_ID = PENDING_SPECIES + "/{id}";
+        public static final String APPROVE_SPECIES = PENDING_SPECIES_BY_ID + "/approve";
+
+        private Admin() {}
+    }
+
+    // What the app logs (actions, warnings, errors), stored in the logs table.
     public static final class ClientLogs {
         public static final String BASE = "/v1/client-logs";
 

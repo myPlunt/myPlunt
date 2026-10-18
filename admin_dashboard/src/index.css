@@ -1,0 +1,44 @@
+@import 'tailwindcss';
+
+/*
+ * The same palette and fonts as web_landing (src/index.css there). Every color used in the
+ * dashboard must be defined here and referenced via its utility (bg-sand, text-green...).
+ */
+
+/* static: the charts read the colors as CSS variables (var(--color-leaf)), so every one is emitted. */
+@theme static {
+  --color-*: initial;
+
+  /* Brand main colors */
+  --color-cream: #eae4d7;
+  --color-sand: #e7dcc5;
+  --color-green: #3b5232;
+  --color-leaf: #527246;
+  --color-soil: #8d7250;
+
+  /* Neutral colors */
+  --color-ink: #4b5046;
+  --color-charcoal: #1c1f1a;
+  --color-shadow: #1f291a;
+  --color-white: #ffffff;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* Primary: headlines. Secondary: subtitles, body, UI & buttons. */
+  --font-primary: 'Lateef', Georgia, serif;
+  --font-secondary: 'DM Sans', system-ui, sans-serif;
+
+  --shadow-card: 0 12px 32px 0 color-mix(in srgb, var(--color-shadow) 14%, transparent);
+}
+
+@layer base {
+  body {
+    @apply bg-sand font-secondary text-charcoal antialiased;
+    font-variation-settings: 'opsz' 14;
+  }
+
+  .recharts-wrapper,
+  .recharts-wrapper * {
+    outline: none;
+  }
+}

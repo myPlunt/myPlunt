@@ -12,6 +12,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @TestPropertySource(properties = {
 		"app.jwt.secret=test-only-secret-test-only-secret-32b",
+		"app.admin.jwt.secret=test-only-admin-secret-test-only-admin-32b",
 		"app.storage.endpoint=http://localhost:9000",
 		"app.storage.bucket=myplunt-test",
 		"app.storage.access-key=test",
