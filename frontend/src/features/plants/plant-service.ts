@@ -1,6 +1,14 @@
 import { apiFetch } from '@/lib/auth/api-client';
 import { logAction } from '@/lib/logger';
-import type { CreatePlantRequest, Plant, PlantDetails, UpdatePlantRequest, WateringHistory } from '@/lib/plant/types';
+import type {
+  AddPlantPhotoRequest,
+  CreatePlantRequest,
+  Plant,
+  PlantDetails,
+  PlantPhoto,
+  UpdatePlantRequest,
+  WateringHistory,
+} from '@/lib/plant/types';
 import { createRequestId } from '@/lib/request-id';
 import { timeZoneQuery } from '@/lib/time-zone';
 
@@ -28,4 +36,18 @@ export async function deletePlant(plantId: string): Promise<void> {
 
 export async function getWateringHistory(plantId: string): Promise<WateringHistory> {
   return apiFetch<WateringHistory>(`/v1/plants/${plantId}/waterings${timeZoneQuery()}`);
+}
+
+/** The plant's growth photos, oldest first. */
+export async function getPlantPhotos(plantId: string): Promise<PlantPhoto[]> {
+  return apiFetch<PlantPhoto[]>(`/v1/plants/${plantId}/photos`);
+}
+
+export async function addPlantPhoto(plantId: string, request: AddPlantPhotoRequest): Promise<PlantPhoto> {
+  const requestId = createRequestId();
+  logAction('plant_photo_add_submitted', {
+    requestId,
+    context: { plant_id: plantId, has_caption: request.caption !== null },
+  });
+  return apiFetch<PlantPhoto>(`/v1/plants/${plantId}/photos`, { method: 'POST', body: request, requestId });
 }

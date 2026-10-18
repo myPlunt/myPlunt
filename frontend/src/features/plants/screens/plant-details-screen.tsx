@@ -12,10 +12,12 @@ import { Shadow } from '@/constants/theme';
 import { WateringPill } from '@/features/garden/components/watering-pill';
 import { lastWateredLabel } from '@/features/garden/watering';
 import { DetailRow } from '@/features/plants/components/detail-row';
-import { PlantPhoto } from '@/features/plants/components/plant-photo';
+import { GrowthSection } from '@/features/plants/components/growth-section';
+import { PhotoCarousel } from '@/features/plants/components/photo-carousel';
 import { lightOptions } from '@/features/plants/light-options';
 import { usePlant } from '@/features/plants/use-plant';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
+import { usePlantPhotos } from '@/features/plants/use-plant-photos';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logAction, logFailedUi } from '@/lib/logger';
@@ -78,6 +80,11 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
 
 function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
   const router = useRouter();
+  // Empty while loading or on an error: the carousel then falls back to the plant's own photo.
+  const photos = usePlantPhotos(plant.id).photos ?? [];
+  // null shows the newest photo, also after a new one was added.
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const shownIndex = Math.min(selectedIndex ?? photos.length - 1, photos.length - 1);
   // Taken per render, so "Today" moves on if the screen stays open past midnight.
   const now = new Date();
   const light = lightOptions.find((option) => option.value === plant.light);
@@ -88,11 +95,12 @@ function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
     <>
       {/* The name belongs to the photo, so it sits closer to it than the page's gap-6. */}
       <View className="gap-3">
-        <PlantPhoto
-          photoUrl={plant.photoUrl}
-          accessibilityLabel={`Photo of ${plant.name}`}
-          className="aspect-square w-full rounded-3xl border-[1.5px] border-input-border"
-          iconSize={64}
+        <PhotoCarousel
+          plantName={plant.name}
+          photos={photos}
+          fallbackUrl={plant.photoUrl}
+          index={shownIndex}
+          onChange={setSelectedIndex}
         />
 
         <View>
@@ -117,6 +125,15 @@ function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
           <WateringPill plant={plant} now={now} />
         </View>
       </View>
+
+      <GrowthSection
+        plantName={plant.name}
+        photos={photos}
+        selectedIndex={shownIndex}
+        onSelect={setSelectedIndex}
+        onSeeAll={() => router.push({ pathname: '/plant/[id]/growth', params: { id: plant.id } })}
+        onAdd={() => router.push({ pathname: '/plant/[id]/add-photo', params: { id: plant.id } })}
+      />
 
       <LinkCard
         title="Watering history"
