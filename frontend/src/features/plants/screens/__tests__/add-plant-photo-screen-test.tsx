@@ -65,6 +65,26 @@ describe('AddPlantPhotoScreen', () => {
     expect(back).toHaveBeenCalled();
   });
 
+  it('saves the date the user picked instead of the one from the photo', async () => {
+    await render(<AddPlantPhotoScreen plantId="p1" />);
+
+    await user.press(screen.getByRole('button', { name: /Change the date/ }));
+    await user.press(screen.getByRole('button', { name: 'Previous year' }));
+    const day = new Date(2025, 7, 5);
+    await user.press(
+      screen.getByRole('button', {
+        name: day.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }),
+      }),
+    );
+    await user.press(screen.getByRole('button', { name: 'Add to timeline' }));
+
+    expect(addPlantPhoto).toHaveBeenCalledWith('p1', {
+      photoKey: 'plants/u/growth.jpg',
+      takenAt: new Date(2025, 7, 5, 12).toISOString(),
+      caption: null,
+    });
+  });
+
   it("can't be saved until a photo has been uploaded", async () => {
     mockPhoto({ uri: null, key: null, takenAt: null });
     await render(<AddPlantPhotoScreen plantId="p1" />);
