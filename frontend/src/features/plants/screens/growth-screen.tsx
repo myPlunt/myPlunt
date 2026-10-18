@@ -35,7 +35,7 @@ export function GrowthScreen({ plantId }: { plantId: string }) {
           right={
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Add a growth photo"
+              accessibilityLabel="Add a new photo"
               onPress={() => router.push({ pathname: '/plant/[id]/add-photo', params: { id: plantId } })}
               className="h-10 w-10 items-center justify-center rounded-full bg-action-primary active:opacity-70">
               {/* tintColor is a colour prop, so it reads the theme instead of a class. */}

@@ -68,10 +68,10 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
   }
 
   return (
-    <NotebookPage title="Add a growth photo">
+    <NotebookPage title="Add a new photo">
       <RuledLine>
         <Text className="type-body-medium text-text-secondary" numberOfLines={1} adjustsFontSizeToFit>
-          Snap how your plant looks today.
+          Show how your plant looks today.
         </Text>
       </RuledLine>
 

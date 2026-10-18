@@ -28,13 +28,14 @@ export function GrowthSection({ plantName, photos, selectedIndex, onSelect, onSe
   const scrollRef = useRef<ScrollView>(null);
   const first = photos[0]?.takenAt;
   const last = photos.at(-1)?.takenAt;
+  const span = photos.length > 1 && first && last ? timeBetween(first, last) : null;
 
   return (
     // Shadow goes through style so it sets both iOS shadow* and Android elevation.
     <View className="gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4" style={Shadow.card}>
       <View className="flex-row items-center justify-between gap-4">
         <Text className="type-label text-accent" numberOfLines={1}>
-          {photos.length > 1 && first && last ? `GROWTH · ${timeBetween(first, last).toUpperCase()}` : 'GROWTH'}
+          {span && span !== 'Same day' ? `Growing for ${span}` : 'GROWTH'}
         </Text>
         {photos.length > 0 && (
             <Pressable accessibilityRole="button" accessibilityLabel="See all growth photos" onPress={onSeeAll} hitSlop={8} className="active:opacity-70">
@@ -91,7 +92,7 @@ export function GrowthSection({ plantName, photos, selectedIndex, onSelect, onSe
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Add a growth photo"
+          accessibilityLabel="Add a new photo"
           onPress={onAdd}
           className={`items-center gap-1 active:opacity-70 ${photos.length > 0 ? 'ml-2' : ''}`}>
           <View className="h-[53px] w-[53px] items-center justify-center rounded-xl border-2 border-dashed border-primary">

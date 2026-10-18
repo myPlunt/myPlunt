@@ -102,7 +102,7 @@ describe('PlantDetailsScreen', () => {
     await render(<PlantDetailsScreen plantId="p1" />);
 
     expect(screen.getByText('2 / 2')).toBeOnTheScreen();
-    expect(screen.getByText('GROWTH · 5 MONTHS')).toBeOnTheScreen();
+    expect(screen.getByText('Growing for 5 months')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Previous photo' }));
 
     expect(screen.getByText('1 / 2')).toBeOnTheScreen();
@@ -141,7 +141,7 @@ describe('PlantDetailsScreen', () => {
 
     await user.press(screen.getByRole('button', { name: 'See all growth photos' }));
     expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]/growth', params: { id: 'p1' } });
-    await user.press(screen.getByRole('button', { name: 'Add a growth photo' }));
+    await user.press(screen.getByRole('button', { name: 'Add a new photo' }));
     expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]/add-photo', params: { id: 'p1' } });
   });
 
