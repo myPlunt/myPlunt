@@ -2,8 +2,10 @@ package com.myplunt.plant;
 
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
+import com.myplunt.plant.dto.AddPlantPhotoRequest;
 import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
+import com.myplunt.plant.dto.PlantPhotoResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.plant.dto.WateringHistoryResponse;
@@ -216,6 +218,37 @@ class PlantControllerTest {
                 .expectStatus().isOk()
                 .expectBody(WateringHistoryResponse.class)
                 .isEqualTo(history);
+    }
+
+    @Test
+    void addPhoto_returnsTheCreatedPhoto() {
+        UUID userId = authenticateAsJane();
+        AddPlantPhotoRequest request = new AddPlantPhotoRequest("plants/u/growth.jpg", null, "First split leaf!");
+        PlantPhotoResponse photo = new PlantPhotoResponse(
+                UUID.randomUUID(), "https://storage.test/growth.jpg?signed", Instant.parse("2026-10-18T08:00:00Z"), "First split leaf!");
+        when(plantService.addPhoto(userId, plantId, request)).thenReturn(photo);
+
+        restTestClient.post().uri("/v1/plants/{plantId}/photos", plantId)
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody(PlantPhotoResponse.class)
+                .isEqualTo(photo);
+    }
+
+    @Test
+    void addPhoto_rejectsAMissingPhotoKey() {
+        authenticateAsJane();
+
+        restTestClient.post().uri("/v1/plants/{plantId}/photos", plantId)
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"caption\": \"New leaf\"}")
+                .exchange()
+                .expectStatus().isBadRequest();
+        verify(plantService, never()).addPhoto(any(), any(), any());
     }
 
 }

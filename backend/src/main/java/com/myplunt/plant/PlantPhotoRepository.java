@@ -18,6 +18,9 @@ public interface PlantPhotoRepository extends JpaRepository<PlantPhoto, UUID> {
             """)
     List<LatestPhoto> findLatestPhotos(Collection<UUID> plantIds);
 
+    // The growth timeline, oldest first.
+    List<PlantPhoto> findByPlantIdOrderByTakenAtAsc(UUID plantId);
+
     // Every photo the plant ever had, so they can be removed from storage along with it.
     @Query("select p.photoKey from PlantPhoto p where p.plant.id = :plantId")
     List<String> findPhotoKeysByPlantId(UUID plantId);

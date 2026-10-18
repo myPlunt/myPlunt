@@ -3,8 +3,10 @@ package com.myplunt.plant;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.garden.Planter;
 import com.myplunt.garden.PlanterRepository;
+import com.myplunt.plant.dto.AddPlantPhotoRequest;
 import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
+import com.myplunt.plant.dto.PlantPhotoResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.plant.dto.WateringHistoryResponse;
@@ -371,6 +373,49 @@ class PlantServiceTest {
 
         verify(plantRepository).delete(george);
         verify(storageService).deleteObject("plants/u/b.jpg");
+    }
+
+    @Test
+    void addPhoto_confirmsTheUploadAndSavesItWithItsDateAndNote() {
+        ownPlant("Vera");
+        String key = "plants/" + userId + "/growth.jpg";
+        Instant takenAt = Instant.parse("2026-08-20T10:00:00Z");
+        // Gives the saved photo an id, as the database would.
+        when(plantPhotoRepository.save(any())).thenAnswer(invocation -> {
+            PlantPhoto photo = invocation.getArgument(0);
+            ReflectionTestUtils.setField(photo, "id", UUID.randomUUID());
+            return photo;
+        });
+        when(storageService.createReadUrl(key)).thenReturn("https://storage.test/growth.jpg?signed");
+
+        PlantPhotoResponse response =
+                plantService().addPhoto(userId, plantId, new AddPlantPhotoRequest(key, takenAt, "  First split leaf!  "));
+
+        verify(storageService).confirmUpload(userId, key);
+        assertThat(response.url()).isEqualTo("https://storage.test/growth.jpg?signed");
+        assertThat(response.takenAt()).isEqualTo(takenAt);
+        assertThat(response.caption()).isEqualTo("First split leaf!");
+    }
+
+    @Test
+    void addPhoto_rejectsAPlantThatHasDiedAndSavesNothing() {
+        ownPlant("Vera").setAlive(false);
+
+        assertThatThrownBy(() -> plantService().addPhoto(
+                        userId, plantId, new AddPlantPhotoRequest("plants/u/growth.jpg", null, null)))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.CONFLICT);
+        verify(storageService, never()).confirmUpload(any(), any());
+        verify(plantPhotoRepository, never()).save(any());
+    }
+
+    @Test
+    void getPhotos_throwsNotFoundForAPlantTheUserDoesNotOwn() {
+        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> plantService().getPhotos(userId, plantId)).isInstanceOf(IllegalStateException.class);
+        verify(plantPhotoRepository, never()).findByPlantIdOrderByTakenAtAsc(any());
     }
 
 }

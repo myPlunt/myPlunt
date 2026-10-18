@@ -35,6 +35,8 @@ public class PlantPhoto {
     @Column(name = "taken_at")
     private Instant takenAt;
 
+    private String caption;
+
     protected PlantPhoto() {}
 
     public PlantPhoto(Plant plant, UUID uploadedBy, String photoKey, Instant takenAt) {
@@ -62,5 +64,13 @@ public class PlantPhoto {
 
     public Instant getTakenAt() {
         return takenAt;
+    }
+
+    public String getCaption() {
+        return caption;
+    }
+
+    public void setCaption(String caption) {
+        this.caption = caption;
     }
 }

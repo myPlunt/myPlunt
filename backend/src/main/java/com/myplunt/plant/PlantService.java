@@ -6,8 +6,10 @@ import com.myplunt.common.logging.LogEvent;
 import com.myplunt.common.logging.StructuredLog;
 import com.myplunt.garden.Planter;
 import com.myplunt.garden.PlanterRepository;
+import com.myplunt.plant.dto.AddPlantPhotoRequest;
 import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
+import com.myplunt.plant.dto.PlantPhotoResponse;
 import com.myplunt.plant.dto.PlantResponse;
 import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.plant.dto.WateringHistoryResponse;
@@ -243,6 +245,40 @@ public class PlantService {
                 consistency.onTimePercent(),
                 consistency.overdue(),
                 newestFirst);
+    }
+
+    // Also for plants that have died, so their growth stays viewable.
+    @Transactional(readOnly = true)
+    public List<PlantPhotoResponse> getPhotos(UUID ownerId, UUID plantId) {
+        findOwnPlant(ownerId, plantId);
+        return plantPhotoRepository.findByPlantIdOrderByTakenAtAsc(plantId).stream()
+                .map(this::toPhotoResponse)
+                .toList();
+    }
+
+    // The newest photo (by takenAt) is the plant's main photo, so an old library photo lands
+    // in the middle of the timeline without replacing it.
+    @Transactional
+    public PlantPhotoResponse addPhoto(UUID ownerId, UUID plantId, AddPlantPhotoRequest request) {
+        Plant plant = findOwnPlant(ownerId, plantId);
+        if (!plant.isAlive()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't get new photos");
+        }
+        // Confirmed before saving, for the same reasons as in create.
+        storageService.confirmUpload(ownerId, request.photoKey());
+
+        PlantPhoto photo = new PlantPhoto(
+                plant, ownerId, request.photoKey(), request.takenAt() == null ? Instant.now() : request.takenAt());
+        photo.setCaption(cleanNotes(request.caption()));
+        PlantPhoto saved = plantPhotoRepository.save(photo);
+        auditLog.recorded(AuditEvent.PLANT_PHOTO_ADDED, ownerId, ownerId,
+                Map.of("plant_id", plantId, "photo_id", saved.getId(), "has_caption", saved.getCaption() != null));
+        return toPhotoResponse(saved);
+    }
+
+    private PlantPhotoResponse toPhotoResponse(PlantPhoto photo) {
+        return new PlantPhotoResponse(
+                photo.getId(), storageService.createReadUrl(photo.getPhotoKey()), photo.getTakenAt(), photo.getCaption());
     }
 
     // Each plant's current watering streak (see WateringConsistency), in one query for all of them.
