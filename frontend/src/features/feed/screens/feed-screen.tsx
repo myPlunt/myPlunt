@@ -112,7 +112,9 @@ function FeedRows({ posts, sides, heights, onMeasure }: FeedRowsProps) {
         <View
           key={post.id}
           onLayout={(e) => onMeasure(post.id, e.nativeEvent.layout.height)}
-          className={rows[i].side === 'right' ? 'self-end' : 'self-start'}
+          // Every post sits in a slot as wide as a sticky note (w-[136px]), centred, so the
+          // narrower plant cards line up with the middle of the notes instead of their edge.
+          className={`w-[136px] items-center ${rows[i].side === 'right' ? 'self-end' : 'self-start'}`}
           style={{ marginTop: marginTops[i] }}>
           {post.type === 'question' ? <StickyNote post={post} /> : <FeedPlantCard post={post} />}
         </View>
