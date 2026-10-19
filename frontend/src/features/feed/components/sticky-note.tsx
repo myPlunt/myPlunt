@@ -14,10 +14,10 @@ export function StickyNote({ post }: { post: QuestionPost }) {
   const tilt = ((hash(post.id) >>> 0) % 7) - 3;
 
   return (
-    // Rotation and shadow are per-note values, so they go through style; the shadow sets both
-    // iOS shadow* and Android elevation.
+    // Fills the slot it's given, like a plant card. Rotation and shadow are per-note values, so
+    // they go through style; the shadow sets both iOS shadow* and Android elevation.
     <View
-      className={`w-[136px] gap-2 rounded-sm p-3 ${noteColor(post.id)}`}
+      className={`w-full gap-2 rounded-sm p-3 ${noteColor(post.id)}`}
       style={[Shadow.card, { transform: [{ rotate: `${tilt}deg` }] }]}>
       <View className="absolute -top-2 h-4 w-12 self-center bg-background-element opacity-70" />
       <Text className="type-label uppercase text-text-secondary" numberOfLines={1}>

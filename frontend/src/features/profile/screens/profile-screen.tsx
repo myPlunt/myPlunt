@@ -90,15 +90,14 @@ export function ProfileScreen() {
                   <Button label="Try again" variant="secondary" onPress={posts.retry} />
                 </View>
               ) : posts.posts?.length ? (
-                // Newest first, in reading order.
-                <View className="flex-row flex-wrap gap-4">
-                  {posts.posts.map((post) =>
-                    post.type === 'question' ? (
-                      <StickyNote key={post.id} post={post} />
-                    ) : (
-                      <FeedPlantCard key={post.id} post={post} />
-                    ),
-                  )}
+                // Newest first, three to a row. Each cell is a third wide with padding instead of
+                // gap, which would push the third one onto the next row; -m-1.5 undoes the outer edge.
+                <View className="-m-1.5 flex-row flex-wrap">
+                  {posts.posts.map((post) => (
+                    <View key={post.id} className="w-1/3 p-1.5">
+                      {post.type === 'question' ? <StickyNote post={post} /> : <FeedPlantCard post={post} />}
+                    </View>
+                  ))}
                 </View>
               ) : (
                 <Text className="type-body-medium text-text-secondary">

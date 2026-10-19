@@ -14,8 +14,8 @@ export function FeedPlantCard({ post }: { post: PlantPost }) {
   const who = isOwn ? 'You' : post.author.username;
 
   return (
-    // As wide as a sticky note, so plant posts and questions line up as one column of equals.
-    <View className="w-[136px] gap-1">
+    // Fills the slot it's given (the feed's 136px, a third of the profile), like a sticky note.
+    <View className="w-full gap-1">
       <Text className="type-label uppercase text-accent" numberOfLines={1}>
         {who} · {post.type === 'new_photo' ? 'new photo' : 'new plant'}
       </Text>
