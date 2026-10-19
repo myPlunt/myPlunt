@@ -4,7 +4,7 @@ import { Shadow } from '@/constants/theme';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import type { Post } from '@/lib/post/types';
 
-/** A shared new plant hanging off the vine: who added it, then the garden's plant card look. */
+/** A shared plant or plant photo hanging off the vine: who and what, then the garden's plant card look. */
 export function FeedPlantCard({ post }: { post: Post }) {
   // The feed only has the user and their friends; null friendship means it's the user's own.
   const who = post.author.friendship === null ? 'You' : post.author.username;
@@ -12,7 +12,7 @@ export function FeedPlantCard({ post }: { post: Post }) {
   return (
     <View className="w-[148px] gap-1">
       <Text className="type-label uppercase text-accent" numberOfLines={1}>
-        {who} · new plant
+        {who} · {post.type === 'photo' ? 'new photo' : 'new plant'}
       </Text>
       {/* Shadow goes through style so it sets both iOS shadow* and Android elevation. */}
       <View className="rounded-3xl bg-background-element p-2" style={Shadow.card}>

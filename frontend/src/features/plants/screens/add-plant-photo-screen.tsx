@@ -26,7 +26,6 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
   // back that photo's own date.
   const [pickedDate, setPickedDate] = useState<{ uri: string; takenAt: string } | null>(null);
   const [caption, setCaption] = useState('');
-  // Placeholder: not sent yet, waiting for the feed's post endpoint.
   const [shareToFeed, setShareToFeed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [captionError, setCaptionError] = useState<string | undefined>();
@@ -56,6 +55,7 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
         photoKey: photo.key,
         takenAt,
         caption: caption.trim() === '' ? null : caption,
+        shareToFeed,
       });
       close();
     } catch (err) {
