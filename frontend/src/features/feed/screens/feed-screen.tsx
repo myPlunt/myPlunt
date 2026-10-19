@@ -8,6 +8,7 @@ import { DayMark } from '@/features/feed/components/day-mark';
 import { FeedPlantCard } from '@/features/feed/components/feed-plant-card';
 import { VineStem } from '@/features/feed/components/vine-stem';
 import { groupByDay } from '@/features/feed/feed-days';
+import { feedSides } from '@/features/feed/feed-sides';
 import { useFeed } from '@/features/feed/use-feed';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -16,7 +17,8 @@ export function FeedScreen() {
   const { posts, error, isLoading, retry } = useFeed();
   const scrollRef = useRef<ScrollView>(null);
   const days = groupByDay(posts ?? [], new Date());
-  // Counts posts across the days, so the cards keep alternating sides of the stem.
+  // Across the days, in the order they're shown, so the three-in-a-row limit spans day marks.
+  const sides = feedSides(days.flatMap((day) => day.posts.map((post) => post.id)));
   let postIndex = 0;
 
   return (
@@ -50,10 +52,16 @@ export function FeedScreen() {
             {days.map((day) => (
               <View key={day.label}>
                 {day.posts.map((post, i) => {
-                  const side = postIndex++ % 2 === 0 ? 'self-end' : 'self-start';
-                  // Each card starts beside the one before it, so they zigzag up the stem.
+                  const side = sides[postIndex];
+                  const previous = sides[postIndex - 1];
+                  postIndex++;
+                  // A card on the other side from the one before starts beside it, so they
+                  // zigzag up the stem; on the same side it goes below, so they don't overlap.
+                  const tuck = i > 0 && side !== previous ? '-mt-16' : 'mt-3';
                   return (
-                    <View key={post.id} className={`${side} ${i > 0 ? '-mt-16' : ''}`}>
+                    <View
+                      key={post.id}
+                      className={`${side === 'right' ? 'self-end' : 'self-start'} ${i > 0 ? tuck : ''}`}>
                       <FeedPlantCard post={post} />
                     </View>
                   );
