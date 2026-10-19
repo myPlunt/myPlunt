@@ -47,6 +47,13 @@ export function VineStem() {
               />
             ))}
           </Svg>
+          {/* The stem carries on straight below the box, so pulling past the bottom (the iOS
+              bounce) shows more stem instead of empty space. Computed from the stem's
+              width and centre, so it needs a style. */}
+          <View
+            className="absolute top-full h-[2000px] bg-primary"
+            style={{ left: (STEM_BOX_WIDTH - STEM_BASE_WIDTH) / 2, width: STEM_BASE_WIDTH }}
+          />
           {/* The leaf from the Garden tab (Material's leaf on Android, whose tab shows a
               potted plant). Positioned from the computed tip, so it needs a style, with its
               stalk on the stem's tip. */}

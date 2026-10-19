@@ -84,7 +84,7 @@ export function PlantForm({
   // The owner's own setting only: left empty, the species' frequency keeps applying.
   const [wateringEveryDays, setWateringEveryDays] = useState(plant?.wateringEveryDays?.toString() ?? '');
   const [notes, setNotes] = useState(plant?.notes ?? '');
-  // Placeholder: not sent yet, waiting for the feed's post endpoint.
+  // Only for a new plant: an edit isn't news for the feed.
   const [shareToFeed, setShareToFeed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -131,7 +131,7 @@ export function PlantForm({
         // Without a new photo this is null, which keeps an edited plant's current photo.
         photoKey: photo.key,
       };
-      onSaved(plant ? await updatePlant(plant.id, request) : await createPlant(request));
+      onSaved(plant ? await updatePlant(plant.id, request) : await createPlant({ ...request, shareToFeed }));
     } catch (err) {
       logFailedUi('plant_save_failed_ui', err, { mode: plant ? 'edit' : 'create' });
       if (err instanceof ApiError && err.fieldErrors) {

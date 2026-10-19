@@ -152,6 +152,7 @@ describe('PlantForm', () => {
         planterId: null,
         speciesId: null,
         photoKey: null,
+        shareToFeed: false,
       });
     });
 
@@ -166,6 +167,7 @@ describe('PlantForm', () => {
       await user.type(screen.getByLabelText('Notes'), 'Found at a flea market');
       await user.press(screen.getByRole('button', { name: 'Planter' }));
       await user.press(screen.getByRole('radio', { name: 'Kitchen windowsill' }));
+      await user.press(screen.getByRole('checkbox', { name: 'Share this with your friends in the main feed' }));
 
       await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
 
@@ -178,6 +180,7 @@ describe('PlantForm', () => {
           planterId: 'kitchen',
           speciesId: 'monstera',
           photoKey: null,
+          shareToFeed: true,
         }),
       );
     });

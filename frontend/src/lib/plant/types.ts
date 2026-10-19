@@ -26,6 +26,8 @@ export interface CreatePlantRequest {
   speciesId: string | null;
   /** Key from uploading a photo (features/photos); null for no photo. */
   photoKey: string | null;
+  /** Posts "new plant" to friends' feeds (GET /v1/posts/feed). Left out, it's false. */
+  shareToFeed?: boolean;
 }
 
 /**
@@ -46,7 +48,7 @@ export interface PlantDetails extends Plant {
  * Mirrors UpdatePlantRequest (PUT /v1/plants/{id}): the same fields as a new plant, and
  * null clears a field, except `photoKey`, where null keeps the current photo.
  */
-export type UpdatePlantRequest = CreatePlantRequest;
+export type UpdatePlantRequest = Omit<CreatePlantRequest, 'shareToFeed'>;
 
 /** Mirrors WateringResponse: one logged watering. `daysLate` is 0 when it was on time. */
 export interface Watering {
