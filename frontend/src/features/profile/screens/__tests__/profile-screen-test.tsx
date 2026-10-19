@@ -53,6 +53,18 @@ describe('ProfileScreen', () => {
     expect(titles).toEqual(['Why are my leaves red?', 'Gus the Fern']);
   });
 
+  it('shows only the kind of post picked in the filter', async () => {
+    mockedUseFeed.mockReturnValue({ posts: myPosts, error: null, isLoading: false, retry });
+    await render(<ProfileScreen />);
+
+    await user.press(screen.getByRole('tab', { name: 'Questions' }));
+    expect(screen.getByText('Why are my leaves red?')).toBeOnTheScreen();
+    expect(screen.queryByText('Gus the Fern')).toBeNull();
+
+    await user.press(screen.getByRole('tab', { name: 'New photos' }));
+    expect(screen.getByText('Nothing of this kind yet.')).toBeOnTheScreen();
+  });
+
   it('shows the error and retries when asked', async () => {
     mockedUseProfile.mockReturnValue({ user: null, error: 'User not found', isLoading: false, retry });
     await render(<ProfileScreen />);

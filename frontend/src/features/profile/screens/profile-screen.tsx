@@ -10,6 +10,7 @@ import { FeedPlantCard } from '@/features/feed/components/feed-plant-card';
 import { StickyNote } from '@/features/feed/components/sticky-note';
 import { getMyPosts } from '@/features/feed/feed-service';
 import { useFeed } from '@/features/feed/use-feed';
+import { PostFilter, type PostFilterValue } from '@/features/profile/components/post-filter';
 import { ProfileMenu, ProfileMenuButton } from '@/features/profile/components/profile-menu';
 import { useProfile } from '@/features/profile/use-profile';
 import { useTheme } from '@/hooks/use-theme';
@@ -19,6 +20,8 @@ export function ProfileScreen() {
   const router = useRouter();
   const { user, error, isLoading, retry } = useProfile();
   const posts = useFeed(getMyPosts);
+  const [filter, setFilter] = useState<PostFilterValue>('all');
+  const shown = posts.posts?.filter((post) => filter === 'all' || post.type === filter) ?? [];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   // Where the header sits and where the burger ends inside it, so the menu's icons start
   // right under the burger's box and continue the column at the same 40px step.
@@ -90,15 +93,22 @@ export function ProfileScreen() {
                   <Button label="Try again" variant="secondary" onPress={posts.retry} />
                 </View>
               ) : posts.posts?.length ? (
-                // Newest first, three to a row. Each cell is a third wide with padding instead of
-                // gap, which would push the third one onto the next row; -m-1.5 undoes the outer edge.
-                <View className="-m-1.5 flex-row flex-wrap">
-                  {posts.posts.map((post) => (
-                    <View key={post.id} className="w-1/3 p-1.5">
-                      {post.type === 'question' ? <StickyNote post={post} /> : <FeedPlantCard post={post} />}
+                <>
+                  <PostFilter value={filter} onChange={setFilter} />
+                  {shown.length ? (
+                    // Newest first, three to a row. Each cell is a third wide with padding instead of
+                    // gap, which would push the third one onto the next row; -m-1.5 undoes the outer edge.
+                    <View className="-m-1.5 flex-row flex-wrap">
+                      {shown.map((post) => (
+                        <View key={post.id} className="w-1/3 p-1.5">
+                          {post.type === 'question' ? <StickyNote post={post} /> : <FeedPlantCard post={post} />}
+                        </View>
+                      ))}
                     </View>
-                  ))}
-                </View>
+                  ) : (
+                    <Text className="type-body-medium text-text-secondary">Nothing of this kind yet.</Text>
+                  )}
+                </>
               ) : (
                 <Text className="type-body-medium text-text-secondary">
                   You haven&apos;t shared anything yet.
