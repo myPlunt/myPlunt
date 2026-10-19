@@ -53,7 +53,7 @@ export function FeedScreen() {
                   const side = postIndex++ % 2 === 0 ? 'self-end' : 'self-start';
                   // Each card starts beside the one before it, so they zigzag up the stem.
                   return (
-                    <View key={post.id} className={`${side} ${i > 0 ? '-mt-24' : ''}`}>
+                    <View key={post.id} className={`${side} ${i > 0 ? '-mt-16' : ''}`}>
                       <FeedPlantCard post={post} />
                     </View>
                   );

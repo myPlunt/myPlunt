@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Pressable, Text, View } from 'react-native';
 
 import { Shadow } from '@/constants/theme';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
@@ -6,26 +7,37 @@ import type { Post } from '@/lib/post/types';
 
 /** A shared plant or plant photo hanging off the vine: who and what, then the garden's plant card look. */
 export function FeedPlantCard({ post }: { post: Post }) {
+  const router = useRouter();
   // The feed only has the user and their friends; null friendship means it's the user's own.
-  const who = post.author.friendship === null ? 'You' : post.author.username;
+  const isOwn = post.author.friendship === null;
+  const who = isOwn ? 'You' : post.author.username;
 
   return (
-    <View className="w-[148px] gap-1">
+    <View className="w-[112px] gap-1">
       <Text className="type-label uppercase text-accent" numberOfLines={1}>
-        {who} · {post.type === 'photo' ? 'new photo' : 'new plant'}
+        {who} · {post.type === 'new_photo' ? 'new photo' : 'new plant'}
       </Text>
-      {/* Shadow goes through style so it sets both iOS shadow* and Android elevation. */}
-      <View className="rounded-3xl bg-background-element p-2" style={Shadow.card}>
+      {/* Only the user's own plants open: a plant page is owner-only until friends can view
+          one (GET /v1/plants/{id} answers 404 to anyone else). Shadow goes through style so
+          it sets both iOS shadow* and Android elevation. */}
+      <Pressable
+        disabled={!isOwn}
+        accessibilityRole={isOwn ? 'button' : undefined}
+        accessibilityLabel={post.plantName}
+        accessibilityHint={isOwn ? "Shows this plant's details" : undefined}
+        onPress={() => router.push({ pathname: '/plant/[id]', params: { id: post.plantId } })}
+        className="rounded-2xl bg-background-element p-1.5 active:opacity-70"
+        style={Shadow.card}>
         <PlantPhoto
           photoUrl={post.photoUrl}
           accessibilityLabel={`Photo of ${post.plantName}`}
-          className="aspect-square w-full rounded-2xl"
-          iconSize={32}
+          className="aspect-square w-full rounded-xl"
+          iconSize={24}
         />
-        <Text className="type-subtitle-large px-2 pb-1 pt-2 text-text" numberOfLines={1}>
+        <Text className="type-subtitle-small px-1 pb-0.5 pt-1.5 text-text" numberOfLines={1}>
           {post.plantName}
         </Text>
-      </View>
+      </Pressable>
     </View>
   );
 }
