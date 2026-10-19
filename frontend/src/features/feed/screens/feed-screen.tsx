@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useRef } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,20 +10,28 @@ import { DayMark } from '@/features/feed/components/day-mark';
 import { FeedPlantCard } from '@/features/feed/components/feed-plant-card';
 import { StickyNote } from '@/features/feed/components/sticky-note';
 import { VineStem } from '@/features/feed/components/vine-stem';
-import { groupByDay } from '@/features/feed/feed-days';
-import { feedSides } from '@/features/feed/feed-sides';
+import { groupByAge } from '@/features/feed/feed-days';
+import { rowOffsets } from '@/features/feed/feed-rows';
+import { feedSides, type Side } from '@/features/feed/feed-sides';
 import { useFeed } from '@/features/feed/use-feed';
 import { useTheme } from '@/hooks/use-theme';
+import type { Post } from '@/lib/post/types';
 
 export function FeedScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { posts, error, isLoading, retry } = useFeed();
-  const scrollRef = useRef<ScrollView>(null);
-  const days = groupByDay(posts ?? [], new Date());
-  // Across the days, in the order they're shown, so the three-in-a-row limit spans day marks.
-  const sides = feedSides(days.flatMap((day) => day.posts.map((post) => post.id)));
-  let postIndex = 0;
+  const days = groupByAge(posts ?? [], new Date());
+  // Across the days, in the order they're shown, so the in-a-row limit spans day marks.
+  const postIds = days.flatMap((day) => day.posts.map((post) => post.id));
+  const sideList = feedSides(postIds);
+  const sides = new Map(postIds.map((id, i) => [id, sideList[i]]));
+  // Each post's measured height, so a post on the other side can start halfway down the one before.
+  const [heights, setHeights] = useState(new Map<string, number>());
+
+  function measure(id: string, height: number) {
+    setHeights((current) => (current.get(id) === height ? current : new Map(current).set(id, height)));
+  }
 
   return (
     <View className="flex-1 bg-background">
@@ -45,11 +53,8 @@ export function FeedScreen() {
         />
 
         {/* No bottom padding: the stem runs to the edge, so it looks like it grows out from
-            under the tab bar. The newest growth is at the bottom, so the feed opens there. */}
-        <ScrollView
-          ref={scrollRef}
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
-          contentContainerClassName="w-full max-w-content grow self-center px-6">
+            under the tab bar. The newest growth is at the top, under today's mark. */}
+        <ScrollView contentContainerClassName="w-full max-w-content grow self-center px-6">
           {isLoading ? (
             // A colour prop, so it reads the theme instead of a class.
             <ActivityIndicator accessibilityLabel="Loading feed" color={theme.primary} className="mt-6" />
@@ -60,43 +65,58 @@ export function FeedScreen() {
             </View>
           ) : null}
 
-          {/* The vine grows upwards: the stem fills the whole area behind the posts, which hang
-              off both sides of it. Room at the top for its leaf, at the bottom for today's mark. */}
-          <View className="grow pb-16 pt-12">
+          {/* The stem fills the whole area behind the posts, which hang off both sides of it,
+              newest first: each group's mark (Today, Yesterday, This week, 2 weeks ago...)
+              sits on the stem above its posts. Room at the top for the stem's leaf. */}
+          <View className="grow pb-10 pt-8">
             <View className="absolute inset-0 items-center">
               <VineStem />
             </View>
             {days.map((day) => (
               <View key={day.label}>
-                {day.posts.map((post, i) => {
-                  const side = sides[postIndex];
-                  const previous = sides[postIndex - 1];
-                  postIndex++;
-                  // A card on the other side from the one before starts beside it, so they
-                  // zigzag up the stem; on the same side it goes below, so they don't overlap.
-                  const tuck = i > 0 && side !== previous ? '-mt-16' : 'mt-3';
-                  return (
-                    <View
-                      key={post.id}
-                      className={`${side === 'right' ? 'self-end' : 'self-start'} ${i > 0 ? tuck : ''}`}>
-                      {post.type === 'question' ? <StickyNote post={post} /> : <FeedPlantCard post={post} />}
-                    </View>
-                  );
-                })}
-                {!day.isToday && (
-                  <View className="items-center py-4">
-                    <DayMark label={day.label} />
-                  </View>
-                )}
+                <View className="items-center py-4">
+                  <DayMark label={day.label} />
+                </View>
+                <FeedRows posts={day.posts} sides={sides} heights={heights} onMeasure={measure} />
               </View>
             ))}
-            {/* Sits on the stem just above its base, where the stem is still centred. */}
-            <View className="absolute bottom-6 self-center">
-              <DayMark label="Today" />
-            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
+    </View>
+  );
+}
+
+// Space between posts on the same side, and the smallest gap to the last post on a post's side.
+const ROW_GAP = 16;
+
+interface FeedRowsProps {
+  posts: Post[];
+  sides: Map<string, Side>;
+  heights: Map<string, number>;
+  onMeasure: (id: string, height: number) => void;
+}
+
+/**
+ * One post per row, on its side of the stem. A post on the other side from the one before
+ * starts halfway down it (feed-rows.ts), so the vine zigzags without posts overlapping.
+ */
+function FeedRows({ posts, sides, heights, onMeasure }: FeedRowsProps) {
+  const rows = posts.map((post) => ({ id: post.id, side: sides.get(post.id) ?? 'left' }));
+  const { marginTops, paddingBottom } = rowOffsets(rows, heights, ROW_GAP);
+
+  // The offsets come from measured heights, so they go through style.
+  return (
+    <View style={{ paddingBottom }}>
+      {posts.map((post, i) => (
+        <View
+          key={post.id}
+          onLayout={(e) => onMeasure(post.id, e.nativeEvent.layout.height)}
+          className={rows[i].side === 'right' ? 'self-end' : 'self-start'}
+          style={{ marginTop: marginTops[i] }}>
+          {post.type === 'question' ? <StickyNote post={post} /> : <FeedPlantCard post={post} />}
+        </View>
+      ))}
     </View>
   );
 }

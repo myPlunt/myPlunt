@@ -23,6 +23,9 @@ export function StickyNote({ post }: { post: QuestionPost }) {
       <Text className="type-label uppercase text-text-secondary" numberOfLines={1}>
         {who}
       </Text>
+      <Text className="type-body-medium text-text" numberOfLines={6}>
+        {post.body}
+      </Text>
       {post.photoUrl && (
         <PlantPhoto
           photoUrl={post.photoUrl}
@@ -31,9 +34,6 @@ export function StickyNote({ post }: { post: QuestionPost }) {
           iconSize={20}
         />
       )}
-      <Text className="type-body-medium text-text" numberOfLines={6}>
-        {post.body}
-      </Text>
     </View>
   );
 }

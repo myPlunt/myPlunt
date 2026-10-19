@@ -15,7 +15,7 @@ const STRAIGHT_TOP = 40;
 
 /**
  * A wavy, irregular stem in a `width` x `height` box, as one SVG path per bend. It starts
- * at the bottom centre (where it meets the day mark) and climbs to the top centre (`tip`);
+ * at the bottom centre (in line with the tab bar's + button) and climbs to the top centre (`tip`);
  * each bend has its own length and sway so the curve never repeats.
  */
 export function vinePath(width: number, height: number, seed = 7) {
@@ -23,7 +23,7 @@ export function vinePath(width: number, height: number, seed = 7) {
   const centre = width / 2;
   // Leaves room for the curve's overshoot between points and half the stroke width.
   const maxSway = centre - 10;
-  // Straight for the first stretch, so the day mark near the base sits on the stem.
+  // Straight for the first stretch, so it runs into the tab bar's + button head-on.
   const base = Math.min(STRAIGHT_BASE, height);
   const points = [
     { x: centre, y: height },
