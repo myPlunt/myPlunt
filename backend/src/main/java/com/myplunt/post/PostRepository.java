@@ -23,4 +23,12 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             order by p.createdAt desc
             """)
     List<Post> findFeed(UUID userId, Collection<String> types, Limit limit);
+
+    // The user's own posts of the given types, newest first, with the same fetches as findFeed.
+    @Query("""
+            select p from Post p left join fetch p.plant left join fetch p.photo
+            where p.userId = :userId and p.postType in :types
+            order by p.createdAt desc
+            """)
+    List<Post> findOwn(UUID userId, Collection<String> types);
 }

@@ -36,4 +36,9 @@ public class PostController {
     public List<PostResponse> feed(@AuthenticationPrincipal User principal) {
         return postService.getFeed(principal.getId());
     }
+
+    @GetMapping(ApiPaths.Posts.MINE)
+    public List<PostResponse> mine(@AuthenticationPrincipal User principal) {
+        return postService.getOwnPosts(principal.getId());
+    }
 }

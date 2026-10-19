@@ -115,6 +115,8 @@ public final class ApiPaths {
         public static final String BASE = "/v1/posts";
         // The signed-in user's and their friends' posts, newest first.
         public static final String FEED = BASE + "/feed";
+        // The signed-in user's own posts, newest first (for their profile).
+        public static final String MINE = BASE + "/mine";
         // POST asks the user's friends a question; it shows up in the feed as a sticky note.
         public static final String QUESTIONS = BASE + "/questions";
 

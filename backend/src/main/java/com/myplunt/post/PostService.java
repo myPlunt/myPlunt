@@ -75,7 +75,17 @@ public class PostService {
     // The user's and their friends' posts, newest first.
     @Transactional(readOnly = true)
     public List<PostResponse> getFeed(UUID userId) {
-        List<Post> posts = postRepository.findFeed(userId, FEED_TYPES, Limit.of(FEED_SIZE));
+        return toResponses(userId, postRepository.findFeed(userId, FEED_TYPES, Limit.of(FEED_SIZE)));
+    }
+
+    // The user's own posts, newest first, for their profile.
+    @Transactional(readOnly = true)
+    public List<PostResponse> getOwnPosts(UUID userId) {
+        return toResponses(userId, postRepository.findOwn(userId, FEED_TYPES));
+    }
+
+    // Maps the posts in their given order, loading authors and plant photos in one query each.
+    private List<PostResponse> toResponses(UUID userId, List<Post> posts) {
         Map<UUID, User> authors = userRepository.findAllById(posts.stream().map(Post::getUserId).distinct().toList())
                 .stream()
                 .collect(Collectors.toMap(User::getId, Function.identity()));
