@@ -21,6 +21,8 @@ export default function AppLayout() {
       {/* Opened from the tab bar's Add button. iOS shows it as a sheet that can be
           swiped down; Android has no sheet, so it slides in full screen. */}
       <Stack.Screen name="add" options={{ presentation: 'modal' }} />
+      {/* Opened from "I have a question" on the feed; a sheet like adding a plant. */}
+      <Stack.Screen name="ask" options={{ presentation: 'modal' }} />
       {/* Opened from a plant card in the garden. */}
       <Stack.Screen name="plant/[id]/index" />
       {/* Opened from the pencil on a plant's details; a sheet like adding a plant. */}

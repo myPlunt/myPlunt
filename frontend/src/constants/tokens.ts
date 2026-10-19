@@ -36,6 +36,13 @@ export const brand = {
   // urgency steps, between water blue (3+ days) and error red (today or overdue).
   mustard500: '#D4A017',
   orange500: '#E07B24',
+  // Not in brand palette: approved for the feed's sticky-note questions only. The Post-it
+  // "Jaipur" colours, muted (less saturated, lighter) so they sit with the earthy palette.
+  noteGreen: '#C9DCAB',
+  noteYellow: '#EEDC9E',
+  noteOrange: '#EBC59C',
+  notePink: '#E4B7C3',
+  noteTeal: '#ADD5CD',
 } as const;
 
 // Semantic colour roles. Tailwind exposes each key in kebab-case
@@ -64,6 +71,12 @@ export const lightColors = {
   // Bottom tab bar: icon and label of the open tab and of the others.
   tabActive: brand.hunterGreen500,
   tabInactive: brand.fern500,
+  // Sticky-note questions in the feed; each note gets one of these at random.
+  noteGreen: brand.noteGreen,
+  noteYellow: brand.noteYellow,
+  noteOrange: brand.noteOrange,
+  notePink: brand.notePink,
+  noteTeal: brand.noteTeal,
 } as const;
 
 export const Fonts = {

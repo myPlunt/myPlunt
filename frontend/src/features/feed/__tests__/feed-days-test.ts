@@ -1,13 +1,14 @@
 import { groupByDay } from '@/features/feed/feed-days';
-import type { Post } from '@/lib/post/types';
+import type { PlantPost } from '@/lib/post/types';
 
-function post(id: string, createdAt: Date): Post {
+function post(id: string, createdAt: Date): PlantPost {
   return {
     id,
     type: 'new_plant',
     author: { id: 'u1', username: 'emma', bio: null, avatarUrl: null, friendship: 'friends' },
     plantId: `plant-${id}`,
     plantName: `Plant ${id}`,
+    body: null,
     photoUrl: null,
     createdAt: createdAt.toISOString(),
   };

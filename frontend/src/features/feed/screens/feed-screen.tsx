@@ -1,11 +1,14 @@
+import { useRouter } from 'expo-router';
 import { useRef } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { Shadow } from '@/constants/theme';
 import { DayMark } from '@/features/feed/components/day-mark';
 import { FeedPlantCard } from '@/features/feed/components/feed-plant-card';
+import { StickyNote } from '@/features/feed/components/sticky-note';
 import { VineStem } from '@/features/feed/components/vine-stem';
 import { groupByDay } from '@/features/feed/feed-days';
 import { feedSides } from '@/features/feed/feed-sides';
@@ -13,6 +16,7 @@ import { useFeed } from '@/features/feed/use-feed';
 import { useTheme } from '@/hooks/use-theme';
 
 export function FeedScreen() {
+  const router = useRouter();
   const theme = useTheme();
   const { posts, error, isLoading, retry } = useFeed();
   const scrollRef = useRef<ScrollView>(null);
@@ -25,7 +29,20 @@ export function FeedScreen() {
     <View className="flex-1 bg-background">
       {/* No bottom edge: the tab bar below already pads for the home indicator. */}
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
-        <AppHeader title="Growing together" />
+        <AppHeader
+          right={
+            // Same height as the logo, styled as a small Post-it like the questions it makes.
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="I have a question"
+              onPress={() => router.push('/ask')}
+              className="h-10 -rotate-2 justify-center rounded-sm bg-note-yellow px-3 active:opacity-70"
+              // Shadow goes through style so it sets both iOS shadow* and Android elevation.
+              style={Shadow.card}>
+              <Text className="type-button-medium text-text">I have a question</Text>
+            </Pressable>
+          }
+        />
 
         {/* No bottom padding: the stem runs to the edge, so it looks like it grows out from
             under the tab bar. The newest growth is at the bottom, so the feed opens there. */}
@@ -62,7 +79,7 @@ export function FeedScreen() {
                     <View
                       key={post.id}
                       className={`${side === 'right' ? 'self-end' : 'self-start'} ${i > 0 ? tuck : ''}`}>
-                      <FeedPlantCard post={post} />
+                      {post.type === 'question' ? <StickyNote post={post} /> : <FeedPlantCard post={post} />}
                     </View>
                   );
                 })}

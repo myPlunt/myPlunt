@@ -1,7 +1,7 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 
-import type { Post } from '@/lib/post/types';
+import type { PlantPost } from '@/lib/post/types';
 
 import { FeedPlantCard } from '../feed-plant-card';
 
@@ -10,13 +10,14 @@ jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 const push = jest.fn();
 const user = userEvent.setup();
 
-function post(friendship: Post['author']['friendship']): Post {
+function post(friendship: PlantPost['author']['friendship']): PlantPost {
   return {
     id: 'post1',
     type: 'new_plant',
     author: { id: 'u1', username: 'emma', bio: null, avatarUrl: null, friendship },
     plantId: 'plant1',
     plantName: 'Gus the Fern',
+    body: null,
     photoUrl: null,
     createdAt: '2026-10-19T10:00:00Z',
   };

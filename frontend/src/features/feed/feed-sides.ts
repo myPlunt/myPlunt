@@ -3,8 +3,8 @@ export type Side = 'left' | 'right';
 // Most cards in a row on one side of the stem before the next has to switch.
 const MAX_IN_A_ROW = 2;
 
-// A small string hash, so a post keeps its side between loads (it doesn't jump on refresh).
-function hash(id: string) {
+// A small string hash, so a post keeps its side (and its note colour) between loads.
+export function hash(id: string) {
   let h = 0;
   for (let i = 0; i < id.length; i++) {
     h = (Math.imul(h, 31) + id.charCodeAt(i)) | 0;

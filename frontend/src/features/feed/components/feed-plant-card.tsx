@@ -3,10 +3,10 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Shadow } from '@/constants/theme';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
-import type { Post } from '@/lib/post/types';
+import type { PlantPost } from '@/lib/post/types';
 
 /** A shared plant or plant photo hanging off the vine: who and what, then the garden's plant card look. */
-export function FeedPlantCard({ post }: { post: Post }) {
+export function FeedPlantCard({ post }: { post: PlantPost }) {
   const router = useRouter();
   // The feed only has the user and their friends; null friendship means it's the user's own.
   const isOwn = post.author.friendship === null;
