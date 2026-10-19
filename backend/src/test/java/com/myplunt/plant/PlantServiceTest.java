@@ -13,6 +13,8 @@ import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.plant.dto.WateringHistoryResponse;
 import com.myplunt.plant.dto.WateringResponse;
 import com.myplunt.plant.dto.WateringStreakResponse;
+import com.myplunt.post.Post;
+import com.myplunt.post.PostRepository;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesRepository;
 import com.myplunt.storage.StorageService;
@@ -61,6 +63,9 @@ class PlantServiceTest {
     private PlantPhotoRepository plantPhotoRepository;
 
     @Mock
+    private PostRepository postRepository;
+
+    @Mock
     private StorageService storageService;
 
     @Mock
@@ -71,7 +76,14 @@ class PlantServiceTest {
 
     private PlantService plantService() {
         return new PlantService(
-                plantRepository, wateringLogRepository, planterRepository, speciesRepository, plantPhotoRepository, storageService, auditLog);
+                plantRepository,
+                wateringLogRepository,
+                planterRepository,
+                speciesRepository,
+                plantPhotoRepository,
+                postRepository,
+                storageService,
+                auditLog);
     }
 
     // Gives the saved plant an id, as the database would.
@@ -88,13 +100,28 @@ class PlantServiceTest {
         saveAssignsId();
 
         PlantResponse response = plantService().create(
-                userId, new CreatePlantRequest("Vera", "bright_indirect", 7, "Found at a flea market", null, null, null));
+                userId, new CreatePlantRequest("Vera", "bright_indirect", 7, "Found at a flea market", null, null, null, false));
 
         assertThat(response).isEqualTo(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market", null, null, null));
         ArgumentCaptor<Plant> saved = ArgumentCaptor.forClass(Plant.class);
         verify(plantRepository).save(saved.capture());
         assertThat(saved.getValue().getOwnerId()).isEqualTo(userId);
         assertThat(saved.getValue().isAlive()).isTrue();
+        // Not shared, so nothing reaches the feed.
+        verify(postRepository, never()).save(any());
+    }
+
+    @Test
+    void create_sharesANewPlantPostWhenTheOwnerAsks() {
+        saveAssignsId();
+
+        plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, null, null, true));
+
+        ArgumentCaptor<Post> post = ArgumentCaptor.forClass(Post.class);
+        verify(postRepository).save(post.capture());
+        assertThat(post.getValue().getUserId()).isEqualTo(userId);
+        assertThat(post.getValue().getPlant().getId()).isEqualTo(plantId);
+        assertThat(post.getValue().getPostType()).isEqualTo(Post.NEW_PLANT);
     }
 
     @Test
@@ -102,7 +129,7 @@ class PlantServiceTest {
         UUID planterId = UUID.randomUUID();
         when(planterRepository.existsByIdAndOwnerId(planterId, userId)).thenReturn(false);
 
-        assertThatThrownBy(() -> plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, planterId, null, null)))
+        assertThatThrownBy(() -> plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, planterId, null, null, false)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Planter not found");
         verify(plantRepository, never()).save(any());
@@ -117,7 +144,7 @@ class PlantServiceTest {
         saveAssignsId();
 
         PlantResponse response =
-                plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, speciesId, null));
+                plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, speciesId, null, false));
 
         assertThat(response.speciesId()).isEqualTo(speciesId);
         ArgumentCaptor<Plant> saved = ArgumentCaptor.forClass(Plant.class);
@@ -133,7 +160,7 @@ class PlantServiceTest {
         when(storageService.createReadUrl(key)).thenReturn("https://storage.test/photo.jpg?signed");
 
         PlantResponse response =
-                plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, null, key));
+                plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, null, key, false));
 
         assertThat(response.photoUrl()).isEqualTo("https://storage.test/photo.jpg?signed");
         verify(storageService).confirmUpload(userId, key);
@@ -151,7 +178,7 @@ class PlantServiceTest {
                 .when(storageService).confirmUpload(userId, key);
 
         assertThatThrownBy(() ->
-                        plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, null, key)))
+                        plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, null, key, false)))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.NOT_FOUND);
@@ -377,7 +404,7 @@ class PlantServiceTest {
     }
 
     @Test
-    void addPhoto_confirmsTheUploadAndSavesItWithItsDateAndNote() {
+    void addPhoto_confirmsTheUploadSavesItWithItsDateAndNoteAndSharesIt() {
         ownPlant("Vera");
         String key = "plants/" + userId + "/growth.jpg";
         Instant takenAt = Instant.parse("2026-08-20T10:00:00Z");
@@ -390,12 +417,17 @@ class PlantServiceTest {
         when(storageService.createReadUrl(key)).thenReturn("https://storage.test/growth.jpg?signed");
 
         PlantPhotoResponse response =
-                plantService().addPhoto(userId, plantId, new AddPlantPhotoRequest(key, takenAt, "  First split leaf!  "));
+                plantService().addPhoto(userId, plantId, new AddPlantPhotoRequest(key, takenAt, "  First split leaf!  ", true));
 
         verify(storageService).confirmUpload(userId, key);
         assertThat(response.url()).isEqualTo("https://storage.test/growth.jpg?signed");
         assertThat(response.takenAt()).isEqualTo(takenAt);
         assertThat(response.caption()).isEqualTo("First split leaf!");
+        ArgumentCaptor<Post> post = ArgumentCaptor.forClass(Post.class);
+        verify(postRepository).save(post.capture());
+        assertThat(post.getValue().getPostType()).isEqualTo(Post.NEW_PHOTO);
+        assertThat(post.getValue().getPhoto().getPhotoKey()).isEqualTo(key);
+        assertThat(post.getValue().getPlant().getId()).isEqualTo(plantId);
     }
 
     @Test
@@ -403,12 +435,13 @@ class PlantServiceTest {
         ownPlant("Vera").setAlive(false);
 
         assertThatThrownBy(() -> plantService().addPhoto(
-                        userId, plantId, new AddPlantPhotoRequest("plants/u/growth.jpg", null, null)))
+                        userId, plantId, new AddPlantPhotoRequest("plants/u/growth.jpg", null, null, null)))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.CONFLICT);
         verify(storageService, never()).confirmUpload(any(), any());
         verify(plantPhotoRepository, never()).save(any());
+        verify(postRepository, never()).save(any());
     }
 
     // A saved growth photo of the user's plant, as findByIdAndPlantId returns it.

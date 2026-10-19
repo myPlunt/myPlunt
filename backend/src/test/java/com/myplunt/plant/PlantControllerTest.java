@@ -78,14 +78,17 @@ class PlantControllerTest {
     @Test
     void create_returnsTheCreatedPlantForTheSignedInUser() {
         UUID ownerId = authenticateAsJane();
-        CreatePlantRequest request = new CreatePlantRequest("Vera", "bright_indirect", 7, "Found at a flea market", null, null, null);
+        CreatePlantRequest request = new CreatePlantRequest("Vera", "bright_indirect", 7, "Found at a flea market", null, null, null, null);
         when(plantService.create(eq(ownerId), eq(request)))
                 .thenReturn(new PlantResponse(plantId, "Vera", "bright_indirect", 7, "Found at a flea market", null, null, null));
 
+        // Raw JSON without shareToFeed, as older apps send it: leaving it out must still work.
         restTestClient.post().uri("/v1/plants")
                 .header("Authorization", "Bearer access-token")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(request)
+                .body("""
+                        {"name": "Vera", "light": "bright_indirect", "wateringEveryDays": 7, "notes": "Found at a flea market"}
+                        """)
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(PlantResponse.class)
@@ -100,7 +103,7 @@ class PlantControllerTest {
         restTestClient.post().uri("/v1/plants")
                 .header("Authorization", "Bearer access-token")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new CreatePlantRequest("Vera", null, null, null, UUID.randomUUID(), null, null))
+                .body(new CreatePlantRequest("Vera", null, null, null, UUID.randomUUID(), null, null, false))
                 .exchange()
                 .expectStatus().isNotFound();
     }
@@ -117,7 +120,7 @@ class PlantControllerTest {
     void create_rejectsRequestsWithoutAToken() {
         restTestClient.post().uri("/v1/plants")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new CreatePlantRequest("Vera", null, null, null, null, null, null))
+                .body(new CreatePlantRequest("Vera", null, null, null, null, null, null, false))
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -224,7 +227,7 @@ class PlantControllerTest {
     @Test
     void addPhoto_returnsTheCreatedPhoto() {
         UUID userId = authenticateAsJane();
-        AddPlantPhotoRequest request = new AddPlantPhotoRequest("plants/u/growth.jpg", null, "First split leaf!");
+        AddPlantPhotoRequest request = new AddPlantPhotoRequest("plants/u/growth.jpg", null, "First split leaf!", null);
         PlantPhotoResponse photo = new PlantPhotoResponse(
                 UUID.randomUUID(), "https://storage.test/growth.jpg?signed", Instant.parse("2026-10-18T08:00:00Z"), "First split leaf!");
         when(plantService.addPhoto(userId, plantId, request)).thenReturn(photo);
