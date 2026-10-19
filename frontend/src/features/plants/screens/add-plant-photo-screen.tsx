@@ -16,7 +16,7 @@ import { logFailedUi } from '@/lib/logger';
 
 /**
  * Adds a photo to a plant's growth timeline, opened from "Add" in its Growth section: the
- * photo (camera or library), the date it was taken and an optional note.
+ * photo (camera or library), the date it was taken and, when shared, an optional comment for the feed.
  */
 export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
   const router = useRouter();
@@ -25,10 +25,10 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
   // A date the user picked, for the photo it was picked for: picking another photo brings
   // back that photo's own date.
   const [pickedDate, setPickedDate] = useState<{ uri: string; takenAt: string } | null>(null);
-  const [caption, setCaption] = useState('');
+  const [comment, setComment] = useState('');
   const [shareToFeed, setShareToFeed] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [captionError, setCaptionError] = useState<string | undefined>();
+  const [commentError, setCommentError] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function close() {
@@ -48,20 +48,21 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
     // The button is disabled until the upload is done, so the key is there.
     if (!photo.key) return;
     setError(null);
-    setCaptionError(undefined);
+    setCommentError(undefined);
     setIsSubmitting(true);
     try {
       await addPlantPhoto(plantId, {
         photoKey: photo.key,
         takenAt,
-        caption: caption.trim() === '' ? null : caption,
+        // The comment is only for the post; unticking share drops what was typed.
+        comment: shareToFeed && comment.trim() !== '' ? comment : null,
         shareToFeed,
       });
       close();
     } catch (err) {
       logFailedUi('plant_photo_add_failed_ui', err, { plant_id: plantId });
-      if (err instanceof ApiError && err.fieldErrors?.caption) {
-        setCaptionError(err.fieldErrors.caption);
+      if (err instanceof ApiError && err.fieldErrors?.comment) {
+        setCommentError(err.fieldErrors.comment);
       } else if (!(err instanceof ApiError && err.status === 401)) {
         // An expired session already signed the user out (usePlantActions).
         setError(describeError(err));
@@ -86,20 +87,22 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
         />
       )}
 
-      <RuledTextField
-        label="Note (optional)"
-        rows={2}
-        value={caption}
-        onChangeText={setCaption}
-        error={captionError}
-        placeholder="A new leaf, a repot, a first bloom…"
-        maxLength={CAPTION_MAX_LENGTH}
-        multiline
-        autoCapitalize="sentences"
-        autoCorrect
-      />
-
       <ShareToFeedCheckbox checked={shareToFeed} onChange={setShareToFeed} />
+
+      {shareToFeed && (
+        <RuledTextField
+          label="Comment (optional)"
+          rows={2}
+          value={comment}
+          onChangeText={setComment}
+          error={commentError}
+          placeholder="Omg, a new flower is blooming!"
+          maxLength={CAPTION_MAX_LENGTH}
+          multiline
+          autoCapitalize="sentences"
+          autoCorrect
+        />
+      )}
 
       {/* One line before the button, which shows the error, if any. */}
       <RuledLine>

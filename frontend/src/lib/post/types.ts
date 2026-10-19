@@ -14,7 +14,8 @@ export interface PlantPost extends BasePost {
   type: 'new_plant' | 'new_photo';
   plantId: string;
   plantName: string;
-  body: null;
+  /** A new photo's optional comment ("A new flower is blooming!"); always null for a new plant. */
+  body: string | null;
 }
 
 /** A question for friends, shown as a sticky note; not about a plant. */

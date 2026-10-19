@@ -20,9 +20,10 @@ import java.util.UUID;
 public class Post {
     // Shared from the Add plant form when the owner ticks "Share this with your friends".
     public static final String NEW_PLANT = "new_plant";
-    // Shared from Add photo; the photo is the post's picture, not the plant's newest one.
+    // Shared from Add photo; the photo is the post's picture, not the plant's newest one, and
+    // body is the owner's optional comment on it.
     public static final String NEW_PHOTO = "new_photo";
-    // A question for friends, with an optional photo of its own (photoKey); not about a plant.
+    // A question for friends (body), with an optional photo of its own (photoKey); not about a plant.
     public static final String QUESTION = "question";
 
     @Id
@@ -65,9 +66,10 @@ public class Post {
         this.createdAt = Instant.now();
     }
 
-    public Post(UUID userId, PlantPhoto photo) {
+    public Post(UUID userId, PlantPhoto photo, String comment) {
         this(userId, photo.getPlant(), NEW_PHOTO);
         this.photo = photo;
+        this.body = comment;
     }
 
     public Post(UUID userId, String question, String photoKey) {

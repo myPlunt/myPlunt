@@ -25,7 +25,8 @@ export function FeedPlantCard({ post }: { post: PlantPost }) {
       <Pressable
         disabled={!isOwn}
         accessibilityRole={isOwn ? 'button' : undefined}
-        accessibilityLabel={post.plantName}
+        // The card is one element to a screen reader, so the comment goes in its label.
+        accessibilityLabel={post.body ? `${post.plantName}: ${post.body}` : post.plantName}
         accessibilityHint={isOwn ? "Shows this plant's details" : undefined}
         onPress={() => {
           logAction('feed_plant_opened', { context: { post_id: post.id, plant_id: post.plantId } });
@@ -42,6 +43,12 @@ export function FeedPlantCard({ post }: { post: PlantPost }) {
         <Text className="type-subtitle-small px-1 pb-0.5 pt-1.5 text-text" numberOfLines={1}>
           {post.plantName}
         </Text>
+        {/* A new photo's comment, written under the name like a note on a polaroid. */}
+        {post.body && (
+          <Text className="type-body-medium px-1 pb-1 text-text-secondary" numberOfLines={4}>
+            {post.body}
+          </Text>
+        )}
       </Pressable>
     </View>
   );

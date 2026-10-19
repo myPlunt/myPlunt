@@ -99,7 +99,7 @@ class PostServiceTest {
         User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
         Plant vera = withId(new Plant(me.getId(), "Vera"), UUID.randomUUID());
         PlantPhoto weekTwo = new PlantPhoto(vera, me.getId(), "plants/vera-week-2.jpg", null);
-        Post post = withId(new Post(me.getId(), weekTwo), UUID.randomUUID());
+        Post post = withId(new Post(me.getId(), weekTwo, null), UUID.randomUUID());
         when(postRepository.findFeed(eq(me.getId()), any(), any())).thenReturn(List.of(post));
         when(userRepository.findAllById(anyCollection())).thenReturn(List.of(me));
         // A newer photo was added since; the post still shows the one that was shared.
