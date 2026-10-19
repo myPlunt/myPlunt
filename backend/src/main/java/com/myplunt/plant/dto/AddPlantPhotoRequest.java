@@ -13,5 +13,8 @@ public record AddPlantPhotoRequest(
                 @Size(max = 512, message = "Photo key must be at most 512 characters.")
                 String photoKey,
         @PastOrPresent(message = "The photo can't be taken in the future.") Instant takenAt,
-        @Size(max = 280, message = "Note must be at most 280 characters.") String caption) {
+        @Size(max = 280, message = "Note must be at most 280 characters.") String caption,
+        // Posts the photo to friends' feeds. A Boolean, so older apps that leave it out still
+        // work (Jackson rejects a missing primitive); null counts as false.
+        Boolean shareToFeed) {
 }

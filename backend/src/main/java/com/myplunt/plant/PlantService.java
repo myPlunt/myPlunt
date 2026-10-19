@@ -17,6 +17,8 @@ import com.myplunt.plant.dto.WateringHistoryResponse;
 import com.myplunt.plant.dto.WateringLogResponse;
 import com.myplunt.plant.dto.WateringResponse;
 import com.myplunt.plant.dto.WateringStreakResponse;
+import com.myplunt.post.Post;
+import com.myplunt.post.PostRepository;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesRepository;
 import com.myplunt.storage.StorageService;
@@ -48,6 +50,7 @@ public class PlantService {
     private final PlanterRepository planterRepository;
     private final SpeciesRepository speciesRepository;
     private final PlantPhotoRepository plantPhotoRepository;
+    private final PostRepository postRepository;
     private final StorageService storageService;
     private final AuditLog auditLog;
 
@@ -57,6 +60,7 @@ public class PlantService {
             PlanterRepository planterRepository,
             SpeciesRepository speciesRepository,
             PlantPhotoRepository plantPhotoRepository,
+            PostRepository postRepository,
             StorageService storageService,
             AuditLog auditLog) {
         this.plantRepository = plantRepository;
@@ -64,6 +68,7 @@ public class PlantService {
         this.planterRepository = planterRepository;
         this.speciesRepository = speciesRepository;
         this.plantPhotoRepository = plantPhotoRepository;
+        this.postRepository = postRepository;
         this.storageService = storageService;
         this.auditLog = auditLog;
     }
@@ -91,10 +96,15 @@ public class PlantService {
         if (request.photoKey() != null) {
             plantPhotoRepository.save(new PlantPhoto(saved, ownerId, request.photoKey(), Instant.now()));
         }
+        boolean shareToFeed = Boolean.TRUE.equals(request.shareToFeed());
+        if (shareToFeed) {
+            postRepository.save(new Post(ownerId, saved, Post.NEW_PLANT));
+        }
         Map<String, Object> details = new LinkedHashMap<>();
         details.put("plant_id", saved.getId());
         details.put("species_id", speciesId(species));
         details.put("has_photo", request.photoKey() != null);
+        details.put("shared_to_feed", shareToFeed);
         auditLog.recorded(AuditEvent.PLANT_CREATED, ownerId, ownerId, details);
         return new PlantResponse(
                 saved.getId(),
@@ -272,8 +282,15 @@ public class PlantService {
                 plant, ownerId, request.photoKey(), request.takenAt() == null ? Instant.now() : request.takenAt());
         photo.setCaption(cleanNotes(request.caption()));
         PlantPhoto saved = plantPhotoRepository.save(photo);
-        auditLog.recorded(AuditEvent.PLANT_PHOTO_ADDED, ownerId, ownerId,
-                Map.of("plant_id", plantId, "photo_id", saved.getId(), "has_caption", saved.getCaption() != null));
+        boolean shareToFeed = Boolean.TRUE.equals(request.shareToFeed());
+        if (shareToFeed) {
+            postRepository.save(new Post(ownerId, saved));
+        }
+        auditLog.recorded(AuditEvent.PLANT_PHOTO_ADDED, ownerId, ownerId, Map.of(
+                "plant_id", plantId,
+                "photo_id", saved.getId(),
+                "has_caption", saved.getCaption() != null,
+                "shared_to_feed", shareToFeed));
         return toPhotoResponse(saved);
     }
 
