@@ -14,7 +14,8 @@ export function FeedPlantCard({ post }: { post: PlantPost }) {
   const who = isOwn ? 'You' : post.author.username;
 
   return (
-    <View className="w-[112px] gap-1">
+    // As wide as a sticky note, so plant posts and questions line up as one column of equals.
+    <View className="w-[136px] gap-1">
       <Text className="type-label uppercase text-accent" numberOfLines={1}>
         {who} · {post.type === 'new_photo' ? 'new photo' : 'new plant'}
       </Text>
