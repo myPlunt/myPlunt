@@ -12,6 +12,7 @@ import { StickyNote } from '@/features/feed/components/sticky-note';
 import { VineStem } from '@/features/feed/components/vine-stem';
 import { groupByAge } from '@/features/feed/feed-days';
 import { rowOffsets } from '@/features/feed/feed-rows';
+import { getFeed } from '@/features/feed/feed-service';
 import { feedSides, type Side } from '@/features/feed/feed-sides';
 import { useFeed } from '@/features/feed/use-feed';
 import { useTheme } from '@/hooks/use-theme';
@@ -20,7 +21,7 @@ import type { Post } from '@/lib/post/types';
 export function FeedScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { posts, error, isLoading, retry } = useFeed();
+  const { posts, error, isLoading, retry } = useFeed(getFeed);
   const days = groupByAge(posts ?? [], new Date());
   // Across the days, in the order they're shown, so the in-a-row limit spans day marks.
   const postIds = days.flatMap((day) => day.posts.map((post) => post.id));

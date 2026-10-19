@@ -8,6 +8,11 @@ export async function getFeed(): Promise<Post[]> {
   return apiFetch<Post[]>('/v1/posts/feed');
 }
 
+/** The user's own posts, newest first. */
+export async function getMyPosts(): Promise<Post[]> {
+  return apiFetch<Post[]>('/v1/posts/mine');
+}
+
 export async function askQuestion(request: AskQuestionRequest): Promise<QuestionPost> {
   const requestId = createRequestId();
   logAction('question_ask_submitted', { requestId, context: { has_photo: request.photoKey !== null } });
