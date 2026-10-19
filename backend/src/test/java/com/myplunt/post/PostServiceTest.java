@@ -1,5 +1,7 @@
 package com.myplunt.post;
 
+import com.myplunt.common.logging.AuditEvent;
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.plant.LatestPhoto;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantPhoto;
@@ -22,6 +24,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,8 +55,11 @@ class PostServiceTest {
     @Mock
     private StorageService storageService;
 
+    @Mock
+    private AuditLog auditLog;
+
     private PostService postService() {
-        return new PostService(postRepository, userRepository, plantPhotoRepository, userService, storageService);
+        return new PostService(postRepository, userRepository, plantPhotoRepository, userService, storageService, auditLog);
     }
 
     private static <T> T withId(T entity, UUID id) {
@@ -128,6 +134,8 @@ class PostServiceTest {
         assertThat(saved.getValue().getPlant()).isNull();
         assertThat(response.body()).isEqualTo("Why are my leaves red?");
         assertThat(response.photoUrl()).isEqualTo("https://storage.test/leaves.jpg");
+        verify(auditLog).recorded(AuditEvent.QUESTION_ASKED, me.getId(), me.getId(),
+                Map.of("post_id", response.id(), "has_photo", true));
     }
 
     @Test

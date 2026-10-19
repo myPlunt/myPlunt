@@ -1,6 +1,7 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 
+import { logAction } from '@/lib/logger';
 import type { PlantPost } from '@/lib/post/types';
 
 import { FeedPlantCard } from '../feed-plant-card';
@@ -38,6 +39,7 @@ describe('FeedPlantCard', () => {
     await user.press(screen.getByRole('button', { name: 'Gus the Fern' }));
 
     expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]', params: { id: 'plant1' } });
+    expect(logAction).toHaveBeenCalledWith('feed_plant_opened', { context: { post_id: 'post1', plant_id: 'plant1' } });
   });
 
   it("doesn't open a friend's plant, whose page is owner-only", async () => {

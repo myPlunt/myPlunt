@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Shadow } from '@/constants/theme';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
+import { logAction } from '@/lib/logger';
 import type { PlantPost } from '@/lib/post/types';
 
 /** A shared plant or plant photo hanging off the vine: who and what, then the garden's plant card look. */
@@ -25,7 +26,10 @@ export function FeedPlantCard({ post }: { post: PlantPost }) {
         accessibilityRole={isOwn ? 'button' : undefined}
         accessibilityLabel={post.plantName}
         accessibilityHint={isOwn ? "Shows this plant's details" : undefined}
-        onPress={() => router.push({ pathname: '/plant/[id]', params: { id: post.plantId } })}
+        onPress={() => {
+          logAction('feed_plant_opened', { context: { post_id: post.id, plant_id: post.plantId } });
+          router.push({ pathname: '/plant/[id]', params: { id: post.plantId } });
+        }}
         className="rounded-2xl bg-background-element p-1.5 active:opacity-70"
         style={Shadow.card}>
         <PlantPhoto

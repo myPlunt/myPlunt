@@ -36,6 +36,7 @@ export type FrontendEvent =
   | 'friend_request_submitted'
   | 'friend_remove_submitted'
   | 'question_ask_submitted'
+  | 'feed_plant_opened'
   | 'photo_upload_submitted'
   | 'photo_picker_cancelled'
   // warnings

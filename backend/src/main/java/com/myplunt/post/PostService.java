@@ -1,5 +1,7 @@
 package com.myplunt.post;
 
+import com.myplunt.common.logging.AuditEvent;
+import com.myplunt.common.logging.AuditLog;
 import com.myplunt.plant.LatestPhoto;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantPhotoRepository;
@@ -35,18 +37,21 @@ public class PostService {
     private final PlantPhotoRepository plantPhotoRepository;
     private final UserService userService;
     private final StorageService storageService;
+    private final AuditLog auditLog;
 
     public PostService(
             PostRepository postRepository,
             UserRepository userRepository,
             PlantPhotoRepository plantPhotoRepository,
             UserService userService,
-            StorageService storageService) {
+            StorageService storageService,
+            AuditLog auditLog) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.plantPhotoRepository = plantPhotoRepository;
         this.userService = userService;
         this.storageService = storageService;
+        this.auditLog = auditLog;
     }
 
     // A sticky-note question for the user's friends, with an optional photo of its own.
@@ -61,6 +66,8 @@ public class PostService {
             storageService.confirmUpload(userId, request.photoKey());
         }
         Post saved = postRepository.save(new Post(userId, request.body(), request.photoKey()));
+        auditLog.recorded(AuditEvent.QUESTION_ASKED, userId, userId,
+                Map.of("post_id", saved.getId(), "has_photo", request.photoKey() != null));
         User author = userRepository.findById(userId).orElseThrow(() -> new IllegalStateException("User not found"));
         return toResponse(saved, author, null, null);
     }

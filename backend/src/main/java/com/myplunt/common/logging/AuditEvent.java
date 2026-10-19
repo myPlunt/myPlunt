@@ -35,6 +35,7 @@ public enum AuditEvent {
     PLANT_PHOTO_UPDATED,
     PLANT_PHOTO_DELETED,
     PLANT_WATERED,
+    QUESTION_ASKED,
     // Not something the user did: the late watering that ended a streak.
     WATERING_STREAK_BROKEN,
     // reason: too_large. The upload was deleted from storage.
