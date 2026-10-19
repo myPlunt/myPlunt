@@ -10,9 +10,10 @@ import java.util.UUID;
 
 public interface PostRepository extends JpaRepository<Post, UUID> {
     // The user's own posts and their friends', of the given types, newest first. The plant
-    // and photo are fetched along, so mapping the feed doesn't load each one separately.
+    // (none for a question) and photo are fetched along, so mapping the feed doesn't load each
+    // one separately.
     @Query("""
-            select p from Post p join fetch p.plant left join fetch p.photo
+            select p from Post p left join fetch p.plant left join fetch p.photo
             where p.postType in :types
               and (p.userId = :userId
                    or p.userId in (select f.receiverId from Friendship f

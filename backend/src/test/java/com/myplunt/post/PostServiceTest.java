@@ -4,25 +4,34 @@ import com.myplunt.plant.LatestPhoto;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantPhoto;
 import com.myplunt.plant.PlantPhotoRepository;
+import com.myplunt.post.dto.AskQuestionRequest;
 import com.myplunt.post.dto.PostResponse;
 import com.myplunt.storage.StorageService;
+import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import com.myplunt.user.UserService;
 import com.myplunt.user.dto.UserSummaryResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,7 +69,7 @@ class PostServiceTest {
         Plant vera = withId(new Plant(me.getId(), "Vera"), UUID.randomUUID());
         Post friendsPost = withId(new Post(friend.getId(), gus, Post.NEW_PLANT), UUID.randomUUID());
         Post myPost = withId(new Post(me.getId(), vera, Post.NEW_PLANT), UUID.randomUUID());
-        when(postRepository.findFeed(eq(me.getId()), eq(List.of(Post.NEW_PLANT, Post.NEW_PHOTO)), any()))
+        when(postRepository.findFeed(eq(me.getId()), eq(List.of(Post.NEW_PLANT, Post.NEW_PHOTO, Post.QUESTION)), any()))
                 .thenReturn(List.of(friendsPost, myPost));
         when(userRepository.findAllById(anyCollection())).thenReturn(List.of(me, friend));
         when(plantPhotoRepository.findLatestPhotos(anyCollection()))
@@ -74,9 +83,9 @@ class PostServiceTest {
         List<PostResponse> feed = postService().getFeed(me.getId());
 
         assertThat(feed).containsExactly(
-                new PostResponse(friendsPost.getId(), Post.NEW_PLANT, emma, gus.getId(), "Gus the Fern",
+                new PostResponse(friendsPost.getId(), Post.NEW_PLANT, emma, gus.getId(), "Gus the Fern", null,
                         "https://storage.test/gus.jpg?signed", friendsPost.getCreatedAt()),
-                new PostResponse(myPost.getId(), Post.NEW_PLANT, self, vera.getId(), "Vera", null, myPost.getCreatedAt()));
+                new PostResponse(myPost.getId(), Post.NEW_PLANT, self, vera.getId(), "Vera", null, null, myPost.getCreatedAt()));
     }
 
     @Test
@@ -98,5 +107,39 @@ class PostServiceTest {
             assertThat(response.type()).isEqualTo(Post.NEW_PHOTO);
             assertThat(response.photoUrl()).isEqualTo("https://storage.test/week-2.jpg");
         });
+    }
+
+    @Test
+    void askQuestion_confirmsItsPhotoAndSavesAnOpenQuestion() {
+        User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
+        String key = "posts/" + me.getId() + "/leaves.jpg";
+        when(storageService.isCategory(key, PhotoCategory.POST)).thenReturn(true);
+        when(postRepository.save(any())).thenAnswer(invocation -> withId(invocation.getArgument(0), UUID.randomUUID()));
+        when(userRepository.findById(me.getId())).thenReturn(Optional.of(me));
+        when(storageService.createReadUrl(key)).thenReturn("https://storage.test/leaves.jpg");
+
+        PostResponse response = postService().askQuestion(me.getId(), new AskQuestionRequest("Why are my leaves red?", key));
+
+        verify(storageService).confirmUpload(me.getId(), key);
+        ArgumentCaptor<Post> saved = ArgumentCaptor.forClass(Post.class);
+        verify(postRepository).save(saved.capture());
+        assertThat(saved.getValue().getPostType()).isEqualTo(Post.QUESTION);
+        assertThat(saved.getValue().getUserId()).isEqualTo(me.getId());
+        assertThat(saved.getValue().getPlant()).isNull();
+        assertThat(response.body()).isEqualTo("Why are my leaves red?");
+        assertThat(response.photoUrl()).isEqualTo("https://storage.test/leaves.jpg");
+    }
+
+    @Test
+    void askQuestion_rejectsAPhotoUploadedForSomethingElseAndSavesNothing() {
+        UUID userId = UUID.randomUUID();
+        String plantPhoto = "plants/" + userId + "/vera.jpg";
+        when(storageService.isCategory(plantPhoto, PhotoCategory.POST)).thenReturn(false);
+
+        assertThatThrownBy(() -> postService().askQuestion(userId, new AskQuestionRequest("Why?", plantPhoto)))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(postRepository, never()).save(any());
     }
 }

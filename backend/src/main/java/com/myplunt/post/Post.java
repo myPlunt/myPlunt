@@ -22,6 +22,8 @@ public class Post {
     public static final String NEW_PLANT = "new_plant";
     // Shared from Add photo; the photo is the post's picture, not the plant's newest one.
     public static final String NEW_PHOTO = "new_photo";
+    // A question for friends, with an optional photo of its own (photoKey); not about a plant.
+    public static final String QUESTION = "question";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -41,6 +43,16 @@ public class Post {
     @Column(name = "post_type", nullable = false)
     private String postType;
 
+    private String body;
+
+    // Storage key of a question's own photo; null for other posts and questions without one.
+    @Column(name = "photo_key")
+    private String photoKey;
+
+    // Required for questions (and only for them) by chk_posts_is_resolved_only_for_question.
+    @Column(name = "is_resolved")
+    private Boolean resolved;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -58,6 +70,13 @@ public class Post {
         this.photo = photo;
     }
 
+    public Post(UUID userId, String question, String photoKey) {
+        this(userId, (Plant) null, QUESTION);
+        this.body = question;
+        this.photoKey = photoKey;
+        this.resolved = false;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -73,6 +92,14 @@ public class Post {
     // Null except for photo posts.
     public PlantPhoto getPhoto() {
         return photo;
+    }
+
+    public String getBody() {
+        return body;
+    }
+
+    public String getPhotoKey() {
+        return photoKey;
     }
 
     public String getPostType() {
