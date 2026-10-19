@@ -111,6 +111,16 @@ public final class ApiPaths {
         private Planters() {}
     }
 
+    public static final class Posts {
+        public static final String BASE = "/v1/posts";
+        // The signed-in user's and their friends' posts, newest first.
+        public static final String FEED = BASE + "/feed";
+        // POST asks the user's friends a question; it shows up in the feed as a sticky note.
+        public static final String QUESTIONS = BASE + "/questions";
+
+        private Posts() {}
+    }
+
     public static final class Species {
         public static final String BASE = "/v1/species";
         public static final String DISCOVERED = BASE + "/discovered";

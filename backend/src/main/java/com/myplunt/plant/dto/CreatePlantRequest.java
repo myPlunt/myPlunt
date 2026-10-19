@@ -24,7 +24,10 @@ public record CreatePlantRequest(
         // An approved species; null when the owner doesn't know or didn't pick one.
         UUID speciesId,
         // Key of a photo the owner uploaded via /v1/photos/upload-url; null for no photo.
-        @Size(max = 512, message = "Photo key must be at most 512 characters.") String photoKey) {
+        @Size(max = 512, message = "Photo key must be at most 512 characters.") String photoKey,
+        // Posts "new plant" to friends' feeds. A Boolean, so older apps that leave it out still
+        // work (Jackson rejects a missing primitive); null counts as false.
+        Boolean shareToFeed) {
 
     // Strip before validation runs, so a name of only spaces counts as blank.
     public CreatePlantRequest {

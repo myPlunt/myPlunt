@@ -7,6 +7,7 @@ import { usePhotoUpload } from '@/features/photos/use-photo-upload';
 import { NotebookPage } from '@/features/plants/components/notebook-page';
 import { boxHeight, oneLine, RuledLine, RuledTextField } from '@/features/plants/components/notebook-paper';
 import { PhotoField } from '@/features/plants/components/photo-field';
+import { ShareToFeedCheckbox } from '@/features/plants/components/share-to-feed-checkbox';
 import { TakenOnField } from '@/features/plants/components/taken-on-field';
 import { CAPTION_MAX_LENGTH } from '@/features/plants/growth';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
@@ -25,6 +26,7 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
   // back that photo's own date.
   const [pickedDate, setPickedDate] = useState<{ uri: string; takenAt: string } | null>(null);
   const [caption, setCaption] = useState('');
+  const [shareToFeed, setShareToFeed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [captionError, setCaptionError] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,6 +55,7 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
         photoKey: photo.key,
         takenAt,
         caption: caption.trim() === '' ? null : caption,
+        shareToFeed,
       });
       close();
     } catch (err) {
@@ -95,6 +98,8 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
         autoCapitalize="sentences"
         autoCorrect
       />
+
+      <ShareToFeedCheckbox checked={shareToFeed} onChange={setShareToFeed} />
 
       {/* One line before the button, which shows the error, if any. */}
       <RuledLine>

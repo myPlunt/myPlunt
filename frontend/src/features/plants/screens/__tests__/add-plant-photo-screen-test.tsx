@@ -53,16 +53,18 @@ afterEach(() => {
 });
 
 describe('AddPlantPhotoScreen', () => {
-  it('adds the uploaded photo with its date and note, then goes back to the plant', async () => {
+  it('adds the uploaded photo with its date and note, shared to the feed, then goes back to the plant', async () => {
     await render(<AddPlantPhotoScreen plantId="p1" />);
 
     await user.type(screen.getByLabelText('Note (optional)'), 'First split leaf!');
+    await user.press(screen.getByRole('checkbox', { name: 'Share this with your friends in the main feed' }));
     await user.press(screen.getByRole('button', { name: 'Add to timeline' }));
 
     expect(addPlantPhoto).toHaveBeenCalledWith('p1', {
       photoKey: 'plants/u/growth.jpg',
       takenAt: '2026-08-20T12:00:00.000Z',
       caption: 'First split leaf!',
+      shareToFeed: true,
     });
     expect(back).toHaveBeenCalled();
   });
@@ -84,6 +86,7 @@ describe('AddPlantPhotoScreen', () => {
       photoKey: 'plants/u/growth.jpg',
       takenAt: new Date(2025, 7, 5, 12).toISOString(),
       caption: null,
+      shareToFeed: false,
     });
   });
 

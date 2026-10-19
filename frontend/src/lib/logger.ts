@@ -35,6 +35,7 @@ export type FrontendEvent =
   | 'avatar_remove_submitted'
   | 'friend_request_submitted'
   | 'friend_remove_submitted'
+  | 'question_ask_submitted'
   | 'photo_upload_submitted'
   | 'photo_picker_cancelled'
   // warnings
@@ -58,6 +59,7 @@ export type FrontendEvent =
   | 'profile_update_failed_ui'
   | 'email_change_failed_ui'
   | 'avatar_remove_failed_ui'
+  | 'question_ask_failed_ui'
   | 'friend_request_failed_ui'
   | 'friend_remove_failed_ui'
   | 'photo_upload_failed_ui'
