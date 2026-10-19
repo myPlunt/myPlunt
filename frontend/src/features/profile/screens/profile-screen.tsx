@@ -101,7 +101,7 @@ export function ProfileScreen() {
                     <View className="-m-1.5 flex-row flex-wrap">
                       {shown.map((post) => (
                         <View key={post.id} className="w-1/3 p-1.5">
-                          {post.type === 'question' ? <StickyNote post={post} /> : <FeedPlantCard post={post} />}
+                          {post.type === 'question' ? <StickyNote post={post} hideAuthor /> : <FeedPlantCard post={post} hideAuthor />}
                         </View>
                       ))}
                     </View>

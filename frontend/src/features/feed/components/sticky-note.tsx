@@ -6,10 +6,15 @@ import { noteColor } from '@/features/feed/note-colors';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import type { QuestionPost } from '@/lib/post/types';
 
-/** A question in the feed as a Post-it stuck beside the stem, slightly askew, with a strip of tape. */
-export function StickyNote({ post }: { post: QuestionPost }) {
+/** A question in the feed as a Post-it stuck beside the stem, slightly askew, with a strip of tape. * `hideAuthor` is for the user's own profile, where every post is theirs: the label is just the kind.
+ */
+export function StickyNote({ post, hideAuthor = false }: { post: QuestionPost; hideAuthor?: boolean }) {
   // The feed only has the user and their friends; null friendship means it's the user's own.
-  const who = post.author.friendship === null ? 'You asked' : `${post.author.username} asks`;
+  const who = hideAuthor
+    ? 'Question'
+    : post.author.friendship === null
+      ? 'You asked'
+      : `${post.author.username} asks`;
   // Between -3 and 3 degrees, the same for this note every time.
   const tilt = ((hash(post.id) >>> 0) % 7) - 3;
 

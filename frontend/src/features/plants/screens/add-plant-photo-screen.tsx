@@ -9,7 +9,7 @@ import { boxHeight, oneLine, RuledLine, RuledTextField } from '@/features/plants
 import { PhotoField } from '@/features/plants/components/photo-field';
 import { ShareToFeedCheckbox } from '@/features/plants/components/share-to-feed-checkbox';
 import { TakenOnField } from '@/features/plants/components/taken-on-field';
-import { CAPTION_MAX_LENGTH } from '@/features/plants/growth';
+import { COMMENT_MAX_LENGTH } from '@/features/plants/growth';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logFailedUi } from '@/lib/logger';
@@ -97,7 +97,7 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
           onChangeText={setComment}
           error={commentError}
           placeholder="Omg, a new flower is blooming!"
-          maxLength={CAPTION_MAX_LENGTH}
+          maxLength={COMMENT_MAX_LENGTH}
           multiline
           autoCapitalize="sentences"
           autoCorrect
