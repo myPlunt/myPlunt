@@ -18,7 +18,16 @@ const SIZE = 96;
  * The profile picture on Edit profile. Tapping it opens the photo menu; a picked photo is
  * uploaded and saved straight away, without the form's Save button. Remove deletes it.
  */
-export function AvatarField({ user, onSaved }: { user: User; onSaved?: () => void }) {
+export function AvatarField({
+  user,
+  onSaved,
+  highlighted,
+}: {
+  user: User;
+  onSaved?: () => void;
+  /** Rings the picture, for the tour step that asks for one. */
+  highlighted?: boolean;
+}) {
   const theme = useTheme();
   const { updateAvatar, removeAvatar } = useProfileActions();
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
@@ -73,31 +82,33 @@ export function AvatarField({ user, onSaved }: { user: User; onSaved?: () => voi
 
   return (
     <View className="items-center gap-3">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={shownUrl ? 'Change profile picture' : 'Add a profile picture'}
-        disabled={isBusy}
-        onPress={() => setIsMenuOpen(true)}
-        className="active:opacity-70">
-        <UserAvatar size={SIZE} url={shownUrl} accessibilityLabel="Your profile picture" />
-        {isBusy && (
-          <View className="absolute inset-0 items-center justify-center rounded-full bg-background-element opacity-70">
-            {/* A colour prop, so it reads the theme instead of a class. */}
-            <ActivityIndicator
-              accessibilityLabel={isRemoving ? 'Removing profile picture' : 'Uploading profile picture'}
-              color={theme.primary}
+      <View className={`rounded-full border-2 p-1 ${highlighted ? 'border-primary' : 'border-transparent'}`}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={shownUrl ? 'Change profile picture' : 'Add a profile picture'}
+          disabled={isBusy}
+          onPress={() => setIsMenuOpen(true)}
+          className="active:opacity-70">
+          <UserAvatar size={SIZE} url={shownUrl} accessibilityLabel="Your profile picture" />
+          {isBusy && (
+            <View className="absolute inset-0 items-center justify-center rounded-full bg-background-element opacity-70">
+              {/* A colour prop, so it reads the theme instead of a class. */}
+              <ActivityIndicator
+                accessibilityLabel={isRemoving ? 'Removing profile picture' : 'Uploading profile picture'}
+                color={theme.primary}
+              />
+            </View>
+          )}
+          <View className="absolute bottom-0 right-0 h-8 w-8 items-center justify-center rounded-full bg-action-primary">
+            {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
+            <SymbolView
+              name={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }}
+              tintColor={theme.backgroundElement}
+              size={16}
             />
           </View>
-        )}
-        <View className="absolute bottom-0 right-0 h-8 w-8 items-center justify-center rounded-full bg-action-primary">
-          {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
-          <SymbolView
-            name={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }}
-            tintColor={theme.backgroundElement}
-            size={16}
-          />
-        </View>
-      </Pressable>
+        </Pressable>
+      </View>
 
       {shownUrl && !photo.isUploading && (
         <Button label="Remove picture" variant="ghost" loading={isRemoving} onPress={handleRemove} />

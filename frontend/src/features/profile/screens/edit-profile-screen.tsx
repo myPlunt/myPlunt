@@ -33,43 +33,49 @@ export function EditProfileScreen() {
       <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
         <AppHeader showBack />
 
-        <ScrollView
-          // Room to scroll the form out from under the tour card.
-          contentContainerClassName={`w-full max-w-content grow gap-6 self-center p-6 ${isAvatarStep ? 'pb-72' : ''}`}
-          keyboardShouldPersistTaps="handled">
-          <View className="gap-3 rounded-2xl bg-background-element p-4" style={Shadow.card}>
-            <Text className="type-label text-accent">PROFILE</Text>
-            {isLoading ? (
-              // A colour prop, so it reads the theme instead of a class.
-              <ActivityIndicator accessibilityLabel="Loading profile" color={theme.primary} />
-            ) : error ? (
-              <View className="items-start gap-3">
-                <Text className="type-body-medium text-error">{error}</Text>
-                <Button label="Try again" variant="secondary" onPress={retry} />
-              </View>
-            ) : (
-              user && (
-                <>
-                  {/* During the tour's avatar step a ring points at the picture. */}
-                  <View className={isAvatarStep ? 'self-center rounded-full border-2 border-primary p-1' : ''}>
-                    <AvatarField key={`avatar-${user.id}`} user={user} onSaved={() => completeTourStep('avatar')} />
-                  </View>
-                  <EditProfileForm key={user.id} user={user} onSaved={() => completeTourStep('bio')} />
-                </>
-              )
-            )}
-          </View>
-        </ScrollView>
+        {/* The card is placed inside this view, not the SafeAreaView: an absolute child
+            ignores its parent's padding, so it would sit under the home indicator. */}
+        <View className="flex-1">
+          <ScrollView
+            // Room to scroll the form out from under the tour card.
+            contentContainerClassName={`w-full max-w-content grow gap-6 self-center p-6 ${isAvatarStep ? 'pb-72' : ''}`}
+            keyboardShouldPersistTaps="handled">
+            <View className="gap-3 rounded-2xl bg-background-element p-4" style={Shadow.card}>
+              <Text className="type-label text-accent">PROFILE</Text>
+              {isLoading ? (
+                // A colour prop, so it reads the theme instead of a class.
+                <ActivityIndicator accessibilityLabel="Loading profile" color={theme.primary} />
+              ) : error ? (
+                <View className="items-start gap-3">
+                  <Text className="type-body-medium text-error">{error}</Text>
+                  <Button label="Try again" variant="secondary" onPress={retry} />
+                </View>
+              ) : (
+                user && (
+                  <>
+                    <AvatarField
+                      key={`avatar-${user.id}`}
+                      user={user}
+                      highlighted={isAvatarStep}
+                      onSaved={() => completeTourStep('avatar')}
+                    />
+                    <EditProfileForm key={user.id} user={user} onSaved={() => completeTourStep('bio')} />
+                  </>
+                )
+              )}
+            </View>
+          </ScrollView>
 
-        {isAvatarStep && (
-          <View className="absolute inset-x-3 bottom-3">
-            <OnboardingCard
-              step="avatar"
-              title="Add a profile picture?"
-              body="Tap your picture to add a photo of you, or of your favourite plant."
-            />
-          </View>
-        )}
+          {isAvatarStep && (
+            <View className="absolute inset-x-3 bottom-3">
+              <OnboardingCard
+                step="avatar"
+                title="Add a profile picture?"
+                body="Tap your picture to add a photo of you, or of your favourite plant."
+              />
+            </View>
+          )}
+        </View>
       </SafeAreaView>
     </View>
   );
