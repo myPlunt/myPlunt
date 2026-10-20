@@ -29,6 +29,11 @@ export interface QuestionPost extends BasePost {
 /** Mirrors PostResponse (GET /v1/posts/feed): one post by the user or a friend. */
 export type Post = PlantPost | QuestionPost;
 
+/** Mirrors UpdatePostRequest (PUT /v1/posts/{id}): a question's text, or a new photo's comment (null removes it). */
+export interface UpdatePostRequest {
+  body: string | null;
+}
+
 /** Mirrors AskQuestionRequest (POST /v1/posts/questions). */
 export interface AskQuestionRequest {
   body: string;

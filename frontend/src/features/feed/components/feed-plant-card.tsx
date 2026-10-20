@@ -6,7 +6,10 @@ import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { logAction } from '@/lib/logger';
 import type { PlantPost } from '@/lib/post/types';
 
-/** A shared plant or plant photo hanging off the vine: who and what, then the garden's plant card look. * `hideAuthor` is for the user's own profile, where every post is theirs: the label is just the kind.
+/**
+ * A shared plant or plant photo hanging off the vine: who and what, then the garden's plant card look.
+ * Tapping it opens the post's own page. `hideAuthor` is for the user's own profile, where every post
+ * is theirs: the label is just the kind.
  */
 export function FeedPlantCard({ post, hideAuthor = false }: { post: PlantPost; hideAuthor?: boolean }) {
   const router = useRouter();
@@ -17,18 +20,15 @@ export function FeedPlantCard({ post, hideAuthor = false }: { post: PlantPost; h
 
   return (
     // Fills the slot it's given (the feed's 136px, a third of the profile), like a sticky note.
-    // Only the user's own plants open: a plant page is owner-only until friends can view one
-    // (GET /v1/plants/{id} answers 404 to anyone else). Shadow goes through style so it sets
-    // both iOS shadow* and Android elevation.
+    // Shadow goes through style so it sets both iOS shadow* and Android elevation.
     <Pressable
-      disabled={!isOwn}
-      accessibilityRole={isOwn ? 'button' : undefined}
+      accessibilityRole="button"
       // The card is one element to a screen reader, so the comment goes in its label.
       accessibilityLabel={post.body ? `${post.plantName}: ${post.body}` : post.plantName}
-      accessibilityHint={isOwn ? "Shows this plant's details" : undefined}
+      accessibilityHint="Opens the post"
       onPress={() => {
-        logAction('feed_plant_opened', { context: { post_id: post.id, plant_id: post.plantId } });
-        router.push({ pathname: '/plant/[id]', params: { id: post.plantId } });
+        logAction('post_opened', { context: { post_id: post.id, post_type: post.type } });
+        router.push({ pathname: '/post/[id]', params: { id: post.id } });
       }}
       className="w-full rounded-2xl bg-background-element p-1.5 active:opacity-70"
       style={Shadow.card}>

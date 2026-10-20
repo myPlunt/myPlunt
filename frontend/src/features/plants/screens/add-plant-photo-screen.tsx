@@ -3,13 +3,13 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { COMMENT_MAX_LENGTH } from '@/features/feed/post-limits';
 import { usePhotoUpload } from '@/features/photos/use-photo-upload';
 import { NotebookPage } from '@/features/plants/components/notebook-page';
 import { boxHeight, oneLine, RuledLine, RuledTextField } from '@/features/plants/components/notebook-paper';
 import { PhotoField } from '@/features/plants/components/photo-field';
 import { ShareToFeedCheckbox } from '@/features/plants/components/share-to-feed-checkbox';
 import { TakenOnField } from '@/features/plants/components/taken-on-field';
-import { COMMENT_MAX_LENGTH } from '@/features/plants/growth';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logFailedUi } from '@/lib/logger';
