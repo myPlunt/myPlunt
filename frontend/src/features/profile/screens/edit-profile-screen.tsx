@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { OnboardingCard } from '@/features/onboarding/components/onboarding-card';
 import { AvatarField } from '@/features/profile/components/avatar-field';
 import { EditProfileForm } from '@/features/profile/components/edit-profile-form';
 import { useProfile } from '@/features/profile/use-profile';
@@ -17,12 +18,14 @@ export function EditProfileScreen() {
   const router = useRouter();
   const { step, next } = useOnboardingStore();
 
-  // During the tour, saving what the step asked for moves on and returns to the profile,
-  // where the next step's card is waiting.
+  const isAvatarStep = step === 'avatar' && !!user;
+
+  // During the tour, saving what the step asked for moves it on. The bio's next step, the
+  // picture, is on this screen too; after the picture the user goes back to the profile.
   function completeTourStep(saved: TourStep) {
     if (step !== saved) return;
     next();
-    router.back();
+    if (saved === 'avatar') router.back();
   }
 
   return (
@@ -31,7 +34,8 @@ export function EditProfileScreen() {
         <AppHeader showBack />
 
         <ScrollView
-          contentContainerClassName="w-full max-w-content grow gap-6 self-center p-6"
+          // Room to scroll the form out from under the tour card.
+          contentContainerClassName={`w-full max-w-content grow gap-6 self-center p-6 ${isAvatarStep ? 'pb-72' : ''}`}
           keyboardShouldPersistTaps="handled">
           <View className="gap-3 rounded-2xl bg-background-element p-4" style={Shadow.card}>
             <Text className="type-label text-accent">PROFILE</Text>
@@ -46,13 +50,26 @@ export function EditProfileScreen() {
             ) : (
               user && (
                 <>
-                  <AvatarField key={`avatar-${user.id}`} user={user} onSaved={() => completeTourStep('avatar')} />
+                  {/* During the tour's avatar step a ring points at the picture. */}
+                  <View className={isAvatarStep ? 'self-center rounded-full border-2 border-primary p-1' : ''}>
+                    <AvatarField key={`avatar-${user.id}`} user={user} onSaved={() => completeTourStep('avatar')} />
+                  </View>
                   <EditProfileForm key={user.id} user={user} onSaved={() => completeTourStep('bio')} />
                 </>
               )
             )}
           </View>
         </ScrollView>
+
+        {isAvatarStep && (
+          <View className="absolute inset-x-3 bottom-3">
+            <OnboardingCard
+              step="avatar"
+              title="Add a profile picture?"
+              body="Tap your picture to add a photo of you, or of your favourite plant."
+            />
+          </View>
+        )}
       </SafeAreaView>
     </View>
   );

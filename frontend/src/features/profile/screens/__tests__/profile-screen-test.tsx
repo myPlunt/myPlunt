@@ -104,14 +104,4 @@ describe('ProfileScreen', () => {
     expect(push).toHaveBeenCalledWith('/edit-profile');
     expect(onboarding.next).not.toHaveBeenCalled();
   });
-
-  it('shows the profile picture card on the avatar step', async () => {
-    mockedUseOnboardingStore.mockReturnValue({ ...onboarding, step: 'avatar' });
-    await render(<ProfileScreen />);
-
-    expect(screen.getByText('Step 2 of 2')).toBeOnTheScreen();
-    await user.press(screen.getByRole('button', { name: 'Choose photo' }));
-
-    expect(push).toHaveBeenCalledWith('/edit-profile');
-  });
 });

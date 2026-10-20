@@ -10,7 +10,10 @@ import { EditProfileScreen } from '../edit-profile-screen';
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/profile/use-profile');
 jest.mock('@/features/profile/use-profile-actions');
-jest.mock('@/stores/onboarding-store', () => ({ useOnboardingStore: jest.fn() }));
+jest.mock('@/stores/onboarding-store', () => ({
+  ...jest.requireActual('@/stores/onboarding-store'),
+  useOnboardingStore: jest.fn(),
+}));
 
 const mockedUseRouter = jest.mocked(useRouter);
 const mockedUseProfile = jest.mocked(useProfile);
@@ -50,7 +53,7 @@ describe('EditProfileScreen', () => {
     expect(retry).toHaveBeenCalled();
   });
 
-  it('during the tour, saving the bio moves to the next step and returns to the profile', async () => {
+  it('during the tour, saving the bio moves to the picture step on this same screen', async () => {
     mockedUseOnboardingStore.mockReturnValue({ ...onboarding, step: 'bio' });
     const updateProfile = jest.fn().mockResolvedValue({ ...jane, bio: 'Fern collector' });
     mockedUseProfileActions.mockReturnValue({ updateProfile, changeEmail: jest.fn(), updateAvatar: jest.fn(), removeAvatar: jest.fn() });
@@ -61,6 +64,14 @@ describe('EditProfileScreen', () => {
 
     expect(updateProfile).toHaveBeenCalledWith({ username: 'jane', bio: 'Fern collector' });
     expect(onboarding.next).toHaveBeenCalled();
-    expect(back).toHaveBeenCalled();
+    expect(back).not.toHaveBeenCalled();
+  });
+
+  it('shows the picture card on the avatar step', async () => {
+    mockedUseOnboardingStore.mockReturnValue({ ...onboarding, step: 'avatar' });
+    await render(<EditProfileScreen />);
+
+    expect(screen.getByText('Add a profile picture?')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Add a profile picture' })).toBeOnTheScreen();
   });
 });
