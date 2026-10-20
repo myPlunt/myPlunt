@@ -206,7 +206,7 @@ build-admin-staging:
     BUILD_DIR: admin_dashboard
     IMAGE_NAME: admin-dashboard
     IMAGE_TAG: staging
-    BUILD_ARGS: "--build-arg VITE_API_URL=https://api-staging.myplunt.com"
+    BUILD_ARGS: "--build-arg VITE_API_URL=$STAGING_BACKEND_URL --build-arg VITE_APP_VARIANT=staging"
   needs:
     - job: check-admin
       optional: true
@@ -217,7 +217,7 @@ build-admin-prod:
     BUILD_DIR: admin_dashboard
     IMAGE_NAME: admin-dashboard
     IMAGE_TAG: latest
-    BUILD_ARGS: "--build-arg VITE_API_URL=https://api.myplunt.com"
+    BUILD_ARGS: "--build-arg VITE_API_URL=$PROD_BACKEND_URL"
   needs:
     - job: check-admin
       optional: true
