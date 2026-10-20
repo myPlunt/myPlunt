@@ -25,6 +25,8 @@ public class Post {
     public static final String NEW_PHOTO = "new_photo";
     // A question for friends (body), with an optional photo of its own (photoKey); not about a plant.
     public static final String QUESTION = "question";
+    // A new photo's comment is short, to fit its feed card; a question can be longer.
+    public static final int COMMENT_MAX_LENGTH = 120;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -98,6 +100,10 @@ public class Post {
 
     public String getBody() {
         return body;
+    }
+
+    public void setBody(String body) {
+        this.body = body;
     }
 
     public String getPhotoKey() {

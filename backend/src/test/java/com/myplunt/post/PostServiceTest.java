@@ -8,6 +8,7 @@ import com.myplunt.plant.PlantPhoto;
 import com.myplunt.plant.PlantPhotoRepository;
 import com.myplunt.post.dto.AskQuestionRequest;
 import com.myplunt.post.dto.PostResponse;
+import com.myplunt.post.dto.UpdatePostRequest;
 import com.myplunt.storage.StorageService;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.User;
@@ -149,5 +150,57 @@ class PostServiceTest {
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.BAD_REQUEST);
         verify(postRepository, never()).save(any());
+    }
+
+    @Test
+    void updatePost_changesTheQuestionsText() {
+        User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
+        Post question = withId(new Post(me.getId(), "Why are my leaves red?", null), UUID.randomUUID());
+        when(postRepository.findByIdAndUserId(question.getId(), me.getId())).thenReturn(Optional.of(question));
+        when(userRepository.findAllById(anyCollection())).thenReturn(List.of(me));
+
+        PostResponse response = postService().updatePost(me.getId(), question.getId(), new UpdatePostRequest("Why are they yellow?"));
+
+        assertThat(question.getBody()).isEqualTo("Why are they yellow?");
+        assertThat(response.body()).isEqualTo("Why are they yellow?");
+        verify(auditLog).recorded(AuditEvent.POST_UPDATED, me.getId(), me.getId(),
+                Map.of("post_id", question.getId(), "post_type", Post.QUESTION));
+    }
+
+    @Test
+    void updatePost_rejectsANewPlantPostWhichHasNoTextOfItsOwn() {
+        UUID userId = UUID.randomUUID();
+        Plant vera = withId(new Plant(userId, "Vera"), UUID.randomUUID());
+        Post post = withId(new Post(userId, vera, Post.NEW_PLANT), UUID.randomUUID());
+        when(postRepository.findByIdAndUserId(post.getId(), userId)).thenReturn(Optional.of(post));
+
+        assertThatThrownBy(() -> postService().updatePost(userId, post.getId(), new UpdatePostRequest("Hi")))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(post.getBody()).isNull();
+    }
+
+    @Test
+    void deletePost_throwsNotFoundForSomeoneElsesPostAndDeletesNothing() {
+        UUID userId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        when(postRepository.findByIdAndUserId(postId, userId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> postService().deletePost(userId, postId)).isInstanceOf(IllegalStateException.class);
+        verify(postRepository, never()).delete(any());
+        verify(storageService, never()).deleteObject(any());
+    }
+
+    @Test
+    void deletePost_removesAQuestionAndItsOwnPhoto() {
+        UUID userId = UUID.randomUUID();
+        Post question = withId(new Post(userId, "Why?", "posts/u/leaves.jpg"), UUID.randomUUID());
+        when(postRepository.findByIdAndUserId(question.getId(), userId)).thenReturn(Optional.of(question));
+
+        postService().deletePost(userId, question.getId());
+
+        verify(postRepository).delete(question);
+        verify(storageService).deleteObject("posts/u/leaves.jpg");
     }
 }

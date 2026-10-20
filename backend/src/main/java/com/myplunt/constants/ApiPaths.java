@@ -117,6 +117,8 @@ public final class ApiPaths {
         public static final String FEED = BASE + "/feed";
         // The signed-in user's own posts, newest first (for their profile).
         public static final String MINE = BASE + "/mine";
+        // GET opens a post of the user's or a friend's; PUT edits the user's own post's text, DELETE removes it.
+        public static final String BY_ID = BASE + "/{postId}";
         // POST asks the user's friends a question; it shows up in the feed as a sticky note.
         public static final String QUESTIONS = BASE + "/questions";
 

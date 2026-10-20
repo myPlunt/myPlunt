@@ -81,4 +81,25 @@ class PostRepositoryTest {
 
         assertThat(feed).extracting(Post::getId).containsExactly(fromAsked.getId(), fromAsker.getId(), mine.getId());
     }
+
+    @Test
+    void findVisible_findsOwnAndFriendsPostsButNotAStrangersOrPendingFriends() {
+        User me = user("me");
+        User friend = user("friend");
+        User pending = user("pending");
+        User stranger = user("stranger");
+        Friendship accepted = new Friendship(friend.getId(), me.getId());
+        accepted.accept();
+        friendshipRepository.saveAll(List.of(accepted, new Friendship(me.getId(), pending.getId())));
+        Post mine = newPlantPost(me, "Vera", 0);
+        Post friends = newPlantPost(friend, "Gus", 0);
+        Post pendings = newPlantPost(pending, "Basil", 0);
+        Post strangers = newPlantPost(stranger, "Ivy", 0);
+        List<String> types = List.of(Post.NEW_PLANT);
+
+        assertThat(postRepository.findVisible(mine.getId(), me.getId(), types)).isPresent();
+        assertThat(postRepository.findVisible(friends.getId(), me.getId(), types)).isPresent();
+        assertThat(postRepository.findVisible(pendings.getId(), me.getId(), types)).isEmpty();
+        assertThat(postRepository.findVisible(strangers.getId(), me.getId(), types)).isEmpty();
+    }
 }
