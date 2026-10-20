@@ -11,10 +11,12 @@ export default function TabsLayout() {
   const router = useRouter();
   const { step } = useOnboardingStore();
 
-  // The tour's first step is on the profile, not the feed the tabs open on. navigate, not
-  // push, so it can't stack up if the tabs mount again.
+  // The tour's first step is on the profile, not the feed the tabs open on, and its last on the
+  // PluntDex, reached from the garden however the watering step ended (or was skipped).
+  // navigate, not push, so a tab can't stack up if the tabs mount again.
   useEffect(() => {
     if (step === 'bio') router.navigate('/profile');
+    if (step === 'pluntdex') router.navigate('/pluntdex');
   }, [step, router]);
 
   // The tour opens with the welcome page in place of the tabs. A redirect replaces instead of

@@ -3,12 +3,17 @@ import { useRouter } from 'expo-router';
 
 import { useDiscoveredSpecies } from '@/features/species/use-discovered-species';
 import { useSpecies } from '@/features/species/use-species';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 import { PluntdexScreen } from '../pluntdex-screen';
 
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/species/use-discovered-species');
 jest.mock('@/features/species/use-species');
+jest.mock('@/stores/onboarding-store', () => ({
+  ...jest.requireActual('@/stores/onboarding-store'),
+  useOnboardingStore: jest.fn(),
+}));
 
 const mockedUseDiscoveredSpecies = jest.mocked(useDiscoveredSpecies);
 const mockedUseSpecies = jest.mocked(useSpecies);
@@ -38,6 +43,7 @@ const species = [
 ];
 
 beforeEach(() => {
+  jest.mocked(useOnboardingStore).mockReturnValue({ step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), finish: jest.fn() });
   mockedUseSpecies.mockReturnValue({ species, error: null, retry: jest.fn() });
   mockedUseDiscoveredSpecies.mockReturnValue({ discovered: [{ speciesId: 'basil', discoveredAt: '2026-10-11T09:30:00Z' }], error: null, isLoading: false, retry: jest.fn() });
 });
@@ -86,4 +92,19 @@ it('searches by name and says when nothing matches', async () => {
   await user.type(screen.getByLabelText('Search species'), 'cactus');
 
   expect(screen.getByText('No species match')).toBeOnTheScreen();
+});
+
+it("during the tour's last step, explains the PluntDex without opening species, and Got it ends it", async () => {
+  const push = jest.fn();
+  const next = jest.fn();
+  jest.mocked(useRouter).mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
+  jest.mocked(useOnboardingStore).mockReturnValue({ step: 'pluntdex', start: jest.fn(), next, skipPast: jest.fn(), finish: jest.fn() });
+  await render(<PluntdexScreen />);
+
+  expect(screen.getByText('Explore the PluntDex')).toBeOnTheScreen();
+  await user.press(screen.getByLabelText('Monstera, not discovered yet'));
+  expect(push).not.toHaveBeenCalled();
+  await user.press(screen.getByRole('button', { name: 'Got it' }));
+
+  expect(next).toHaveBeenCalled();
 });

@@ -8,6 +8,8 @@ import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { SearchField } from '@/components/ui/search-field';
 import { Shadow } from '@/constants/theme';
+import { OnboardingCard } from '@/features/onboarding/components/onboarding-card';
+import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { ChoiceChip } from '@/features/plants/components/choice-chip';
 import { RegionSelect } from '@/features/pluntdex/components/region-select';
 import { SpeciesCard } from '@/features/pluntdex/components/species-card';
@@ -16,6 +18,7 @@ import { useDiscoveredSpecies } from '@/features/species/use-discovered-species'
 import { useSpecies } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 import type { Species } from '@/lib/species/types';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 const NO_FILTER: PluntdexFilter = { only: null, region: null };
 
@@ -28,6 +31,11 @@ export function PluntdexScreen() {
   const { discovered: discoveredList, error: discoveredError, isLoading, retry: retryDiscovered } = useDiscoveredSpecies();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<PluntdexFilter>(NO_FILTER);
+  // The tour's last step: it shows what the PluntDex is, and "Got it" ends the tour. Searching
+  // and filtering still work; a species' page would leave the step, so the cards don't open.
+  const { step, next } = useOnboardingStore();
+  const isPluntdexStep = step === 'pluntdex';
+  useTourBackLock(isPluntdexStep);
 
   const discovered = new Set(discoveredList?.map((c) => c.speciesId));
   const visible = species ? filterSpecies(species, discovered, query, filter) : [];
@@ -75,7 +83,8 @@ export function PluntdexScreen() {
             // Index 0 is the progress card (the list header), so 1 is the filters row.
             stickyHeaderIndices={[1]}
             keyboardShouldPersistTaps="handled"
-            contentContainerClassName="w-full max-w-content grow gap-4 self-center px-6 pb-8 pt-2"
+            // Room to scroll the cards out from under the tour card.
+            contentContainerClassName={`w-full max-w-content grow gap-4 self-center px-6 pt-2 ${isPluntdexStep ? 'pb-72' : 'pb-8'}`}
             ListHeaderComponent={
               // Shadow goes through style so it sets both iOS shadow* and Android elevation.
               <View className="gap-3 rounded-3xl bg-action-primary p-5" style={Shadow.card}>
@@ -155,7 +164,7 @@ export function PluntdexScreen() {
                   </View>
                 </View>
               ) : (
-                <View className="flex-row justify-between">
+                <View className="flex-row justify-between" pointerEvents={isPluntdexStep ? 'none' : 'auto'}>
                   {row.map((s) => (
                     <SpeciesCard
                       key={s.id}
@@ -169,6 +178,19 @@ export function PluntdexScreen() {
               )
             }
           />
+        )}
+
+        {isPluntdexStep && (
+          <View className="absolute inset-x-3 bottom-3">
+            <OnboardingCard
+              step="pluntdex"
+              title="Explore the PluntDex"
+              body="Every plant species, numbered. Each new species you add to your garden is discovered here, so the count grows with your garden."
+              actionLabel="Got it"
+              onAction={next}
+              showNotNow={false}
+            />
+          </View>
         )}
       </SafeAreaView>
     </View>
