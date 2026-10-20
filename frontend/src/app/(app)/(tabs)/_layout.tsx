@@ -22,6 +22,8 @@ export default function TabsLayout() {
   // The tour opens with the welcome page in place of the tabs. A redirect replaces instead of
   // pushing, so it's there once however often the tabs mount; leaving it brings the tabs back.
   if (step === 'welcome') return <Redirect href="/welcome" />;
+  // The same for the "You're all set" page that ends a tour taken to the end (not a skipped one).
+  if (step === 'done') return <Redirect href="/tour-done" />;
 
   // Screens render their own AppHeader, so the navigator's header stays hidden.
   return (

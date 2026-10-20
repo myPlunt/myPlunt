@@ -13,6 +13,9 @@ export default function AppLayout() {
       {/* Page 0 of the tour, which the tabs layout redirects to after registering. No swipe back:
           the only ways out are its two buttons, so the tour can't be left half-started. */}
       <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
+      {/* The tour's last page, which the tabs layout redirects to after its last step; no swipe
+          back, so the tour can't be left half-finished either. */}
+      <Stack.Screen name="tour-done" options={{ gestureEnabled: false }} />
       {/* Tour step 3, opened from Edit profile; no swipe back for the same reason. */}
       <Stack.Screen name="location" options={{ gestureEnabled: false }} />
       <Stack.Screen name="settings" />

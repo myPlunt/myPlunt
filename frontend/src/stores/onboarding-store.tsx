@@ -4,14 +4,15 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 export const ONBOARDING_STEPS = ['bio', 'avatar', 'location', 'friends', 'plant', 'photo', 'water', 'pluntdex'] as const;
 
 export type TourStep = (typeof ONBOARDING_STEPS)[number];
-// 'welcome' comes before the numbered steps, so it isn't counted in "Step x of N".
-export type OnboardingStep = 'welcome' | TourStep;
+// 'welcome' comes before the numbered steps and 'done' (the "You're all set" page) after them,
+// so neither is counted in "Step x of N".
+export type OnboardingStep = 'welcome' | TourStep | 'done';
 
 interface OnboardingStore {
   /** The step being shown, or null when no tour is running. */
   step: OnboardingStep | null;
   start: () => void;
-  /** Moves to the next step; after the last one the tour ends. */
+  /** Moves to the next step; after the last one comes the "You're all set" page, then the tour ends. */
   next: () => void;
   /** Moves past `step` and the steps before it, e.g. the steps that need a plant when none was added. */
   skipPast: (step: TourStep) => void;
@@ -29,14 +30,14 @@ export function OnboardingStoreProvider({ children }: { children: ReactNode }) {
   const next = useCallback(
     () =>
       setStep((current) => {
-        if (current === null) return null;
+        if (current === null || current === 'done') return null;
         if (current === 'welcome') return ONBOARDING_STEPS[0];
-        return ONBOARDING_STEPS[ONBOARDING_STEPS.indexOf(current) + 1] ?? null;
+        return ONBOARDING_STEPS[ONBOARDING_STEPS.indexOf(current) + 1] ?? 'done';
       }),
     [],
   );
   const skipPast = useCallback(
-    (last: TourStep) => setStep((current) => (current === null ? null : (ONBOARDING_STEPS[ONBOARDING_STEPS.indexOf(last) + 1] ?? null))),
+    (last: TourStep) => setStep((current) => (current === null ? null : (ONBOARDING_STEPS[ONBOARDING_STEPS.indexOf(last) + 1] ?? 'done'))),
     [],
   );
   const finish = useCallback(() => setStep(null), []);
