@@ -69,6 +69,8 @@ export default {
       reactCompiler: true,
     },
     extra: {
+      // Read at runtime by the staging banner; APP_VARIANT has no EXPO_PUBLIC_ prefix, so it isn't in the JS bundle otherwise.
+      appVariant: process.env.APP_VARIANT ?? null,
       router: {},
       eas: {
         projectId: "9522f12d-5816-4e59-8252-30c84f0000af",
