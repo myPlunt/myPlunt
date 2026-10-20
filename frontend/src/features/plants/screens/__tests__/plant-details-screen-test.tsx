@@ -57,7 +57,7 @@ function mockPlant(state: Partial<ReturnType<typeof usePlant>>) {
 }
 
 beforeEach(() => {
-  jest.mocked(useOnboardingStore).mockReturnValue({ step: null, start: jest.fn(), next: jest.fn(), finish: jest.fn() });
+  jest.mocked(useOnboardingStore).mockReturnValue({ step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), finish: jest.fn() });
   jest.mocked(useRouter).mockReturnValue({ push, back, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
   jest.mocked(usePlantActions).mockReturnValue({
     createPlant: jest.fn(),

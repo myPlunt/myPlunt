@@ -60,8 +60,13 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
         comment: shareToFeed && comment.trim() !== '' ? comment : null,
         shareToFeed,
       });
-      // The photo is what the tour's photo step asked for, so it moves on.
-      if (step === 'photo') next();
+      // The photo is more than the tour's photo step asked for, so it moves on, to the
+      // watering step in the garden.
+      if (step === 'photo') {
+        next();
+        router.dismissTo('/garden');
+        return;
+      }
       close();
     } catch (err) {
       logFailedUi('plant_photo_add_failed_ui', err, { plant_id: plantId });

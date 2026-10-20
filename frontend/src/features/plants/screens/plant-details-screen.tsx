@@ -35,9 +35,9 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
   const router = useRouter();
   const { plant, error, isLoading, retry } = usePlant(plantId);
   // The tour's photo step, opened here right after its first plant was saved. It only shows
-  // where photos are added (most users add one with the plant anyway); "Got it" moves on. Add
-  // under Growth still works; leaving otherwise would strand the card, so back, edit, history
-  // and delete are off.
+  // where photos are added (most users add one with the plant anyway); "Got it" moves on to the
+  // watering step in the garden. Add under Growth still works; leaving otherwise would strand
+  // the card, so back, edit, history and delete are off.
   const { step, next } = useOnboardingStore();
   const isPhotoStep = step === 'photo' && !!plant;
   useTourBackLock(isPhotoStep);
@@ -101,7 +101,10 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
                 title={`Watch ${plant.name} grow`}
                 body="Whenever you take a new photo of it, add it with Add under Growth. Side by side, the photos show how it grows."
                 actionLabel="Got it"
-                onAction={next}
+                onAction={() => {
+                  next();
+                  router.dismissTo('/garden');
+                }}
                 showNotNow={false}
               />
             </View>

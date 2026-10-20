@@ -26,10 +26,13 @@ export function GardenScreen() {
   const router = useRouter();
   const { garden, error, isLoading, retry, refresh } = useGarden();
   // The tour's first-plant step: its card opens the Add sheet, and saving a plant there ends
-  // the step (AddPlantScreen).
-  const { step, next } = useOnboardingStore();
+  // the step (AddPlantScreen). Then the watering step, back here after the plant's page: it
+  // shows the drop that starts watering, and "Got it" or watering moves on.
+  const { step, next, skipPast } = useOnboardingStore();
   const isPlantStep = step === 'plant';
-  useTourBackLock(isPlantStep);
+  const isWaterStep = step === 'water';
+  const isTourStep = isPlantStep || isWaterStep;
+  useTourBackLock(isTourStep);
   const { waterPlants } = useGardenActions();
   const [isWatering, setIsWatering] = useState(false);
   const [waterError, setWaterError] = useState<string | null>(null);
@@ -51,6 +54,7 @@ export function GardenScreen() {
     setIsWatering(true);
     try {
       await waterPlants(plantIds);
+      if (isWaterStep) next();
       await refresh();
       return true;
     } catch (err) {
@@ -114,7 +118,9 @@ export function GardenScreen() {
                   accessibilityLabel="Water plants"
                   accessibilityHint="Pick the plants you watered"
                   onPress={startSelecting}
-                  className="h-10 w-10 items-center justify-center active:opacity-70">
+                  className={`h-10 w-10 items-center justify-center rounded-full active:opacity-70 ${
+                    isWaterStep ? 'border-2 border-primary' : ''
+                  }`}>
                   {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
                   <SymbolView
                     name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
@@ -129,7 +135,7 @@ export function GardenScreen() {
 
         <ScrollView
           // Room to scroll the garden out from under the tour card.
-          contentContainerClassName={`w-full max-w-content grow gap-8 self-center px-6 pt-2 ${isPlantStep ? 'pb-72' : 'pb-8'}`}>
+          contentContainerClassName={`w-full max-w-content grow gap-8 self-center px-6 pt-2 ${isTourStep ? 'pb-72' : 'pb-8'}`}>
           {isLoading ? (
             // Colour props (spinner) read the theme instead of a class.
             <ActivityIndicator accessibilityLabel="Loading garden" color={theme.primary} className="mt-6" />
@@ -158,8 +164,9 @@ export function GardenScreen() {
                     error={waterError}
                   />
                 )}
-                {/* The plants don't open during the tour's step, which would leave it. */}
-                <View className="gap-8" pointerEvents={isPlantStep ? 'none' : 'auto'}>
+                {/* The plants don't open during the tour's steps, which would leave them; picking
+                    plants to water still works. */}
+                <View className="gap-8" pointerEvents={isTourStep && !selectedIds ? 'none' : 'auto'}>
                   {garden.rooms.map((room) => (
                     <RoomSection
                       key={room.id ?? 'unassigned'}
@@ -195,9 +202,23 @@ export function GardenScreen() {
               body="Add a plant you have at home, here or with the + below: where it stands and how often it likes water. We'll remind you when it's thirsty."
               actionLabel="Add a plant"
               onAction={() => router.push('/add')}
-              // The photo step after this one is on the new plant's page, so without a plant
-              // it's skipped too; otherwise it'd wait for a card that never shows.
-              onSkip={next}
+              // The photo and watering steps after this one need the plant, so without one
+              // they're skipped too; otherwise they'd wait for a card that never shows.
+              onSkip={() => skipPast('water')}
+            />
+          </View>
+        )}
+
+        {/* Out of the way while picking plants, where the selection bar takes the bottom. */}
+        {isWaterStep && !selectedIds && (
+          <View className="absolute inset-x-3 bottom-3">
+            <OnboardingCard
+              step="water"
+              title="Water your plants"
+              body="When you've watered, tap the drop at the top, pick the plants you watered and tap Water. We'll remind you when they're thirsty again."
+              actionLabel="Got it"
+              onAction={next}
+              showNotNow={false}
             />
           </View>
         )}

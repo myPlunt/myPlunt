@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
 // The tour's numbered steps in order. Each screen shows its card while `step` is its own.
-export const ONBOARDING_STEPS = ['bio', 'avatar', 'location', 'friends', 'plant', 'photo'] as const;
+export const ONBOARDING_STEPS = ['bio', 'avatar', 'location', 'friends', 'plant', 'photo', 'water'] as const;
 
 export type TourStep = (typeof ONBOARDING_STEPS)[number];
 // 'welcome' comes before the numbered steps, so it isn't counted in "Step x of N".
@@ -13,6 +13,8 @@ interface OnboardingStore {
   start: () => void;
   /** Moves to the next step; after the last one the tour ends. */
   next: () => void;
+  /** Moves past `step` and the steps before it, e.g. the steps that need a plant when none was added. */
+  skipPast: (step: TourStep) => void;
   finish: () => void;
 }
 
@@ -33,9 +35,16 @@ export function OnboardingStoreProvider({ children }: { children: ReactNode }) {
       }),
     [],
   );
+  const skipPast = useCallback(
+    (last: TourStep) => setStep((current) => (current === null ? null : (ONBOARDING_STEPS[ONBOARDING_STEPS.indexOf(last) + 1] ?? null))),
+    [],
+  );
   const finish = useCallback(() => setStep(null), []);
 
-  const value = useMemo<OnboardingStore>(() => ({ step, start, next, finish }), [step, start, next, finish]);
+  const value = useMemo<OnboardingStore>(
+    () => ({ step, start, next, skipPast, finish }),
+    [step, start, next, skipPast, finish],
+  );
 
   return <OnboardingStoreContext.Provider value={value}>{children}</OnboardingStoreContext.Provider>;
 }
