@@ -187,6 +187,30 @@ class FriendServiceTest {
     }
 
     @Test
+    void requireFriends_passesForFriendsWhoeverAsked() {
+        Friendship friends = new Friendship(tomId, janeId);
+        friends.accept();
+        when(friendshipRepository.findBetween(janeId, List.of(tomId))).thenReturn(List.of(friends));
+
+        friendService().requireFriends(janeId, tomId);
+    }
+
+    // A request either way isn't a friendship yet, so their garden stays private until it's accepted.
+    @Test
+    void requireFriends_failsForStrangersAndPendingRequests() {
+        when(friendshipRepository.findBetween(janeId, List.of(tomId)))
+                .thenReturn(List.of())
+                .thenReturn(List.of(new Friendship(janeId, tomId)))
+                .thenReturn(List.of(new Friendship(tomId, janeId)));
+
+        for (int i = 0; i < 3; i++) {
+            assertThatThrownBy(() -> friendService().requireFriends(janeId, tomId))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("You're not friends with this user");
+        }
+    }
+
+    @Test
     void getRequests_mapsReceivedAndSent() {
         User tom = new User("tom", "tom@example.com", "hashed");
         User mia = new User("mia", "mia@example.com", "hashed");

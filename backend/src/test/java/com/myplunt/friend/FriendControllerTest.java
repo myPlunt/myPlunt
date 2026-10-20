@@ -4,6 +4,10 @@ import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.friend.dto.SendFriendRequest;
+import com.myplunt.garden.GardenService;
+import com.myplunt.garden.dto.GardenResponse;
+import com.myplunt.species.SpeciesService;
+import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import com.myplunt.user.dto.UserSummaryResponse;
@@ -20,12 +24,15 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +46,12 @@ class FriendControllerTest {
 
     @MockitoBean
     private FriendService friendService;
+
+    @MockitoBean
+    private GardenService gardenService;
+
+    @MockitoBean
+    private SpeciesService speciesService;
 
     @MockitoBean
     private JwtService jwtService;
@@ -173,6 +186,60 @@ class FriendControllerTest {
         restTestClient.post().uri("/v1/friends/" + UUID.randomUUID() + "/remove")
                 .exchange()
                 .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void garden_returnsTheFriendsGardenInTheViewersZone() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+        GardenResponse garden = new GardenResponse(List.of());
+        when(gardenService.getGarden(tomId, ZoneId.of("Europe/Amsterdam"))).thenReturn(garden);
+
+        get("/v1/users/" + tomId + "/garden?zone=Europe/Amsterdam")
+                .expectStatus().isOk()
+                .expectBody(GardenResponse.class)
+                .isEqualTo(garden);
+        verify(friendService).requireFriends(janeId, tomId);
+    }
+
+    @Test
+    void discoveredSpecies_returnsTheFriendsDiscoveries() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+        List<DiscoveredSpeciesResponse> discovered =
+                List.of(new DiscoveredSpeciesResponse(UUID.randomUUID(), Instant.parse("2026-10-01T10:00:00Z")));
+        when(speciesService.getDiscoveredSpecies(tomId)).thenReturn(discovered);
+
+        get("/v1/users/" + tomId + "/species/discovered")
+                .expectStatus().isOk()
+                .expectBody(new ParameterizedTypeReference<List<DiscoveredSpeciesResponse>>() {})
+                .isEqualTo(discovered);
+        verify(friendService).requireFriends(janeId, tomId);
+    }
+
+    // Checked before anything is loaded, so a stranger never gets their garden or discoveries.
+    @Test
+    void gardenAndDiscoveredSpecies_returnNotFoundWhenNotFriends() {
+        authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+        doThrow(new IllegalStateException("You're not friends with this user"))
+                .when(friendService).requireFriends(any(), any());
+
+        get("/v1/users/" + tomId + "/garden").expectStatus().isNotFound();
+        get("/v1/users/" + tomId + "/species/discovered").expectStatus().isNotFound();
+        verifyNoInteractions(gardenService, speciesService);
+    }
+
+    @Test
+    void gardenAndDiscoveredSpecies_rejectRequestsWithoutAToken() {
+        restTestClient.get().uri("/v1/users/" + UUID.randomUUID() + "/garden").exchange().expectStatus().isUnauthorized();
+        restTestClient.get().uri("/v1/users/" + UUID.randomUUID() + "/species/discovered")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    private RestTestClient.ResponseSpec get(String uri) {
+        return restTestClient.get().uri(uri).header("Authorization", "Bearer access-token").exchange();
     }
 
     private RestTestClient.ResponseSpec postAnswer(String uri) {
