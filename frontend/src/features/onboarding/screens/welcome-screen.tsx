@@ -14,16 +14,16 @@ const TOUR_PARTS = [
   'Explore the PluntDex',
 ];
 
-// Page 0 of the tour, shown right after registering. Leaving goes back to the tabs, where
-// the tabs layout opens the first step's screen.
+// Page 0 of the tour, shown right after registering in place of the tabs. Leaving brings the
+// tabs back: on the profile, where the first step is, or on the feed when the tour is skipped.
 export function WelcomeScreen() {
   const router = useRouter();
   const { next, finish } = useOnboardingStore();
   useTourBackLock(true);
 
-  function leave(action: () => void) {
+  function leave(action: () => void, to: '/profile' | '/') {
     action();
-    router.back();
+    router.replace(to);
   }
 
   return (
@@ -56,8 +56,8 @@ export function WelcomeScreen() {
           </View>
 
           <View className="mt-auto gap-2">
-            <Button label="Show me around" size="large" onPress={() => leave(next)} />
-            <Button label="Skip the tour" variant="ghost" size="large" onPress={() => leave(finish)} />
+            <Button label="Show me around" size="large" onPress={() => leave(next, '/profile')} />
+            <Button label="Skip the tour" variant="ghost" size="large" onPress={() => leave(finish, '/')} />
           </View>
         </ScrollView>
       </SafeAreaView>

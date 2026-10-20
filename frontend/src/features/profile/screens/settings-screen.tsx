@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,9 +16,17 @@ import { useOnboardingStore } from '@/stores/onboarding-store';
 // Account settings. Profile details (username, bio, picture) live on Edit profile.
 export function SettingsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { logout } = useAuthActions();
   const { user, error, isLoading, retry } = useProfile();
   const onboarding = useOnboardingStore();
+
+  function retakeTour() {
+    onboarding.start();
+    // Back to the tabs: they redirect to the welcome page once they're in front, and a
+    // redirect doesn't run while this page covers them.
+    router.dismissTo('/');
+  }
 
   return (
     <View className="flex-1 bg-background">
@@ -47,11 +56,10 @@ export function SettingsScreen() {
             </View>
           </View>
 
-          {/* The tabs layout opens the welcome page as soon as the tour starts. */}
           <LinkCard
             title="Take the tour again"
             icon={{ ios: 'map', android: 'tour', web: 'tour' }}
-            onPress={onboarding.start}
+            onPress={retakeTour}
           />
 
           <Pressable

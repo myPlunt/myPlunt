@@ -29,7 +29,8 @@ const REASONS: { icon: SymbolViewProps['name']; title: string; body: string }[] 
 ];
 
 // Tour step 3: a full page rather than a card, because it ends in the system's permission prompt.
-// It replaced Edit profile, so leaving it goes back to the profile.
+// It replaced Edit profile, so the profile is below it: moving on swaps this page for the friends
+// step, and skipping the tour goes back to the profile.
 export function LocationScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -38,8 +39,13 @@ export function LocationScreen() {
   const [isSharing, setIsSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function leave(action: () => void) {
-    action();
+  function moveOn() {
+    next();
+    router.replace('/friends');
+  }
+
+  function skipTour() {
+    finish();
     router.back();
   }
 
@@ -49,7 +55,7 @@ export function LocationScreen() {
     try {
       // Denied permission saves nothing; the tour moves on either way.
       await shareLocation();
-      leave(next);
+      moveOn();
     } catch (err) {
       logFailedUi('location_share_failed_ui', err);
       setError(describeError(err));
@@ -70,7 +76,7 @@ export function LocationScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Skip tour"
-                onPress={() => leave(finish)}
+                onPress={skipTour}
                 hitSlop={12}
                 className="active:opacity-70">
                 <Text className="type-body-medium text-text-secondary">Skip tour</Text>
@@ -120,7 +126,7 @@ export function LocationScreen() {
             </View>
             {error && <Text className="type-body-medium text-center text-error">{error}</Text>}
             <Button label="Share my city" size="large" loading={isSharing} onPress={handleShare} />
-            <Button label="Not now" variant="ghost" size="large" disabled={isSharing} onPress={() => leave(next)} />
+            <Button label="Not now" variant="ghost" size="large" disabled={isSharing} onPress={() => moveOn()} />
           </View>
         </ScrollView>
       </SafeAreaView>

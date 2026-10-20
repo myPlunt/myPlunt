@@ -10,12 +10,12 @@ jest.mock('@/stores/onboarding-store', () => ({ useOnboardingStore: jest.fn() })
 
 const mockedUseRouter = jest.mocked(useRouter);
 const mockedUseOnboardingStore = jest.mocked(useOnboardingStore);
-const back = jest.fn();
+const replace = jest.fn();
 const onboarding = { step: 'welcome' as const, start: jest.fn(), next: jest.fn(), finish: jest.fn() };
 const user = userEvent.setup();
 
 beforeEach(() => {
-  mockedUseRouter.mockReturnValue({ back } as unknown as ReturnType<typeof useRouter>);
+  mockedUseRouter.mockReturnValue({ replace } as unknown as ReturnType<typeof useRouter>);
   mockedUseOnboardingStore.mockReturnValue(onboarding);
 });
 
@@ -31,7 +31,7 @@ describe('WelcomeScreen', () => {
 
     expect(onboarding.next).toHaveBeenCalled();
     expect(onboarding.finish).not.toHaveBeenCalled();
-    expect(back).toHaveBeenCalled();
+    expect(replace).toHaveBeenCalledWith('/profile');
   });
 
   it('"Skip the tour" ends the tour', async () => {
@@ -41,6 +41,6 @@ describe('WelcomeScreen', () => {
 
     expect(onboarding.finish).toHaveBeenCalled();
     expect(onboarding.next).not.toHaveBeenCalled();
-    expect(back).toHaveBeenCalled();
+    expect(replace).toHaveBeenCalledWith('/');
   });
 });
