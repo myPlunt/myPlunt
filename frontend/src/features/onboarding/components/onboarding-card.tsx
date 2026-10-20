@@ -2,10 +2,10 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Shadow } from '@/constants/theme';
-import { ONBOARDING_STEPS, useOnboardingStore, type OnboardingStep } from '@/stores/onboarding-store';
+import { ONBOARDING_STEPS, useOnboardingStore, type TourStep } from '@/stores/onboarding-store';
 
 interface OnboardingCardProps {
-  step: OnboardingStep;
+  step: TourStep;
   title: string;
   body: string;
   actionLabel: string;

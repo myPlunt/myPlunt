@@ -35,7 +35,7 @@ function renderWithStore() {
   );
 }
 
-it('register signs the new user in and starts the tour at the bio step', async () => {
+it('register signs the new user in and starts the tour on the welcome page', async () => {
   mockedAuthService.register.mockResolvedValue(undefined);
   const { result } = await renderWithStore();
   await waitFor(() => expect(result.current.store.status).toBe('unauthenticated'));
@@ -45,7 +45,7 @@ it('register signs the new user in and starts the tour at the bio step', async (
   });
 
   expect(result.current.store.status).toBe('authenticated');
-  expect(result.current.onboarding.step).toBe('bio');
+  expect(result.current.onboarding.step).toBe('welcome');
 });
 
 it('login calls the service then flips the store to authenticated', async () => {

@@ -11,8 +11,10 @@ export default function TabsLayout() {
   const router = useRouter();
   const { step } = useOnboardingStore();
 
-  // The tour starts on the profile, not the feed the tabs open on.
+  // The tour opens with the welcome page, then its first step is on the profile, not
+  // the feed the tabs open on.
   useEffect(() => {
+    if (step === 'welcome') router.push('/welcome');
     if (step === 'bio') router.navigate('/profile');
   }, [step, router]);
 

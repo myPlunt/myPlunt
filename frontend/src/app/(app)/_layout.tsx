@@ -10,6 +10,9 @@ export default function AppLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
       <Stack.Screen name="(tabs)" />
+      {/* Page 0 of the tour, opened by the tabs layout after registering. No swipe back:
+          the only ways out are its two buttons, so the tour can't be left half-started. */}
+      <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
       <Stack.Screen name="settings" />
       <Stack.Screen name="edit-profile" />
       {/* Opened from the people icon in the profile's header. */}

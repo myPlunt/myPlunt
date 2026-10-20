@@ -1,9 +1,11 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
-// The tour's steps in order. Each screen shows its card while `step` is its own.
+// The tour's numbered steps in order. Each screen shows its card while `step` is its own.
 export const ONBOARDING_STEPS = ['bio'] as const;
 
-export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
+export type TourStep = (typeof ONBOARDING_STEPS)[number];
+// 'welcome' comes before the numbered steps, so it isn't counted in "Step x of N".
+export type OnboardingStep = 'welcome' | TourStep;
 
 interface OnboardingStore {
   /** The step being shown, or null when no tour is running. */
@@ -21,11 +23,12 @@ const OnboardingStoreContext = createContext<OnboardingStore | undefined>(undefi
 export function OnboardingStoreProvider({ children }: { children: ReactNode }) {
   const [step, setStep] = useState<OnboardingStep | null>(null);
 
-  const start = useCallback(() => setStep(ONBOARDING_STEPS[0]), []);
+  const start = useCallback(() => setStep('welcome'), []);
   const next = useCallback(
     () =>
       setStep((current) => {
         if (current === null) return null;
+        if (current === 'welcome') return ONBOARDING_STEPS[0];
         return ONBOARDING_STEPS[ONBOARDING_STEPS.indexOf(current) + 1] ?? null;
       }),
     [],
