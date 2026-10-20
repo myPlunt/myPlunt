@@ -26,10 +26,10 @@ export function FriendsScreen() {
   // card's buttons are the way on.
   useTourBackLock(isFriendsStep);
 
-  // The last step for now, so moving on ends the tour; back to the profile, where it started.
-  function finishStep() {
+  // The next step, the first plant, is in the garden: this page closes onto that tab.
+  function moveOn() {
     next();
-    router.back();
+    router.dismissTo('/garden');
   }
   const [tab, setTab] = useState<FriendsTab>('find');
   // Kept here, so switching tabs and back doesn't clear the search.
@@ -108,8 +108,8 @@ export function FriendsScreen() {
                 title="Find your friends"
                 body="Search for people by their username and open their profile to add them. Their plants show up in your feed."
                 actionLabel="Done"
-                onAction={finishStep}
-                onSkip={() => router.back()}
+                onAction={moveOn}
+                onSkip={() => router.dismissTo('/garden')}
               />
             </View>
           )}

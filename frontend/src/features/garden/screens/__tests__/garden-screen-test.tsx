@@ -5,12 +5,17 @@ import { useGarden } from '@/features/garden/use-garden';
 import { useGardenActions } from '@/features/garden/use-garden-actions';
 import { ApiError } from '@/lib/auth/api-client';
 import type { Garden, GardenPlant } from '@/lib/garden/types';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 import { GardenScreen } from '../garden-screen';
 
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/garden/use-garden');
 jest.mock('@/features/garden/use-garden-actions');
+jest.mock('@/stores/onboarding-store', () => ({
+  ...jest.requireActual('@/stores/onboarding-store'),
+  useOnboardingStore: jest.fn(),
+}));
 
 const mockedUseGarden = jest.mocked(useGarden);
 const mockedUseGardenActions = jest.mocked(useGardenActions);
@@ -66,6 +71,7 @@ function mockGarden(state: Partial<ReturnType<typeof useGarden>>) {
 
 beforeEach(() => {
   jest.mocked(useRouter).mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
+  jest.mocked(useOnboardingStore).mockReturnValue({ step: null, start: jest.fn(), next: jest.fn(), finish: jest.fn() });
   mockGarden({});
   mockedUseGardenActions.mockReturnValue({ waterPlants });
   waterPlants.mockResolvedValue(undefined);

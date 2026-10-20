@@ -6,6 +6,7 @@ import { usePlanterActions } from '@/features/planters/use-planter-actions';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { useDiscoveredSpecies } from '@/features/species/use-discovered-species';
 import { useSpecies } from '@/features/species/use-species';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 import { AddPlantScreen } from '../add-plant-screen';
 
@@ -15,6 +16,10 @@ jest.mock('@/features/plants/use-plant-actions');
 jest.mock('@/features/species/use-species');
 jest.mock('@/features/species/use-discovered-species');
 jest.mock('@/features/planters/use-planter-actions');
+jest.mock('@/stores/onboarding-store', () => ({
+  ...jest.requireActual('@/stores/onboarding-store'),
+  useOnboardingStore: jest.fn(),
+}));
 // The real hook loads the native picker; the form's tests cover the photo.
 jest.mock('@/features/photos/use-photo-upload', () => ({
   usePhotoUpload: () => ({ uri: null, key: null, isUploading: false, error: null }),
@@ -34,6 +39,7 @@ const back = jest.fn();
 const replace = jest.fn();
 const canGoBack = jest.fn();
 const createPlant = jest.fn();
+const onboarding = { step: null, start: jest.fn(), next: jest.fn(), finish: jest.fn() };
 const user = userEvent.setup();
 const vera = {
   id: 'p1',
@@ -57,6 +63,7 @@ async function addVeraAsMonstera() {
 
 beforeEach(() => {
   canGoBack.mockReturnValue(true);
+  jest.mocked(useOnboardingStore).mockReturnValue(onboarding);
   mockedUseRouter.mockReturnValue({ back, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
   mockedUsePlantActions.mockReturnValue({
     createPlant,
@@ -98,6 +105,20 @@ describe('AddPlantScreen', () => {
     await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
 
     await waitFor(() => expect(back).toHaveBeenCalled());
+    expect(onboarding.next).not.toHaveBeenCalled();
+  });
+
+  it("during the tour's first-plant step, saving the plant moves the tour on", async () => {
+    jest.mocked(useOnboardingStore).mockReturnValue({ ...onboarding, step: 'plant' });
+    createPlant.mockResolvedValue({ ...vera, speciesId: null });
+    await render(<AddPlantScreen />);
+
+    await user.type(screen.getByLabelText('Name'), 'Vera');
+    await user.press(screen.getByRole('button', { name: 'Next' }));
+    await user.press(screen.getByRole('button', { name: 'Add to my garden' }));
+
+    await waitFor(() => expect(back).toHaveBeenCalled());
+    expect(onboarding.next).toHaveBeenCalled();
   });
 
   it('celebrates when the plant is the first of its species, then closes', async () => {

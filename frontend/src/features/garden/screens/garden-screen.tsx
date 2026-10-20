@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
@@ -11,15 +12,23 @@ import { WaterSelectionBar } from '@/features/garden/components/water-selection-
 import { useGarden } from '@/features/garden/use-garden';
 import { useGardenActions } from '@/features/garden/use-garden-actions';
 import { plantsNeedingWater } from '@/features/garden/watering';
+import { OnboardingCard } from '@/features/onboarding/components/onboarding-card';
+import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { EditPlanterDialog } from '@/features/planters/components/edit-planter-dialog';
 import { useTheme } from '@/hooks/use-theme';
 import { describeError } from '@/lib/auth/api-client';
 import type { Room } from '@/lib/garden/types';
 import { logFailedUi } from '@/lib/logger';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 export function GardenScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { garden, error, isLoading, retry, refresh } = useGarden();
+  // The tour's first-plant step: its card opens the Add sheet, and saving a plant there ends
+  // the step (AddPlantScreen).
+  const isPlantStep = useOnboardingStore().step === 'plant';
+  useTourBackLock(isPlantStep);
   const { waterPlants } = useGardenActions();
   const [isWatering, setIsWatering] = useState(false);
   const [waterError, setWaterError] = useState<string | null>(null);
@@ -117,7 +126,9 @@ export function GardenScreen() {
           }
         />
 
-        <ScrollView contentContainerClassName="w-full max-w-content grow gap-8 self-center px-6 pb-8 pt-2">
+        <ScrollView
+          // Room to scroll the garden out from under the tour card.
+          contentContainerClassName={`w-full max-w-content grow gap-8 self-center px-6 pt-2 ${isPlantStep ? 'pb-72' : 'pb-8'}`}>
           {isLoading ? (
             // Colour props (spinner) read the theme instead of a class.
             <ActivityIndicator accessibilityLabel="Loading garden" color={theme.primary} className="mt-6" />
@@ -146,17 +157,20 @@ export function GardenScreen() {
                     error={waterError}
                   />
                 )}
-                {garden.rooms.map((room) => (
-                  <RoomSection
-                    key={room.id ?? 'unassigned'}
-                    room={room}
-                    now={now}
-                    selection={
-                      selectedIds ? { selectedIds, onToggle: toggleSelected, onSelectMany: selectMany } : undefined
-                    }
-                    onEdit={room.id !== null ? () => setEditingRoom(room) : undefined}
-                  />
-                ))}
+                {/* The plants don't open during the tour's step, which would leave it. */}
+                <View className="gap-8" pointerEvents={isPlantStep ? 'none' : 'auto'}>
+                  {garden.rooms.map((room) => (
+                    <RoomSection
+                      key={room.id ?? 'unassigned'}
+                      room={room}
+                      now={now}
+                      selection={
+                        selectedIds ? { selectedIds, onToggle: toggleSelected, onSelectMany: selectMany } : undefined
+                      }
+                      onEdit={room.id !== null ? () => setEditingRoom(room) : undefined}
+                    />
+                  ))}
+                </View>
               </>
             ))
           )}
@@ -170,6 +184,18 @@ export function GardenScreen() {
             loading={isWatering}
             error={waterError}
           />
+        )}
+
+        {isPlantStep && (
+          <View className="absolute inset-x-3 bottom-3">
+            <OnboardingCard
+              step="plant"
+              title="Plant your first plant"
+              body="Add a plant you have at home: where it stands and how often it likes water. We'll remind you when it's thirsty."
+              actionLabel="Add a plant"
+              onAction={() => router.push('/add')}
+            />
+          </View>
         )}
 
         {editingRoom?.id && (

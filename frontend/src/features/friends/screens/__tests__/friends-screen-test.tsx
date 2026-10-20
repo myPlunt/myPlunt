@@ -25,7 +25,7 @@ const mockedUseRouter = jest.mocked(useRouter);
 const retry = jest.fn();
 const reload = jest.fn();
 const push = jest.fn();
-const back = jest.fn();
+const dismissTo = jest.fn();
 const onboarding = { step: null, start: jest.fn(), next: jest.fn(), finish: jest.fn() };
 const user = userEvent.setup();
 const jane = {
@@ -58,7 +58,7 @@ async function openTab(name: RegExp) {
 
 beforeEach(() => {
   friendsState({});
-  mockedUseRouter.mockReturnValue({ push, back } as unknown as ReturnType<typeof useRouter>);
+  mockedUseRouter.mockReturnValue({ push, dismissTo } as unknown as ReturnType<typeof useRouter>);
   jest.mocked(useOnboardingStore).mockReturnValue(onboarding);
   mockedUseUserSearch.mockReturnValue({ users: null, error: null, isLoading: false });
 });
@@ -186,7 +186,7 @@ it('keeps the search when switching tabs and back', async () => {
   expect(screen.getByLabelText('Search people')).toHaveDisplayValue('jan');
 });
 
-it("during the tour's friends step, shows its card without a back button, and Done moves the tour on", async () => {
+it("during the tour's friends step, shows its card without a back button, and Done moves the tour on to the garden", async () => {
   jest.mocked(useOnboardingStore).mockReturnValue({ ...onboarding, step: 'friends' });
   friendsState({});
   await render(<FriendsScreen />, { wrapper: AuthStoreProvider });
@@ -196,5 +196,5 @@ it("during the tour's friends step, shows its card without a back button, and Do
   await user.press(screen.getByRole('button', { name: 'Done' }));
 
   expect(onboarding.next).toHaveBeenCalled();
-  expect(back).toHaveBeenCalled();
+  expect(dismissTo).toHaveBeenCalledWith('/garden');
 });

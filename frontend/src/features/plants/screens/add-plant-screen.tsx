@@ -11,6 +11,7 @@ import { useDiscoveredSpecies } from '@/features/species/use-discovered-species'
 import { useSpecies } from '@/features/species/use-species';
 import type { Plant } from '@/lib/plant/types';
 import type { Species } from '@/lib/species/types';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 // Opened from the tab bar's + button, or from a species' Pluntdex page with that species
 // already picked; the whole page is a sheet of notebook paper.
@@ -21,6 +22,7 @@ export function AddPlantScreen({ initialSpecies }: { initialSpecies?: Pick<Speci
   const { species, error: speciesError } = useSpecies();
   const { discovered } = useDiscoveredSpecies();
   const [justDiscovered, setJustDiscovered] = useState<Species | null>(null);
+  const { step, next } = useOnboardingStore();
   function close() {
     // Nothing underneath when the app was opened (or reloaded) straight onto this page,
     // so go to the garden, where the new plant shows up.
@@ -32,6 +34,8 @@ export function AddPlantScreen({ initialSpecies }: { initialSpecies?: Pick<Speci
   }
 
   function saved(plant: Plant) {
+    // The plant is what the tour's first-plant step asked for, so it moves on.
+    if (step === 'plant') next();
     // Only once the discovered list has loaded, so a slow or failed load never celebrates a
     // species the user already has.
     const isNew =
