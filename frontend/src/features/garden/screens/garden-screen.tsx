@@ -184,6 +184,20 @@ export function GardenScreen() {
           )}
         </ScrollView>
 
+        {/* While picking plants it stays, stacked above the selection bar instead of over it. */}
+        {isWaterStep && (
+          <View className={selectedIds ? 'px-3 pb-3' : 'absolute inset-x-3 bottom-3'}>
+            <OnboardingCard
+              step="water"
+              title="Water your plants"
+              body="When you've watered, tap the drop at the top, pick the plants you watered and tap Water. We'll remind you when they're thirsty again."
+              actionLabel="Got it"
+              onAction={next}
+              showNotNow={false}
+            />
+          </View>
+        )}
+
         {selectedIds && (
           <WaterSelectionBar
             selectedCount={selectedIds.size}
@@ -209,19 +223,6 @@ export function GardenScreen() {
           </View>
         )}
 
-        {/* Out of the way while picking plants, where the selection bar takes the bottom. */}
-        {isWaterStep && !selectedIds && (
-          <View className="absolute inset-x-3 bottom-3">
-            <OnboardingCard
-              step="water"
-              title="Water your plants"
-              body="When you've watered, tap the drop at the top, pick the plants you watered and tap Water. We'll remind you when they're thirsty again."
-              actionLabel="Got it"
-              onAction={next}
-              showNotNow={false}
-            />
-          </View>
-        )}
 
         {editingRoom?.id && (
           <EditPlanterDialog
