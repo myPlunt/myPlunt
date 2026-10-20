@@ -43,6 +43,14 @@ it('loads the garden', async () => {
   expect(result.current.garden.error).toBeNull();
 });
 
+it("loads a friend's garden when given their id", async () => {
+  mockedGardenService.getGarden.mockResolvedValue(garden);
+  const { result } = await renderHook(() => useGarden('u2'), { wrapper: AuthStoreProvider });
+
+  await waitFor(() => expect(result.current.garden).toEqual(garden));
+  expect(mockedGardenService.getGarden).toHaveBeenCalledWith('u2');
+});
+
 it('signs the user out when the session has expired', async () => {
   mockedGardenService.getGarden.mockRejectedValue(new ApiError(401, 'Not authenticated'));
   const { result } = await renderWithStore();
