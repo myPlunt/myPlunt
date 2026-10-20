@@ -19,13 +19,15 @@ interface EditPostDialogProps {
 
 /**
  * Edits the user's own post, or deletes it after asking. Only the words are the post's own
- * (a question's text, a new photo's comment), so a new plant post can only be deleted.
+ * (a question's text, a new photo's comment), so a new plant post opens straight on deleting.
  * Both steps live in one modal because a second Modal opened on top of another doesn't show on iOS.
  */
 export function EditPostDialog({ post, onClose, onSaved, onDeleted }: EditPostDialogProps) {
   const { updatePost, deletePost } = useFeedActions();
   const [body, setBody] = useState(post.body ?? '');
-  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  // A new plant post has nothing to edit, so all there is to ask is whether to delete it.
+  const canEdit = post.type !== 'new_plant';
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(!canEdit);
   const [isBusy, setIsBusy] = useState(false);
   const [bodyError, setBodyError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,6 @@ export function EditPostDialog({ post, onClose, onSaved, onDeleted }: EditPostDi
   const isQuestion = post.type === 'question';
   const trimmed = body.trim();
   const canSave = trimmed !== (post.body ?? '') && (!isQuestion || trimmed !== '');
-  const title = isQuestion ? 'Edit question' : post.type === 'new_photo' ? 'Edit comment' : 'Shared plant';
 
   function close() {
     if (!isBusy) onClose();
@@ -79,7 +80,7 @@ export function EditPostDialog({ post, onClose, onSaved, onDeleted }: EditPostDi
 
   const deleteLine = isQuestion
     ? "It's removed from your friends' feeds, with its photo. This can't be undone."
-    : "It's removed from your friends' feeds; the plant and its photos stay in your garden. This can't be undone.";
+    : "It's removed from your friends' feeds, the plant and its photos stay in your garden. This can't be undone.";
 
   return (
     // onRequestClose is Android's back button.
@@ -114,6 +115,11 @@ export function EditPostDialog({ post, onClose, onSaved, onDeleted }: EditPostDi
                     style={{ borderWidth: 0 }}
                     onPress={() => {
                       logAction('post_delete_cancelled', { context: { post_id: post.id } });
+                      // Back to editing, or out for a new plant post, which has no edit step.
+                      if (!canEdit) {
+                        close();
+                        return;
+                      }
                       setIsConfirmingDelete(false);
                       setError(null);
                     }}
@@ -124,38 +130,30 @@ export function EditPostDialog({ post, onClose, onSaved, onDeleted }: EditPostDi
             ) : (
               <>
                 <Text accessibilityRole="header" className="type-subtitle-large text-text">
-                  {title}
+                  {isQuestion ? 'Edit question' : 'Edit comment'}
                 </Text>
-                {post.type === 'new_plant' ? (
-                  <Text className="type-body-medium text-text-secondary">
-                    A shared plant has no text of its own to edit, but you can delete the post.
-                  </Text>
-                ) : (
-                  <>
-                    <FormField
-                      label={isQuestion ? 'Question' : 'Comment (optional)'}
-                      value={body}
-                      onChangeText={setBody}
-                      error={bodyError ?? undefined}
-                      maxLength={isQuestion ? QUESTION_MAX_LENGTH : COMMENT_MAX_LENGTH}
-                      multiline
-                      autoCapitalize="sentences"
-                      autoCorrect
-                    />
-                    {error && <Text className="type-body-medium text-error">{error}</Text>}
-                    <View className="flex-row justify-center gap-3">
-                      <Button
-                        label="Cancel"
-                        variant="secondary"
-                        disabled={isBusy}
-                        onPress={close}
-                        // No outline, like the Cancel in the planter picker.
-                        style={{ borderWidth: 0 }}
-                      />
-                      <Button label="Save" loading={isBusy} disabled={!canSave} onPress={save} />
-                    </View>
-                  </>
-                )}
+                <FormField
+                  label={isQuestion ? 'Question' : 'Comment (optional)'}
+                  value={body}
+                  onChangeText={setBody}
+                  error={bodyError ?? undefined}
+                  maxLength={isQuestion ? QUESTION_MAX_LENGTH : COMMENT_MAX_LENGTH}
+                  multiline
+                  autoCapitalize="sentences"
+                  autoCorrect
+                />
+                {error && <Text className="type-body-medium text-error">{error}</Text>}
+                <View className="flex-row justify-center gap-3">
+                  <Button
+                    label="Cancel"
+                    variant="secondary"
+                    disabled={isBusy}
+                    onPress={close}
+                    // No outline, like the Cancel in the planter picker.
+                    style={{ borderWidth: 0 }}
+                  />
+                  <Button label="Save" loading={isBusy} disabled={!canSave} onPress={save} />
+                </View>
                 <View className="h-px bg-input-border" />
                 <Pressable
                   accessibilityRole="button"
@@ -169,16 +167,6 @@ export function EditPostDialog({ post, onClose, onSaved, onDeleted }: EditPostDi
                   className="items-center py-1 active:opacity-70">
                   <Text className="type-button-medium text-error">Delete post</Text>
                 </Pressable>
-                {/* A new plant post has no Save/Cancel row, so it needs its own way out. */}
-                {post.type === 'new_plant' && (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Cancel"
-                    onPress={close}
-                    className="items-center py-1 active:opacity-70">
-                    <Text className="type-body-medium text-text-secondary">Cancel</Text>
-                  </Pressable>
-                )}
               </>
             )}
           </View>
