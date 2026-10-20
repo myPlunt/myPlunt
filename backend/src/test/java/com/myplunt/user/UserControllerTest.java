@@ -4,6 +4,7 @@ import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.UpdateAvatarRequest;
+import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
 import com.myplunt.user.dto.UserSummaryResponse;
@@ -195,5 +196,32 @@ class UserControllerTest {
                 .expectStatus().isNoContent();
 
         verify(userService).removeAvatar(id);
+    }
+
+    @Test
+    void updateLocation_returnsNoContent() {
+        UUID id = authenticateAsJane();
+        UpdateLocationRequest request = new UpdateLocationRequest(52.22, 6.89, "Enschede");
+
+        restTestClient.put().uri("/v1/users/me/location")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(userService).updateLocation(id, request);
+    }
+
+    @Test
+    void updateLocation_rejectsCoordinatesOutOfRange() {
+        authenticateAsJane();
+
+        restTestClient.put().uri("/v1/users/me/location")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new UpdateLocationRequest(200.0, 6.89, "Enschede"))
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 }
