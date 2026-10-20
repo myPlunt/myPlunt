@@ -36,6 +36,7 @@ const garden = {
   ],
 };
 const back = jest.fn();
+const push = jest.fn();
 const replace = jest.fn();
 const canGoBack = jest.fn();
 const createPlant = jest.fn();
@@ -64,7 +65,7 @@ async function addVeraAsMonstera() {
 beforeEach(() => {
   canGoBack.mockReturnValue(true);
   jest.mocked(useOnboardingStore).mockReturnValue(onboarding);
-  mockedUseRouter.mockReturnValue({ back, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
+  mockedUseRouter.mockReturnValue({ back, push, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
   mockedUsePlantActions.mockReturnValue({
     createPlant,
     updatePlant: jest.fn(),
@@ -108,7 +109,7 @@ describe('AddPlantScreen', () => {
     expect(onboarding.next).not.toHaveBeenCalled();
   });
 
-  it("during the tour's first-plant step, saving the plant moves the tour on", async () => {
+  it("during the tour's first-plant step, saving the plant moves the tour on to its page", async () => {
     jest.mocked(useOnboardingStore).mockReturnValue({ ...onboarding, step: 'plant' });
     createPlant.mockResolvedValue({ ...vera, speciesId: null });
     await render(<AddPlantScreen />);
@@ -119,6 +120,7 @@ describe('AddPlantScreen', () => {
 
     await waitFor(() => expect(back).toHaveBeenCalled());
     expect(onboarding.next).toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]', params: { id: vera.id } });
   });
 
   it('celebrates when the plant is the first of its species, then closes', async () => {

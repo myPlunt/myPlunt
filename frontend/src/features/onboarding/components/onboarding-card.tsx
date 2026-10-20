@@ -13,11 +13,13 @@ interface OnboardingCardProps {
   onAction?: () => void;
   /** Runs after "Not now" moves the tour on, e.g. to open the next step's screen. */
   onSkip?: () => void;
+  /** Off for a step that only shows something, where the action ("Got it") already moves on. */
+  showNotNow?: boolean;
 }
 
 // The tour's coach card. The screen places it (usually pinned to the bottom) and
 // highlights the control the card talks about.
-export function OnboardingCard({ step, title, body, actionLabel, onAction, onSkip }: OnboardingCardProps) {
+export function OnboardingCard({ step, title, body, actionLabel, onAction, onSkip, showNotNow = true }: OnboardingCardProps) {
   const { next, finish } = useOnboardingStore();
   const index = ONBOARDING_STEPS.indexOf(step);
 
@@ -49,16 +51,18 @@ export function OnboardingCard({ step, title, body, actionLabel, onAction, onSki
       </View>
 
       <View className="flex-row items-center justify-end gap-2">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Not now"
-          onPress={() => {
-            next();
-            onSkip?.();
-          }}
-          className="h-10 justify-center px-4 active:opacity-70">
-          <Text className="type-button-medium text-background-element">Not now</Text>
-        </Pressable>
+        {showNotNow && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Not now"
+            onPress={() => {
+              next();
+              onSkip?.();
+            }}
+            className="h-10 justify-center px-4 active:opacity-70">
+            <Text className="type-button-medium text-background-element">Not now</Text>
+          </Pressable>
+        )}
         {actionLabel && <Button label={actionLabel} variant="subtle" onPress={onAction} />}
       </View>
     </View>

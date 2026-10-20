@@ -13,6 +13,7 @@ import { TakenOnField } from '@/features/plants/components/taken-on-field';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logFailedUi } from '@/lib/logger';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 /**
  * Adds a photo to a plant's growth timeline, opened from "Add" in its Growth section: the
@@ -21,6 +22,7 @@ import { logFailedUi } from '@/lib/logger';
 export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
   const router = useRouter();
   const { addPlantPhoto } = usePlantActions();
+  const { step, next } = useOnboardingStore();
   const photo = usePhotoUpload('PLANT');
   // A date the user picked, for the photo it was picked for: picking another photo brings
   // back that photo's own date.
@@ -58,6 +60,8 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
         comment: shareToFeed && comment.trim() !== '' ? comment : null,
         shareToFeed,
       });
+      // The photo is what the tour's photo step asked for, so it moves on.
+      if (step === 'photo') next();
       close();
     } catch (err) {
       logFailedUi('plant_photo_add_failed_ui', err, { plant_id: plantId });

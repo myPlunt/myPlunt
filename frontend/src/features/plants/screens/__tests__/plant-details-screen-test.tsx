@@ -6,10 +6,15 @@ import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { usePlantPhotos } from '@/features/plants/use-plant-photos';
 import { ApiError } from '@/lib/auth/api-client';
 import type { PlantDetails } from '@/lib/plant/types';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 import { PlantDetailsScreen } from '../plant-details-screen';
 
-jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
+jest.mock('expo-router', () => ({ useRouter: jest.fn(), Stack: { Screen: () => null } }));
+jest.mock('@/stores/onboarding-store', () => ({
+  ...jest.requireActual('@/stores/onboarding-store'),
+  useOnboardingStore: jest.fn(),
+}));
 jest.mock('@/features/plants/use-plant');
 jest.mock('@/features/plants/use-plant-actions');
 jest.mock('@/features/plants/use-plant-photos');
@@ -52,6 +57,7 @@ function mockPlant(state: Partial<ReturnType<typeof usePlant>>) {
 }
 
 beforeEach(() => {
+  jest.mocked(useOnboardingStore).mockReturnValue({ step: null, start: jest.fn(), next: jest.fn(), finish: jest.fn() });
   jest.mocked(useRouter).mockReturnValue({ push, back, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
   jest.mocked(usePlantActions).mockReturnValue({
     createPlant: jest.fn(),

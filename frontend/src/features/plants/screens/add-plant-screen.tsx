@@ -23,7 +23,10 @@ export function AddPlantScreen({ initialSpecies }: { initialSpecies?: Pick<Speci
   const { discovered } = useDiscoveredSpecies();
   const [justDiscovered, setJustDiscovered] = useState<Species | null>(null);
   const { step, next } = useOnboardingStore();
-  function close() {
+  // Set when the tour's first-plant step saved a plant: the next step, its first photo, is on
+  // the plant's page, which opens once this sheet closes (after the discovery, if any).
+  const [tourPlantId, setTourPlantId] = useState<string | null>(null);
+  function close(openPlantId: string | null = null) {
     // Nothing underneath when the app was opened (or reloaded) straight onto this page,
     // so go to the garden, where the new plant shows up.
     if (router.canGoBack()) {
@@ -31,20 +34,23 @@ export function AddPlantScreen({ initialSpecies }: { initialSpecies?: Pick<Speci
     } else {
       router.replace('/garden');
     }
+    if (openPlantId) router.push({ pathname: '/plant/[id]', params: { id: openPlantId } });
   }
 
   function saved(plant: Plant) {
     // The plant is what the tour's first-plant step asked for, so it moves on.
-    if (step === 'plant') next();
+    const openPlantId = step === 'plant' ? plant.id : null;
+    if (openPlantId) next();
     // Only once the discovered list has loaded, so a slow or failed load never celebrates a
     // species the user already has.
     const isNew =
       plant.speciesId !== null && discovered !== null && !discovered.some((d) => d.speciesId === plant.speciesId);
     const newSpecies = isNew ? species?.find((s) => s.id === plant.speciesId) : undefined;
     if (newSpecies) {
+      setTourPlantId(openPlantId);
       setJustDiscovered(newSpecies);
     } else {
-      close();
+      close(openPlantId);
     }
   }
 
@@ -69,7 +75,7 @@ export function AddPlantScreen({ initialSpecies }: { initialSpecies?: Pick<Speci
       <DiscoveryDialog
         species={justDiscovered}
         number={justDiscovered && species ? String(species.indexOf(justDiscovered) + 1).padStart(3, '0') : ''}
-        onClose={close}
+        onClose={() => close(tourPlantId)}
       />
     </NotebookPage>
   );
