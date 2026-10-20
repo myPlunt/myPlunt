@@ -1,10 +1,20 @@
+import { useRouter } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
+import { useEffect } from 'react';
 
 import { BottomTabBar } from '@/components/layout/bottom-tab-bar';
 import { useTheme } from '@/hooks/use-theme';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 export default function TabsLayout() {
   const theme = useTheme();
+  const router = useRouter();
+  const { step } = useOnboardingStore();
+
+  // The tour starts on the profile, not the feed the tabs open on.
+  useEffect(() => {
+    if (step === 'bio') router.navigate('/profile');
+  }, [step, router]);
 
   // Screens render their own AppHeader, so the navigator's header stays hidden.
   return (

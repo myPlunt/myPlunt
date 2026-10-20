@@ -10,10 +10,12 @@ import { FeedPlantCard } from '@/features/feed/components/feed-plant-card';
 import { StickyNote } from '@/features/feed/components/sticky-note';
 import { getMyPosts } from '@/features/feed/feed-service';
 import { useFeed } from '@/features/feed/use-feed';
+import { OnboardingCard } from '@/features/onboarding/components/onboarding-card';
 import { PostFilter, type PostFilterValue } from '@/features/profile/components/post-filter';
 import { ProfileMenu, ProfileMenuButton } from '@/features/profile/components/profile-menu';
 import { useProfile } from '@/features/profile/use-profile';
 import { useTheme } from '@/hooks/use-theme';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 export function ProfileScreen() {
   const theme = useTheme();
@@ -23,6 +25,8 @@ export function ProfileScreen() {
   const [filter, setFilter] = useState<PostFilterValue>('all');
   const shown = posts.posts?.filter((post) => filter === 'all' || post.type === filter) ?? [];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { step, next } = useOnboardingStore();
+  const isBioStep = step === 'bio' && !!user;
   // Where the header sits and where the burger ends inside it, so the menu's icons start
   // right under the burger's box and continue the column at the same 40px step.
   const [headerTop, setHeaderTop] = useState(0);
@@ -73,9 +77,12 @@ export function ProfileScreen() {
                   <Text className="type-h4 text-text">{user.username}</Text>
                   <Text className="type-body-medium text-text-secondary">{user.email}</Text>
                   {user.bio && <Text className="type-body-large mt-3 text-center text-text">{user.bio}</Text>}
-                  <View className="mt-4 flex-row gap-3">
+                  <View className="mt-4 flex-row items-center gap-3">
                     <Button label="My garden" onPress={() => router.push('/garden')} />
-                    <Button label="Edit profile" variant="subtle" onPress={() => router.push('/edit-profile')} />
+                    {/* During the tour's bio step a ring points at the button the card talks about. */}
+                    <View className={`rounded-2xl border-2 p-1 ${isBioStep ? 'border-primary' : 'border-transparent'}`}>
+                      <Button label="Edit profile" variant="subtle" onPress={() => router.push('/edit-profile')} />
+                    </View>
                   </View>
                 </>
               )
@@ -117,6 +124,21 @@ export function ProfileScreen() {
             </View>
           )}
         </ScrollView>
+
+        {isBioStep && (
+          <View className="absolute inset-x-3 bottom-3">
+            <OnboardingCard
+              step="bio"
+              title="Tell people about you"
+              body="Add a short bio so friends know who's behind the plants. You write it in Edit profile."
+              actionLabel="Add a bio"
+              onAction={() => {
+                next();
+                router.push('/edit-profile');
+              }}
+            />
+          </View>
+        )}
 
         <ProfileMenu open={isMenuOpen} top={headerTop + burgerBottom} onClose={() => setIsMenuOpen(false)} />
       </SafeAreaView>
