@@ -6,14 +6,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/user/user-avatar';
+import { useGarden } from '@/features/garden/use-garden';
 import { ProfileMenu, ProfileMenuButton } from '@/features/profile/components/profile-menu';
+import { ProfileStats } from '@/features/profile/components/profile-stats';
+import { profileStats } from '@/features/profile/profile-stats';
 import { useProfile } from '@/features/profile/use-profile';
+import { useDiscoveredSpecies } from '@/features/species/use-discovered-species';
+import { useSpecies } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 
 export function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { user, error, isLoading, retry } = useProfile();
+  // Only for the stats; if any of them fails, the numbers just show a dash.
+  const { garden } = useGarden();
+  const { discovered } = useDiscoveredSpecies();
+  const { species } = useSpecies();
+  const stats = garden && discovered && species ? profileStats(garden, discovered, species) : null;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   // Where the header sits and where the burger ends inside it, so the menu's icons start
   // right under the burger's box and continue the column at the same 40px step.
@@ -68,6 +78,13 @@ export function ProfileScreen() {
                   <View className="mt-4 flex-row gap-3">
                     <Button label="My garden" onPress={() => router.push('/garden')} />
                     <Button label="Edit profile" variant="subtle" onPress={() => router.push('/edit-profile')} />
+                  </View>
+                  <View className="mt-6 self-stretch">
+                    <ProfileStats
+                      stats={stats}
+                      onOpenGarden={() => router.push('/garden')}
+                      onOpenPluntdex={() => router.push('/pluntdex')}
+                    />
                   </View>
                 </>
               )
