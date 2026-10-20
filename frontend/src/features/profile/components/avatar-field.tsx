@@ -18,7 +18,7 @@ const SIZE = 96;
  * The profile picture on Edit profile. Tapping it opens the photo menu; a picked photo is
  * uploaded and saved straight away, without the form's Save button. Remove deletes it.
  */
-export function AvatarField({ user }: { user: User }) {
+export function AvatarField({ user, onSaved }: { user: User; onSaved?: () => void }) {
   const theme = useTheme();
   const { updateAvatar, removeAvatar } = useProfileActions();
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
@@ -28,6 +28,7 @@ export function AvatarField({ user }: { user: User }) {
   const photo = usePhotoUpload('AVATAR', async (key) => {
     const updated = await updateAvatar({ key });
     setAvatarUrl(updated.avatarUrl);
+    onSaved?.();
   });
   // The picker chosen in the menu, started once the menu is gone (see choose()).
   const pendingPick = useRef<(() => Promise<void>) | null>(null);

@@ -4,17 +4,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { LinkCard } from '@/components/ui/link-card';
 import { useAuthActions } from '@/features/auth/use-auth-actions';
 import { ChangeEmailForm } from '@/features/profile/components/change-email-form';
 import { useProfile } from '@/features/profile/use-profile';
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 // Account settings. Profile details (username, bio, picture) live on Edit profile.
 export function SettingsScreen() {
   const theme = useTheme();
   const { logout } = useAuthActions();
   const { user, error, isLoading, retry } = useProfile();
+  const onboarding = useOnboardingStore();
 
   return (
     <View className="flex-1 bg-background">
@@ -43,6 +46,13 @@ export function SettingsScreen() {
               <Text className="type-caption text-text-secondary">Coming soon</Text>
             </View>
           </View>
+
+          {/* The tabs layout opens the welcome page as soon as the tour starts. */}
+          <LinkCard
+            title="Take the tour again"
+            icon={{ ios: 'map', android: 'tour', web: 'tour' }}
+            onPress={onboarding.start}
+          />
 
           <Pressable
             accessibilityRole="button"

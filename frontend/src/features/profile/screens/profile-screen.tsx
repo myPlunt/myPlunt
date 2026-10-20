@@ -25,8 +25,10 @@ export function ProfileScreen() {
   const [filter, setFilter] = useState<PostFilterValue>('all');
   const shown = posts.posts?.filter((post) => filter === 'all' || post.type === filter) ?? [];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { step, next } = useOnboardingStore();
-  const isBioStep = step === 'bio' && !!user;
+  const { step } = useOnboardingStore();
+  // The tour's profile steps: each card points at a control with a ring, and its action
+  // opens Edit profile, which moves the tour on once the bio or picture is saved.
+  const tourStep = user && (step === 'bio' || step === 'avatar') ? step : null;
   // Where the header sits and where the burger ends inside it, so the menu's icons start
   // right under the burger's box and continue the column at the same 40px step.
   const [headerTop, setHeaderTop] = useState(0);
@@ -52,7 +54,8 @@ export function ProfileScreen() {
 
         <ScrollView contentContainerClassName="w-full max-w-content grow gap-6 self-center p-6">
           <View className="items-center gap-1">
-            <View>
+            {/* During the tour's avatar step a ring points at the picture. */}
+            <View className={`rounded-full border-2 p-1 ${tourStep === 'avatar' ? 'border-primary' : 'border-transparent'}`}>
               <UserAvatar size={96} url={user?.avatarUrl} accessibilityLabel="Your profile picture" />
 
 
@@ -80,7 +83,7 @@ export function ProfileScreen() {
                   <View className="mt-4 flex-row items-center gap-3">
                     <Button label="My garden" onPress={() => router.push('/garden')} />
                     {/* During the tour's bio step a ring points at the button the card talks about. */}
-                    <View className={`rounded-2xl border-2 p-1 ${isBioStep ? 'border-primary' : 'border-transparent'}`}>
+                    <View className={`rounded-2xl border-2 p-1 ${tourStep === 'bio' ? 'border-primary' : 'border-transparent'}`}>
                       <Button label="Edit profile" variant="subtle" onPress={() => router.push('/edit-profile')} />
                     </View>
                   </View>
@@ -125,18 +128,25 @@ export function ProfileScreen() {
           )}
         </ScrollView>
 
-        {isBioStep && (
+        {tourStep && (
           <View className="absolute inset-x-3 bottom-3">
-            <OnboardingCard
-              step="bio"
-              title="Tell people about you"
-              body="Add a short bio so friends know who's behind the plants. You write it in Edit profile."
-              actionLabel="Add a bio"
-              onAction={() => {
-                next();
-                router.push('/edit-profile');
-              }}
-            />
+            {tourStep === 'bio' ? (
+              <OnboardingCard
+                step="bio"
+                title="Tell people about you"
+                body="Add a short bio so friends know who's behind the plants. You write it in Edit profile."
+                actionLabel="Add a bio"
+                onAction={() => router.push('/edit-profile')}
+              />
+            ) : (
+              <OnboardingCard
+                step="avatar"
+                title="Add a profile picture?"
+                body="Pick a photo of you, or of your favourite plant. You can change it later."
+                actionLabel="Choose photo"
+                onAction={() => router.push('/edit-profile')}
+              />
+            )}
           </View>
         )}
 

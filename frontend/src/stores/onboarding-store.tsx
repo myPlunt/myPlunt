@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
 // The tour's numbered steps in order. Each screen shows its card while `step` is its own.
-export const ONBOARDING_STEPS = ['bio'] as const;
+export const ONBOARDING_STEPS = ['bio', 'avatar'] as const;
 
 export type TourStep = (typeof ONBOARDING_STEPS)[number];
 // 'welcome' comes before the numbered steps, so it isn't counted in "Step x of N".

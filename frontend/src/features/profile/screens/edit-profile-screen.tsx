@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,10 +9,21 @@ import { EditProfileForm } from '@/features/profile/components/edit-profile-form
 import { useProfile } from '@/features/profile/use-profile';
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useOnboardingStore, type TourStep } from '@/stores/onboarding-store';
 
 export function EditProfileScreen() {
   const theme = useTheme();
   const { user, error, isLoading, retry } = useProfile();
+  const router = useRouter();
+  const { step, next } = useOnboardingStore();
+
+  // During the tour, saving what the step asked for moves on and returns to the profile,
+  // where the next step's card is waiting.
+  function completeTourStep(saved: TourStep) {
+    if (step !== saved) return;
+    next();
+    router.back();
+  }
 
   return (
     <View className="flex-1 bg-background">
@@ -34,8 +46,8 @@ export function EditProfileScreen() {
             ) : (
               user && (
                 <>
-                  <AvatarField key={`avatar-${user.id}`} user={user} />
-                  <EditProfileForm key={user.id} user={user} />
+                  <AvatarField key={`avatar-${user.id}`} user={user} onSaved={() => completeTourStep('avatar')} />
+                  <EditProfileForm key={user.id} user={user} onSaved={() => completeTourStep('bio')} />
                 </>
               )
             )}

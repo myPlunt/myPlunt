@@ -94,14 +94,24 @@ describe('ProfileScreen', () => {
     expect(screen.getByRole('button', { name: 'Open settings' })).toBeOnTheScreen();
   });
 
-  it('during the tour, "Add a bio" moves to the next step and opens Edit profile', async () => {
+  it('during the tour, "Add a bio" opens Edit profile and leaves the step for saving to finish', async () => {
     mockedUseOnboardingStore.mockReturnValue({ ...onboarding, step: 'bio' });
     await render(<ProfileScreen />);
 
     expect(screen.getByText('Tell people about you')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Add a bio' }));
 
-    expect(onboarding.next).toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith('/edit-profile');
+    expect(onboarding.next).not.toHaveBeenCalled();
+  });
+
+  it('shows the profile picture card on the avatar step', async () => {
+    mockedUseOnboardingStore.mockReturnValue({ ...onboarding, step: 'avatar' });
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('Step 2 of 2')).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Choose photo' }));
+
     expect(push).toHaveBeenCalledWith('/edit-profile');
   });
 });
