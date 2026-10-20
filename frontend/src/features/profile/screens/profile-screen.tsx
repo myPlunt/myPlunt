@@ -28,7 +28,12 @@ export function ProfileScreen() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { step } = useOnboardingStore();
   const isBioStep = step === 'bio' && !!user;
-  useTourBackLock(isBioStep);
+  // The friends step starts here, with the menu open on the friends icon; its card follows
+  // the user onto the friends page.
+  const isFriendsStep = step === 'friends' && !!user;
+  // During either step the profile stays usable, but only the step's way on leads elsewhere.
+  const isTourStep = isBioStep || isFriendsStep;
+  useTourBackLock(isTourStep);
   // Where the header sits and where the burger ends inside it, so the menu's icons start
   // right under the burger's box and continue the column at the same 40px step.
   const [headerTop, setHeaderTop] = useState(0);
@@ -80,9 +85,7 @@ export function ProfileScreen() {
                   <Text className="type-body-medium text-text-secondary">{user.email}</Text>
                   {user.bio && <Text className="type-body-large mt-3 text-center text-text">{user.bio}</Text>}
                   <View className="mt-4 flex-row items-center gap-3">
-                    {/* During the bio step the profile stays usable, but nothing leads to another page
-                        except Edit profile, where the bio is written. */}
-                    <Button label="My garden" disabled={isBioStep} onPress={() => router.push('/garden')} />
+                    <Button label="My garden" disabled={isTourStep} onPress={() => router.push('/garden')} />
                     {/* During the tour's bio step a ring points at the button the card talks about. */}
                     <View className={`rounded-2xl border-2 p-1 ${isBioStep ? 'border-primary' : 'border-transparent'}`}>
                       <Button label="Edit profile" variant="subtle" onPress={() => router.push('/edit-profile')} />
@@ -110,7 +113,7 @@ export function ProfileScreen() {
                     // Newest first, three to a row. Each cell is a third wide with padding instead of
                     // gap, which would push the third one onto the next row; -m-1.5 undoes the outer edge.
                     // They don't open during the bio step, which would leave the tour.
-                    <View className="-m-1.5 flex-row flex-wrap" pointerEvents={isBioStep ? 'none' : 'auto'}>
+                    <View className="-m-1.5 flex-row flex-wrap" pointerEvents={isTourStep ? 'none' : 'auto'}>
                       {shown.map((post) => (
                         <View key={post.id} className="w-1/3 p-1.5">
                           {post.type === 'question' ? <StickyNote post={post} hideAuthor /> : <FeedPlantCard post={post} hideAuthor />}
@@ -144,11 +147,25 @@ export function ProfileScreen() {
           </View>
         )}
 
+        {isFriendsStep && (
+          <View className="absolute inset-x-3 bottom-3">
+            {/* "Not now" skips the friends page too: the next step, the first plant, is in the garden. */}
+            <OnboardingCard
+              step="friends"
+              title="Find your friends"
+              body="Tap the friends icon in the menu to search for people by their username and add them. Their plants show up in your feed."
+              onSkip={() => router.navigate('/garden')}
+            />
+          </View>
+        )}
+
+        {/* During the bio step the menu leads nowhere; during the friends step it's held open
+            with only the friends icon on. */}
         <ProfileMenu
-          open={isMenuOpen}
+          open={isMenuOpen || isFriendsStep}
           top={headerTop + burgerBottom}
           onClose={() => setIsMenuOpen(false)}
-          locked={isBioStep}
+          tourHref={isFriendsStep ? '/friends' : isBioStep ? null : undefined}
         />
       </SafeAreaView>
     </View>

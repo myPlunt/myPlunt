@@ -17,12 +17,11 @@ const mockedUseRouter = jest.mocked(useRouter);
 const mockedShareLocation = jest.mocked(shareLocation);
 const mockedUseOnboardingStore = jest.mocked(useOnboardingStore);
 const back = jest.fn();
-const replace = jest.fn();
 const onboarding = { step: 'location' as const, start: jest.fn(), next: jest.fn(), finish: jest.fn() };
 const user = userEvent.setup();
 
 beforeEach(() => {
-  mockedUseRouter.mockReturnValue({ back, replace } as unknown as ReturnType<typeof useRouter>);
+  mockedUseRouter.mockReturnValue({ back } as unknown as ReturnType<typeof useRouter>);
   mockedUseOnboardingStore.mockReturnValue(onboarding);
 });
 
@@ -39,7 +38,7 @@ describe('LocationScreen', () => {
 
     expect(mockedShareLocation).toHaveBeenCalled();
     expect(onboarding.next).toHaveBeenCalled();
-    expect(replace).toHaveBeenCalledWith('/friends');
+    expect(back).toHaveBeenCalled();
   });
 
   it('stays on the page and shows the error when saving fails', async () => {
@@ -50,6 +49,6 @@ describe('LocationScreen', () => {
 
     expect(await screen.findByText('Something went wrong. Please try again.')).toBeOnTheScreen();
     expect(onboarding.next).not.toHaveBeenCalled();
-    expect(replace).not.toHaveBeenCalled();
+    expect(back).not.toHaveBeenCalled();
   });
 });

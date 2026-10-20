@@ -50,7 +50,12 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
   const addOpen = usePathname() === '/add';
   // During the tour the bar can't take the user away from the step on screen; the step's
   // card moves the tour on, and the bar comes back when it ends.
-  const locked = useOnboardingStore().step !== null;
+  const { step } = useOnboardingStore();
+  const locked = step !== null;
+  // Except + in the first-plant step: it's another way to add the plant the card asks for,
+  // so it stays on and gets a ring like the other controls the tour points at.
+  const isPlantStep = step === 'plant';
+  const addLocked = locked && !isPlantStep;
 
   function renderTab({ route, label, icon }: TabConfig) {
     const target = state.routes.find((r) => r.name === route);
@@ -100,13 +105,17 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Add plant"
-            accessibilityState={{ selected: addOpen, disabled: locked }}
-            disabled={locked}
+            accessibilityState={{ selected: addOpen, disabled: addLocked }}
+            disabled={addLocked}
             onPress={() => router.push('/add')}
             className={`-mt-6 h-14 w-14 items-center justify-center rounded-full active:opacity-80 ${
               addOpen ? 'bg-action-primary' : 'bg-primary'
-            } ${locked ? 'opacity-40' : ''}`}
+            } ${addLocked ? 'opacity-40' : ''}`}
             style={Shadow.card}>
+            {/* Drawn around the button rather than as its border, so the bar's layout doesn't move. */}
+            {isPlantStep && (
+              <View pointerEvents="none" className="absolute -inset-1.5 rounded-full border-2 border-primary" />
+            )}
             <SymbolView
               name={{ ios: 'plus', android: 'add', web: 'add' }}
               tintColor={theme.backgroundElement}

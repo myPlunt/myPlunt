@@ -191,7 +191,7 @@ export function GardenScreen() {
             <OnboardingCard
               step="plant"
               title="Plant your first plant"
-              body="Add a plant you have at home: where it stands and how often it likes water. We'll remind you when it's thirsty."
+              body="Add a plant you have at home, here or with the + below: where it stands and how often it likes water. We'll remind you when it's thirsty."
               actionLabel="Add a plant"
               onAction={() => router.push('/add')}
             />

@@ -72,8 +72,11 @@ interface ProfileMenuProps {
   /** Where the burger's 40px box ends, so the icons continue the column at the same step. */
   top: number;
   onClose: () => void;
-  /** During the tour the menu still opens, but its pages can't be left for. */
-  locked?: boolean;
+  /**
+   * During the tour: the one page the step leads to (null for none). The other icons are off,
+   * that one is ringed, and there's no dismiss layer, so the tour card below stays pressable.
+   */
+  tourHref?: Href | null;
 }
 
 /**
@@ -83,42 +86,48 @@ interface ProfileMenuProps {
  * only the icons and the dismiss layer come and go. Rendered as the screen's last child, so
  * it draws above the page on both platforms (Android draws later siblings on top).
  */
-export function ProfileMenu({ open, top, onClose, locked = false }: ProfileMenuProps) {
+export function ProfileMenu({ open, top, onClose, tourHref }: ProfileMenuProps) {
   const theme = useTheme();
   const router = useRouter();
 
   return (
     <>
       {/* Covers the whole screen while open, so a press anywhere else closes the menu. */}
-      {open && <Pressable accessibilityLabel="Dismiss menu" onPress={onClose} className="absolute inset-0" />}
+      {open && tourHref === undefined && <Pressable accessibilityLabel="Dismiss menu" onPress={onClose} className="absolute inset-0" />}
       {/* The same column as the header (max-w-content, px-6), so the icons line up under the
           burger on any screen width. box-none lets presses beside the icons reach the page
           (or the dismiss layer) below. A style, because the header's height is measured. */}
       <View pointerEvents="box-none" className="absolute inset-x-0 items-center" style={{ top }}>
         <View pointerEvents="box-none" className="w-full max-w-content items-end px-6">
           {open &&
-            items.map((item, index) => (
-              // FadeInUp starts 25px above and slides down into place, FadeOutUp goes back up.
-              // Staggered so the menu unrolls downwards and rolls up from the bottom; reanimated
-              // skips both when the system's reduce motion is on.
-              <Reanimated.View
-                key={item.label}
-                entering={FadeInUp.delay(index * 90).duration(320)}
-                exiting={FadeOutUp.delay((items.length - 1 - index) * 70).duration(240)}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={item.label}
-                  accessibilityState={{ disabled: locked }}
-                  disabled={locked}
-                  onPress={() => {
-                    onClose();
-                    router.push(item.href);
-                  }}
-                  className={`h-10 w-10 items-center justify-center active:opacity-70 ${locked ? 'opacity-40' : ''}`}>
-                  <SymbolView name={item.icon} tintColor={theme.actionPrimary} size={22} />
-                </Pressable>
-              </Reanimated.View>
-            ))}
+            items.map((item, index) => {
+              const isTourItem = tourHref !== undefined && item.href === tourHref;
+              const locked = tourHref !== undefined && !isTourItem;
+              return (
+                // FadeInUp starts 25px above and slides down into place, FadeOutUp goes back up.
+                // Staggered so the menu unrolls downwards and rolls up from the bottom; reanimated
+                // skips both when the system's reduce motion is on.
+                <Reanimated.View
+                  key={item.label}
+                  entering={FadeInUp.delay(index * 90).duration(320)}
+                  exiting={FadeOutUp.delay((items.length - 1 - index) * 70).duration(240)}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={item.label}
+                    accessibilityState={{ disabled: locked }}
+                    disabled={locked}
+                    onPress={() => {
+                      onClose();
+                      router.push(item.href);
+                    }}
+                    className={`h-10 w-10 items-center justify-center rounded-full active:opacity-70 ${
+                      locked ? 'opacity-40' : ''
+                    } ${isTourItem ? 'border-2 border-primary' : ''}`}>
+                    <SymbolView name={item.icon} tintColor={theme.actionPrimary} size={22} />
+                  </Pressable>
+                </Reanimated.View>
+              );
+            })}
         </View>
       </View>
     </>

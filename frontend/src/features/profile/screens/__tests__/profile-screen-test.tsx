@@ -105,6 +105,18 @@ describe('ProfileScreen', () => {
     expect(onboarding.next).not.toHaveBeenCalled();
   });
 
+  it('during the friends step, the menu is open and only the friends icon leads on', async () => {
+    mockedUseOnboardingStore.mockReturnValue({ ...onboarding, step: 'friends' });
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('Find your friends')).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Open settings' }));
+    expect(push).not.toHaveBeenCalled();
+    await user.press(screen.getByRole('button', { name: 'Open friends' }));
+
+    expect(push).toHaveBeenCalledWith('/friends');
+  });
+
   it("during the bio step, the menu still opens but can't lead to another page", async () => {
     mockedUseOnboardingStore.mockReturnValue({ ...onboarding, step: 'bio' });
     await render(<ProfileScreen />);
