@@ -2,8 +2,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { Shadow } from '@/constants/theme';
-import { hash } from '@/features/feed/feed-sides';
-import { noteColor } from '@/features/feed/note-colors';
+import { noteColor, noteTilt } from '@/features/feed/note-colors';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { logAction } from '@/lib/logger';
 import type { QuestionPost } from '@/lib/post/types';
@@ -21,8 +20,7 @@ export function StickyNote({ post, hideAuthor = false }: { post: QuestionPost; h
     : post.author.friendship === null
       ? 'You asked'
       : `${post.author.username} asks`;
-  // Between -3 and 3 degrees, the same for this note every time.
-  const tilt = ((hash(post.id) >>> 0) % 7) - 3;
+  const tilt = noteTilt(post.id);
 
   return (
     // Fills the slot it's given, like a plant card. Rotation and shadow are per-note values, so

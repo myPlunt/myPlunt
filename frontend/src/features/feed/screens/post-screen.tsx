@@ -7,8 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/user/user-avatar';
+import { Shadow } from '@/constants/theme';
 import { EditPostDialog } from '@/features/feed/components/edit-post-dialog';
-import { noteColor } from '@/features/feed/note-colors';
+import { noteColor, noteTilt } from '@/features/feed/note-colors';
 import { usePost } from '@/features/feed/use-post';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { useTheme } from '@/hooks/use-theme';
@@ -113,8 +114,12 @@ function PostContent({ post, isOwn }: { post: Post; isOwn: boolean }) {
       </View>
 
       {post.type === 'question' ? (
-        // The question on its sticky note, as on the feed, but straight and full size.
-        <View className={`gap-3 rounded-sm p-4 ${noteColor(post.id)}`}>
+        // The question on its sticky note, tilted and taped as on the feed, but full size. The tilt
+        // is per note, so it goes through style; the shadow sets both iOS shadow* and Android elevation.
+        <View
+          className={`mt-2 gap-3 rounded-sm p-4 ${noteColor(post.id)}`}
+          style={[Shadow.card, { transform: [{ rotate: `${noteTilt(post.id)}deg` }] }]}>
+          <View className="absolute -top-3 h-6 w-20 self-center bg-background-element opacity-70" />
           <Text accessibilityRole="header" className="type-body-large text-text">
             {post.body}
           </Text>

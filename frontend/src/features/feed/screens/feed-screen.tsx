@@ -48,6 +48,8 @@ export function FeedScreen() {
               className="h-10 -rotate-2 justify-center rounded-sm bg-note-yellow px-3 active:opacity-70"
               // Shadow goes through style so it sets both iOS shadow* and Android elevation.
               style={Shadow.card}>
+              {/* The strip of tape, like on the questions in the feed; it fits in the header's top padding. */}
+              <View className="absolute -top-2 h-4 w-10 self-center bg-background-element opacity-70" />
               <Text className="type-button-medium text-text">I have a question</Text>
             </Pressable>
           }
