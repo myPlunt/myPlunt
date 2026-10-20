@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import logoMyPlunt from '../assets/logo-myplunt.svg'
 import { useAuth } from '../auth/auth-context'
 import { ApiError } from '../lib/api'
+import StagingPill from './StagingPill'
 
 function LoginPage() {
   const { signIn } = useAuth()
@@ -31,6 +32,7 @@ function LoginPage() {
         <div className="flex flex-col items-center gap-3 text-center">
           <img src={logoMyPlunt} alt="" width={42} height={44} />
           <h1 className="font-primary text-[44px] leading-none font-semibold text-green">myPlunt Admin</h1>
+          <StagingPill />
           <p className="text-[15px] text-ink">Log in with your admin account.</p>
         </div>
 

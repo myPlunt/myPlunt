@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { StagingPill } from '@/components/ui/staging-pill';
+
 export function AuthScreenLayout({ children }: { children: ReactNode }) {
   return (
     <View className="flex-1 bg-background">
@@ -18,6 +20,7 @@ export function AuthScreenLayout({ children }: { children: ReactNode }) {
             <View className="mb-6 items-center gap-1 self-center p-4">
               <Image className="h-20 w-[72px]" source={require('@/assets/images/Logo.png')} contentFit="contain" />
               <Text className="type-h5 text-primary">myPlunt</Text>
+              <StagingPill />
             </View>
 
             {children}
