@@ -17,7 +17,8 @@ export default function AppLayout() {
       <Stack.Screen name="location" options={{ gestureEnabled: false }} />
       <Stack.Screen name="settings" />
       <Stack.Screen name="edit-profile" />
-      {/* Opened from the people icon in the profile's header. */}
+      {/* Opened from the people icon in the profile's header, and as the tour's friends step;
+          no swipe back during the step (see FriendsScreen). */}
       <Stack.Screen name="friends" />
       {/* Opened from a person in the Friends search. */}
       <Stack.Screen name="user/[id]" />

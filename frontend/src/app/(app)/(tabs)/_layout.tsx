@@ -12,10 +12,12 @@ export default function TabsLayout() {
   const { step } = useOnboardingStore();
 
   // The tour opens with the welcome page, then its first step is on the profile, not
-  // the feed the tabs open on.
+  // the feed the tabs open on. The city page goes back to the profile when it's done,
+  // and the friends step opens on top of it.
   useEffect(() => {
     if (step === 'welcome') router.push('/welcome');
     if (step === 'bio') router.navigate('/profile');
+    if (step === 'friends') router.push('/friends');
   }, [step, router]);
 
   // Screens render their own AppHeader, so the navigator's header stays hidden.

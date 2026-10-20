@@ -74,7 +74,8 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
         accessibilityState={{ selected: focused, disabled: locked }}
         disabled={locked}
         onPress={onPress}
-        className={`flex-1 items-center gap-1 py-2 active:opacity-70 ${locked ? 'opacity-40' : ''}`}>
+        // The tab the user is on stays as it is; only the ones that would leave the step fade.
+        className={`flex-1 items-center gap-1 py-2 active:opacity-70 ${locked && !focused ? 'opacity-40' : ''}`}>
         {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
         <SymbolView
           name={icon}

@@ -5,10 +5,15 @@ import { acceptFriendRequest } from '@/features/friends/friends-service';
 import { useFriends } from '@/features/friends/use-friends';
 import { useUserSearch } from '@/features/friends/use-user-search';
 import { AuthStoreProvider } from '@/stores/auth-store';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 import { FriendsScreen } from '../friends-screen';
 
-jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
+jest.mock('expo-router', () => ({ useRouter: jest.fn(), Stack: { Screen: () => null } }));
+jest.mock('@/stores/onboarding-store', () => ({
+  ...jest.requireActual('@/stores/onboarding-store'),
+  useOnboardingStore: jest.fn(),
+}));
 jest.mock('@/features/friends/use-user-search');
 jest.mock('@/features/friends/use-friends');
 jest.mock('@/features/friends/friends-service');
@@ -20,6 +25,8 @@ const mockedUseRouter = jest.mocked(useRouter);
 const retry = jest.fn();
 const reload = jest.fn();
 const push = jest.fn();
+const back = jest.fn();
+const onboarding = { step: null, start: jest.fn(), next: jest.fn(), finish: jest.fn() };
 const user = userEvent.setup();
 const jane = {
   id: 'u2',
@@ -51,7 +58,8 @@ async function openTab(name: RegExp) {
 
 beforeEach(() => {
   friendsState({});
-  mockedUseRouter.mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
+  mockedUseRouter.mockReturnValue({ push, back } as unknown as ReturnType<typeof useRouter>);
+  jest.mocked(useOnboardingStore).mockReturnValue(onboarding);
   mockedUseUserSearch.mockReturnValue({ users: null, error: null, isLoading: false });
 });
 
@@ -176,4 +184,17 @@ it('keeps the search when switching tabs and back', async () => {
   await user.press(screen.getByRole('tab', { name: 'Find' }));
 
   expect(screen.getByLabelText('Search people')).toHaveDisplayValue('jan');
+});
+
+it("during the tour's friends step, shows its card without a back button, and Done moves the tour on", async () => {
+  jest.mocked(useOnboardingStore).mockReturnValue({ ...onboarding, step: 'friends' });
+  friendsState({});
+  await render(<FriendsScreen />, { wrapper: AuthStoreProvider });
+
+  expect(screen.getByText('Find your friends')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
+  await user.press(screen.getByRole('button', { name: 'Done' }));
+
+  expect(onboarding.next).toHaveBeenCalled();
+  expect(back).toHaveBeenCalled();
 });
