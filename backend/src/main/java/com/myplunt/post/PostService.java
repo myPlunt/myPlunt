@@ -1,15 +1,22 @@
 package com.myplunt.post;
 
+import com.myplunt.common.logging.AuditEvent;
+import com.myplunt.common.logging.AuditLog;
+import com.myplunt.common.logging.LogEvent;
+import com.myplunt.common.logging.StructuredLog;
 import com.myplunt.plant.LatestPhoto;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantPhotoRepository;
 import com.myplunt.post.dto.AskQuestionRequest;
 import com.myplunt.post.dto.PostResponse;
+import com.myplunt.post.dto.UpdatePostRequest;
 import com.myplunt.storage.StorageService;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import com.myplunt.user.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Limit;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,6 +32,8 @@ import java.util.stream.Collectors;
 @Service
 public class PostService {
 
+    private static final Logger log = LoggerFactory.getLogger(PostService.class);
+
     // The types the app can show so far; deaths join once the feed can show them.
     private static final List<String> FEED_TYPES = List.of(Post.NEW_PLANT, Post.NEW_PHOTO, Post.QUESTION);
     // shortcut: no paging yet, only the newest posts; add a cursor when the feed gets long.
@@ -35,18 +44,21 @@ public class PostService {
     private final PlantPhotoRepository plantPhotoRepository;
     private final UserService userService;
     private final StorageService storageService;
+    private final AuditLog auditLog;
 
     public PostService(
             PostRepository postRepository,
             UserRepository userRepository,
             PlantPhotoRepository plantPhotoRepository,
             UserService userService,
-            StorageService storageService) {
+            StorageService storageService,
+            AuditLog auditLog) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.plantPhotoRepository = plantPhotoRepository;
         this.userService = userService;
         this.storageService = storageService;
+        this.auditLog = auditLog;
     }
 
     // A sticky-note question for the user's friends, with an optional photo of its own.
@@ -61,14 +73,87 @@ public class PostService {
             storageService.confirmUpload(userId, request.photoKey());
         }
         Post saved = postRepository.save(new Post(userId, request.body(), request.photoKey()));
+        auditLog.recorded(AuditEvent.QUESTION_ASKED, userId, userId,
+                Map.of("post_id", saved.getId(), "has_photo", request.photoKey() != null));
         User author = userRepository.findById(userId).orElseThrow(() -> new IllegalStateException("User not found"));
         return toResponse(saved, author, null, null);
+    }
+
+    // Only the words are the post's own: a question's text or a new photo's comment. A new plant
+    // post is just the plant, which is edited on its own page.
+    @Transactional
+    public PostResponse updatePost(UUID userId, UUID postId, UpdatePostRequest request) {
+        Post post = findOwnPost(userId, postId);
+        String body = request.body() == null || request.body().isEmpty() ? null : request.body();
+        switch (post.getPostType()) {
+            case Post.QUESTION -> {
+                if (body == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Question must not be blank.");
+                }
+            }
+            case Post.NEW_PHOTO -> {
+                if (body != null && body.length() > Post.COMMENT_MAX_LENGTH) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment must be at most 120 characters.");
+                }
+            }
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This post has no text to edit.");
+        }
+        post.setBody(body);
+        auditLog.recorded(AuditEvent.POST_UPDATED, userId, userId,
+                Map.of("post_id", postId, "post_type", post.getPostType()));
+        return toResponses(userId, List.of(post)).getFirst();
+    }
+
+    // Removes only the post: a shared plant or photo stays in the garden. A question's own
+    // photo has nowhere else to be, so its file goes too.
+    @Transactional
+    public void deletePost(UUID userId, UUID postId) {
+        Post post = findOwnPost(userId, postId);
+        postRepository.delete(post);
+        auditLog.recorded(AuditEvent.POST_DELETED, userId, userId,
+                Map.of("post_id", postId, "post_type", post.getPostType()));
+        if (post.getPhotoKey() == null) {
+            return;
+        }
+        // Flushed first so the row is really gone before its file is, as in PlantService.deletePhoto.
+        postRepository.flush();
+        // The post is already gone for the user, so a leftover file only costs storage.
+        try {
+            storageService.deleteObject(post.getPhotoKey());
+        } catch (RuntimeException e) {
+            StructuredLog.warning(log, LogEvent.PHOTO_CLEANUP_FAILED, Map.of(
+                    "post_id", postId, "photo_key", post.getPhotoKey(), "reason", e.getClass().getSimpleName()));
+        }
+    }
+
+    // Someone else's post answers 404 too, so ids can't be probed.
+    private Post findOwnPost(UUID userId, UUID postId) {
+        return postRepository.findByIdAndUserId(postId, userId)
+                .orElseThrow(() -> new IllegalStateException("Post not found"));
     }
 
     // The user's and their friends' posts, newest first.
     @Transactional(readOnly = true)
     public List<PostResponse> getFeed(UUID userId) {
-        List<Post> posts = postRepository.findFeed(userId, FEED_TYPES, Limit.of(FEED_SIZE));
+        return toResponses(userId, postRepository.findFeed(userId, FEED_TYPES, Limit.of(FEED_SIZE)));
+    }
+
+    // The user's own posts, newest first, for their profile.
+    @Transactional(readOnly = true)
+    public List<PostResponse> getOwnPosts(UUID userId) {
+        return toResponses(userId, postRepository.findOwn(userId, FEED_TYPES));
+    }
+
+    // The post's own page. Someone else's post that isn't a friend's answers 404, like one that doesn't exist.
+    @Transactional(readOnly = true)
+    public PostResponse getPost(UUID userId, UUID postId) {
+        Post post = postRepository.findVisible(postId, userId, FEED_TYPES)
+                .orElseThrow(() -> new IllegalStateException("Post not found"));
+        return toResponses(userId, List.of(post)).getFirst();
+    }
+
+    // Maps the posts in their given order, loading authors and plant photos in one query each.
+    private List<PostResponse> toResponses(UUID userId, List<Post> posts) {
         Map<UUID, User> authors = userRepository.findAllById(posts.stream().map(Post::getUserId).distinct().toList())
                 .stream()
                 .collect(Collectors.toMap(User::getId, Function.identity()));

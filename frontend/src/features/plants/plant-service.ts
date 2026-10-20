@@ -48,7 +48,7 @@ export async function addPlantPhoto(plantId: string, request: AddPlantPhotoReque
   const requestId = createRequestId();
   logAction('plant_photo_add_submitted', {
     requestId,
-    context: { plant_id: plantId, has_caption: request.caption !== null },
+    context: { plant_id: plantId, has_comment: request.comment !== null },
   });
   return apiFetch<PlantPhoto>(`/v1/plants/${plantId}/photos`, { method: 'POST', body: request, requestId });
 }

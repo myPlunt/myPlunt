@@ -8,3 +8,8 @@ export function noteColor(postId: string) {
   // >>> 0 makes the hash non-negative, so it's a valid index.
   return NOTE_COLORS[(hash(postId) >>> 0) % NOTE_COLORS.length];
 }
+
+/** A question's note tilt, between -3 and 3 degrees: the same for this note every time it's shown. */
+export function noteTilt(postId: string) {
+  return ((hash(postId) >>> 0) % 7) - 3;
+}
