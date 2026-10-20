@@ -19,6 +19,13 @@ export interface UpdateProfileRequest {
   bio: string | null;
 }
 
+/** Mirrors UpdateLocationRequest (PUT /v1/users/me/location). city is null when the phone couldn't name it. */
+export interface UpdateLocationRequest {
+  latitude: number;
+  longitude: number;
+  city: string | null;
+}
+
 /** Mirrors ChangeEmailRequest (PUT /v1/users/me/email). */
 export interface ChangeEmailRequest {
   email: string;

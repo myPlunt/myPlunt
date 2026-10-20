@@ -21,11 +21,12 @@ export function EditProfileScreen() {
   const isAvatarStep = step === 'avatar' && !!user;
 
   // During the tour, saving what the step asked for moves it on. The bio's next step, the
-  // picture, is on this screen too; after the picture the user goes back to the profile.
+  // picture, is on this screen too; the picture's is the location page, which replaces this one
+  // so leaving it lands on the profile.
   function completeTourStep(saved: TourStep) {
     if (step !== saved) return;
     next();
-    if (saved === 'avatar') router.back();
+    if (saved === 'avatar') router.replace('/location');
   }
 
   return (
@@ -72,6 +73,7 @@ export function EditProfileScreen() {
                 step="avatar"
                 title="Add a profile picture?"
                 body="Tap your picture to add a photo of you, or of your favourite plant."
+                onSkip={() => router.replace('/location')}
               />
             </View>
           )}
