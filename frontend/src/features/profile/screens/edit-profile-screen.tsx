@@ -1,10 +1,11 @@
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { OnboardingCard } from '@/features/onboarding/components/onboarding-card';
+import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { AvatarField } from '@/features/profile/components/avatar-field';
 import { EditProfileForm } from '@/features/profile/components/edit-profile-form';
 import { useProfile } from '@/features/profile/use-profile';
@@ -19,6 +20,9 @@ export function EditProfileScreen() {
   const { step, next } = useOnboardingStore();
 
   const isAvatarStep = step === 'avatar' && !!user;
+  // Going back would leave the picture step with its card on a screen the user isn't on; the
+  // card's "Not now" and saving a picture are the ways on.
+  useTourBackLock(isAvatarStep);
 
   // During the tour, saving what the step asked for moves it on. The bio's next step, the
   // picture, is on this screen too; the picture's is the location page, which replaces this one
@@ -32,7 +36,9 @@ export function EditProfileScreen() {
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
-        <AppHeader showBack />
+        {/* No swipe back during the picture step either, for the same reason. */}
+        <Stack.Screen options={{ gestureEnabled: !isAvatarStep }} />
+        <AppHeader showBack={!isAvatarStep} />
 
         {/* The card is placed inside this view, not the SafeAreaView: an absolute child
             ignores its parent's padding, so it would sit under the home indicator. */}

@@ -7,7 +7,7 @@ import { useOnboardingStore } from '@/stores/onboarding-store';
 
 import { EditProfileScreen } from '../edit-profile-screen';
 
-jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
+jest.mock('expo-router', () => ({ useRouter: jest.fn(), Stack: { Screen: () => null } }));
 jest.mock('@/features/profile/use-profile');
 jest.mock('@/features/profile/use-profile-actions');
 jest.mock('@/stores/onboarding-store', () => ({

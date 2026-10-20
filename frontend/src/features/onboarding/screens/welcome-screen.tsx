@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
+import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
 const TOUR_PARTS = [
@@ -18,6 +19,7 @@ const TOUR_PARTS = [
 export function WelcomeScreen() {
   const router = useRouter();
   const { next, finish } = useOnboardingStore();
+  useTourBackLock(true);
 
   function leave(action: () => void) {
     action();

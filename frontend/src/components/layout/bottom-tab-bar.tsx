@@ -5,6 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 type SymbolName = SymbolViewProps['name'];
 
@@ -47,6 +48,9 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
   // The Add screen opens above the tabs (a sheet on iOS), so the bar can still be
   // seen behind it; the button turns Hunter Green like an active tab meanwhile.
   const addOpen = usePathname() === '/add';
+  // During the tour the bar can't take the user away from the step on screen; the step's
+  // card moves the tour on, and the bar comes back when it ends.
+  const locked = useOnboardingStore().step !== null;
 
   function renderTab({ route, label, icon }: TabConfig) {
     const target = state.routes.find((r) => r.name === route);
@@ -67,9 +71,10 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
         key={route}
         accessibilityRole="tab"
         accessibilityLabel={label}
-        accessibilityState={{ selected: focused }}
+        accessibilityState={{ selected: focused, disabled: locked }}
+        disabled={locked}
         onPress={onPress}
-        className="flex-1 items-center gap-1 py-2 active:opacity-70">
+        className={`flex-1 items-center gap-1 py-2 active:opacity-70 ${locked ? 'opacity-40' : ''}`}>
         {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
         <SymbolView
           name={icon}
@@ -94,11 +99,12 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Add plant"
-            accessibilityState={{ selected: addOpen }}
+            accessibilityState={{ selected: addOpen, disabled: locked }}
+            disabled={locked}
             onPress={() => router.push('/add')}
             className={`-mt-6 h-14 w-14 items-center justify-center rounded-full active:opacity-80 ${
               addOpen ? 'bg-action-primary' : 'bg-primary'
-            }`}
+            } ${locked ? 'opacity-40' : ''}`}
             style={Shadow.card}>
             <SymbolView
               name={{ ios: 'plus', android: 'add', web: 'add' }}

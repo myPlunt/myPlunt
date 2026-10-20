@@ -104,4 +104,15 @@ describe('ProfileScreen', () => {
     expect(push).toHaveBeenCalledWith('/edit-profile');
     expect(onboarding.next).not.toHaveBeenCalled();
   });
+
+  it("during the bio step, the menu still opens but can't lead to another page", async () => {
+    mockedUseOnboardingStore.mockReturnValue({ ...onboarding, step: 'bio' });
+    await render(<ProfileScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Open menu' }));
+    await user.press(screen.getByRole('button', { name: 'Open settings' }));
+    await user.press(screen.getByRole('button', { name: 'My garden' }));
+
+    expect(push).not.toHaveBeenCalled();
+  });
 });

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/use-theme';
 import { describeError } from '@/lib/auth/api-client';
 import { logFailedUi } from '@/lib/logger';
+import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { ONBOARDING_STEPS, useOnboardingStore } from '@/stores/onboarding-store';
 
 import { shareLocation } from '../location-service';
@@ -33,6 +34,7 @@ export function LocationScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { next, finish } = useOnboardingStore();
+  useTourBackLock(true);
   const [isSharing, setIsSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,7 +83,7 @@ export function LocationScreen() {
             </View>
           </View>
 
-          <View className="h-40 w-40 items-center justify-center self-center rounded-full bg-background-element">
+          <View className="items-center self-center">
             {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
             <SymbolView
               name={{ ios: 'mappin.and.ellipse', android: 'location_on', web: 'location_on' }}

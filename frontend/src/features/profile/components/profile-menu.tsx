@@ -72,6 +72,8 @@ interface ProfileMenuProps {
   /** Where the burger's 40px box ends, so the icons continue the column at the same step. */
   top: number;
   onClose: () => void;
+  /** During the tour the menu still opens, but its pages can't be left for. */
+  locked?: boolean;
 }
 
 /**
@@ -81,7 +83,7 @@ interface ProfileMenuProps {
  * only the icons and the dismiss layer come and go. Rendered as the screen's last child, so
  * it draws above the page on both platforms (Android draws later siblings on top).
  */
-export function ProfileMenu({ open, top, onClose }: ProfileMenuProps) {
+export function ProfileMenu({ open, top, onClose, locked = false }: ProfileMenuProps) {
   const theme = useTheme();
   const router = useRouter();
 
@@ -106,11 +108,13 @@ export function ProfileMenu({ open, top, onClose }: ProfileMenuProps) {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={item.label}
+                  accessibilityState={{ disabled: locked }}
+                  disabled={locked}
                   onPress={() => {
                     onClose();
                     router.push(item.href);
                   }}
-                  className="h-10 w-10 items-center justify-center active:opacity-70">
+                  className={`h-10 w-10 items-center justify-center active:opacity-70 ${locked ? 'opacity-40' : ''}`}>
                   <SymbolView name={item.icon} tintColor={theme.actionPrimary} size={22} />
                 </Pressable>
               </Reanimated.View>

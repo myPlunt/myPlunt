@@ -11,6 +11,7 @@ import { StickyNote } from '@/features/feed/components/sticky-note';
 import { getMyPosts } from '@/features/feed/feed-service';
 import { useFeed } from '@/features/feed/use-feed';
 import { OnboardingCard } from '@/features/onboarding/components/onboarding-card';
+import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { PostFilter, type PostFilterValue } from '@/features/profile/components/post-filter';
 import { ProfileMenu, ProfileMenuButton } from '@/features/profile/components/profile-menu';
 import { useProfile } from '@/features/profile/use-profile';
@@ -27,6 +28,7 @@ export function ProfileScreen() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { step } = useOnboardingStore();
   const isBioStep = step === 'bio' && !!user;
+  useTourBackLock(isBioStep);
   // Where the header sits and where the burger ends inside it, so the menu's icons start
   // right under the burger's box and continue the column at the same 40px step.
   const [headerTop, setHeaderTop] = useState(0);
@@ -78,7 +80,9 @@ export function ProfileScreen() {
                   <Text className="type-body-medium text-text-secondary">{user.email}</Text>
                   {user.bio && <Text className="type-body-large mt-3 text-center text-text">{user.bio}</Text>}
                   <View className="mt-4 flex-row items-center gap-3">
-                    <Button label="My garden" onPress={() => router.push('/garden')} />
+                    {/* During the bio step the profile stays usable, but nothing leads to another page
+                        except Edit profile, where the bio is written. */}
+                    <Button label="My garden" disabled={isBioStep} onPress={() => router.push('/garden')} />
                     {/* During the tour's bio step a ring points at the button the card talks about. */}
                     <View className={`rounded-2xl border-2 p-1 ${isBioStep ? 'border-primary' : 'border-transparent'}`}>
                       <Button label="Edit profile" variant="subtle" onPress={() => router.push('/edit-profile')} />
@@ -105,7 +109,8 @@ export function ProfileScreen() {
                   {shown.length ? (
                     // Newest first, three to a row. Each cell is a third wide with padding instead of
                     // gap, which would push the third one onto the next row; -m-1.5 undoes the outer edge.
-                    <View className="-m-1.5 flex-row flex-wrap">
+                    // They don't open during the bio step, which would leave the tour.
+                    <View className="-m-1.5 flex-row flex-wrap" pointerEvents={isBioStep ? 'none' : 'auto'}>
                       {shown.map((post) => (
                         <View key={post.id} className="w-1/3 p-1.5">
                           {post.type === 'question' ? <StickyNote post={post} hideAuthor /> : <FeedPlantCard post={post} hideAuthor />}
@@ -139,7 +144,12 @@ export function ProfileScreen() {
           </View>
         )}
 
-        <ProfileMenu open={isMenuOpen} top={headerTop + burgerBottom} onClose={() => setIsMenuOpen(false)} />
+        <ProfileMenu
+          open={isMenuOpen}
+          top={headerTop + burgerBottom}
+          onClose={() => setIsMenuOpen(false)}
+          locked={isBioStep}
+        />
       </SafeAreaView>
     </View>
   );
