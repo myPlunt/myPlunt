@@ -186,4 +186,14 @@ describe('GardenScreen', () => {
     await user.press(screen.getByRole('button', { name: 'Try again' }));
     expect(retry).toHaveBeenCalled();
   });
+
+  it("skipping the first-plant step skips its photo step too, which needs the plant", async () => {
+    const next = jest.fn();
+    jest.mocked(useOnboardingStore).mockReturnValue({ step: 'plant', start: jest.fn(), next, finish: jest.fn() });
+    await render(<GardenScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Not now' }));
+
+    expect(next).toHaveBeenCalledTimes(2);
+  });
 });

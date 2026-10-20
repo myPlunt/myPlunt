@@ -27,7 +27,8 @@ export function GardenScreen() {
   const { garden, error, isLoading, retry, refresh } = useGarden();
   // The tour's first-plant step: its card opens the Add sheet, and saving a plant there ends
   // the step (AddPlantScreen).
-  const isPlantStep = useOnboardingStore().step === 'plant';
+  const { step, next } = useOnboardingStore();
+  const isPlantStep = step === 'plant';
   useTourBackLock(isPlantStep);
   const { waterPlants } = useGardenActions();
   const [isWatering, setIsWatering] = useState(false);
@@ -194,6 +195,9 @@ export function GardenScreen() {
               body="Add a plant you have at home, here or with the + below: where it stands and how often it likes water. We'll remind you when it's thirsty."
               actionLabel="Add a plant"
               onAction={() => router.push('/add')}
+              // The photo step after this one is on the new plant's page, so without a plant
+              // it's skipped too; otherwise it'd wait for a card that never shows.
+              onSkip={next}
             />
           </View>
         )}
