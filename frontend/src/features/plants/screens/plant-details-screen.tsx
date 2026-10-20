@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -41,6 +41,13 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
   const { step, next } = useOnboardingStore();
   const isPhotoStep = step === 'photo' && !!plant;
   useTourBackLock(isPhotoStep);
+  const scrollRef = useRef<ScrollView>(null);
+
+  // During the photo step the page starts at Growth, so its ringed Add is in view above the
+  // card without scrolling. Runs again if Growth moves (e.g. once the photos load).
+  function showGrowth(y: number) {
+    if (isPhotoStep) scrollRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
+  }
 
   return (
     <View className="flex-1 bg-background">
@@ -72,6 +79,7 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
             ignores its parent's padding, so it would sit under the home indicator. */}
         <View className="flex-1">
           <ScrollView
+            ref={scrollRef}
             // Room to scroll the page out from under the tour card.
             contentContainerClassName={`w-full max-w-content grow gap-6 self-center px-6 pt-2 ${isPhotoStep ? 'pb-72' : 'pb-8'}`}>
             {isLoading ? (
@@ -85,7 +93,7 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
             ) : (
               plant && (
                 <>
-                  <PlantDetailsContent plant={plant} isPhotoStep={isPhotoStep} />
+                  <PlantDetailsContent plant={plant} isPhotoStep={isPhotoStep} onGrowthLayout={showGrowth} />
                   <View pointerEvents={isPhotoStep ? 'none' : 'auto'}>
                     <DeletePlant plant={plant} />
                   </View>
@@ -115,7 +123,14 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
   );
 }
 
-function PlantDetailsContent({ plant, isPhotoStep }: { plant: PlantDetails; isPhotoStep: boolean }) {
+interface PlantDetailsContentProps {
+  plant: PlantDetails;
+  isPhotoStep: boolean;
+  /** Where the Growth section starts in the page, so the photo step can scroll to it. */
+  onGrowthLayout: (y: number) => void;
+}
+
+function PlantDetailsContent({ plant, isPhotoStep, onGrowthLayout }: PlantDetailsContentProps) {
   const router = useRouter();
   // Empty while loading or on an error: the carousel then falls back to the plant's own photo.
   const photos = usePlantPhotos(plant.id).photos ?? [];
@@ -163,15 +178,17 @@ function PlantDetailsContent({ plant, isPhotoStep }: { plant: PlantDetails; isPh
         </View>
       </View>
 
-      <GrowthSection
-        plantName={plant.name}
-        photos={photos}
-        selectedIndex={shownIndex}
-        onSelect={setSelectedIndex}
-        onSeeAll={() => router.push({ pathname: '/plant/[id]/growth', params: { id: plant.id } })}
-        onAdd={() => router.push({ pathname: '/plant/[id]/add-photo', params: { id: plant.id } })}
-        highlightAdd={isPhotoStep}
-      />
+      <View onLayout={({ nativeEvent: { layout } }) => onGrowthLayout(layout.y)}>
+        <GrowthSection
+          plantName={plant.name}
+          photos={photos}
+          selectedIndex={shownIndex}
+          onSelect={setSelectedIndex}
+          onSeeAll={() => router.push({ pathname: '/plant/[id]/growth', params: { id: plant.id } })}
+          onAdd={() => router.push({ pathname: '/plant/[id]/add-photo', params: { id: plant.id } })}
+          highlightAdd={isPhotoStep}
+        />
+      </View>
 
       <View pointerEvents={isPhotoStep ? 'none' : 'auto'}>
         <LinkCard
