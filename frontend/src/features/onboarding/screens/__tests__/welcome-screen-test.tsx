@@ -11,7 +11,7 @@ jest.mock('@/stores/onboarding-store', () => ({ useOnboardingStore: jest.fn() })
 const mockedUseRouter = jest.mocked(useRouter);
 const mockedUseOnboardingStore = jest.mocked(useOnboardingStore);
 const replace = jest.fn();
-const onboarding = { step: 'welcome' as const, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), finish: jest.fn() };
+const onboarding = { step: 'welcome' as const, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null };
 const user = userEvent.setup();
 
 beforeEach(() => {

@@ -17,7 +17,7 @@ const mockedUseRouter = jest.mocked(useRouter);
 const mockedShareLocation = jest.mocked(shareLocation);
 const mockedUseOnboardingStore = jest.mocked(useOnboardingStore);
 const back = jest.fn();
-const onboarding = { step: 'location' as const, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), finish: jest.fn() };
+const onboarding = { step: 'location' as const, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null };
 const user = userEvent.setup();
 
 beforeEach(() => {

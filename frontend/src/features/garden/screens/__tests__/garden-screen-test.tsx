@@ -71,7 +71,7 @@ function mockGarden(state: Partial<ReturnType<typeof useGarden>>) {
 
 beforeEach(() => {
   jest.mocked(useRouter).mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
-  jest.mocked(useOnboardingStore).mockReturnValue({ step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), finish: jest.fn() });
+  jest.mocked(useOnboardingStore).mockReturnValue({ step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null });
   mockGarden({});
   mockedUseGardenActions.mockReturnValue({ waterPlants });
   waterPlants.mockResolvedValue(undefined);
@@ -189,7 +189,7 @@ describe('GardenScreen', () => {
 
   it('skipping the first-plant step skips the photo and watering steps too, which need the plant', async () => {
     const skipPast = jest.fn();
-    jest.mocked(useOnboardingStore).mockReturnValue({ step: 'plant', start: jest.fn(), next: jest.fn(), skipPast, finish: jest.fn() });
+    jest.mocked(useOnboardingStore).mockReturnValue({ step: 'plant', start: jest.fn(), next: jest.fn(), skipPast, back: jest.fn(), finish: jest.fn(), previous: null, plantId: null });
     await render(<GardenScreen />);
 
     await user.press(screen.getByRole('button', { name: 'Not now' }));
@@ -199,7 +199,7 @@ describe('GardenScreen', () => {
 
   it("during the tour's watering step, watering moves the tour on", async () => {
     const next = jest.fn();
-    jest.mocked(useOnboardingStore).mockReturnValue({ step: 'water', start: jest.fn(), next, skipPast: jest.fn(), finish: jest.fn() });
+    jest.mocked(useOnboardingStore).mockReturnValue({ step: 'water', start: jest.fn(), next, skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null });
     await render(<GardenScreen />);
 
     expect(screen.getByText('Water your plants')).toBeOnTheScreen();

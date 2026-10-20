@@ -40,7 +40,7 @@ export function AddPlantScreen({ initialSpecies }: { initialSpecies?: Pick<Speci
   function saved(plant: Plant) {
     // The plant is what the tour's first-plant step asked for, so it moves on.
     const openPlantId = step === 'plant' ? plant.id : null;
-    if (openPlantId) next();
+    if (openPlantId) next(openPlantId);
     // Only once the discovered list has loaded, so a slow or failed load never celebrates a
     // species the user already has.
     const isNew =

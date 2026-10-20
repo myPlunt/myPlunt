@@ -11,12 +11,43 @@ export type OnboardingStep = 'welcome' | TourStep | 'done';
 interface OnboardingStore {
   /** The step being shown, or null when no tour is running. */
   step: OnboardingStep | null;
+  /** The step the user came from, which Back returns to; null on the welcome page. */
+  previous: OnboardingStep | null;
+  /** The plant added in the first-plant step, whose page the photo step is on. */
+  plantId: string | null;
   start: () => void;
-  /** Moves to the next step; after the last one comes the "You're all set" page, then the tour ends. */
-  next: () => void;
+  /**
+   * Moves to the next step; after the last one comes the "You're all set" page, then the tour
+   * ends. The first-plant step passes the plant it added.
+   */
+  next: (plantId?: string) => void;
   /** Moves past `step` and the steps before it, e.g. the steps that need a plant when none was added. */
   skipPast: (step: TourStep) => void;
+  /** Goes back to the step the user came from (skipped steps stay skipped). */
+  back: () => void;
   finish: () => void;
+}
+
+interface TourState {
+  step: OnboardingStep | null;
+  /** The steps the user went through, oldest first; Back pops the last. */
+  history: OnboardingStep[];
+  plantId: string | null;
+}
+
+const NO_TOUR: TourState = { step: null, history: [], plantId: null };
+
+function after(step: OnboardingStep): OnboardingStep | null {
+  if (step === 'done') return null;
+  if (step === 'welcome') return ONBOARDING_STEPS[0];
+  return ONBOARDING_STEPS[ONBOARDING_STEPS.indexOf(step) + 1] ?? 'done';
+}
+
+// Moving on remembers where the user was, so Back can return there.
+function moveTo(state: TourState, to: OnboardingStep | null): TourState {
+  if (state.step === null) return state;
+  if (to === null) return NO_TOUR;
+  return { ...state, step: to, history: [...state.history, state.step] };
 }
 
 const OnboardingStoreContext = createContext<OnboardingStore | undefined>(undefined);
@@ -24,27 +55,41 @@ const OnboardingStoreContext = createContext<OnboardingStore | undefined>(undefi
 // shortcut: the tour lives in memory only, so closing the app mid-tour ends it; persist
 // it on the backend (onboarding_completed_at) when the last step is built.
 export function OnboardingStoreProvider({ children }: { children: ReactNode }) {
-  const [step, setStep] = useState<OnboardingStep | null>(null);
+  const [state, setState] = useState<TourState>(NO_TOUR);
 
-  const start = useCallback(() => setStep('welcome'), []);
+  const start = useCallback(() => setState({ ...NO_TOUR, step: 'welcome' }), []);
   const next = useCallback(
-    () =>
-      setStep((current) => {
-        if (current === null || current === 'done') return null;
-        if (current === 'welcome') return ONBOARDING_STEPS[0];
-        return ONBOARDING_STEPS[ONBOARDING_STEPS.indexOf(current) + 1] ?? 'done';
+    (plantId?: string) =>
+      setState((current) => {
+        const moved = moveTo(current, current.step === null ? null : after(current.step));
+        return plantId && moved.step !== null ? { ...moved, plantId } : moved;
       }),
     [],
   );
-  const skipPast = useCallback(
-    (last: TourStep) => setStep((current) => (current === null ? null : (ONBOARDING_STEPS[ONBOARDING_STEPS.indexOf(last) + 1] ?? 'done'))),
+  const skipPast = useCallback((last: TourStep) => setState((current) => moveTo(current, after(last))), []);
+  const back = useCallback(
+    () =>
+      setState((current) =>
+        current.history.length === 0
+          ? current
+          : { ...current, step: current.history[current.history.length - 1], history: current.history.slice(0, -1) },
+      ),
     [],
   );
-  const finish = useCallback(() => setStep(null), []);
+  const finish = useCallback(() => setState(NO_TOUR), []);
 
   const value = useMemo<OnboardingStore>(
-    () => ({ step, start, next, skipPast, finish }),
-    [step, start, next, skipPast, finish],
+    () => ({
+      step: state.step,
+      previous: state.history[state.history.length - 1] ?? null,
+      plantId: state.plantId,
+      start,
+      next,
+      skipPast,
+      back,
+      finish,
+    }),
+    [state, start, next, skipPast, back, finish],
   );
 
   return <OnboardingStoreContext.Provider value={value}>{children}</OnboardingStoreContext.Provider>;

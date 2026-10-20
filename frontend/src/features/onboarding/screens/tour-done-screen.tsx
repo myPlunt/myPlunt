@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
+import { useTourBack } from '@/features/onboarding/use-tour-back';
 import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
@@ -13,6 +14,7 @@ export function TourDoneScreen() {
   const router = useRouter();
   const { finish } = useOnboardingStore();
   useTourBackLock(true);
+  const goBack = useTourBack();
 
   return (
     <View className="flex-1 bg-background">
@@ -28,7 +30,7 @@ export function TourDoneScreen() {
             </Text>
           </View>
 
-          <View className="mt-auto">
+          <View className="mt-auto gap-2">
             <Button
               label="Start gardening"
               size="large"
@@ -37,6 +39,7 @@ export function TourDoneScreen() {
                 router.replace('/');
               }}
             />
+            {goBack && <Button label="Back" variant="ghost" size="large" onPress={goBack} />}
           </View>
         </ScrollView>
       </SafeAreaView>

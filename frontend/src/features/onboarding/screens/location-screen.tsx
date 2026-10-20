@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/use-theme';
 import { describeError } from '@/lib/auth/api-client';
 import { logFailedUi } from '@/lib/logger';
+import { useTourBack } from '@/features/onboarding/use-tour-back';
 import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { ONBOARDING_STEPS, useOnboardingStore } from '@/stores/onboarding-store';
 
@@ -35,6 +36,7 @@ export function LocationScreen() {
   const router = useRouter();
   const { next, finish } = useOnboardingStore();
   useTourBackLock(true);
+  const goBack = useTourBack();
   const [isSharing, setIsSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,6 +123,7 @@ export function LocationScreen() {
             {error && <Text className="type-body-medium text-center text-error">{error}</Text>}
             <Button label="Share my city" size="large" loading={isSharing} onPress={handleShare} />
             <Button label="Not now" variant="ghost" size="large" disabled={isSharing} onPress={() => leave(next)} />
+            {goBack && <Button label="Back" variant="ghost" size="large" disabled={isSharing} onPress={goBack} />}
           </View>
         </ScrollView>
       </SafeAreaView>

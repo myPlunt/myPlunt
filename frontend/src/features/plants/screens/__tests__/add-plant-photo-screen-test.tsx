@@ -19,7 +19,7 @@ jest.mock('@/features/photos/use-photo-upload');
 
 const back = jest.fn();
 const dismissTo = jest.fn();
-const onboarding = { step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), finish: jest.fn() };
+const onboarding = { step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null };
 const replace = jest.fn();
 const canGoBack = jest.fn();
 const addPlantPhoto = jest.fn();

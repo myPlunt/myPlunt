@@ -26,7 +26,7 @@ const retry = jest.fn();
 const reload = jest.fn();
 const push = jest.fn();
 const dismissTo = jest.fn();
-const onboarding = { step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), finish: jest.fn() };
+const onboarding = { step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null };
 const user = userEvent.setup();
 const jane = {
   id: 'u2',

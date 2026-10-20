@@ -43,7 +43,7 @@ const species = [
 ];
 
 beforeEach(() => {
-  jest.mocked(useOnboardingStore).mockReturnValue({ step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), finish: jest.fn() });
+  jest.mocked(useOnboardingStore).mockReturnValue({ step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null });
   mockedUseSpecies.mockReturnValue({ species, error: null, retry: jest.fn() });
   mockedUseDiscoveredSpecies.mockReturnValue({ discovered: [{ speciesId: 'basil', discoveredAt: '2026-10-11T09:30:00Z' }], error: null, isLoading: false, retry: jest.fn() });
 });
@@ -98,7 +98,7 @@ it("during the tour's last step, explains the PluntDex without opening species, 
   const push = jest.fn();
   const next = jest.fn();
   jest.mocked(useRouter).mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
-  jest.mocked(useOnboardingStore).mockReturnValue({ step: 'pluntdex', start: jest.fn(), next, skipPast: jest.fn(), finish: jest.fn() });
+  jest.mocked(useOnboardingStore).mockReturnValue({ step: 'pluntdex', start: jest.fn(), next, skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null });
   await render(<PluntdexScreen />);
 
   expect(screen.getByText('Explore the PluntDex')).toBeOnTheScreen();

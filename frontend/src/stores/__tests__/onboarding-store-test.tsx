@@ -32,4 +32,24 @@ describe('OnboardingStore', () => {
     await act(() => store.current.finish());
     expect(store.current.step).toBeNull();
   });
+
+  it('goes back to the step the user came from, past a skip, down to the welcome page', async () => {
+    const store = await renderStore();
+    await act(() => store.current.start());
+    await act(() => store.current.next());
+    await act(() => store.current.next());
+    expect(store.current.step).toBe('avatar');
+
+    // Skipping the plant steps from the first-plant step, then back: to that step, not watering.
+    await act(() => store.current.skipPast('friends'));
+    await act(() => store.current.skipPast('water'));
+    expect(store.current.step).toBe('pluntdex');
+    await act(() => store.current.back());
+    expect(store.current.step).toBe('plant');
+    await act(() => store.current.back());
+    await act(() => store.current.back());
+    await act(() => store.current.back());
+    expect(store.current.step).toBe('welcome');
+    expect(store.current.previous).toBeNull();
+  });
 });

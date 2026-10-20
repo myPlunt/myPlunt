@@ -2,6 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Shadow } from '@/constants/theme';
+import { useTourBack } from '@/features/onboarding/use-tour-back';
 import { ONBOARDING_STEPS, useOnboardingStore, type TourStep } from '@/stores/onboarding-store';
 
 interface OnboardingCardProps {
@@ -22,6 +23,7 @@ interface OnboardingCardProps {
 export function OnboardingCard({ step, title, body, actionLabel, onAction, onSkip, showNotNow = true }: OnboardingCardProps) {
   const { next, finish } = useOnboardingStore();
   const index = ONBOARDING_STEPS.indexOf(step);
+  const goBack = useTourBack();
 
   return (
     <View className="gap-3 rounded-2xl bg-action-primary p-5" style={Shadow.card}>
@@ -50,7 +52,18 @@ export function OnboardingCard({ step, title, body, actionLabel, onAction, onSki
         <Text className="type-body-large text-background-element">{body}</Text>
       </View>
 
-      <View className="flex-row items-center justify-end gap-2">
+      <View className="flex-row items-center gap-2">
+        {/* Back on the left, away from the buttons that move the tour on. */}
+        {goBack && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            onPress={goBack}
+            className="h-10 justify-center pr-4 active:opacity-70">
+            <Text className="type-button-medium text-background-element">Back</Text>
+          </Pressable>
+        )}
+        <View className="flex-1" />
         {showNotNow && (
           <Pressable
             accessibilityRole="button"

@@ -40,7 +40,7 @@ const push = jest.fn();
 const replace = jest.fn();
 const canGoBack = jest.fn();
 const createPlant = jest.fn();
-const onboarding = { step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), finish: jest.fn() };
+const onboarding = { step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null };
 const user = userEvent.setup();
 const vera = {
   id: 'p1',
