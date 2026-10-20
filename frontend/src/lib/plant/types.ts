@@ -111,7 +111,8 @@ export interface UpdatePlantPhotoRequest {
 export interface AddPlantPhotoRequest {
   photoKey: string;
   takenAt: string | null;
-  caption: string | null;
+  /** Shown with the feed post, so only kept when `shareToFeed` is true; null for none. */
+  comment: string | null;
   /** Posts the photo to friends' feeds (GET /v1/posts/feed). Left out, it's false. */
   shareToFeed?: boolean;
 }

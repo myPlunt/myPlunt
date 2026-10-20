@@ -32,7 +32,7 @@ function mockPhoto(state: Partial<PhotoUpload>) {
 
 beforeEach(() => {
   jest.mocked(useRouter).mockReturnValue({ back, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
-  jest.mocked(useFeedActions).mockReturnValue({ askQuestion });
+  jest.mocked(useFeedActions).mockReturnValue({ askQuestion, updatePost: jest.fn(), deletePost: jest.fn() });
   askQuestion.mockResolvedValue({});
   mockPhoto({});
 });

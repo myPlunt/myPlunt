@@ -12,6 +12,7 @@ import { StickyNote } from '@/features/feed/components/sticky-note';
 import { VineStem } from '@/features/feed/components/vine-stem';
 import { groupByAge } from '@/features/feed/feed-days';
 import { rowOffsets } from '@/features/feed/feed-rows';
+import { getFeed } from '@/features/feed/feed-service';
 import { feedSides, type Side } from '@/features/feed/feed-sides';
 import { useFeed } from '@/features/feed/use-feed';
 import { useTheme } from '@/hooks/use-theme';
@@ -20,7 +21,7 @@ import type { Post } from '@/lib/post/types';
 export function FeedScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { posts, error, isLoading, retry } = useFeed();
+  const { posts, error, isLoading, retry } = useFeed(getFeed);
   const days = groupByAge(posts ?? [], new Date());
   // Across the days, in the order they're shown, so the in-a-row limit spans day marks.
   const postIds = days.flatMap((day) => day.posts.map((post) => post.id));
@@ -47,6 +48,8 @@ export function FeedScreen() {
               className="h-10 -rotate-2 justify-center rounded-sm bg-note-yellow px-3 active:opacity-70"
               // Shadow goes through style so it sets both iOS shadow* and Android elevation.
               style={Shadow.card}>
+              {/* The strip of tape, like on the questions in the feed; it fits in the header's top padding. */}
+              <View className="absolute -top-2 h-4 w-10 self-center bg-background-element opacity-70" />
               <Text className="type-button-medium text-text">I have a question</Text>
             </Pressable>
           }
@@ -112,8 +115,7 @@ function FeedRows({ posts, sides, heights, onMeasure }: FeedRowsProps) {
         <View
           key={post.id}
           onLayout={(e) => onMeasure(post.id, e.nativeEvent.layout.height)}
-          // Every post sits in a slot as wide as a sticky note (w-[136px]), centred, so the
-          // narrower plant cards line up with the middle of the notes instead of their edge.
+          // Every post sits in a 136px slot and fills it, so notes and plant cards are equals.
           className={`w-[136px] items-center ${rows[i].side === 'right' ? 'self-end' : 'self-start'}`}
           style={{ marginTop: marginTops[i] }}>
           {post.type === 'question' ? <StickyNote post={post} /> : <FeedPlantCard post={post} />}

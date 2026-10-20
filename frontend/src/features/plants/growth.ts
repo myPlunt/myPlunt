@@ -1,6 +1,6 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** A growth photo's note; same limit as the backend's AddPlantPhotoRequest and UpdatePlantPhotoRequest. */
+/** A growth photo's note; same limit as the backend's UpdatePlantPhotoRequest. */
 export const CAPTION_MAX_LENGTH = 280;
 
 /**

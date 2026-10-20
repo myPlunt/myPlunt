@@ -5,9 +5,8 @@ import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { Post } from '@/lib/post/types';
 import { useAuthStore } from '@/stores/auth-store';
 
-import * as feedService from './feed-service';
-
-export function useFeed() {
+/** Loads a list of posts on focus: the feed (getFeed) or the user's own (getMyPosts). */
+export function useFeed(fetchPosts: () => Promise<Post[]>) {
   const { setUnauthenticated } = useAuthStore();
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -16,8 +15,7 @@ export function useFeed() {
   // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) =>
-      feedService
-        .getFeed()
+      fetchPosts()
         .then((result) => {
           if (isCancelled()) return;
           setPosts(result);
@@ -35,7 +33,7 @@ export function useFeed() {
         .finally(() => {
           if (!isCancelled()) setIsLoading(false);
         }),
-    [setUnauthenticated],
+    [fetchPosts, setUnauthenticated],
   );
 
   // Loads on focus, so a plant just added (and shared) is there when the user comes back.

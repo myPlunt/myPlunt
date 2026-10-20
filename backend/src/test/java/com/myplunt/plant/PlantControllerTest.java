@@ -227,9 +227,9 @@ class PlantControllerTest {
     @Test
     void addPhoto_returnsTheCreatedPhoto() {
         UUID userId = authenticateAsJane();
-        AddPlantPhotoRequest request = new AddPlantPhotoRequest("plants/u/growth.jpg", null, "First split leaf!", null);
+        AddPlantPhotoRequest request = new AddPlantPhotoRequest("plants/u/growth.jpg", null, "First split leaf!", true);
         PlantPhotoResponse photo = new PlantPhotoResponse(
-                UUID.randomUUID(), "https://storage.test/growth.jpg?signed", Instant.parse("2026-10-18T08:00:00Z"), "First split leaf!");
+                UUID.randomUUID(), "https://storage.test/growth.jpg?signed", Instant.parse("2026-10-18T08:00:00Z"), null);
         when(plantService.addPhoto(userId, plantId, request)).thenReturn(photo);
 
         restTestClient.post().uri("/v1/plants/{plantId}/photos", plantId)

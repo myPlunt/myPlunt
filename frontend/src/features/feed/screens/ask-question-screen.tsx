@@ -5,6 +5,7 @@ import { Text, TextInput, View } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Shadow } from '@/constants/theme';
 import { NOTE_COLORS } from '@/features/feed/note-colors';
+import { QUESTION_MAX_LENGTH } from '@/features/feed/post-limits';
 import { useFeedActions } from '@/features/feed/use-feed-actions';
 import { usePhotoUpload } from '@/features/photos/use-photo-upload';
 import { NotebookPage } from '@/features/plants/components/notebook-page';
@@ -15,7 +16,6 @@ import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logFailedUi } from '@/lib/logger';
 
 // Same limit as the backend's AskQuestionRequest.
-const QUESTION_MAX_LENGTH = 280;
 // The note covers this many ruled lines, so everything below stays on the grid.
 const NOTE_ROWS = 4;
 

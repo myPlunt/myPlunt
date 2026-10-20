@@ -280,16 +280,16 @@ public class PlantService {
 
         PlantPhoto photo = new PlantPhoto(
                 plant, ownerId, request.photoKey(), request.takenAt() == null ? Instant.now() : request.takenAt());
-        photo.setCaption(cleanNotes(request.caption()));
         PlantPhoto saved = plantPhotoRepository.save(photo);
         boolean shareToFeed = Boolean.TRUE.equals(request.shareToFeed());
+        String comment = shareToFeed ? cleanNotes(request.comment()) : null;
         if (shareToFeed) {
-            postRepository.save(new Post(ownerId, saved));
+            postRepository.save(new Post(ownerId, saved, comment));
         }
         auditLog.recorded(AuditEvent.PLANT_PHOTO_ADDED, ownerId, ownerId, Map.of(
                 "plant_id", plantId,
                 "photo_id", saved.getId(),
-                "has_caption", saved.getCaption() != null,
+                "has_comment", comment != null,
                 "shared_to_feed", shareToFeed));
         return toPhotoResponse(saved);
     }

@@ -35,6 +35,8 @@ export default function AppLayout() {
       <Stack.Screen name="plant/[id]/add-photo" options={{ presentation: 'modal' }} />
       {/* Opened from "Edit" on a photo in the growth journal; a sheet like adding one. */}
       <Stack.Screen name="plant/[id]/photo/[photoId]" options={{ presentation: 'modal' }} />
+      {/* Opened from a post on the feed or the profile. */}
+      <Stack.Screen name="post/[id]" />
       {/* Opened from a card in the Pluntdex. */}
       <Stack.Screen name="species/[id]" />
     </Stack>

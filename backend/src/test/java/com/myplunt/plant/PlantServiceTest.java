@@ -404,7 +404,7 @@ class PlantServiceTest {
     }
 
     @Test
-    void addPhoto_confirmsTheUploadSavesItWithItsDateAndNoteAndSharesIt() {
+    void addPhoto_confirmsTheUploadSavesItWithItsDateAndSharesItWithTheComment() {
         ownPlant("Vera");
         String key = "plants/" + userId + "/growth.jpg";
         Instant takenAt = Instant.parse("2026-08-20T10:00:00Z");
@@ -422,12 +422,14 @@ class PlantServiceTest {
         verify(storageService).confirmUpload(userId, key);
         assertThat(response.url()).isEqualTo("https://storage.test/growth.jpg?signed");
         assertThat(response.takenAt()).isEqualTo(takenAt);
-        assertThat(response.caption()).isEqualTo("First split leaf!");
+        // The comment belongs to the post, not the photo's own note.
+        assertThat(response.caption()).isNull();
         ArgumentCaptor<Post> post = ArgumentCaptor.forClass(Post.class);
         verify(postRepository).save(post.capture());
         assertThat(post.getValue().getPostType()).isEqualTo(Post.NEW_PHOTO);
         assertThat(post.getValue().getPhoto().getPhotoKey()).isEqualTo(key);
         assertThat(post.getValue().getPlant().getId()).isEqualTo(plantId);
+        assertThat(post.getValue().getBody()).isEqualTo("First split leaf!");
     }
 
     @Test
