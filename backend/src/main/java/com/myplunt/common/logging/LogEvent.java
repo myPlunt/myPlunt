@@ -15,6 +15,7 @@ public enum LogEvent {
     // Errors: the operation could not complete.
     UNHANDLED_EXCEPTION,
     PUSH_SEND_FAILED,
+    WEATHER_FETCH_FAILED,
     // Bugs: states the code should make impossible.
     PLANT_IN_UNKNOWN_PLANTER
 }

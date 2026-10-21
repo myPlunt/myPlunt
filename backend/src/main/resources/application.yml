@@ -51,6 +51,10 @@ app:
   # Expo's push service, which delivers to both APNs and FCM with one Expo push token.
   push:
     expo-url: https://exp.host/--/api/v2/push/send
+  # Forecasts for weather alerts. Without a key the alerts are off.
+  weather:
+    openweather-url: https://api.openweathermap.org/data/2.5/forecast
+    api-key: ${OPENWEATHER_API_KEY:}
   storage:
     endpoint: ${STORAGE_ENDPOINT}
     bucket: ${STORAGE_BUCKET}
