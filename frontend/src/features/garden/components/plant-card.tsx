@@ -19,10 +19,12 @@ interface PlantCardProps {
   now: Date;
   /** Set while the user picks plants to water: pressing the card then toggles it instead of opening it. */
   selection?: PlantSelection;
+  /** A friend's plant: shown, but pressing it does nothing (its details page is the owner's only). */
+  readOnly?: boolean;
 }
 
 /** One plant in a room; pressing it opens the plant's details, or selects it while picking plants to water. */
-export function PlantCard({ plant, now, selection }: PlantCardProps) {
+export function PlantCard({ plant, now, selection, readOnly = false }: PlantCardProps) {
   const router = useRouter();
   const theme = useTheme();
   const selected = selection?.selected ?? false;
@@ -37,6 +39,8 @@ export function PlantCard({ plant, now, selection }: PlantCardProps) {
             accessibilityHint: 'Selects this plant for watering',
             onPress: selection.onToggle,
           }
+        : readOnly
+        ? { disabled: true }
         : {
             accessibilityRole: 'button',
             accessibilityHint: "Shows this plant's details",

@@ -95,6 +95,23 @@ class PostServiceTest {
                 new PostResponse(myPost.getId(), Post.NEW_PLANT, self, vera.getId(), "Vera", null, null, myPost.getCreatedAt()));
     }
 
+    // Seen from the viewer's side, so the author is labelled a friend rather than the viewer themselves.
+    @Test
+    void getUserPosts_mapsTheAuthorsPostsAsTheViewerSeesThem() {
+        User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
+        User friend = withId(new User("emma", "emma@example.com", "hashed"), UUID.randomUUID());
+        Post question = withId(new Post(friend.getId(), "Why are the leaves yellow?", null), UUID.randomUUID());
+        when(postRepository.findOwn(friend.getId(), List.of(Post.NEW_PLANT, Post.NEW_PHOTO, Post.QUESTION)))
+                .thenReturn(List.of(question));
+        when(userRepository.findAllById(anyCollection())).thenReturn(List.of(friend));
+        UserSummaryResponse emma = new UserSummaryResponse(friend.getId(), "emma", null, null, "friends");
+        when(userService.toSummary(friend, "friends")).thenReturn(emma);
+
+        assertThat(postService().getUserPosts(me.getId(), friend.getId()))
+                .singleElement()
+                .satisfies(response -> assertThat(response.author()).isEqualTo(emma));
+    }
+
     @Test
     void getFeed_showsAPhotoPostsOwnPhotoNotThePlantsNewest() {
         User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());

@@ -20,11 +20,13 @@ interface RoomSectionProps {
   };
   /** Opens the rename/delete dialog. Left out for "Other plants", which isn't a planter. */
   onEdit?: () => void;
+  /** A friend's room: the plant cards don't open anything. */
+  readOnly?: boolean;
 }
 
 // One room of the garden: its name and a sideways-scrolling row of plant cards,
 // the one due soonest first.
-export function RoomSection({ room, now, selection, onEdit }: RoomSectionProps) {
+export function RoomSection({ room, now, selection, onEdit, readOnly }: RoomSectionProps) {
   const theme = useTheme();
   const needsWater = plantsNeedingWater({ rooms: [room] }, now).length > 0;
   const plantIds = room.plants.map((plant) => plant.id);
@@ -88,6 +90,7 @@ export function RoomSection({ room, now, selection, onEdit }: RoomSectionProps) 
               key={plant.id}
               plant={plant}
               now={now}
+              readOnly={readOnly}
               selection={
                 selection && {
                   selected: selection.selectedIds.has(plant.id),

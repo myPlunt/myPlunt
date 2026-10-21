@@ -10,8 +10,9 @@ import * as speciesService from './species-service';
 /**
  * The species the user has discovered, and when. Reloads on focus, so a plant added from
  * the tab bar (or from a species' page) counts as soon as the user comes back to the Pluntdex.
+ * With userId, a friend's discoveries, for their profile.
  */
-export function useDiscoveredSpecies() {
+export function useDiscoveredSpecies(userId?: string) {
   const { setUnauthenticated } = useAuthStore();
   const [discovered, setDiscovered] = useState<DiscoveredSpecies[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export function useDiscoveredSpecies() {
   const load = useCallback(
     (isCancelled: () => boolean) =>
       speciesService
-        .getDiscoveredSpecies()
+        .getDiscoveredSpecies(userId)
         .then((result) => {
           if (isCancelled()) return;
           setDiscovered(result);
@@ -39,7 +40,7 @@ export function useDiscoveredSpecies() {
         .finally(() => {
           if (!isCancelled()) setIsLoading(false);
         }),
-    [setUnauthenticated],
+    [userId, setUnauthenticated],
   );
 
   // useFocusEffect needs a memoized callback.
