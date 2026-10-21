@@ -1,0 +1,83 @@
+import { Pressable, Text, View } from 'react-native';
+
+import { Button } from '@/components/ui/button';
+import { Shadow } from '@/constants/theme';
+import { useTourBack } from '@/features/onboarding/use-tour-back';
+import { ONBOARDING_STEPS, useOnboardingStore, type TourStep } from '@/stores/onboarding-store';
+
+interface OnboardingCardProps {
+  step: TourStep;
+  title: string;
+  body: string;
+  /** Left out when the user acts on the highlighted control itself (e.g. tapping the avatar). */
+  actionLabel?: string;
+  onAction?: () => void;
+  /** Runs after "Not now" moves the tour on, e.g. to open the next step's screen. */
+  onSkip?: () => void;
+  /** Off for a step that only shows something, where the action ("Got it") already moves on. */
+  showNotNow?: boolean;
+}
+
+// The tour's coach card. The screen places it (usually pinned to the bottom) and
+// highlights the control the card talks about.
+export function OnboardingCard({ step, title, body, actionLabel, onAction, onSkip, showNotNow = true }: OnboardingCardProps) {
+  const { next, finish } = useOnboardingStore();
+  const index = ONBOARDING_STEPS.indexOf(step);
+  const goBack = useTourBack();
+
+  return (
+    <View className="gap-3 rounded-2xl bg-action-primary p-5" style={Shadow.card}>
+      <View className="flex-row items-center justify-between">
+        <Text className="type-label uppercase text-background-element">
+          Step {index + 1} of {ONBOARDING_STEPS.length}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Skip tour"
+          onPress={finish}
+          hitSlop={12}
+          className="active:opacity-70">
+          <Text className="type-body-medium text-background-element">Skip tour</Text>
+        </Pressable>
+      </View>
+
+      <View className="flex-row gap-1">
+        {ONBOARDING_STEPS.map((name, i) => (
+          <View key={name} className={`h-1 flex-1 rounded-full bg-background-element ${i > index ? 'opacity-25' : ''}`} />
+        ))}
+      </View>
+
+      <View className="gap-1">
+        <Text className="type-h4 text-background-element">{title}</Text>
+        <Text className="type-body-large text-background-element">{body}</Text>
+      </View>
+
+      <View className="flex-row items-center gap-2">
+        {/* Back on the left, away from the buttons that move the tour on. */}
+        {goBack && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            onPress={goBack}
+            className="h-10 justify-center pr-4 active:opacity-70">
+            <Text className="type-button-medium text-background-element">Back</Text>
+          </Pressable>
+        )}
+        <View className="flex-1" />
+        {showNotNow && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Not now"
+            onPress={() => {
+              next();
+              onSkip?.();
+            }}
+            className="h-10 justify-center px-4 active:opacity-70">
+            <Text className="type-button-medium text-background-element">Not now</Text>
+          </Pressable>
+        )}
+        {actionLabel && <Button label={actionLabel} variant="subtle" onPress={onAction} />}
+      </View>
+    </View>
+  );
+}

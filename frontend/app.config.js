@@ -27,6 +27,9 @@ export default {
         monochromeImage: "./assets/images/android-icon-monochrome.png",
       },
       predictiveBackGestureEnabled: false,
+      // expo-location adds both; the tour only needs the city, so the app never asks for
+      // a precise position (Android then offers "approximate" only).
+      blockedPermissions: ["android.permission.ACCESS_FINE_LOCATION"],
     },
     web: {
       output: "static",
@@ -53,6 +56,13 @@ export default {
           photosPermission: "myPlunt uses your photos so you can add pictures of your plants.",
           savePhotosPermission: false,
           granularPermissions: ["photo"],
+        },
+      ],
+      [
+        // Asked once, during the tour, to save the user's city for weather alerts.
+        "expo-location",
+        {
+          locationWhenInUsePermission: "myPlunt uses your city to warn you about weather that affects your plants.",
         },
       ],
       [

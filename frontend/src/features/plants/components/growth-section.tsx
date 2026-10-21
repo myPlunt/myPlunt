@@ -17,13 +17,23 @@ interface GrowthSectionProps {
   onSelect: (index: number) => void;
   onSeeAll: () => void;
   onAdd: () => void;
+  /** Rings the Add tile, for the tour's photo step. */
+  highlightAdd?: boolean;
 }
 
 /**
  * The plant's growth photos as a strip of thumbnails under its details photo, with the time
  * between each two, "See all" for the growth journal and a tile to add a new photo.
  */
-export function GrowthSection({ plantName, photos, selectedIndex, onSelect, onSeeAll, onAdd }: GrowthSectionProps) {
+export function GrowthSection({
+  plantName,
+  photos,
+  selectedIndex,
+  onSelect,
+  onSeeAll,
+  onAdd,
+  highlightAdd = false,
+}: GrowthSectionProps) {
   const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const first = photos[0]?.takenAt;
@@ -98,6 +108,10 @@ export function GrowthSection({ plantName, photos, selectedIndex, onSelect, onSe
           <View className="h-[53px] w-[53px] items-center justify-center rounded-xl border-2 border-dashed border-primary">
             {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
             <SymbolView name={{ ios: 'plus', android: 'add', web: 'add' }} tintColor={theme.primary} size={20} />
+            {/* Around the tile rather than its border, so the strip's layout doesn't move. */}
+            {highlightAdd && (
+              <View pointerEvents="none" className="absolute -inset-1.5 rounded-2xl border-2 border-primary" />
+            )}
           </View>
           <Text className="type-caption text-primary">Add</Text>
         </Pressable>

@@ -4,15 +4,22 @@ import { useRouter } from 'expo-router';
 import { usePhotoUpload, type PhotoUpload } from '@/features/photos/use-photo-upload';
 import { usePlantActions } from '@/features/plants/use-plant-actions';
 import { ApiError } from '@/lib/auth/api-client';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 import { AddPlantPhotoScreen } from '../add-plant-photo-screen';
 
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
+jest.mock('@/stores/onboarding-store', () => ({
+  ...jest.requireActual('@/stores/onboarding-store'),
+  useOnboardingStore: jest.fn(),
+}));
 jest.mock('@/features/plants/use-plant-actions');
 // The real hook loads the native picker; the photo field's tests cover picking.
 jest.mock('@/features/photos/use-photo-upload');
 
 const back = jest.fn();
+const dismissTo = jest.fn();
+const onboarding = { step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null };
 const replace = jest.fn();
 const canGoBack = jest.fn();
 const addPlantPhoto = jest.fn();
@@ -35,7 +42,8 @@ function mockPhoto(state: Partial<PhotoUpload>) {
 
 beforeEach(() => {
   canGoBack.mockReturnValue(true);
-  jest.mocked(useRouter).mockReturnValue({ back, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
+  jest.mocked(useOnboardingStore).mockReturnValue(onboarding);
+  jest.mocked(useRouter).mockReturnValue({ back, dismissTo, replace, canGoBack } as unknown as ReturnType<typeof useRouter>);
   jest.mocked(usePlantActions).mockReturnValue({
     createPlant: jest.fn(),
     updatePlant: jest.fn(),
@@ -69,6 +77,17 @@ describe('AddPlantPhotoScreen', () => {
       shareToFeed: true,
     });
     expect(back).toHaveBeenCalled();
+    expect(onboarding.next).not.toHaveBeenCalled();
+  });
+
+  it("during the tour's photo step, saving the photo moves the tour on to watering in the garden", async () => {
+    jest.mocked(useOnboardingStore).mockReturnValue({ ...onboarding, step: 'photo' });
+    await render(<AddPlantPhotoScreen plantId="p1" />);
+
+    await user.press(screen.getByRole('button', { name: 'Add to timeline' }));
+
+    expect(onboarding.next).toHaveBeenCalled();
+    expect(dismissTo).toHaveBeenCalledWith('/garden');
   });
 
   it('saves the date the user picked instead of the one from the photo', async () => {

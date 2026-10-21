@@ -1,6 +1,6 @@
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +11,8 @@ import { LinkCard } from '@/components/ui/link-card';
 import { Shadow } from '@/constants/theme';
 import { WateringPill } from '@/features/garden/components/watering-pill';
 import { lastWateredLabel } from '@/features/garden/watering';
+import { OnboardingCard } from '@/features/onboarding/components/onboarding-card';
+import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { DetailRow } from '@/features/plants/components/detail-row';
 import { GrowthSection } from '@/features/plants/components/growth-section';
 import { PhotoCarousel } from '@/features/plants/components/photo-carousel';
@@ -22,6 +24,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logAction, logFailedUi } from '@/lib/logger';
 import type { PlantDetails } from '@/lib/plant/types';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 /**
  * One of the user's plants, opened from its card in the garden. The pencil opens the edit
@@ -31,14 +34,31 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
   const theme = useTheme();
   const router = useRouter();
   const { plant, error, isLoading, retry } = usePlant(plantId);
+  // The tour's photo step, opened here right after its first plant was saved. It only shows
+  // where photos are added (most users add one with the plant anyway); "Got it" moves on to the
+  // watering step in the garden. Add under Growth still works; leaving otherwise would strand
+  // the card, so back, edit, history and delete are off.
+  const { step, next } = useOnboardingStore();
+  const isPhotoStep = step === 'photo' && !!plant;
+  useTourBackLock(isPhotoStep);
+  const scrollRef = useRef<ScrollView>(null);
+
+  // During the photo step the page starts at Growth, so its ringed Add is in view above the
+  // card without scrolling. Runs again if Growth moves (e.g. once the photos load).
+  function showGrowth(y: number) {
+    if (isPhotoStep) scrollRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
+  }
 
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
+        {/* No swipe back during the photo step either, for the same reason. */}
+        <Stack.Screen options={{ gestureEnabled: !isPhotoStep }} />
         <AppHeader
-          showBack
+          showBack={!isPhotoStep}
           right={
-            plant && (
+            plant &&
+            !isPhotoStep && (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Edit plant"
@@ -55,30 +75,62 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
           }
         />
 
-        <ScrollView contentContainerClassName="w-full max-w-content grow gap-6 self-center px-6 pb-8 pt-2">
-          {isLoading ? (
-            // A colour prop, so it reads the theme instead of a class.
-            <ActivityIndicator accessibilityLabel="Loading plant" color={theme.primary} className="mt-6" />
-          ) : error ? (
-            <View className="items-center gap-3">
-              <Text className="type-body-medium text-error">{error}</Text>
-              <Button label="Try again" variant="secondary" onPress={retry} />
+        {/* The card is placed inside this view, not the SafeAreaView: an absolute child
+            ignores its parent's padding, so it would sit under the home indicator. */}
+        <View className="flex-1">
+          <ScrollView
+            ref={scrollRef}
+            // Room to scroll the page out from under the tour card.
+            contentContainerClassName={`w-full max-w-content grow gap-6 self-center px-6 pt-2 ${isPhotoStep ? 'pb-72' : 'pb-8'}`}>
+            {isLoading ? (
+              // A colour prop, so it reads the theme instead of a class.
+              <ActivityIndicator accessibilityLabel="Loading plant" color={theme.primary} className="mt-6" />
+            ) : error ? (
+              <View className="items-center gap-3">
+                <Text className="type-body-medium text-error">{error}</Text>
+                <Button label="Try again" variant="secondary" onPress={retry} />
+              </View>
+            ) : (
+              plant && (
+                <>
+                  <PlantDetailsContent plant={plant} isPhotoStep={isPhotoStep} onGrowthLayout={showGrowth} />
+                  <View pointerEvents={isPhotoStep ? 'none' : 'auto'}>
+                    <DeletePlant plant={plant} />
+                  </View>
+                </>
+              )
+            )}
+          </ScrollView>
+
+          {isPhotoStep && plant && (
+            <View className="absolute inset-x-3 bottom-3">
+              <OnboardingCard
+                step="photo"
+                title={`Watch ${plant.name} grow`}
+                body="Whenever you take a new photo of it, add it with Add under Growth. Side by side, the photos show how it grows."
+                actionLabel="Got it"
+                onAction={() => {
+                  next();
+                  router.dismissTo('/garden');
+                }}
+                showNotNow={false}
+              />
             </View>
-          ) : (
-            plant && (
-              <>
-                <PlantDetailsContent plant={plant} />
-                <DeletePlant plant={plant} />
-              </>
-            )
           )}
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </View>
   );
 }
 
-function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
+interface PlantDetailsContentProps {
+  plant: PlantDetails;
+  isPhotoStep: boolean;
+  /** Where the Growth section starts in the page, so the photo step can scroll to it. */
+  onGrowthLayout: (y: number) => void;
+}
+
+function PlantDetailsContent({ plant, isPhotoStep, onGrowthLayout }: PlantDetailsContentProps) {
   const router = useRouter();
   // Empty while loading or on an error: the carousel then falls back to the plant's own photo.
   const photos = usePlantPhotos(plant.id).photos ?? [];
@@ -126,20 +178,25 @@ function PlantDetailsContent({ plant }: { plant: PlantDetails }) {
         </View>
       </View>
 
-      <GrowthSection
-        plantName={plant.name}
-        photos={photos}
-        selectedIndex={shownIndex}
-        onSelect={setSelectedIndex}
-        onSeeAll={() => router.push({ pathname: '/plant/[id]/growth', params: { id: plant.id } })}
-        onAdd={() => router.push({ pathname: '/plant/[id]/add-photo', params: { id: plant.id } })}
-      />
+      <View onLayout={({ nativeEvent: { layout } }) => onGrowthLayout(layout.y)}>
+        <GrowthSection
+          plantName={plant.name}
+          photos={photos}
+          selectedIndex={shownIndex}
+          onSelect={setSelectedIndex}
+          onSeeAll={() => router.push({ pathname: '/plant/[id]/growth', params: { id: plant.id } })}
+          onAdd={() => router.push({ pathname: '/plant/[id]/add-photo', params: { id: plant.id } })}
+          highlightAdd={isPhotoStep}
+        />
+      </View>
 
-      <LinkCard
-        title="Watering history"
-        icon={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
-        onPress={() => router.push({ pathname: '/plant/[id]/waterings', params: { id: plant.id } })}
-      />
+      <View pointerEvents={isPhotoStep ? 'none' : 'auto'}>
+        <LinkCard
+          title="Watering history"
+          icon={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
+          onPress={() => router.push({ pathname: '/plant/[id]/waterings', params: { id: plant.id } })}
+        />
+      </View>
 
       {plant.notes && (
         <View className="gap-2 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4" style={Shadow.card}>

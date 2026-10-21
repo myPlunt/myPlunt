@@ -10,9 +10,18 @@ export default function AppLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
       <Stack.Screen name="(tabs)" />
+      {/* Page 0 of the tour, which the tabs layout redirects to after registering. No swipe back:
+          the only ways out are its two buttons, so the tour can't be left half-started. */}
+      <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
+      {/* The tour's last page, which the tabs layout redirects to after its last step; no swipe
+          back, so the tour can't be left half-finished either. */}
+      <Stack.Screen name="tour-done" options={{ gestureEnabled: false }} />
+      {/* Tour step 3, opened from Edit profile; no swipe back for the same reason. */}
+      <Stack.Screen name="location" options={{ gestureEnabled: false }} />
       <Stack.Screen name="settings" />
       <Stack.Screen name="edit-profile" />
-      {/* Opened from the people icon in the profile's header. */}
+      {/* Opened from the people icon in the profile's menu, also during the tour's friends
+          step; no swipe back during the step (see FriendsScreen). */}
       <Stack.Screen name="friends" />
       {/* Opened from a person in the Friends search. */}
       <Stack.Screen name="user/[id]" />

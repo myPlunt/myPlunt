@@ -12,6 +12,7 @@ import { SplashOverlay } from '@/components/splash/splash-overlay';
 import { useScreenViewLogging } from '@/hooks/use-screen-view-logging';
 import { startLogging } from '@/lib/logger';
 import { AuthStoreProvider, useAuthStore } from '@/stores/auth-store';
+import { OnboardingStoreProvider } from '@/stores/onboarding-store';
 
 SplashScreen.preventAutoHideAsync();
 startLogging();
@@ -50,8 +51,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthStoreProvider>
-        <SplashOverlay />
-        <RootNavigator />
+        <OnboardingStoreProvider>
+          <SplashOverlay />
+          <RootNavigator />
+        </OnboardingStoreProvider>
       </AuthStoreProvider>
     </ThemeProvider>
   );
