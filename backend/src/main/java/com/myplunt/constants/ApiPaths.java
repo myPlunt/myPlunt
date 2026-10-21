@@ -20,6 +20,7 @@ public final class ApiPaths {
         public static final String ME = BASE + "/me";
         public static final String LOGS = BASE + "/logs";
         public static final String LOGS_OVERVIEW = LOGS + "/overview";
+        public static final String SERVER = BASE + "/server";
         public static final String SPECIES = BASE + "/species";
         public static final String PENDING_SPECIES = SPECIES + "/pending";
         public static final String PENDING_SPECIES_BY_ID = PENDING_SPECIES + "/{id}";

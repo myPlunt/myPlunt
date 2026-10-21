@@ -5,6 +5,7 @@ import type { Admin } from '../lib/api'
 import StagingPill from './StagingPill'
 
 const links = [
+  { label: 'Overview', to: '/overview' },
   { label: 'Species', to: '/species' },
   { label: 'Logs', to: '/logs' },
 ]

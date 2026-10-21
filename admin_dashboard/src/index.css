@@ -27,6 +27,10 @@
   /* Staging pill only; production never shows it. Same mustard as the app's pill. */
   --color-staging: #d4a017;
 
+  /* Overview alerts and down checks: the palette's browns are too close to its greens to tell apart. */
+  --color-critical: #b4532a;
+  --color-warning: #d4a017;
+
   /* Primary: headlines. Secondary: subtitles, body, UI & buttons. */
   --font-primary: 'Lateef', Georgia, serif;
   --font-secondary: 'DM Sans', system-ui, sans-serif;

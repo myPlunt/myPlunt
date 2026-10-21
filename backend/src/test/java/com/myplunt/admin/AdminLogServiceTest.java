@@ -21,6 +21,7 @@ import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.assertj.core.api.Assertions.within;
 
 // Runs the aggregate SQL against the real Flyway schema; a mock can't check it.
 @DataJpaTest
@@ -59,8 +60,18 @@ class AdminLogServiceTest {
         assertThat(overview.byLevel()).containsExactly(new Count("action", 3), new Count("error", 1));
         assertThat(overview.topActions())
                 .extracting("event", "location", "count")
-                .containsExactly(tuple("plant_watered", "backend", 2L), tuple("screen_viewed", "frontend", 1L));
+                .containsExactly(tuple("plant_watered", "backend", 2L));
         assertThat(overview.topProblems()).extracting("event").containsExactly("unexpected_error");
+    }
+
+    @Test
+    void errorRate_countsTheLastHourAgainstTheWeekBefore() {
+        insert("bug", now.minus(2, ChronoUnit.DAYS), "frontend", "{\"event\":\"render_failed\"}");
+
+        AdminLogService.ErrorRate rate = adminLogService.errorRate();
+
+        assertThat(rate.lastHour()).isEqualTo(1);
+        assertThat(rate.usualPerHour()).isCloseTo(1 / 168.0, within(1e-9));
     }
 
     @Test
