@@ -80,7 +80,7 @@ class PushNotificationServiceTest {
         service().sendWateringReminders(NINE_IN_AMSTERDAM);
 
         verify(expoPushClient).send(List.of(
-                new ExpoPushMessage("ExponentPushToken[a]", "Time to water", "Monty needs water today.")));
+                new ExpoPushMessage("ExponentPushToken[a]", "Monty is thirsty 💧", "Give Monty some water today.")));
     }
 
     @Test
@@ -109,7 +109,11 @@ class PushNotificationServiceTest {
     }
 
     @Test
-    void reminderText_namesTwoPlantsAndCountsTheRest() {
+    void reminder_countsThePlantsInTheTitleAndNamesUpToThreeInTheText() {
+        assertThat(PushNotificationService.reminderTitle(List.of("Monty", "Fern", "Cactus")))
+                .isEqualTo("3 plants are thirsty 💧");
+        assertThat(PushNotificationService.reminderText(List.of("Monty", "Fern", "Cactus")))
+                .isEqualTo("Monty, Fern and Cactus need water today.");
         assertThat(PushNotificationService.reminderText(List.of("Monty", "Fern", "Cactus", "Ivy")))
                 .isEqualTo("Monty, Fern and 2 more need water today.");
     }

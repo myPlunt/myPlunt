@@ -88,7 +88,7 @@ public class PushNotificationService {
             }
             List<String> names = plantsDueToday(pushToken.getUserId(), zone, now);
             if (!names.isEmpty()) {
-                messages.add(new ExpoPushMessage(pushToken.getToken(), "Time to water", reminderText(names)));
+                messages.add(new ExpoPushMessage(pushToken.getToken(), reminderTitle(names), reminderText(names)));
             }
         }
         if (messages.isEmpty()) {
@@ -123,10 +123,18 @@ public class PushNotificationService {
                 .toList();
     }
 
+    static String reminderTitle(List<String> names) {
+        return names.size() == 1
+                ? names.get(0) + " is thirsty 💧"
+                : names.size() + " plants are thirsty 💧";
+    }
+
+    // Names up to three plants; past that the rest are counted, so the text fits the banner.
     static String reminderText(List<String> names) {
         return switch (names.size()) {
-            case 1 -> names.get(0) + " needs water today.";
+            case 1 -> "Give " + names.get(0) + " some water today.";
             case 2 -> names.get(0) + " and " + names.get(1) + " need water today.";
+            case 3 -> names.get(0) + ", " + names.get(1) + " and " + names.get(2) + " need water today.";
             default -> names.get(0) + ", " + names.get(1) + " and " + (names.size() - 2) + " more need water today.";
         };
     }
