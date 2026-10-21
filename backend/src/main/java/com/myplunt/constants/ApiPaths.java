@@ -6,6 +6,7 @@ public final class ApiPaths {
 
     public static final class Ops {
         public static final String RESET_DB = "/v1/ops/reset-db";
+        public static final String SEND_WEATHER_ALERTS = "/v1/ops/send-weather-alerts";
 
         private Ops() {}
     }

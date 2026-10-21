@@ -38,6 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -140,6 +141,16 @@ public class PushNotificationService {
     // Frost or heat in the next 24 hours where the user lives, sent with the morning reminders.
     // shortcut: no indoor/outdoor flag on plants, so every user with plants is warned; filter once plants have one.
     public void sendWeatherAlerts(Instant now) {
+        sendWeatherAlerts(zone -> now.atZone(zone).getHour() == REMINDER_HOUR, false);
+    }
+
+    // Staging's manual pipeline job: every user with a location, right now, even on a mild day,
+    // so the whole chain (OpenWeather, Expo, the list) can be tried on a phone.
+    public void sendWeatherAlertsToEveryone() {
+        sendWeatherAlerts(zone -> true, true);
+    }
+
+    private void sendWeatherAlerts(Predicate<ZoneId> isTime, boolean evenWhenMild) {
         if (!openWeatherClient.isEnabled()) {
             return;
         }
@@ -149,7 +160,7 @@ public class PushNotificationService {
         Map<String, Optional<WeatherAlert>> alerts = new HashMap<>();
         for (PushToken pushToken : pushTokenRepository.findAll()) {
             UUID userId = pushToken.getUserId();
-            if (now.atZone(ZoneId.of(pushToken.getTimeZone())).getHour() != REMINDER_HOUR
+            if (!isTime.test(ZoneId.of(pushToken.getTimeZone()))
                     || !wantsWeatherAlerts(userId)
                     || plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(userId).isEmpty()) {
                 continue;
@@ -160,7 +171,7 @@ public class PushNotificationService {
             }
             double lat = OpenWeatherClient.round(user.getLatitude());
             double lon = OpenWeatherClient.round(user.getLongitude());
-            Optional<WeatherAlert> alert = alerts.computeIfAbsent(lat + "," + lon, key -> weatherAlert(lat, lon));
+            Optional<WeatherAlert> alert = alerts.computeIfAbsent(lat + "," + lon, key -> weatherAlert(lat, lon, evenWhenMild));
             if (alert.isEmpty()) {
                 continue;
             }
@@ -173,9 +184,13 @@ public class PushNotificationService {
     }
 
     // A failed forecast skips that town today rather than the whole run.
-    private Optional<WeatherAlert> weatherAlert(double lat, double lon) {
+    private Optional<WeatherAlert> weatherAlert(double lat, double lon, boolean evenWhenMild) {
         try {
-            return weatherAlert(openWeatherClient.next24Hours(lat, lon));
+            OpenWeatherClient.Forecast forecast = openWeatherClient.next24Hours(lat, lon);
+            return weatherAlert(forecast).or(() -> evenWhenMild
+                    ? Optional.of(new WeatherAlert("Weather check 🌤️", "Between " + Math.round(forecast.minTemp())
+                            + " and " + Math.round(forecast.maxTemp()) + "°C today. Your plants should be fine."))
+                    : Optional.empty());
         } catch (RestClientException e) {
             StructuredLog.error(log, LogEvent.WEATHER_FETCH_FAILED, e, Map.of());
             return Optional.empty();
