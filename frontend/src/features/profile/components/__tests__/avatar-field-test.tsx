@@ -31,7 +31,7 @@ const noPhoto: PhotoUpload = {
 
 beforeEach(() => {
   mockedUsePhotoUpload.mockReturnValue(noPhoto);
-  mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail: jest.fn(), updateAvatar, removeAvatar });
+  mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail: jest.fn(), updateAvatar, removeAvatar, updateNotificationSettings: jest.fn() });
 });
 
 afterEach(() => {

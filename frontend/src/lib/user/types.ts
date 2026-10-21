@@ -33,6 +33,19 @@ export interface CompleteOnboardingRequest {
   skipped: boolean;
 }
 
+/**
+ * Mirrors NotificationSettings (GET/PUT /v1/users/me/notifications): which kinds of notifications the user wants.
+ * friendActivity: stories about friends' plants. friendNudges: a friend reminding them to water.
+ * plantSitting: a friend handing over, or taking back, care of plants.
+ */
+export interface NotificationSettings {
+  waterReminders: boolean;
+  weatherAlerts: boolean;
+  friendActivity: boolean;
+  friendNudges: boolean;
+  plantSitting: boolean;
+}
+
 /** Mirrors ChangeEmailRequest (PUT /v1/users/me/email). */
 export interface ChangeEmailRequest {
   email: string;

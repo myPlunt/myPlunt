@@ -13,7 +13,7 @@ const user = userEvent.setup();
 const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: null, avatarUrl: null, onboardingCompleted: true };
 
 beforeEach(() => {
-  mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail, updateAvatar: jest.fn(), removeAvatar: jest.fn() });
+  mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail, updateAvatar: jest.fn(), removeAvatar: jest.fn(), updateNotificationSettings: jest.fn() });
 });
 
 afterEach(() => {
