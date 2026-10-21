@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { Garden } from '@/lib/garden/types';
 import { logBug } from '@/lib/logger';
+import { cachedFetch } from '@/lib/offline/cache';
 import { useAuthStore } from '@/stores/auth-store';
 
 import * as gardenService from './garden-service';
@@ -26,18 +27,34 @@ function reportUnusableWateringDates(garden: Garden) {
 export function useGarden(userId?: string) {
   const { setUnauthenticated } = useAuthStore();
   const [garden, setGarden] = useState<Garden | null>(null);
+  // When the garden on screen was fetched, while it's the copy saved on the device because
+  // there's no connection; null when it's fresh.
+  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
-    (isCancelled: () => boolean) =>
-      gardenService
-        .getGarden(userId)
+    (isCancelled: () => boolean) => {
+      // The saved copy, while the request is out. Only when nothing is on screen yet: if the
+      // response came back first, or the garden is already up (a refresh), that's newer.
+      const showSaved = (saved: Garden) => {
+        if (isCancelled()) return;
+        setGarden((current) => current ?? saved);
+        setIsLoading(false);
+      };
+      // Only the user's own garden is kept for offline: a friend's page needs the connection
+      // for their profile before it ever shows their garden.
+      const request: Promise<{ data: Garden; savedAt: string | null }> = userId
+        ? gardenService.getGarden(userId).then((data) => ({ data, savedAt: null }))
+        : cachedFetch('garden', () => gardenService.getGarden(), showSaved);
+      return request
         .then((result) => {
           if (isCancelled()) return;
-          reportUnusableWateringDates(result);
-          setGarden(result);
+          // A saved copy was already checked when it was fresh.
+          if (result.savedAt === null) reportUnusableWateringDates(result.data);
+          setGarden(result.data);
+          setSavedAt(result.savedAt);
           setError(null);
         })
         .catch((err) => {
@@ -51,7 +68,8 @@ export function useGarden(userId?: string) {
         })
         .finally(() => {
           if (!isCancelled()) setIsLoading(false);
-        }),
+        });
+    },
     [userId, setUnauthenticated],
   );
 
@@ -69,6 +87,7 @@ export function useGarden(userId?: string) {
 
   return {
     garden,
+    savedAt,
     error,
     isLoading,
     retry() {

@@ -114,7 +114,7 @@ const posts: Post[] = [
 
 beforeEach(() => {
   mockedUseFeed.mockReturnValue({ posts, error: null, isLoading: false, retry: jest.fn() });
-  mockedUseGarden.mockReturnValue({ garden, error: null, isLoading: false, retry: jest.fn(), refresh: jest.fn() });
+  mockedUseGarden.mockReturnValue({ garden, savedAt: null, error: null, isLoading: false, retry: jest.fn(), refresh: jest.fn() });
   mockedUseSpecies.mockReturnValue({
     species: [species('monstera', 'Monstera'), species('basil', 'Basil')],
     error: null,
@@ -181,7 +181,7 @@ it("says when a friend hasn't shared anything yet", async () => {
 
 it("shows why a friend's garden didn't load and retries it", async () => {
   const retryGarden = jest.fn();
-  mockedUseGarden.mockReturnValue({ garden: null, error: 'Something went wrong', isLoading: false, retry: retryGarden, refresh: jest.fn() });
+  mockedUseGarden.mockReturnValue({ garden: null, savedAt: null, error: 'Something went wrong', isLoading: false, retry: retryGarden, refresh: jest.fn() });
   await showProfile({ user: { ...jane, friendship: 'friends' } });
 
   await user.press(screen.getByRole('button', { name: 'Try again' }));

@@ -24,7 +24,7 @@ import { useOnboardingStore } from '@/stores/onboarding-store';
 export function GardenScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { garden, error, isLoading, retry, refresh } = useGarden();
+  const { garden, savedAt, error, isLoading, retry, refresh } = useGarden();
   // The tour's first-plant step: its card opens the Add sheet, and saving a plant there ends
   // the step (AddPlantScreen). Then the watering step, back here after the plant's page: it
   // shows the drop that starts watering, and "Got it" or watering moves on.
@@ -145,42 +145,56 @@ export function GardenScreen() {
               <Button label="Try again" variant="secondary" onPress={retry} />
             </View>
           ) : (
-            garden &&
-            (garden.rooms.length === 0 ? (
-              <View className="items-center gap-2 rounded-2xl bg-background-element p-6">
-                <Text className="type-subtitle-large text-text">Your garden is empty</Text>
-                <Text className="type-body-medium text-center text-text-secondary">
-                  Your rooms and plants will show up here.
-                </Text>
-              </View>
-            ) : (
+            garden && (
               <>
-                {/* Hidden while picking plants, so there's only one Water button on screen. */}
-                {due.length > 0 && !selectedIds && (
-                  <WaterDueCard
-                    plants={due}
-                    onWater={() => water(due.map((plant) => plant.id))}
-                    loading={isWatering}
-                    error={waterError}
-                  />
+                {/* The copy saved on the device, as there's no connection for a fresh one. */}
+                {savedAt && (
+                  <Text className="type-caption text-center text-text-secondary">
+                    {`Offline · updated ${new Date(savedAt).toLocaleString(undefined, {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}`}
+                  </Text>
                 )}
-                {/* The plants don't open during the tour's steps, which would leave them; picking
-                    plants to water still works. */}
-                <View className="gap-8" pointerEvents={isTourStep && !selectedIds ? 'none' : 'auto'}>
-                  {garden.rooms.map((room) => (
-                    <RoomSection
-                      key={room.id ?? 'unassigned'}
-                      room={room}
-                      now={now}
-                      selection={
-                        selectedIds ? { selectedIds, onToggle: toggleSelected, onSelectMany: selectMany } : undefined
-                      }
-                      onEdit={room.id !== null ? () => setEditingRoom(room) : undefined}
-                    />
-                  ))}
-                </View>
+                {garden.rooms.length === 0 ? (
+                  <View className="items-center gap-2 rounded-2xl bg-background-element p-6">
+                    <Text className="type-subtitle-large text-text">Your garden is empty</Text>
+                    <Text className="type-body-medium text-center text-text-secondary">
+                      Your rooms and plants will show up here.
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    {/* Hidden while picking plants, so there's only one Water button on screen. */}
+                    {due.length > 0 && !selectedIds && (
+                      <WaterDueCard
+                        plants={due}
+                        onWater={() => water(due.map((plant) => plant.id))}
+                        loading={isWatering}
+                        error={waterError}
+                      />
+                    )}
+                    {/* The plants don't open during the tour's steps, which would leave them; picking
+                        plants to water still works. */}
+                    <View className="gap-8" pointerEvents={isTourStep && !selectedIds ? 'none' : 'auto'}>
+                      {garden.rooms.map((room) => (
+                        <RoomSection
+                          key={room.id ?? 'unassigned'}
+                          room={room}
+                          now={now}
+                          selection={
+                            selectedIds ? { selectedIds, onToggle: toggleSelected, onSelectMany: selectMany } : undefined
+                          }
+                          onEdit={room.id !== null ? () => setEditingRoom(room) : undefined}
+                        />
+                      ))}
+                    </View>
+                  </>
+                )}
               </>
-            ))
+            )
           )}
         </ScrollView>
 
