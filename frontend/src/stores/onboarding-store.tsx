@@ -15,6 +15,7 @@ interface OnboardingStore {
   previous: OnboardingStep | null;
   /** The plant added in the first-plant step, whose page the photo step is on. */
   plantId: string | null;
+  /** Starts the tour on the welcome page; a tour that's already running carries on. */
   start: () => void;
   /**
    * Moves to the next step; after the last one comes the "You're all set" page, then the tour
@@ -52,12 +53,15 @@ function moveTo(state: TourState, to: OnboardingStep | null): TourState {
 
 const OnboardingStoreContext = createContext<OnboardingStore | undefined>(undefined);
 
-// shortcut: the tour lives in memory only, so closing the app mid-tour ends it; persist
-// it on the backend (onboarding_completed_at) when the last step is built.
+// The tour's progress lives in memory only: closing the app mid-tour starts it over from the
+// welcome page on the next launch (see useResumeTour).
 export function OnboardingStoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<TourState>(NO_TOUR);
 
-  const start = useCallback(() => setState({ ...NO_TOUR, step: 'welcome' }), []);
+  const start = useCallback(
+    () => setState((current) => (current.step === null ? { ...NO_TOUR, step: 'welcome' } : current)),
+    [],
+  );
   const next = useCallback(
     (plantId?: string) =>
       setState((current) => {

@@ -6,6 +6,8 @@ export interface User {
   bio: string | null;
   /** Short-lived link to the profile picture; null when there is none. */
   avatarUrl: string | null;
+  /** False until the user finishes or skips the tour; the tour resumes on sign-in until then. */
+  onboardingCompleted: boolean;
 }
 
 /** Mirrors UpdateAvatarRequest (PUT /v1/users/me/avatar): the key of an uploaded AVATAR photo. */
@@ -24,6 +26,11 @@ export interface UpdateLocationRequest {
   latitude: number;
   longitude: number;
   city: string | null;
+}
+
+/** Mirrors CompleteOnboardingRequest (PUT /v1/users/me/onboarding). skipped: left from the welcome page. */
+export interface CompleteOnboardingRequest {
+  skipped: boolean;
 }
 
 /** Mirrors ChangeEmailRequest (PUT /v1/users/me/email). */

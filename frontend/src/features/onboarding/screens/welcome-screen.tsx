@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
+import { useOnboardingActions } from '@/features/onboarding/use-onboarding-actions';
 import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
@@ -18,7 +19,8 @@ const TOUR_PARTS = [
 // tabs back: on the profile, where the first step is, or on the feed when the tour is skipped.
 export function WelcomeScreen() {
   const router = useRouter();
-  const { next, finish } = useOnboardingStore();
+  const { next } = useOnboardingStore();
+  const { endTour } = useOnboardingActions();
   useTourBackLock(true);
 
   function leave(action: () => void, to: '/profile' | '/') {
@@ -57,7 +59,7 @@ export function WelcomeScreen() {
 
           <View className="mt-auto gap-2">
             <Button label="Show me around" size="large" onPress={() => leave(next, '/profile')} />
-            <Button label="Skip the tour" variant="ghost" size="large" onPress={() => leave(finish, '/')} />
+            <Button label="Skip the tour" variant="ghost" size="large" onPress={() => leave(() => endTour(true), '/')} />
           </View>
         </ScrollView>
       </SafeAreaView>

@@ -21,6 +21,8 @@ public enum AuditEvent {
     AVATAR_UPDATED,
     AVATAR_REMOVED,
     LOCATION_UPDATED,
+    // skipped: true when the user left from the welcome page. Logged once per account.
+    ONBOARDING_COMPLETED,
     FRIEND_REQUEST_SENT,
     FRIEND_REQUEST_ACCEPTED,
     FRIEND_REQUEST_DECLINED,

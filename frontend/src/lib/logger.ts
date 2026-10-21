@@ -34,6 +34,7 @@ export type FrontendEvent =
   | 'avatar_update_submitted'
   | 'avatar_remove_submitted'
   | 'location_share_submitted'
+  | 'onboarding_complete_submitted'
   | 'friend_request_submitted'
   | 'friend_remove_submitted'
   | 'question_ask_submitted'

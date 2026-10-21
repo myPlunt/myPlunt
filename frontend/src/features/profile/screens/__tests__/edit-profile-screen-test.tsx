@@ -23,7 +23,7 @@ const onboarding = { step: null, start: jest.fn(), next: jest.fn(), skipPast: je
 const back = jest.fn();
 const retry = jest.fn();
 const user = userEvent.setup();
-const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: null, avatarUrl: null };
+const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: null, avatarUrl: null, onboardingCompleted: true };
 
 beforeEach(() => {
   mockedUseRouter.mockReturnValue({ back, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);

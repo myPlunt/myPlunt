@@ -54,14 +54,14 @@ class UserControllerTest {
         ReflectionTestUtils.setField(user, "id", id);
         when(jwtService.parseAndValidate("access-token")).thenReturn(id);
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
-        when(userService.toResponse(user)).thenReturn(new UserResponse(id, "jane", "jane@example.com", null, null));
+        when(userService.toResponse(user)).thenReturn(new UserResponse(id, "jane", "jane@example.com", null, null, false));
 
         restTestClient.get().uri("/v1/users/me")
                 .header("Authorization", "Bearer access-token")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(UserResponse.class)
-                .isEqualTo(new UserResponse(id, "jane", "jane@example.com", null, null));
+                .isEqualTo(new UserResponse(id, "jane", "jane@example.com", null, null, false));
     }
 
     @Test
@@ -85,7 +85,7 @@ class UserControllerTest {
         UUID id = authenticateAsJane();
         UpdateProfileRequest request = new UpdateProfileRequest("janey", "Fern collector");
         when(userService.updateProfile(eq(id), eq(request)))
-                .thenReturn(new UserResponse(id, "janey", "jane@example.com", "Fern collector", null));
+                .thenReturn(new UserResponse(id, "janey", "jane@example.com", "Fern collector", null, false));
 
         restTestClient.put().uri("/v1/users/me")
                 .header("Authorization", "Bearer access-token")
@@ -94,7 +94,7 @@ class UserControllerTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(UserResponse.class)
-                .isEqualTo(new UserResponse(id, "janey", "jane@example.com", "Fern collector", null));
+                .isEqualTo(new UserResponse(id, "janey", "jane@example.com", "Fern collector", null, false));
     }
 
     @Test
@@ -114,7 +114,7 @@ class UserControllerTest {
         UUID id = authenticateAsJane();
         ChangeEmailRequest request = new ChangeEmailRequest("new@example.com", "password123");
         when(userService.changeEmail(eq(id), eq(request)))
-                .thenReturn(new UserResponse(id, "jane", "new@example.com", null, null));
+                .thenReturn(new UserResponse(id, "jane", "new@example.com", null, null, false));
 
         restTestClient.put().uri("/v1/users/me/email")
                 .header("Authorization", "Bearer access-token")
@@ -123,7 +123,7 @@ class UserControllerTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(UserResponse.class)
-                .isEqualTo(new UserResponse(id, "jane", "new@example.com", null, null));
+                .isEqualTo(new UserResponse(id, "jane", "new@example.com", null, null, false));
     }
 
     @Test
@@ -173,7 +173,7 @@ class UserControllerTest {
     void updateAvatar_returnsTheUserWithTheirNewPicture() {
         UUID id = authenticateAsJane();
         UpdateAvatarRequest request = new UpdateAvatarRequest("avatars/" + id + "/new.jpg");
-        UserResponse updated = new UserResponse(id, "jane", "jane@example.com", null, "https://storage/new.jpg");
+        UserResponse updated = new UserResponse(id, "jane", "jane@example.com", null, "https://storage/new.jpg", false);
         when(userService.updateAvatar(id, request)).thenReturn(updated);
 
         restTestClient.put().uri("/v1/users/me/avatar")
