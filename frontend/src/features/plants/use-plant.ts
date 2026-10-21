@@ -5,6 +5,7 @@ import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { PlantDetails } from '@/lib/plant/types';
 import { useAuthStore } from '@/stores/auth-store';
 
+import { cachedPlant } from './offline-pages';
 import * as plantService from './plant-service';
 
 /** One of the user's plants, for its details and edit screens, or with ownerId a friend's. */
@@ -17,11 +18,15 @@ export function usePlant(plantId: string, ownerId?: string) {
   // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) => {
-      plantService
-        .getPlant(plantId, ownerId)
+      // Only the user's own plants are kept for offline, like the garden: a friend's plant
+      // page needs the connection for their profile first.
+      const request: Promise<{ data: PlantDetails }> = ownerId
+        ? plantService.getPlant(plantId, ownerId).then((data) => ({ data }))
+        : cachedPlant(plantId);
+      request
         .then((result) => {
           if (isCancelled()) return;
-          setPlant(result);
+          setPlant(result.data);
           setError(null);
         })
         .catch((err) => {

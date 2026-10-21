@@ -35,7 +35,10 @@ export function PlantPhoto({ photoUrl, accessibilityLabel, className, iconSize, 
       {showPhoto && (
         <Image
           accessibilityLabel={accessibilityLabel}
-          source={{ uri: photoUrl }}
+          // The link's signature changes on every load, but the file it points at never does
+          // (each upload is stored under a new name), so the link without its query is the cache
+          // key: a photo seen once shows offline and isn't downloaded again.
+          source={{ uri: photoUrl, cacheKey: photoUrl.split('?')[0] }}
           className="absolute inset-0"
           contentFit="cover"
           blurRadius={blurRadius}

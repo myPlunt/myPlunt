@@ -49,6 +49,12 @@ const NETWORK_ERROR_DETAIL = "Can't reach myPlunt right now. Check your connecti
 // Slower than this, the user is left waiting long enough to notice.
 const SLOW_RESPONSE_MS = 3000;
 
+// A GET with no response by then counts as having none (status 0), so on a weak connection a
+// screen shows its offline copy instead of waiting: React Native's fetch has no time limit of
+// its own on Android. Writes wait as long as it takes, as the backend may still save a slow
+// one and trying it again could save it twice.
+const GET_TIMEOUT_MS = 10_000;
+
 interface SendOptions {
   method: string;
   body?: unknown;
@@ -68,11 +74,14 @@ async function send(path: string, { method, body, accessToken, requestId, silent
   const headers: Record<string, string> = { 'Content-Type': 'application/json', 'X-Request-ID': requestId };
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   const startedAt = Date.now();
+  const controller = new AbortController();
+  const timeout = method === 'GET' ? setTimeout(() => controller.abort(), GET_TIMEOUT_MS) : undefined;
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
     });
     const durationMs = Date.now() - startedAt;
     if (!silent && durationMs >= SLOW_RESPONSE_MS) {
@@ -84,6 +93,8 @@ async function send(path: string, { method, body, accessToken, requestId, silent
       logError('api_request_failed', err, { requestId, context: { ...requestContext(method, path), status: 0 } });
     }
     throw new ApiError(0, 'Network request failed', { detail: NETWORK_ERROR_DETAIL, requestId });
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

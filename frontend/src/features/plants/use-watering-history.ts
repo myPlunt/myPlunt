@@ -5,7 +5,7 @@ import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { WateringHistory } from '@/lib/plant/types';
 import { useAuthStore } from '@/stores/auth-store';
 
-import * as plantService from './plant-service';
+import { cachedWateringHistory } from './offline-pages';
 
 /** Every watering of one plant, for its watering history screen. */
 export function useWateringHistory(plantId: string) {
@@ -17,11 +17,10 @@ export function useWateringHistory(plantId: string) {
   // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) => {
-      plantService
-        .getWateringHistory(plantId)
+      cachedWateringHistory(plantId)
         .then((result) => {
           if (isCancelled()) return;
-          setHistory(result);
+          setHistory(result.data);
           setError(null);
         })
         .catch((err) => {
