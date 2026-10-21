@@ -6,6 +6,26 @@ jest.mock('@/lib/logger');
 // Locks Android's back button through expo-router's focus effect, which screen tests mock away.
 jest.mock('@/features/onboarding/use-tour-back-lock');
 
+// AsyncStorage's native module doesn't exist in Jest, and importing the library throws
+// without it. This in-memory stand-in is emptied after each test, so nothing a test saved for
+// offline shows up in the next one. Plain functions, not jest.fn, so jest.resetAllMocks() in
+// tests leaves them working.
+const mockStorage = new Map<string, string>();
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: {
+    getItem: async (key: string) => mockStorage.get(key) ?? null,
+    setItem: async (key: string, value: string) => {
+      mockStorage.set(key, value);
+    },
+    getAllKeys: async () => [...mockStorage.keys()],
+    multiRemove: async (keys: string[]) => {
+      keys.forEach((key) => mockStorage.delete(key));
+    },
+  },
+}));
+afterEach(() => mockStorage.clear());
+
 // expo-media-library's classes extend a native object that doesn't exist in Jest, so even
 // importing it fails. Many screens import it indirectly (the photo menu), so it's stubbed
 // once here; use-recent-photos-test drives this mock.

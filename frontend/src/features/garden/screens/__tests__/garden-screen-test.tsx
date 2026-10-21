@@ -66,7 +66,7 @@ const garden: Garden = {
 };
 
 function mockGarden(state: Partial<ReturnType<typeof useGarden>>) {
-  mockedUseGarden.mockReturnValue({ garden, error: null, isLoading: false, retry, refresh, ...state });
+  mockedUseGarden.mockReturnValue({ garden, savedAt: null, error: null, isLoading: false, retry, refresh, ...state });
 }
 
 beforeEach(() => {
@@ -176,6 +176,16 @@ describe('GardenScreen', () => {
       await user.press(screen.getByRole('button', { name: 'Water 4 plants' }));
       expect(waterPlants).toHaveBeenCalledWith(expect.arrayContaining(['george', 'pinky', 'basil', 'minty']));
     });
+  });
+
+  it('says when the garden is the copy saved for offline, and only then', async () => {
+    mockGarden({ savedAt: '2026-10-21T12:32:00.000Z' });
+    const { rerender } = await render(<GardenScreen />);
+    expect(screen.getByText(/^Offline · updated /)).toBeOnTheScreen();
+
+    mockGarden({ savedAt: null });
+    await rerender(<GardenScreen />);
+    expect(screen.queryByText(/^Offline/)).not.toBeOnTheScreen();
   });
 
   it('shows the error and retries when asked', async () => {
