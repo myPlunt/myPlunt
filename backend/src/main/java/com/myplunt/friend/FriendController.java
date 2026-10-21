@@ -3,9 +3,7 @@ package com.myplunt.friend;
 import com.myplunt.constants.ApiPaths;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.friend.dto.SendFriendRequest;
-import com.myplunt.garden.GardenService;
 import com.myplunt.garden.dto.GardenResponse;
-import com.myplunt.species.SpeciesService;
 import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.user.User;
 import com.myplunt.user.dto.UserSummaryResponse;
@@ -28,13 +26,9 @@ import java.util.UUID;
 public class FriendController {
 
     private final FriendService friendService;
-    private final GardenService gardenService;
-    private final SpeciesService speciesService;
 
-    public FriendController(FriendService friendService, GardenService gardenService, SpeciesService speciesService) {
+    public FriendController(FriendService friendService) {
         this.friendService = friendService;
-        this.gardenService = gardenService;
-        this.speciesService = speciesService;
     }
 
     // The signed-in user asks userId to be friends; it stays pending until they answer.
@@ -87,15 +81,13 @@ public class FriendController {
             @AuthenticationPrincipal User principal,
             @PathVariable UUID userId,
             @RequestParam(defaultValue = "UTC") ZoneId zone) {
-        friendService.requireFriends(principal.getId(), userId);
-        return gardenService.getGarden(userId, zone);
+        return friendService.getFriendGarden(principal.getId(), userId, zone);
     }
 
     // The species a friend has discovered, for their PluntDex on their profile.
     @GetMapping(ApiPaths.Users.DISCOVERED_SPECIES)
     public List<DiscoveredSpeciesResponse> discoveredSpecies(
             @AuthenticationPrincipal User principal, @PathVariable UUID userId) {
-        friendService.requireFriends(principal.getId(), userId);
-        return speciesService.getDiscoveredSpecies(userId);
+        return friendService.getFriendDiscoveredSpecies(principal.getId(), userId);
     }
 }

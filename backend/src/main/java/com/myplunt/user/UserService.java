@@ -240,7 +240,8 @@ public class UserService {
         }
     }
 
-    private User loadUser(UUID userId) {
+    // Public so other features look users up through here, not through UserRepository.
+    public User loadUser(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalStateException("User not found"));
     }
