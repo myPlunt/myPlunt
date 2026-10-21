@@ -6,6 +6,8 @@ import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.garden.GardenService;
 import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.notification.PushNotificationService;
+import com.myplunt.plant.PlantService;
+import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.post.PostService;
 import com.myplunt.post.dto.PostResponse;
 import com.myplunt.species.SpeciesService;
@@ -50,6 +52,9 @@ class FriendServiceTest {
     private GardenService gardenService;
 
     @Mock
+    private PlantService plantService;
+
+    @Mock
     private SpeciesService speciesService;
 
     @Mock
@@ -72,7 +77,7 @@ class FriendServiceTest {
     }
 
     private FriendService friendService() {
-        return new FriendService(friendshipRepository, userService, gardenService, speciesService, postService, pushNotificationService, auditLog);
+        return new FriendService(friendshipRepository, userService, gardenService, plantService, speciesService, postService, pushNotificationService, auditLog);
     }
 
     private void assertConflict(String message) {
@@ -219,8 +224,13 @@ class FriendServiceTest {
         List<PostResponse> posts = List.of(new PostResponse(
                 UUID.randomUUID(), "question", null, null, null, "Why are the leaves yellow?", null, Instant.now()));
         when(postService.getUserPosts(janeId, tomId)).thenReturn(posts);
+        UUID plantId = UUID.randomUUID();
+        PlantDetailsResponse plant = new PlantDetailsResponse(
+                plantId, "Vera", null, null, null, null, null, null, null, 7, null, Instant.now(), null);
+        when(plantService.getDetails(tomId, plantId)).thenReturn(plant);
 
         assertThat(friendService().getFriendGarden(janeId, tomId, ZoneId.of("Europe/Amsterdam"))).isEqualTo(garden);
+        assertThat(friendService().getFriendPlant(janeId, tomId, plantId)).isEqualTo(plant);
         assertThat(friendService().getFriendDiscoveredSpecies(janeId, tomId)).isEqualTo(discovered);
         assertThat(friendService().getFriendPosts(janeId, tomId)).isEqualTo(posts);
     }
@@ -242,8 +252,14 @@ class FriendServiceTest {
             assertThatThrownBy(() -> friendService().getFriendPosts(janeId, tomId))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("You're not friends with this user");
+            assertThatThrownBy(() -> friendService().getFriendPlant(janeId, tomId, UUID.randomUUID()))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("You're not friends with this user");
+            assertThatThrownBy(() -> friendService().getFriendPlantPhotos(janeId, tomId, UUID.randomUUID()))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("You're not friends with this user");
         }
-        verifyNoInteractions(gardenService, speciesService, postService);
+        verifyNoInteractions(gardenService, plantService, speciesService, postService);
     }
 
     @Test

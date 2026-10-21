@@ -1,4 +1,5 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
+import { useRouter } from 'expo-router';
 
 import { useFeed } from '@/features/feed/use-feed';
 import {
@@ -132,7 +133,9 @@ afterEach(() => {
   jest.resetAllMocks();
 });
 
-it("shows a friend's stats and garden, with plants you can't open", async () => {
+it("shows a friend's stats and garden, and opens their plant from it", async () => {
+  const push = jest.fn();
+  jest.mocked(useRouter).mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
   await showProfile({ user: { ...jane, friendship: 'friends' } });
 
   expect(mockedUseGarden).toHaveBeenCalledWith('u2');
@@ -140,8 +143,9 @@ it("shows a friend's stats and garden, with plants you can't open", async () => 
   expect(screen.getByRole('button', { name: '1 plant' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: '1 of 2 species discovered' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Top watering streak 9' })).toBeOnTheScreen();
-  expect(screen.getByText('Monty')).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Monty' })).toBeNull();
+  await user.press(screen.getByRole('button', { name: 'Monty' }));
+
+  expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]', params: { id: 'p1', ownerId: 'u2' } });
 });
 
 it("switches to a friend's PluntDex from the tab or the discovered count", async () => {

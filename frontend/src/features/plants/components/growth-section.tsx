@@ -15,8 +15,9 @@ interface GrowthSectionProps {
   /** The photo shown in the carousel above, highlighted here. */
   selectedIndex: number;
   onSelect: (index: number) => void;
-  onSeeAll: () => void;
-  onAdd: () => void;
+  /** Left out on a friend's plant, along with onAdd: the growth journal and adding are the owner's. */
+  onSeeAll?: () => void;
+  onAdd?: () => void;
   /** Rings the Add tile, for the tour's photo step. */
   highlightAdd?: boolean;
 }
@@ -47,7 +48,7 @@ export function GrowthSection({
         <Text className="type-label text-accent" numberOfLines={1}>
           {span && span !== 'Same day' ? `Growing ${plantName} for ${span}` : 'GROWTH'}
         </Text>
-        {photos.length > 0 && (
+        {photos.length > 0 && onSeeAll && (
             <Pressable accessibilityRole="button" accessibilityLabel="See all growth photos" onPress={onSeeAll} hitSlop={8} className="active:opacity-70">
               <Text className="type-button-medium text-action-primary">See all</Text>
             </Pressable>
@@ -56,7 +57,7 @@ export function GrowthSection({
 
       {photos.length === 0 && (
         <Text className="type-body-medium text-text-secondary">
-          {`Add a photo every now and then to watch ${plantName} grow.`}
+          {onAdd ? `Add a photo every now and then to watch ${plantName} grow.` : 'No photos yet.'}
         </Text>
       )}
 
@@ -100,6 +101,7 @@ export function GrowthSection({
         </ScrollView>
         )}
 
+        {onAdd && (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Add a new photo"
@@ -115,6 +117,7 @@ export function GrowthSection({
           </View>
           <Text className="type-caption text-primary">Add</Text>
         </Pressable>
+        )}
       </View>
     </View>
   );

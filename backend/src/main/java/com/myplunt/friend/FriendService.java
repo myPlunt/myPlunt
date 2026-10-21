@@ -6,6 +6,9 @@ import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.garden.GardenService;
 import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.notification.PushNotificationService;
+import com.myplunt.plant.PlantService;
+import com.myplunt.plant.dto.PlantDetailsResponse;
+import com.myplunt.plant.dto.PlantPhotoResponse;
 import com.myplunt.post.PostService;
 import com.myplunt.post.dto.PostResponse;
 import com.myplunt.species.SpeciesService;
@@ -30,6 +33,7 @@ public class FriendService {
     private final FriendshipRepository friendshipRepository;
     private final UserService userService;
     private final GardenService gardenService;
+    private final PlantService plantService;
     private final SpeciesService speciesService;
     private final PostService postService;
     private final PushNotificationService pushNotificationService;
@@ -39,6 +43,7 @@ public class FriendService {
             FriendshipRepository friendshipRepository,
             UserService userService,
             GardenService gardenService,
+            PlantService plantService,
             SpeciesService speciesService,
             PostService postService,
             PushNotificationService pushNotificationService,
@@ -46,6 +51,7 @@ public class FriendService {
         this.friendshipRepository = friendshipRepository;
         this.userService = userService;
         this.gardenService = gardenService;
+        this.plantService = plantService;
         this.speciesService = speciesService;
         this.postService = postService;
         this.pushNotificationService = pushNotificationService;
@@ -97,6 +103,19 @@ public class FriendService {
         return gardenService.getGarden(friendId, zone);
     }
 
+    // Looked up as the friend's own plant, so a plant id from someone else's garden is a 404.
+    @Transactional(readOnly = true)
+    public PlantDetailsResponse getFriendPlant(UUID userId, UUID friendId, UUID plantId) {
+        requireFriends(userId, friendId);
+        return plantService.getDetails(friendId, plantId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlantPhotoResponse> getFriendPlantPhotos(UUID userId, UUID friendId, UUID plantId) {
+        requireFriends(userId, friendId);
+        return plantService.getPhotos(friendId, plantId);
+    }
+
     @Transactional(readOnly = true)
     public List<DiscoveredSpeciesResponse> getFriendDiscoveredSpecies(UUID userId, UUID friendId) {
         requireFriends(userId, friendId);
@@ -109,7 +128,7 @@ public class FriendService {
         return postService.getUserPosts(userId, friendId);
     }
 
-    // Only friends see each other's garden, PluntDex and posts. Strangers and pending requests get the
+    // Only friends see each other's garden, plants, PluntDex and posts. Strangers and pending requests get the
     // same 404 as an unknown user, so it doesn't tell them who exists.
     private void requireFriends(UUID userId, UUID otherId) {
         acceptedFriendship(userId, otherId);

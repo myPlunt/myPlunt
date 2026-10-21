@@ -7,8 +7,8 @@ import { useAuthStore } from '@/stores/auth-store';
 
 import * as plantService from './plant-service';
 
-/** One of the user's plants, for its details and edit screens. */
-export function usePlant(plantId: string) {
+/** One of the user's plants, for its details and edit screens, or with ownerId a friend's. */
+export function usePlant(plantId: string, ownerId?: string) {
   const { setUnauthenticated } = useAuthStore();
   const [plant, setPlant] = useState<PlantDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +18,7 @@ export function usePlant(plantId: string) {
   const load = useCallback(
     (isCancelled: () => boolean) => {
       plantService
-        .getPlant(plantId)
+        .getPlant(plantId, ownerId)
         .then((result) => {
           if (isCancelled()) return;
           setPlant(result);
@@ -37,7 +37,7 @@ export function usePlant(plantId: string) {
           if (!isCancelled()) setIsLoading(false);
         });
     },
-    [plantId, setUnauthenticated],
+    [plantId, ownerId, setUnauthenticated],
   );
 
   // Loads on focus, not just on mount, so coming back from the edit screen shows the

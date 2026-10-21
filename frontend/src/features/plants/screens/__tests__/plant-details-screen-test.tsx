@@ -79,6 +79,16 @@ afterEach(() => {
 
 describe('PlantDetailsScreen', () => {
 
+  it("shows a friend's plant read-only, loaded from the friend", async () => {
+    await render(<PlantDetailsScreen plantId="p1" ownerId="u2" />);
+
+    expect(mockedUsePlant).toHaveBeenCalledWith('p1', 'u2');
+    expect(screen.getByRole('header', { name: 'Vera' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Edit plant' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete plant' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add a new photo' })).toBeNull();
+  });
+
   it('shows the plant with its photo, species and details, including when it needs water next', async () => {
     await render(<PlantDetailsScreen plantId="p1" />);
 

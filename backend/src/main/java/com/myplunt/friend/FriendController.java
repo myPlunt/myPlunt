@@ -4,6 +4,8 @@ import com.myplunt.constants.ApiPaths;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.friend.dto.SendFriendRequest;
 import com.myplunt.garden.dto.GardenResponse;
+import com.myplunt.plant.dto.PlantDetailsResponse;
+import com.myplunt.plant.dto.PlantPhotoResponse;
 import com.myplunt.post.dto.PostResponse;
 import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.user.User;
@@ -83,6 +85,19 @@ public class FriendController {
             @PathVariable UUID userId,
             @RequestParam(defaultValue = "UTC") ZoneId zone) {
         return friendService.getFriendGarden(principal.getId(), userId, zone);
+    }
+
+    // One of a friend's plants, opened from their garden.
+    @GetMapping(ApiPaths.Users.PLANT)
+    public PlantDetailsResponse plant(
+            @AuthenticationPrincipal User principal, @PathVariable UUID userId, @PathVariable UUID plantId) {
+        return friendService.getFriendPlant(principal.getId(), userId, plantId);
+    }
+
+    @GetMapping(ApiPaths.Users.PLANT_PHOTOS)
+    public List<PlantPhotoResponse> plantPhotos(
+            @AuthenticationPrincipal User principal, @PathVariable UUID userId, @PathVariable UUID plantId) {
+        return friendService.getFriendPlantPhotos(principal.getId(), userId, plantId);
     }
 
     // The species a friend has discovered, for their PluntDex on their profile.

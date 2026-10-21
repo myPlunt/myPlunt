@@ -95,11 +95,18 @@ export function PostScreen({ postId }: { postId: string }) {
 }
 
 function PostContent({ post, isOwn }: { post: Post; isOwn: boolean }) {
+  const router = useRouter();
   const date = new Date(post.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
     <>
-      <View className="flex-row items-center gap-3">
+      {/* A friend's picture and name open their profile; the user's own lead nowhere. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={isOwn ? 'You' : `Open ${post.author.username}'s profile`}
+        disabled={isOwn}
+        onPress={() => router.push({ pathname: '/user/[id]', params: { id: post.author.id } })}
+        className="flex-row items-center gap-3 active:opacity-70">
         <UserAvatar
           size={40}
           url={post.author.avatarUrl}
@@ -111,7 +118,7 @@ function PostContent({ post, isOwn }: { post: Post; isOwn: boolean }) {
             {KINDS[post.type]} · {date}
           </Text>
         </View>
-      </View>
+      </Pressable>
 
       {post.type === 'question' ? (
         // The question on its sticky note, tilted and taped as on the feed, but full size. The tilt
