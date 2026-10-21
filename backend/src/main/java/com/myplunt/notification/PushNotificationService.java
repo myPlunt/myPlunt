@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -54,6 +55,10 @@ public class PushNotificationService {
     // How many of the newest notifications the list shows.
     static final int INBOX_SIZE = 50;
 
+    // Weather alert thresholds in °C over the next 24 hours.
+    static final double FROST_BELOW = 3;
+    static final double HEAT_ABOVE = 30;
+
     private final PushTokenRepository pushTokenRepository;
     private final UserSettingsRepository userSettingsRepository;
     private final PlantRepository plantRepository;
@@ -62,6 +67,7 @@ public class PushNotificationService {
     private final NotificationRepository notificationRepository;
     private final StorageService storageService;
     private final ExpoPushClient expoPushClient;
+    private final OpenWeatherClient openWeatherClient;
 
     public PushNotificationService(
             PushTokenRepository pushTokenRepository,
@@ -71,7 +77,8 @@ public class PushNotificationService {
             UserRepository userRepository,
             NotificationRepository notificationRepository,
             StorageService storageService,
-            ExpoPushClient expoPushClient) {
+            ExpoPushClient expoPushClient,
+            OpenWeatherClient openWeatherClient) {
         this.pushTokenRepository = pushTokenRepository;
         this.userSettingsRepository = userSettingsRepository;
         this.plantRepository = plantRepository;
@@ -80,6 +87,7 @@ public class PushNotificationService {
         this.notificationRepository = notificationRepository;
         this.storageService = storageService;
         this.expoPushClient = expoPushClient;
+        this.openWeatherClient = openWeatherClient;
     }
 
     // A token already saved for another account moves to this one: the phone switched accounts.
@@ -102,7 +110,9 @@ public class PushNotificationService {
     // shortcut: loads every token each hour; query by zone once there are thousands of phones.
     @Scheduled(cron = "0 0 * * * *")
     public void sendWateringRemindersNow() {
-        sendWateringReminders(Instant.now());
+        Instant now = Instant.now();
+        sendWateringReminders(now);
+        sendWeatherAlerts(now);
     }
 
     public void sendWateringReminders(Instant now) {
@@ -125,6 +135,66 @@ public class PushNotificationService {
             }
         }
         send(messages);
+    }
+
+    // Frost or heat in the next 24 hours where the user lives, sent with the morning reminders.
+    // shortcut: no indoor/outdoor flag on plants, so every user with plants is warned; filter once plants have one.
+    public void sendWeatherAlerts(Instant now) {
+        if (!openWeatherClient.isEnabled()) {
+            return;
+        }
+        List<ExpoPushMessage> messages = new ArrayList<>();
+        Set<UUID> listed = new HashSet<>();
+        // Users in the same town share one forecast call.
+        Map<String, Optional<WeatherAlert>> alerts = new HashMap<>();
+        for (PushToken pushToken : pushTokenRepository.findAll()) {
+            UUID userId = pushToken.getUserId();
+            if (now.atZone(ZoneId.of(pushToken.getTimeZone())).getHour() != REMINDER_HOUR
+                    || !wantsWeatherAlerts(userId)
+                    || plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(userId).isEmpty()) {
+                continue;
+            }
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null || user.getLatitude() == null || user.getLongitude() == null) {
+                continue;
+            }
+            double lat = OpenWeatherClient.round(user.getLatitude());
+            double lon = OpenWeatherClient.round(user.getLongitude());
+            Optional<WeatherAlert> alert = alerts.computeIfAbsent(lat + "," + lon, key -> weatherAlert(lat, lon));
+            if (alert.isEmpty()) {
+                continue;
+            }
+            messages.add(new ExpoPushMessage(pushToken.getToken(), alert.get().title(), alert.get().body(), GARDEN_URL));
+            if (listed.add(userId)) {
+                notificationRepository.save(new Notification(userId, null, alert.get().title(), alert.get().body(), GARDEN_URL));
+            }
+        }
+        send(messages);
+    }
+
+    // A failed forecast skips that town today rather than the whole run.
+    private Optional<WeatherAlert> weatherAlert(double lat, double lon) {
+        try {
+            return weatherAlert(openWeatherClient.next24Hours(lat, lon));
+        } catch (RestClientException e) {
+            StructuredLog.error(log, LogEvent.WEATHER_FETCH_FAILED, e, Map.of());
+            return Optional.empty();
+        }
+    }
+
+    record WeatherAlert(String title, String body) {}
+
+    // Empty when the weather is fine. Frost wins: a cold plant can die overnight.
+    static Optional<WeatherAlert> weatherAlert(OpenWeatherClient.Forecast forecast) {
+        if (forecast.minTemp() < FROST_BELOW) {
+            return Optional.of(new WeatherAlert("Frost is coming 🥶",
+                    "It'll drop to " + Math.round(forecast.minTemp()) + "°C. Bring your outdoor plants inside."));
+        }
+        if (forecast.maxTemp() > HEAT_ABOVE) {
+            return Optional.of(new WeatherAlert("Hot day ahead ☀️",
+                    "It'll reach " + Math.round(forecast.maxTemp()) + "°C. Give your plants some extra water."));
+        }
+        return Optional.empty();
     }
 
     // To every phone of the receiver. Async, so a slow Expo never holds up sending the request.
@@ -171,6 +241,10 @@ public class PushNotificationService {
     // Accounts that never saved a setting get the defaults, which have reminders on.
     private boolean wantsWateringReminders(UUID userId) {
         return userSettingsRepository.findById(userId).map(UserSettings::isWateringReminders).orElse(true);
+    }
+
+    private boolean wantsWeatherAlerts(UUID userId) {
+        return userSettingsRepository.findById(userId).map(UserSettings::isWeatherAlerts).orElse(true);
     }
 
     // Only plants due on today's date: overdue ones already had their reminder on the day.
