@@ -28,6 +28,8 @@ export default function AppLayout() {
       {/* Tour step 4, opened from the location step; no swipe back either. */}
       <Stack.Screen name="notifications" options={{ gestureEnabled: false }} />
       <Stack.Screen name="settings" />
+      {/* The notifications list, opened from the bell in the profile's menu. */}
+      <Stack.Screen name="inbox" />
       <Stack.Screen name="edit-profile" />
       {/* Opened from the people icon in the profile's menu, also during the tour's friends
           step; no swipe back during the step (see FriendsScreen). */}

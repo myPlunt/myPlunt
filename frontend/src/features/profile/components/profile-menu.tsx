@@ -10,6 +10,11 @@ const items: { label: string; href: Href; icon: SymbolViewProps['name'] }[] = [
   { label: 'Open settings', href: '/settings', icon: { ios: 'gearshape.fill', android: 'settings', web: 'settings' } },
   { label: 'Open friends', href: '/friends', icon: { ios: 'person.2.fill', android: 'group', web: 'group' } },
   {
+    label: 'Open notifications',
+    href: '/inbox',
+    icon: { ios: 'bell.fill', android: 'notifications', web: 'notifications' },
+  },
+  {
     label: 'Open watering calendar',
     href: '/watering-calendar',
     icon: { ios: 'calendar', android: 'calendar_month', web: 'calendar_month' },
