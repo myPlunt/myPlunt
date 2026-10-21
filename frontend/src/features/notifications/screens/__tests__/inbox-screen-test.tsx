@@ -25,6 +25,8 @@ describe('InboxScreen', () => {
       notifications: [
         {
           id: 'n1',
+          fromUserId: 'u2',
+          fromAvatarUrl: null,
           title: 'New friend request 🌱',
           body: 'jane wants to be friends.',
           url: '/friends?tab=requests',

@@ -9,6 +9,7 @@ import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantRepository;
 import com.myplunt.plant.WateringLogRepository;
 import com.myplunt.plant.WateringSchedule;
+import com.myplunt.storage.StorageService;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import com.myplunt.user.UserSettings;
@@ -29,9 +30,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -57,6 +60,7 @@ public class PushNotificationService {
     private final WateringLogRepository wateringLogRepository;
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final StorageService storageService;
     private final ExpoPushClient expoPushClient;
 
     public PushNotificationService(
@@ -66,6 +70,7 @@ public class PushNotificationService {
             WateringLogRepository wateringLogRepository,
             UserRepository userRepository,
             NotificationRepository notificationRepository,
+            StorageService storageService,
             ExpoPushClient expoPushClient) {
         this.pushTokenRepository = pushTokenRepository;
         this.userSettingsRepository = userSettingsRepository;
@@ -73,6 +78,7 @@ public class PushNotificationService {
         this.wateringLogRepository = wateringLogRepository;
         this.userRepository = userRepository;
         this.notificationRepository = notificationRepository;
+        this.storageService = storageService;
         this.expoPushClient = expoPushClient;
     }
 
@@ -114,7 +120,7 @@ public class PushNotificationService {
                         pushToken.getToken(), reminderTitle(names), reminderText(names), GARDEN_URL));
                 if (listed.add(pushToken.getUserId())) {
                     notificationRepository.save(new Notification(
-                            pushToken.getUserId(), reminderTitle(names), reminderText(names), GARDEN_URL));
+                            pushToken.getUserId(), null, reminderTitle(names), reminderText(names), GARDEN_URL));
                 }
             }
         }
@@ -129,7 +135,7 @@ public class PushNotificationService {
         String requester = userRepository.findById(requesterId).map(User::getUsername).orElse("Someone");
         String title = "New friend request 🌱";
         String body = requester + " wants to be friends.";
-        notificationRepository.save(new Notification(receiverId, title, body, FRIEND_REQUESTS_URL));
+        notificationRepository.save(new Notification(receiverId, requesterId, title, body, FRIEND_REQUESTS_URL));
         send(pushTokenRepository.findByUserId(receiverId).stream()
                 .map(pushToken -> new ExpoPushMessage(pushToken.getToken(), title, body, FRIEND_REQUESTS_URL))
                 .toList());
@@ -138,8 +144,16 @@ public class PushNotificationService {
     // shortcut: no read/unread state and old rows are never deleted; add both if the list grows noisy.
     @Transactional(readOnly = true)
     public List<NotificationResponse> getInbox(UUID userId) {
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, Limit.of(INBOX_SIZE)).stream()
-                .map(n -> new NotificationResponse(n.getId(), n.getTitle(), n.getBody(), n.getUrl(), n.getCreatedAt()))
+        List<Notification> notifications =
+                notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, Limit.of(INBOX_SIZE));
+        // The senders' pictures in one query, not one per notification. Links are made per read, as they expire.
+        Map<UUID, String> avatarUrls = new HashMap<>();
+        userRepository.findAllById(notifications.stream().map(Notification::getFromUserId).filter(Objects::nonNull).toList())
+                .forEach(user -> avatarUrls.put(user.getId(),
+                        user.getAvatarKey() == null ? null : storageService.createReadUrl(user.getAvatarKey())));
+        return notifications.stream()
+                .map(n -> new NotificationResponse(n.getId(), n.getFromUserId(), avatarUrls.get(n.getFromUserId()),
+                        n.getTitle(), n.getBody(), n.getUrl(), n.getCreatedAt()))
                 .toList();
     }
 

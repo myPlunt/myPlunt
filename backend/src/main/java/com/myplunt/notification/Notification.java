@@ -21,6 +21,10 @@ public class Notification {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    // Null for notifications from the app itself, like watering reminders.
+    @Column(name = "from_user_id")
+    private UUID fromUserId;
+
     @Column(nullable = false)
     private String title;
 
@@ -35,8 +39,9 @@ public class Notification {
 
     protected Notification() {}
 
-    public Notification(UUID userId, String title, String body, String url) {
+    public Notification(UUID userId, UUID fromUserId, String title, String body, String url) {
         this.userId = userId;
+        this.fromUserId = fromUserId;
         this.title = title;
         this.body = body;
         this.url = url;
@@ -49,6 +54,10 @@ public class Notification {
 
     public UUID getUserId() {
         return userId;
+    }
+
+    public UUID getFromUserId() {
+        return fromUserId;
     }
 
     public String getTitle() {

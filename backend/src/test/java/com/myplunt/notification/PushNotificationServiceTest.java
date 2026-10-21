@@ -1,10 +1,12 @@
 package com.myplunt.notification;
 
+import com.myplunt.notification.dto.NotificationResponse;
 import com.myplunt.notification.dto.PushTokenRequest;
 import com.myplunt.plant.LastWatering;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantRepository;
 import com.myplunt.plant.WateringLogRepository;
+import com.myplunt.storage.StorageService;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import com.myplunt.user.UserSettings;
@@ -51,11 +53,13 @@ class PushNotificationServiceTest {
     @Mock
     private NotificationRepository notificationRepository;
     @Mock
+    private StorageService storageService;
+    @Mock
     private ExpoPushClient expoPushClient;
 
     private PushNotificationService service() {
         return new PushNotificationService(
-                pushTokenRepository, userSettingsRepository, plantRepository, wateringLogRepository, userRepository, notificationRepository, expoPushClient);
+                pushTokenRepository, userSettingsRepository, plantRepository, wateringLogRepository, userRepository, notificationRepository, storageService, expoPushClient);
     }
 
     // On a 3-day schedule (the owner's own).
@@ -140,9 +144,29 @@ class PushNotificationServiceTest {
         ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
         verify(notificationRepository).save(saved.capture());
         assertThat(saved.getValue().getUserId()).isEqualTo(USER_ID);
+        assertThat(saved.getValue().getFromUserId()).isEqualTo(janeId);
         assertThat(saved.getValue().getBody()).isEqualTo("jane wants to be friends.");
         assertThat(saved.getValue().getUrl()).isEqualTo("/friends?tab=requests");
         verify(expoPushClient, never()).send(anyList());
+    }
+
+    // A friend request shows who sent it; a reminder is from the app, so it has no sender.
+    @Test
+    void getInbox_addsTheSendersPictureToTheirNotifications() {
+        User jane = new User("jane", "jane@example.com", "hashed");
+        UUID janeId = UUID.randomUUID();
+        ReflectionTestUtils.setField(jane, "id", janeId);
+        jane.setAvatarKey("avatars/jane.jpg");
+        when(notificationRepository.findByUserIdOrderByCreatedAtDesc(any(), any())).thenReturn(List.of(
+                new Notification(USER_ID, janeId, "New friend request 🌱", "jane wants to be friends.", "/friends?tab=requests"),
+                new Notification(USER_ID, null, "Monty is thirsty 💧", "Give Monty some water today.", "/garden")));
+        when(userRepository.findAllById(List.of(janeId))).thenReturn(List.of(jane));
+        when(storageService.createReadUrl("avatars/jane.jpg")).thenReturn("https://storage.test/jane.jpg");
+
+        List<NotificationResponse> inbox = service().getInbox(USER_ID);
+
+        assertThat(inbox).extracting(NotificationResponse::fromUserId).containsExactly(janeId, null);
+        assertThat(inbox).extracting(NotificationResponse::fromAvatarUrl).containsExactly("https://storage.test/jane.jpg", null);
     }
 
     @Test

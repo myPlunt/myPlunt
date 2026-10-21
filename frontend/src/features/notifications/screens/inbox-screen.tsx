@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { UserAvatar } from '@/components/user/user-avatar';
 import { Shadow } from '@/constants/theme';
 import { ageLabel } from '@/features/feed/feed-days';
 import { useInbox } from '@/features/notifications/use-inbox';
@@ -54,16 +55,20 @@ export function InboxScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`${notification.title} ${notification.body}`}
                 onPress={() => router.push(notification.url as Href)}
-                className="gap-1 rounded-2xl border-[1.5px] border-input-border bg-background-element px-4 py-3 active:opacity-70"
+                className="flex-row items-center gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element px-4 py-3 active:opacity-70"
                 // Shadow goes through style so it sets both iOS shadow* and Android elevation.
                 style={Shadow.card}>
-                <View className="flex-row items-center justify-between gap-3">
-                  <Text className="type-subtitle-small flex-1 text-text">{notification.title}</Text>
-                  <Text className="type-caption text-text-secondary">
-                    {ageLabel(new Date(notification.createdAt), now)}
-                  </Text>
+                {/* Only for notifications from someone; the person bubble when they have no picture. */}
+                {notification.fromUserId && <UserAvatar size={40} url={notification.fromAvatarUrl} />}
+                <View className="flex-1 gap-1">
+                  <View className="flex-row items-center justify-between gap-3">
+                    <Text className="type-subtitle-small flex-1 text-text">{notification.title}</Text>
+                    <Text className="type-caption text-text-secondary">
+                      {ageLabel(new Date(notification.createdAt), now)}
+                    </Text>
+                  </View>
+                  <Text className="type-body-medium text-text-secondary">{notification.body}</Text>
                 </View>
-                <Text className="type-body-medium text-text-secondary">{notification.body}</Text>
               </Pressable>
             ))
           ) : (
