@@ -3,6 +3,7 @@ package com.myplunt.user;
 import com.myplunt.constants.ApiPaths;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.UpdateAvatarRequest;
+import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
 import com.myplunt.user.dto.UserSummaryResponse;
@@ -65,6 +66,13 @@ public class UserController {
     public UserResponse updateAvatar(
             @AuthenticationPrincipal User principal, @Valid @RequestBody UpdateAvatarRequest request) {
         return userService.updateAvatar(principal.getId(), request);
+    }
+
+    @PutMapping(ApiPaths.Users.ME_LOCATION)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateLocation(
+            @AuthenticationPrincipal User principal, @Valid @RequestBody UpdateLocationRequest request) {
+        userService.updateLocation(principal.getId(), request);
     }
 
     @DeleteMapping(ApiPaths.Users.ME_AVATAR)

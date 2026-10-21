@@ -9,12 +9,15 @@ import java.util.List;
 
 // How consistently a plant has been watered. Each watering is due frequencyDays calendar days
 // after the one before it (the first after the day the plant was added), in the user's time
-// zone, the same rule that turns the app's watering pill to "Overdue". Watering early is on
-// time. A second watering on the same day doesn't count again, so tapping the drop twice
-// can't grow a streak. Uses today's schedule for the whole history, since older ones aren't kept.
+// zone, the same rule that turns the app's watering pill to "Overdue". The streak only grows
+// with a watering on its due day: watering early isn't late, so it doesn't break the streak,
+// but the plant didn't need it yet, so it doesn't add to it either (it does restart the
+// schedule). A late watering breaks it. A second watering on the same day doesn't count again,
+// so tapping the drop twice can't grow a streak. Uses today's schedule for the whole history,
+// since older ones aren't kept.
 //
-// daysLate has one entry per watering, oldest first; 0 means on time. currentStreak is 0 once
-// the plant is overdue. onTimePercent is the share of watering days that were on time, null
+// daysLate has one entry per watering, oldest first; 0 means not late. currentStreak is 0 once
+// the plant is overdue. onTimePercent is the share of watering days that weren't late, null
 // before the first watering.
 public record WateringConsistency(
         List<Integer> daysLate,
@@ -35,17 +38,20 @@ public record WateringConsistency(
 
         for (Instant wateredAt : wateredAtOldestFirst) {
             LocalDate wateredOn = day(wateredAt, zone);
-            int late = (int) Math.max(0, ChronoUnit.DAYS.between(previousDay.plusDays(frequencyDays), wateredOn));
+            long daysAfterDue = ChronoUnit.DAYS.between(previousDay.plusDays(frequencyDays), wateredOn);
+            int late = (int) Math.max(0, daysAfterDue);
             daysLate.add(late);
             // The first watering may fall on the day the plant was added; that still counts.
             if (first || !wateredOn.equals(previousDay)) {
                 countedDays++;
-                if (late == 0) {
-                    onTimeDays++;
-                    streak++;
-                    bestStreak = Math.max(bestStreak, streak);
-                } else {
+                if (late > 0) {
                     streak = 0;
+                } else {
+                    onTimeDays++;
+                    if (daysAfterDue == 0) {
+                        streak++;
+                        bestStreak = Math.max(bestStreak, streak);
+                    }
                 }
             }
             previousDay = wateredOn;

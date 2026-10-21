@@ -69,7 +69,7 @@ function WateringHistoryContent({ history }: { history: WateringHistory }) {
         <Text className="type-caption text-text-secondary">
           {history.overdue
             ? `${history.plantName} is overdue, so the streak is broken. Water it to start a new one.`
-            : `A streak counts waterings in a row that came on time: within ${days} ${days === 1 ? 'day' : 'days'} of the one before.`}
+            : `A streak counts waterings in a row on the day they're due, every ${days} ${days === 1 ? 'day' : 'days'}. Watering early doesn't add to it; watering late ends it.`}
         </Text>
       </View>
 

@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -78,5 +79,29 @@ class PostControllerTest {
 
         ask(new AskQuestionRequest("   ", null)).expectStatus().isBadRequest();
         verify(postService, never()).askQuestion(any(), any());
+    }
+
+    @Test
+    void delete_removesTheUsersPost() {
+        UUID janeId = authenticateAsJane();
+        UUID postId = UUID.randomUUID();
+
+        restTestClient.delete().uri("/v1/posts/{postId}", postId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isNoContent();
+        verify(postService).deletePost(janeId, postId);
+    }
+
+    @Test
+    void delete_answers404ForAPostThatIsntTheUsers() {
+        UUID janeId = authenticateAsJane();
+        UUID postId = UUID.randomUUID();
+        doThrow(new IllegalStateException("Post not found")).when(postService).deletePost(janeId, postId);
+
+        restTestClient.delete().uri("/v1/posts/{postId}", postId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isNotFound();
     }
 }

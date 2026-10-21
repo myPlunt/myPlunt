@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
@@ -11,15 +12,27 @@ import { WaterSelectionBar } from '@/features/garden/components/water-selection-
 import { useGarden } from '@/features/garden/use-garden';
 import { useGardenActions } from '@/features/garden/use-garden-actions';
 import { plantsNeedingWater } from '@/features/garden/watering';
+import { OnboardingCard } from '@/features/onboarding/components/onboarding-card';
+import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { EditPlanterDialog } from '@/features/planters/components/edit-planter-dialog';
 import { useTheme } from '@/hooks/use-theme';
 import { describeError } from '@/lib/auth/api-client';
 import type { Room } from '@/lib/garden/types';
 import { logFailedUi } from '@/lib/logger';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 export function GardenScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { garden, error, isLoading, retry, refresh } = useGarden();
+  // The tour's first-plant step: its card opens the Add sheet, and saving a plant there ends
+  // the step (AddPlantScreen). Then the watering step, back here after the plant's page: it
+  // shows the drop that starts watering, and "Got it" or watering moves on.
+  const { step, next, skipPast } = useOnboardingStore();
+  const isPlantStep = step === 'plant';
+  const isWaterStep = step === 'water';
+  const isTourStep = isPlantStep || isWaterStep;
+  useTourBackLock(isTourStep);
   const { waterPlants } = useGardenActions();
   const [isWatering, setIsWatering] = useState(false);
   const [waterError, setWaterError] = useState<string | null>(null);
@@ -41,6 +54,7 @@ export function GardenScreen() {
     setIsWatering(true);
     try {
       await waterPlants(plantIds);
+      if (isWaterStep) next();
       await refresh();
       return true;
     } catch (err) {
@@ -104,7 +118,9 @@ export function GardenScreen() {
                   accessibilityLabel="Water plants"
                   accessibilityHint="Pick the plants you watered"
                   onPress={startSelecting}
-                  className="h-10 w-10 items-center justify-center active:opacity-70">
+                  className={`h-10 w-10 items-center justify-center rounded-full active:opacity-70 ${
+                    isWaterStep ? 'border-2 border-primary' : ''
+                  }`}>
                   {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
                   <SymbolView
                     name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
@@ -117,7 +133,9 @@ export function GardenScreen() {
           }
         />
 
-        <ScrollView contentContainerClassName="w-full max-w-content grow gap-8 self-center px-6 pb-8 pt-2">
+        <ScrollView
+          // Room to scroll the garden out from under the tour card.
+          contentContainerClassName={`w-full max-w-content grow gap-8 self-center px-6 pt-2 ${isTourStep ? 'pb-72' : 'pb-8'}`}>
           {isLoading ? (
             // Colour props (spinner) read the theme instead of a class.
             <ActivityIndicator accessibilityLabel="Loading garden" color={theme.primary} className="mt-6" />
@@ -146,21 +164,39 @@ export function GardenScreen() {
                     error={waterError}
                   />
                 )}
-                {garden.rooms.map((room) => (
-                  <RoomSection
-                    key={room.id ?? 'unassigned'}
-                    room={room}
-                    now={now}
-                    selection={
-                      selectedIds ? { selectedIds, onToggle: toggleSelected, onSelectMany: selectMany } : undefined
-                    }
-                    onEdit={room.id !== null ? () => setEditingRoom(room) : undefined}
-                  />
-                ))}
+                {/* The plants don't open during the tour's steps, which would leave them; picking
+                    plants to water still works. */}
+                <View className="gap-8" pointerEvents={isTourStep && !selectedIds ? 'none' : 'auto'}>
+                  {garden.rooms.map((room) => (
+                    <RoomSection
+                      key={room.id ?? 'unassigned'}
+                      room={room}
+                      now={now}
+                      selection={
+                        selectedIds ? { selectedIds, onToggle: toggleSelected, onSelectMany: selectMany } : undefined
+                      }
+                      onEdit={room.id !== null ? () => setEditingRoom(room) : undefined}
+                    />
+                  ))}
+                </View>
               </>
             ))
           )}
         </ScrollView>
+
+        {/* While picking plants it stays, stacked above the selection bar instead of over it. */}
+        {isWaterStep && (
+          <View className={selectedIds ? 'px-3 pb-3' : 'absolute inset-x-3 bottom-3'}>
+            <OnboardingCard
+              step="water"
+              title="Water your plants"
+              body="When you've watered, tap the drop at the top, pick the plants you watered and tap Water. We'll remind you when they're thirsty again."
+              actionLabel="Got it"
+              onAction={next}
+              showNotNow={false}
+            />
+          </View>
+        )}
 
         {selectedIds && (
           <WaterSelectionBar
@@ -171,6 +207,22 @@ export function GardenScreen() {
             error={waterError}
           />
         )}
+
+        {isPlantStep && (
+          <View className="absolute inset-x-3 bottom-3">
+            <OnboardingCard
+              step="plant"
+              title="Plant your first plant"
+              body="Add a plant you have at home, here or with the + below: where it stands and how often it likes water. We'll remind you when it's thirsty."
+              actionLabel="Add a plant"
+              onAction={() => router.push('/add')}
+              // The photo and watering steps after this one need the plant, so without one
+              // they're skipped too; otherwise they'd wait for a card that never shows.
+              onSkip={() => skipPast('water')}
+            />
+          </View>
+        )}
+
 
         {editingRoom?.id && (
           <EditPlanterDialog

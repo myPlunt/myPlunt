@@ -3,6 +3,8 @@
 
 // Keeps tests from sending log lines and expected failures from filling the output with warnings.
 jest.mock('@/lib/logger');
+// Locks Android's back button through expo-router's focus effect, which screen tests mock away.
+jest.mock('@/features/onboarding/use-tour-back-lock');
 
 // expo-media-library's classes extend a native object that doesn't exist in Jest, so even
 // importing it fails. Many screens import it indirectly (the photo menu), so it's stubbed

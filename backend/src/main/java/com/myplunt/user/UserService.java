@@ -10,6 +10,7 @@ import com.myplunt.storage.StorageService;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.UpdateAvatarRequest;
+import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
 import com.myplunt.user.dto.UserSummaryResponse;
@@ -199,6 +200,17 @@ public class UserService {
             deleteAvatarFile(userId, oldKey);
         }
         return toResponse(saved);
+    }
+
+    // Where the user is is personal data, so the audit line says only that it changed.
+    @Transactional
+    public void updateLocation(UUID userId, UpdateLocationRequest request) {
+        User user = loadUser(userId);
+        user.setLatitude(request.latitude());
+        user.setLongitude(request.longitude());
+        user.setCity(request.city() == null || request.city().isBlank() ? null : request.city().strip());
+        userRepository.save(user);
+        auditLog.recorded(AuditEvent.LOCATION_UPDATED, userId, userId, Map.of());
     }
 
     // Removing a picture the user doesn't have is a no-op, so a retried request still succeeds.

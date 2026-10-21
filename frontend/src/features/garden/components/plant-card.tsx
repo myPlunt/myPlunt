@@ -49,7 +49,7 @@ export function PlantCard({ plant, now, selection, readOnly = false }: PlantCard
       accessibilityLabel={plant.name}
       // The streak badge sits inside the card, which reads as one element, so it's announced here.
       accessibilityValue={
-        streak > 0 ? { text: `Watered on time ${streak} ${streak === 1 ? 'time' : 'times'} in a row` } : undefined
+        streak > 0 ? { text: `Watered on its day ${streak} ${streak === 1 ? 'time' : 'times'} in a row` } : undefined
       }
       // The border is always there (transparent when unselected) so selecting doesn't shift the card.
       className={`w-[168px] rounded-3xl border-2 bg-background-element p-2 active:opacity-70 ${

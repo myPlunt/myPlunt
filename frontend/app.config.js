@@ -27,6 +27,9 @@ export default {
         monochromeImage: "./assets/images/android-icon-monochrome.png",
       },
       predictiveBackGestureEnabled: false,
+      // expo-location adds both; the tour only needs the city, so the app never asks for
+      // a precise position (Android then offers "approximate" only).
+      blockedPermissions: ["android.permission.ACCESS_FINE_LOCATION"],
     },
     web: {
       output: "static",
@@ -56,6 +59,13 @@ export default {
         },
       ],
       [
+        // Asked once, during the tour, to save the user's city for weather alerts.
+        "expo-location",
+        {
+          locationWhenInUsePermission: "myPlunt uses your city to warn you about weather that affects your plants.",
+        },
+      ],
+      [
         "expo-splash-screen",
         {
           backgroundColor: SAND_DUNE,
@@ -69,6 +79,8 @@ export default {
       reactCompiler: true,
     },
     extra: {
+      // Read at runtime by the staging banner; APP_VARIANT has no EXPO_PUBLIC_ prefix, so it isn't in the JS bundle otherwise.
+      appVariant: process.env.APP_VARIANT ?? null,
       router: {},
       eas: {
         projectId: "9522f12d-5816-4e59-8252-30c84f0000af",

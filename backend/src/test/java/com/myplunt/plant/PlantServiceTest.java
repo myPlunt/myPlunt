@@ -314,14 +314,15 @@ class PlantServiceTest {
     @Test
     void getWateringHistory_returnsEveryWateringNewestFirstMarkedOnTimeOrLate() {
         // Times relative to now, as the service reads the clock itself. On a 3-day schedule:
-        // added 12 days ago, on time 10 days ago, 3 days late 4 days ago, on time 2 days ago.
+        // added 13 days ago, on its due day 10 days ago, 3 days late 4 days ago, on its due day
+        // yesterday.
         Plant vera = ownPlant("Vera");
         Instant now = Instant.now();
-        ReflectionTestUtils.setField(vera, "createdAt", now.minus(Duration.ofDays(12)));
+        ReflectionTestUtils.setField(vera, "createdAt", now.minus(Duration.ofDays(13)));
         vera.setWateringEveryDays(3);
         WateringLog first = watering(vera, now.minus(Duration.ofDays(10)));
         WateringLog late = watering(vera, now.minus(Duration.ofDays(4)));
-        WateringLog latest = watering(vera, now.minus(Duration.ofDays(2)));
+        WateringLog latest = watering(vera, now.minus(Duration.ofDays(1)));
         when(wateringLogRepository.findByPlantIdOrderByWateredAtAsc(plantId)).thenReturn(List.of(first, late, latest));
 
         WateringHistoryResponse history = plantService().getWateringHistory(userId, plantId, ZoneOffset.UTC);
@@ -348,14 +349,15 @@ class PlantServiceTest {
     @Test
     void getWateringStreak_addsUpTheStreaksOfTheLivingPlants() {
         Instant now = Instant.now();
-        Plant george = plantAdded("George", now.minus(Duration.ofDays(5)));
+        // Each watering on its due day (every 3 days): George twice, Pinky once, today.
+        Plant george = plantAdded("George", now.minus(Duration.ofDays(7)));
         Plant pinky = plantAdded("Pinky", now.minus(Duration.ofDays(3)));
         when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(userId)).thenReturn(List.of(george, pinky));
         when(wateringLogRepository.findByPlantIdInOrderByWateredAtAsc(List.of(george.getId(), pinky.getId())))
                 .thenReturn(List.of(
                         watering(george, now.minus(Duration.ofDays(4))),
-                        watering(pinky, now.minus(Duration.ofDays(2))),
-                        watering(george, now.minus(Duration.ofDays(1)))));
+                        watering(george, now.minus(Duration.ofDays(1))),
+                        watering(pinky, now)));
 
         assertThat(plantService().getWateringStreak(userId, ZoneOffset.UTC)).isEqualTo(new WateringStreakResponse(3));
     }
@@ -404,7 +406,7 @@ class PlantServiceTest {
     }
 
     @Test
-    void addPhoto_confirmsTheUploadSavesItWithItsDateAndNoteAndSharesIt() {
+    void addPhoto_confirmsTheUploadSavesItWithItsDateAndSharesItWithTheComment() {
         ownPlant("Vera");
         String key = "plants/" + userId + "/growth.jpg";
         Instant takenAt = Instant.parse("2026-08-20T10:00:00Z");
@@ -422,12 +424,14 @@ class PlantServiceTest {
         verify(storageService).confirmUpload(userId, key);
         assertThat(response.url()).isEqualTo("https://storage.test/growth.jpg?signed");
         assertThat(response.takenAt()).isEqualTo(takenAt);
-        assertThat(response.caption()).isEqualTo("First split leaf!");
+        // The comment belongs to the post, not the photo's own note.
+        assertThat(response.caption()).isNull();
         ArgumentCaptor<Post> post = ArgumentCaptor.forClass(Post.class);
         verify(postRepository).save(post.capture());
         assertThat(post.getValue().getPostType()).isEqualTo(Post.NEW_PHOTO);
         assertThat(post.getValue().getPhoto().getPhotoKey()).isEqualTo(key);
         assertThat(post.getValue().getPlant().getId()).isEqualTo(plantId);
+        assertThat(post.getValue().getBody()).isEqualTo("First split leaf!");
     }
 
     @Test

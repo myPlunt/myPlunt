@@ -2,6 +2,7 @@ import { NavLink } from 'react-router'
 
 import logoMyPlunt from '../assets/logo-myplunt.svg'
 import type { Admin } from '../lib/api'
+import StagingPill from './StagingPill'
 
 const links = [
   { label: 'Species', to: '/species' },
@@ -20,7 +21,10 @@ function Sidebar({ admin, onSignOut }: SidebarProps) {
         <img src={logoMyPlunt} alt="" width={34} height={36} />
         <div className="flex flex-col">
           <span className="font-primary text-[32px] leading-none font-semibold">myPlunt</span>
-          <span className="text-xs font-semibold tracking-wider text-soil uppercase">Admin</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold tracking-wider text-soil uppercase">Admin</span>
+            <StagingPill />
+          </div>
         </div>
       </div>
 

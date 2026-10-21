@@ -14,7 +14,8 @@ export interface PlantPost extends BasePost {
   type: 'new_plant' | 'new_photo';
   plantId: string;
   plantName: string;
-  body: null;
+  /** A new photo's optional comment ("A new flower is blooming!"); always null for a new plant. */
+  body: string | null;
 }
 
 /** A question for friends, shown as a sticky note; not about a plant. */
@@ -27,6 +28,11 @@ export interface QuestionPost extends BasePost {
 
 /** Mirrors PostResponse (GET /v1/posts/feed): one post by the user or a friend. */
 export type Post = PlantPost | QuestionPost;
+
+/** Mirrors UpdatePostRequest (PUT /v1/posts/{id}): a question's text, or a new photo's comment (null removes it). */
+export interface UpdatePostRequest {
+  body: string | null;
+}
 
 /** Mirrors AskQuestionRequest (POST /v1/posts/questions). */
 export interface AskQuestionRequest {

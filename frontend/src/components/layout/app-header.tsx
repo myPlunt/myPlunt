@@ -3,6 +3,8 @@ import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 
+import { StagingPill } from '@/components/ui/staging-pill';
+
 interface AppHeaderProps {
   /** Makes the logo a back button. Off on the tabs, which have nothing to go back to. */
   showBack?: boolean;
@@ -15,7 +17,10 @@ interface AppHeaderProps {
 export function AppHeader({ showBack, right }: AppHeaderProps) {
   return (
     <View className="w-full max-w-content flex-row items-center justify-between self-center px-6 py-2">
-      {showBack ? <LogoBackButton /> : <Logo />}
+      <View className="flex-row items-center gap-2">
+        {showBack ? <LogoBackButton /> : <Logo />}
+        <StagingPill />
+      </View>
       {right}
     </View>
   );

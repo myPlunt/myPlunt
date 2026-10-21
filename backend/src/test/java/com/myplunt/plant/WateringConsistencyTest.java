@@ -37,12 +37,13 @@ class WateringConsistencyTest {
     }
 
     @Test
-    void of_countsWateringsInARowOnOrBeforeTheirDueDayAsTheStreakEarlyOnesIncluded() {
+    void of_growsTheStreakOnlyWithWateringsOnTheirDueDayAndAnEarlyOneNeitherAddsNorBreaks() {
+        // Due the 4th, then the 7th: the 6th is early (and restarts the schedule, so due the 9th).
         WateringConsistency result = of(october(14), october(4), october(6), october(9, 23), october(12));
 
         assertThat(result.daysLate()).containsExactly(0, 0, 0, 0);
-        assertThat(result.currentStreak()).isEqualTo(4);
-        assertThat(result.bestStreak()).isEqualTo(4);
+        assertThat(result.currentStreak()).isEqualTo(3);
+        assertThat(result.bestStreak()).isEqualTo(3);
         assertThat(result.onTimePercent()).isEqualTo(100);
     }
 
@@ -51,8 +52,9 @@ class WateringConsistencyTest {
         // The 16th is 3 days late (due the 13th).
         WateringConsistency result = of(october(20), october(4), october(7), october(10), october(16), october(18));
 
+        // The 18th is early (due the 19th), so the new streak hasn't started yet.
         assertThat(result.daysLate()).containsExactly(0, 0, 0, 3, 0);
-        assertThat(result.currentStreak()).isEqualTo(1);
+        assertThat(result.currentStreak()).isZero();
         assertThat(result.bestStreak()).isEqualTo(3);
         assertThat(result.onTimePercent()).isEqualTo(80);
     }

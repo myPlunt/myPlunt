@@ -59,6 +59,8 @@ public final class ApiPaths {
         public static final String ME_EMAIL = ME + "/email";
         // PUT sets the profile picture from an uploaded key, DELETE removes it.
         public static final String ME_AVATAR = ME + "/avatar";
+        // PUT saves the city the user shared during onboarding.
+        public static final String ME_LOCATION = ME + "/location";
         public static final String SEARCH = BASE + "/search";
         // Literal paths (/me, /search) win over this template.
         public static final String BY_ID = BASE + "/{userId}";
@@ -118,6 +120,10 @@ public final class ApiPaths {
         public static final String BASE = "/v1/posts";
         // The signed-in user's and their friends' posts, newest first.
         public static final String FEED = BASE + "/feed";
+        // The signed-in user's own posts, newest first (for their profile).
+        public static final String MINE = BASE + "/mine";
+        // GET opens a post of the user's or a friend's; PUT edits the user's own post's text, DELETE removes it.
+        public static final String BY_ID = BASE + "/{postId}";
         // POST asks the user's friends a question; it shows up in the feed as a sticky note.
         public static final String QUESTIONS = BASE + "/questions";
 

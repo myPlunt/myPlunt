@@ -77,6 +77,8 @@ export const lightColors = {
   noteOrange: brand.noteOrange,
   notePink: brand.notePink,
   noteTeal: brand.noteTeal,
+  // Staging pill only; production never shows it.
+  staging: brand.mustard500,
 } as const;
 
 export const Fonts = {

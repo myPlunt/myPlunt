@@ -1,6 +1,7 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 
+import { logAction } from '@/lib/logger';
 import type { PlantPost } from '@/lib/post/types';
 
 import { FeedPlantCard } from '../feed-plant-card';
@@ -32,19 +33,12 @@ afterEach(() => {
 });
 
 describe('FeedPlantCard', () => {
-  it("opens the plant's page when the post is the user's own", async () => {
-    await render(<FeedPlantCard post={post(null)} />);
+  it("opens the post's own page, a friend's too", async () => {
+    await render(<FeedPlantCard post={post('friends')} />);
 
     await user.press(screen.getByRole('button', { name: 'Gus the Fern' }));
 
-    expect(push).toHaveBeenCalledWith({ pathname: '/plant/[id]', params: { id: 'plant1' } });
-  });
-
-  it("doesn't open a friend's plant, whose page is owner-only", async () => {
-    await render(<FeedPlantCard post={post('friends')} />);
-
-    expect(screen.queryByRole('button', { name: 'Gus the Fern' })).toBeNull();
-    await user.press(screen.getByText('Gus the Fern'));
-    expect(push).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith({ pathname: '/post/[id]', params: { id: 'post1' } });
+    expect(logAction).toHaveBeenCalledWith('post_opened', { context: { post_id: 'post1', post_type: 'new_plant' } });
   });
 });
