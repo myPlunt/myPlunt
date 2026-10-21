@@ -5,7 +5,7 @@ import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { PlantPhoto } from '@/lib/plant/types';
 import { useAuthStore } from '@/stores/auth-store';
 
-import * as plantService from './plant-service';
+import { cachedPlantPhotos } from './offline-pages';
 
 /** The plant's growth photos, oldest first, for its details and growth screens. */
 export function usePlantPhotos(plantId: string) {
@@ -17,11 +17,10 @@ export function usePlantPhotos(plantId: string) {
   // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) => {
-      plantService
-        .getPlantPhotos(plantId)
+      cachedPlantPhotos(plantId)
         .then((result) => {
           if (isCancelled()) return;
-          setPhotos(result);
+          setPhotos(result.data);
           setError(null);
         })
         .catch((err) => {

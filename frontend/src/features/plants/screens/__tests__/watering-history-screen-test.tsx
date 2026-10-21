@@ -38,6 +38,7 @@ const vera: WateringHistory = {
 function mockHistory(state: Partial<ReturnType<typeof useWateringHistory>>) {
   mockedUseWateringHistory.mockReturnValue({
     history: vera,
+    savedAt: null,
     error: null,
     isLoading: false,
     retry,

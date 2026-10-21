@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import * as gardenService from '@/features/garden/garden-service';
 import { useGarden } from '@/features/garden/use-garden';
@@ -92,12 +92,13 @@ describe('without a connection', () => {
   });
 });
 
-it('shows the saved garden straight away, while a fresh one is on its way', async () => {
+it('waits for the server, even with a garden saved', async () => {
   await visitGarden();
   mockedGardenService.getGarden.mockReturnValue(new Promise(() => {}));
   const { result } = await renderWithStore();
 
-  await waitFor(() => expect(result.current.garden.garden).toEqual(garden));
-  expect(result.current.garden.isLoading).toBe(false);
-  expect(result.current.garden.savedAt).toBeNull();
+  // The saved copy's photo links may have expired, so it only shows once there's no answer.
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+  expect(result.current.garden.isLoading).toBe(true);
+  expect(result.current.garden.garden).toBeNull();
 });

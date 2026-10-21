@@ -13,7 +13,8 @@ interface Saved<T> {
   savedAt: string;
 }
 
-async function readSaved<T>(key: string): Promise<Saved<T> | null> {
+/** The copy saved under key, or null when there's none (or it can't be read). */
+export async function readCache<T>(key: string): Promise<Saved<T> | null> {
   try {
     const raw = await AsyncStorage.getItem(PREFIX + key);
     return raw ? (JSON.parse(raw) as Saved<T>) : null;
@@ -23,7 +24,8 @@ async function readSaved<T>(key: string): Promise<Saved<T> | null> {
   }
 }
 
-async function save<T>(key: string, data: T) {
+/** Saves data under key, stamped with the time. Never rejects. */
+export async function writeCache<T>(key: string, data: T): Promise<void> {
   const saved: Saved<T> = { data, savedAt: new Date().toISOString() };
   try {
     await AsyncStorage.setItem(PREFIX + key, JSON.stringify(saved));
@@ -33,27 +35,21 @@ async function save<T>(key: string, data: T) {
 }
 
 /**
- * request(), keeping a copy of the result on the device for next time. The copy saved last
- * time goes to showSaved as soon as it's read, so the screen isn't empty while the request is
- * out; that can be after the response is back, so show it only if nothing is on screen yet.
- * With no connection (status 0) the promise resolves to that copy, with when it was saved,
- * instead of rejecting; without a copy, or for any other error, it rejects as request() did.
+ * request(), keeping a copy of the result on the device for next time. Only when there's no
+ * answer (status 0: no connection, or none in time) does the promise resolve to the copy saved
+ * last time, with when it was saved; without a copy, or for any other error, it rejects as
+ * request() did. The server always goes first, so while it can be reached the screen never
+ * shows an old copy, whose photo links may have expired.
  */
-export async function cachedFetch<T>(
-  key: string,
-  request: () => Promise<T>,
-  showSaved: (data: T) => void,
-): Promise<{ data: T; savedAt: string | null }> {
-  const saved = readSaved<T>(key);
-  saved.then((copy) => copy && showSaved(copy.data));
+export async function cachedFetch<T>(key: string, request: () => Promise<T>): Promise<{ data: T; savedAt: string | null }> {
   try {
     const data = await request();
-    save(key, data);
+    writeCache(key, data);
     return { data, savedAt: null };
   } catch (err) {
-    const copy = await saved;
-    if (copy && err instanceof ApiError && err.status === 0) return copy;
-    throw err;
+    const copy = err instanceof ApiError && err.status === 0 ? await readCache<T>(key) : null;
+    if (!copy) throw err;
+    return copy;
   }
 }
 

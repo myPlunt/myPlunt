@@ -5,23 +5,26 @@ import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { WateringHistory } from '@/lib/plant/types';
 import { useAuthStore } from '@/stores/auth-store';
 
-import * as plantService from './plant-service';
+import { cachedWateringHistory } from './offline-pages';
 
 /** Every watering of one plant, for its watering history screen. */
 export function useWateringHistory(plantId: string) {
   const { setUnauthenticated } = useAuthStore();
   const [history, setHistory] = useState<WateringHistory | null>(null);
+  // When the history on screen was fetched, while it's the copy saved on the device because
+  // there's no connection; null when it's fresh.
+  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) => {
-      plantService
-        .getWateringHistory(plantId)
+      cachedWateringHistory(plantId)
         .then((result) => {
           if (isCancelled()) return;
-          setHistory(result);
+          setHistory(result.data);
+          setSavedAt(result.savedAt);
           setError(null);
         })
         .catch((err) => {
@@ -54,6 +57,7 @@ export function useWateringHistory(plantId: string) {
 
   return {
     history,
+    savedAt,
     error,
     isLoading,
     retry() {

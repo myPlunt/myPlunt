@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
+import { savePlantPagesForOffline } from '@/features/plants/offline-pages';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { Garden } from '@/lib/garden/types';
 import { logBug } from '@/lib/logger';
@@ -36,20 +37,15 @@ export function useGarden(userId?: string) {
   // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) => {
-      // The saved copy, while the request is out. Only when nothing is on screen yet: if the
-      // response came back first, or the garden is already up (a refresh), that's newer.
-      const showSaved = (saved: Garden) => {
-        if (isCancelled()) return;
-        setGarden((current) => current ?? saved);
-        setIsLoading(false);
-      };
       // Only the user's own garden is kept for offline: a friend's page needs the connection
       // for their profile before it ever shows their garden.
       const request: Promise<{ data: Garden; savedAt: string | null }> = userId
         ? gardenService.getGarden(userId).then((data) => ({ data, savedAt: null }))
-        : cachedFetch('garden', () => gardenService.getGarden(), showSaved);
+        : cachedFetch('garden', () => gardenService.getGarden());
       return request
         .then((result) => {
+          // Fresh from the server, so its plants' pages are brought up to date for offline too.
+          if (!userId && result.savedAt === null) savePlantPagesForOffline(result.data).catch(() => {});
           if (isCancelled()) return;
           // A saved copy was already checked when it was fresh.
           if (result.savedAt === null) reportUnusableWateringDates(result.data);

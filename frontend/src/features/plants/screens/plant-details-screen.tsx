@@ -8,6 +8,7 @@ import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { LinkCard } from '@/components/ui/link-card';
+import { OfflineNote } from '@/components/ui/offline-note';
 import { Shadow } from '@/constants/theme';
 import { WateringPill } from '@/features/garden/components/watering-pill';
 import { lastWateredLabel } from '@/features/garden/watering';
@@ -33,7 +34,7 @@ import { useOnboardingStore } from '@/stores/onboarding-store';
 export function PlantDetailsScreen({ plantId }: { plantId: string }) {
   const theme = useTheme();
   const router = useRouter();
-  const { plant, error, isLoading, retry } = usePlant(plantId);
+  const { plant, savedAt, error, isLoading, retry } = usePlant(plantId);
   // The tour's photo step, opened here right after its first plant was saved. It only shows
   // where photos are added (most users add one with the plant anyway); "Got it" moves on to the
   // watering step in the garden. Add under Growth still works; leaving otherwise would strand
@@ -93,6 +94,7 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
             ) : (
               plant && (
                 <>
+                  {savedAt && <OfflineNote savedAt={savedAt} />}
                   <PlantDetailsContent plant={plant} isPhotoStep={isPhotoStep} onGrowthLayout={showGrowth} />
                   <View pointerEvents={isPhotoStep ? 'none' : 'auto'}>
                     <DeletePlant plant={plant} />

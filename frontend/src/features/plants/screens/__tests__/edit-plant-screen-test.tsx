@@ -45,7 +45,7 @@ const vera: PlantDetails = {
 };
 
 function mockPlant(state: Partial<ReturnType<typeof usePlant>>) {
-  mockedUsePlant.mockReturnValue({ plant: vera, error: null, isLoading: false, retry, ...state });
+  mockedUsePlant.mockReturnValue({ plant: vera, savedAt: null, error: null, isLoading: false, retry, ...state });
 }
 
 beforeEach(() => {

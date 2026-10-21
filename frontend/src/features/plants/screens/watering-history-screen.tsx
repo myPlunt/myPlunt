@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { OfflineNote } from '@/components/ui/offline-note';
 import { Shadow } from '@/constants/theme';
 import { lastWateredLabel } from '@/features/garden/watering';
 import { useWateringHistory } from '@/features/plants/use-watering-history';
@@ -17,7 +18,7 @@ import type { Watering, WateringHistory } from '@/lib/plant/types';
  */
 export function WateringHistoryScreen({ plantId }: { plantId: string }) {
   const theme = useTheme();
-  const { history, error, isLoading, retry } = useWateringHistory(plantId);
+  const { history, savedAt, error, isLoading, retry } = useWateringHistory(plantId);
 
   return (
     <View className="flex-1 bg-background">
@@ -34,7 +35,12 @@ export function WateringHistoryScreen({ plantId }: { plantId: string }) {
               <Button label="Try again" variant="secondary" onPress={retry} />
             </View>
           ) : (
-            history && <WateringHistoryContent history={history} />
+            history && (
+              <>
+                {savedAt && <OfflineNote savedAt={savedAt} />}
+                <WateringHistoryContent history={history} />
+              </>
+            )
           )}
         </ScrollView>
       </SafeAreaView>

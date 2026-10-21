@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { OfflineNote } from '@/components/ui/offline-note';
 import { RoomSection } from '@/features/garden/components/room-section';
 import { WaterDueCard } from '@/features/garden/components/water-due-card';
 import { WaterSelectionBar } from '@/features/garden/components/water-selection-bar';
@@ -147,17 +148,7 @@ export function GardenScreen() {
           ) : (
             garden && (
               <>
-                {/* The copy saved on the device, as there's no connection for a fresh one. */}
-                {savedAt && (
-                  <Text className="type-caption text-center text-text-secondary">
-                    {`Offline · updated ${new Date(savedAt).toLocaleString(undefined, {
-                      day: 'numeric',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}`}
-                  </Text>
-                )}
+                {savedAt && <OfflineNote savedAt={savedAt} />}
                 {garden.rooms.length === 0 ? (
                   <View className="items-center gap-2 rounded-2xl bg-background-element p-6">
                     <Text className="type-subtitle-large text-text">Your garden is empty</Text>

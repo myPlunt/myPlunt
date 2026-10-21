@@ -5,23 +5,26 @@ import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { PlantDetails } from '@/lib/plant/types';
 import { useAuthStore } from '@/stores/auth-store';
 
-import * as plantService from './plant-service';
+import { cachedPlant } from './offline-pages';
 
 /** One of the user's plants, for its details and edit screens. */
 export function usePlant(plantId: string) {
   const { setUnauthenticated } = useAuthStore();
   const [plant, setPlant] = useState<PlantDetails | null>(null);
+  // When the plant on screen was fetched, while it's the copy saved on the device because
+  // there's no connection; null when it's fresh.
+  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) => {
-      plantService
-        .getPlant(plantId)
+      cachedPlant(plantId)
         .then((result) => {
           if (isCancelled()) return;
-          setPlant(result);
+          setPlant(result.data);
+          setSavedAt(result.savedAt);
           setError(null);
         })
         .catch((err) => {
@@ -54,6 +57,7 @@ export function usePlant(plantId: string) {
 
   return {
     plant,
+    savedAt,
     error,
     isLoading,
     retry() {
