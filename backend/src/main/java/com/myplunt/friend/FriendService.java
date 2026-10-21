@@ -5,6 +5,7 @@ import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.garden.GardenService;
 import com.myplunt.garden.dto.GardenResponse;
+import com.myplunt.notification.PushNotificationService;
 import com.myplunt.post.PostService;
 import com.myplunt.post.dto.PostResponse;
 import com.myplunt.species.SpeciesService;
@@ -31,6 +32,7 @@ public class FriendService {
     private final GardenService gardenService;
     private final SpeciesService speciesService;
     private final PostService postService;
+    private final PushNotificationService pushNotificationService;
     private final AuditLog auditLog;
 
     public FriendService(
@@ -39,12 +41,14 @@ public class FriendService {
             GardenService gardenService,
             SpeciesService speciesService,
             PostService postService,
+            PushNotificationService pushNotificationService,
             AuditLog auditLog) {
         this.friendshipRepository = friendshipRepository;
         this.userService = userService;
         this.gardenService = gardenService;
         this.speciesService = speciesService;
         this.postService = postService;
+        this.pushNotificationService = pushNotificationService;
         this.auditLog = auditLog;
     }
 
@@ -152,5 +156,6 @@ public class FriendService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Request already sent");
         }
         auditLog.recorded(AuditEvent.FRIEND_REQUEST_SENT, requesterId, requesterId, Map.of("other_user_id", receiverId));
+        pushNotificationService.sendFriendRequest(requesterId, receiverId);
     }
 }

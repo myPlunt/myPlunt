@@ -8,11 +8,14 @@ import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantRepository;
 import com.myplunt.plant.WateringLogRepository;
 import com.myplunt.plant.WateringSchedule;
+import com.myplunt.user.User;
+import com.myplunt.user.UserRepository;
 import com.myplunt.user.UserSettings;
 import com.myplunt.user.UserSettingsRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,10 +40,15 @@ public class PushNotificationService {
     // Reminders go out at 9:00 on each phone's own clock.
     static final int REMINDER_HOUR = 9;
 
+    // App routes a tap opens (expo-router paths).
+    static final String GARDEN_URL = "/garden";
+    static final String FRIEND_REQUESTS_URL = "/friends?tab=requests";
+
     private final PushTokenRepository pushTokenRepository;
     private final UserSettingsRepository userSettingsRepository;
     private final PlantRepository plantRepository;
     private final WateringLogRepository wateringLogRepository;
+    private final UserRepository userRepository;
     private final ExpoPushClient expoPushClient;
 
     public PushNotificationService(
@@ -48,11 +56,13 @@ public class PushNotificationService {
             UserSettingsRepository userSettingsRepository,
             PlantRepository plantRepository,
             WateringLogRepository wateringLogRepository,
+            UserRepository userRepository,
             ExpoPushClient expoPushClient) {
         this.pushTokenRepository = pushTokenRepository;
         this.userSettingsRepository = userSettingsRepository;
         this.plantRepository = plantRepository;
         this.wateringLogRepository = wateringLogRepository;
+        this.userRepository = userRepository;
         this.expoPushClient = expoPushClient;
     }
 
@@ -88,9 +98,29 @@ public class PushNotificationService {
             }
             List<String> names = plantsDueToday(pushToken.getUserId(), zone, now);
             if (!names.isEmpty()) {
-                messages.add(new ExpoPushMessage(pushToken.getToken(), reminderTitle(names), reminderText(names)));
+                messages.add(new ExpoPushMessage(
+                        pushToken.getToken(), reminderTitle(names), reminderText(names), GARDEN_URL));
             }
         }
+        send(messages);
+    }
+
+    // To every phone of the receiver. Async, so a slow Expo never holds up sending the request.
+    // There's no setting for it: a request is waiting on the user, and the phone's settings can still mute it.
+    @Async
+    public void sendFriendRequest(UUID requesterId, UUID receiverId) {
+        List<PushToken> tokens = pushTokenRepository.findByUserId(receiverId);
+        if (tokens.isEmpty()) {
+            return;
+        }
+        String requester = userRepository.findById(requesterId).map(User::getUsername).orElse("Someone");
+        send(tokens.stream()
+                .map(pushToken -> new ExpoPushMessage(pushToken.getToken(), "New friend request 🌱",
+                        requester + " wants to be friends.", FRIEND_REQUESTS_URL))
+                .toList());
+    }
+
+    private void send(List<ExpoPushMessage> messages) {
         if (messages.isEmpty()) {
             return;
         }

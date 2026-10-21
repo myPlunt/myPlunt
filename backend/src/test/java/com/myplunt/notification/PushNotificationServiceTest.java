@@ -5,6 +5,8 @@ import com.myplunt.plant.LastWatering;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantRepository;
 import com.myplunt.plant.WateringLogRepository;
+import com.myplunt.user.User;
+import com.myplunt.user.UserRepository;
 import com.myplunt.user.UserSettings;
 import com.myplunt.user.UserSettingsRepository;
 import org.junit.jupiter.api.Test;
@@ -44,11 +46,13 @@ class PushNotificationServiceTest {
     @Mock
     private WateringLogRepository wateringLogRepository;
     @Mock
+    private UserRepository userRepository;
+    @Mock
     private ExpoPushClient expoPushClient;
 
     private PushNotificationService service() {
         return new PushNotificationService(
-                pushTokenRepository, userSettingsRepository, plantRepository, wateringLogRepository, expoPushClient);
+                pushTokenRepository, userSettingsRepository, plantRepository, wateringLogRepository, userRepository, expoPushClient);
     }
 
     // On a 3-day schedule (the owner's own).
@@ -80,7 +84,7 @@ class PushNotificationServiceTest {
         service().sendWateringReminders(NINE_IN_AMSTERDAM);
 
         verify(expoPushClient).send(List.of(
-                new ExpoPushMessage("ExponentPushToken[a]", "Monty is thirsty 💧", "Give Monty some water today.")));
+                new ExpoPushMessage("ExponentPushToken[a]", "Monty is thirsty 💧", "Give Monty some water today.", "/garden")));
     }
 
     @Test
@@ -98,6 +102,21 @@ class PushNotificationServiceTest {
 
         verify(plantRepository, never()).findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(any());
         verify(expoPushClient, never()).send(anyList());
+    }
+
+    @Test
+    void sendFriendRequest_tellsEveryPhoneOfTheReceiverWhoAskedAndOpensTheirRequests() {
+        UUID janeId = UUID.randomUUID();
+        when(pushTokenRepository.findByUserId(USER_ID)).thenReturn(List.of(
+                new PushToken("ExponentPushToken[phone]", USER_ID, "Europe/Amsterdam"),
+                new PushToken("ExponentPushToken[tablet]", USER_ID, "Europe/Amsterdam")));
+        when(userRepository.findById(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
+
+        service().sendFriendRequest(janeId, USER_ID);
+
+        verify(expoPushClient).send(List.of(
+                new ExpoPushMessage("ExponentPushToken[phone]", "New friend request 🌱", "jane wants to be friends.", "/friends?tab=requests"),
+                new ExpoPushMessage("ExponentPushToken[tablet]", "New friend request 🌱", "jane wants to be friends.", "/friends?tab=requests")));
     }
 
     @Test
