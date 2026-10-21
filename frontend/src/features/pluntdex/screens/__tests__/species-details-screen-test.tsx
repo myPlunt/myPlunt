@@ -84,7 +84,6 @@ beforeEach(() => {
   });
   jest.mocked(useGarden).mockReturnValue({
     garden,
-    savedAt: null,
     error: null,
     isLoading: false,
     retry: jest.fn(),

@@ -9,7 +9,7 @@ const PREFIX = 'cache:';
 
 interface Saved<T> {
   data: T;
-  /** When it was fetched (ISO), for the screen's "updated ..." note. */
+  /** When it was fetched (ISO). */
   savedAt: string;
 }
 

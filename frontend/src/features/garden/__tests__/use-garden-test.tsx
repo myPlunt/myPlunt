@@ -72,12 +72,12 @@ describe('without a connection', () => {
     detail: "Can't reach myPlunt right now. Check your connection and try again.",
   });
 
-  it('shows the garden saved on the last visit, with when it was saved', async () => {
+  it('shows the garden saved on the last visit', async () => {
     await visitGarden();
     mockedGardenService.getGarden.mockRejectedValue(offline);
     const { result } = await renderWithStore();
 
-    await waitFor(() => expect(result.current.garden.savedAt).not.toBeNull());
+    await waitFor(() => expect(result.current.garden.isLoading).toBe(false));
     expect(result.current.garden.garden).toEqual(garden);
     expect(result.current.garden.error).toBeNull();
   });

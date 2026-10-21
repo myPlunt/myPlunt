@@ -11,9 +11,6 @@ import { cachedPlant } from './offline-pages';
 export function usePlant(plantId: string) {
   const { setUnauthenticated } = useAuthStore();
   const [plant, setPlant] = useState<PlantDetails | null>(null);
-  // When the plant on screen was fetched, while it's the copy saved on the device because
-  // there's no connection; null when it's fresh.
-  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -24,7 +21,6 @@ export function usePlant(plantId: string) {
         .then((result) => {
           if (isCancelled()) return;
           setPlant(result.data);
-          setSavedAt(result.savedAt);
           setError(null);
         })
         .catch((err) => {
@@ -57,7 +53,6 @@ export function usePlant(plantId: string) {
 
   return {
     plant,
-    savedAt,
     error,
     isLoading,
     retry() {

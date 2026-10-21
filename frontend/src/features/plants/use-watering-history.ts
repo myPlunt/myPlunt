@@ -11,9 +11,6 @@ import { cachedWateringHistory } from './offline-pages';
 export function useWateringHistory(plantId: string) {
   const { setUnauthenticated } = useAuthStore();
   const [history, setHistory] = useState<WateringHistory | null>(null);
-  // When the history on screen was fetched, while it's the copy saved on the device because
-  // there's no connection; null when it's fresh.
-  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -24,7 +21,6 @@ export function useWateringHistory(plantId: string) {
         .then((result) => {
           if (isCancelled()) return;
           setHistory(result.data);
-          setSavedAt(result.savedAt);
           setError(null);
         })
         .catch((err) => {
@@ -57,7 +53,6 @@ export function useWateringHistory(plantId: string) {
 
   return {
     history,
-    savedAt,
     error,
     isLoading,
     retry() {

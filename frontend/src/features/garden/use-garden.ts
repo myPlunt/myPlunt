@@ -28,9 +28,6 @@ function reportUnusableWateringDates(garden: Garden) {
 export function useGarden(userId?: string) {
   const { setUnauthenticated } = useAuthStore();
   const [garden, setGarden] = useState<Garden | null>(null);
-  // When the garden on screen was fetched, while it's the copy saved on the device because
-  // there's no connection; null when it's fresh.
-  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -50,7 +47,6 @@ export function useGarden(userId?: string) {
           // A saved copy was already checked when it was fresh.
           if (result.savedAt === null) reportUnusableWateringDates(result.data);
           setGarden(result.data);
-          setSavedAt(result.savedAt);
           setError(null);
         })
         .catch((err) => {
@@ -83,7 +79,6 @@ export function useGarden(userId?: string) {
 
   return {
     garden,
-    savedAt,
     error,
     isLoading,
     retry() {

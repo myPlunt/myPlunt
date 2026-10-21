@@ -43,7 +43,6 @@ beforeEach(() => {
   mockedUseProfile.mockReturnValue({ user: jane, error: null, isLoading: false, retry });
   jest.mocked(useGarden).mockReturnValue({
     garden: { rooms: [{ id: 'r1', name: 'Balcony', plants: [] }] },
-    savedAt: null,
     error: null,
     isLoading: false,
     retry: jest.fn(),
@@ -78,7 +77,7 @@ describe('ProfileScreen', () => {
   });
 
   it('shows a dash while the stats load', async () => {
-    jest.mocked(useGarden).mockReturnValue({ garden: null, savedAt: null, error: null, isLoading: true, retry: jest.fn(), refresh: jest.fn() });
+    jest.mocked(useGarden).mockReturnValue({ garden: null, error: null, isLoading: true, retry: jest.fn(), refresh: jest.fn() });
     await render(<ProfileScreen />);
 
     expect(screen.getByRole('button', { name: 'Plants loading' })).toBeOnTheScreen();
