@@ -63,6 +63,8 @@ public final class ApiPaths {
         public static final String ME_LOCATION = ME + "/location";
         // PUT marks the app tour as finished or skipped.
         public static final String ME_ONBOARDING = ME + "/onboarding";
+        // GET returns, PUT replaces which kinds of notifications the user wants.
+        public static final String ME_NOTIFICATIONS = ME + "/notifications";
         public static final String SEARCH = BASE + "/search";
         // Literal paths (/me, /search) win over this template.
         public static final String BY_ID = BASE + "/{userId}";

@@ -3,6 +3,7 @@ package com.myplunt.user;
 import com.myplunt.constants.ApiPaths;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.CompleteOnboardingRequest;
+import com.myplunt.user.dto.NotificationSettings;
 import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
@@ -81,6 +82,17 @@ public class UserController {
     public void completeOnboarding(
             @AuthenticationPrincipal User principal, @Valid @RequestBody CompleteOnboardingRequest request) {
         userService.completeOnboarding(principal.getId(), request);
+    }
+
+    @GetMapping(ApiPaths.Users.ME_NOTIFICATIONS)
+    public NotificationSettings notificationSettings(@AuthenticationPrincipal User principal) {
+        return userService.notificationSettings(principal);
+    }
+
+    @PutMapping(ApiPaths.Users.ME_NOTIFICATIONS)
+    public NotificationSettings updateNotificationSettings(
+            @AuthenticationPrincipal User principal, @Valid @RequestBody NotificationSettings request) {
+        return userService.updateNotificationSettings(principal.getId(), request);
     }
 
     @DeleteMapping(ApiPaths.Users.ME_AVATAR)

@@ -41,6 +41,22 @@ public class User {
     @Column(name = "onboarding_completed_at")
     private Instant onboardingCompletedAt;
 
+    // Which kinds of notifications the user wants; all on by default.
+    @Column(name = "notify_water_reminders", nullable = false)
+    private boolean notifyWaterReminders = true;
+
+    @Column(name = "notify_weather_alerts", nullable = false)
+    private boolean notifyWeatherAlerts = true;
+
+    @Column(name = "notify_friend_activity", nullable = false)
+    private boolean notifyFriendActivity = true;
+
+    @Column(name = "notify_friend_nudges", nullable = false)
+    private boolean notifyFriendNudges = true;
+
+    @Column(name = "notify_plant_sitting", nullable = false)
+    private boolean notifyPlantSitting = true;
+
     protected User() {}
 
     public User(String username, String email, String passwordHash) {
@@ -123,5 +139,45 @@ public class User {
 
     public void setOnboardingCompletedAt(Instant onboardingCompletedAt) {
         this.onboardingCompletedAt = onboardingCompletedAt;
+    }
+
+    public boolean isNotifyWaterReminders() {
+        return notifyWaterReminders;
+    }
+
+    public void setNotifyWaterReminders(boolean notifyWaterReminders) {
+        this.notifyWaterReminders = notifyWaterReminders;
+    }
+
+    public boolean isNotifyWeatherAlerts() {
+        return notifyWeatherAlerts;
+    }
+
+    public void setNotifyWeatherAlerts(boolean notifyWeatherAlerts) {
+        this.notifyWeatherAlerts = notifyWeatherAlerts;
+    }
+
+    public boolean isNotifyFriendActivity() {
+        return notifyFriendActivity;
+    }
+
+    public void setNotifyFriendActivity(boolean notifyFriendActivity) {
+        this.notifyFriendActivity = notifyFriendActivity;
+    }
+
+    public boolean isNotifyFriendNudges() {
+        return notifyFriendNudges;
+    }
+
+    public void setNotifyFriendNudges(boolean notifyFriendNudges) {
+        this.notifyFriendNudges = notifyFriendNudges;
+    }
+
+    public boolean isNotifyPlantSitting() {
+        return notifyPlantSitting;
+    }
+
+    public void setNotifyPlantSitting(boolean notifyPlantSitting) {
+        this.notifyPlantSitting = notifyPlantSitting;
     }
 }

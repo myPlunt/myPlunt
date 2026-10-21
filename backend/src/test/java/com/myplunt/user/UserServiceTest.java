@@ -8,6 +8,7 @@ import com.myplunt.storage.StorageService;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.CompleteOnboardingRequest;
+import com.myplunt.user.dto.NotificationSettings;
 import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
@@ -34,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -199,6 +201,20 @@ class UserServiceTest {
         verify(userRepository).save(jane);
         verify(auditLog).recorded(AuditEvent.ONBOARDING_COMPLETED, id, id, Map.of("skipped", true));
         verify(auditLog).recorded(any(), any(), any(), anyMap());
+    }
+
+    @Test
+    void updateNotificationSettings_savesAndReturnsTheNewSettings() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(userRepository.save(jane)).thenReturn(jane);
+        NotificationSettings request = new NotificationSettings(false, true, true, false, true);
+
+        NotificationSettings saved = userService().updateNotificationSettings(id, request);
+
+        assertThat(saved).isEqualTo(request);
+        assertThat(jane.isNotifyWaterReminders()).isFalse();
+        assertThat(jane.isNotifyFriendNudges()).isFalse();
+        verify(auditLog).recorded(eq(AuditEvent.NOTIFICATION_SETTINGS_UPDATED), eq(id), eq(id), anyMap());
     }
 
     @Test

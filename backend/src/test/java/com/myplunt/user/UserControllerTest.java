@@ -3,6 +3,7 @@ package com.myplunt.user;
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.user.dto.ChangeEmailRequest;
+import com.myplunt.user.dto.NotificationSettings;
 import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
@@ -221,6 +222,34 @@ class UserControllerTest {
                 .header("Authorization", "Bearer access-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new UpdateLocationRequest(200.0, 6.89, "Enschede"))
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void updateNotificationSettings_returnsTheSavedSettings() {
+        UUID id = authenticateAsJane();
+        NotificationSettings request = new NotificationSettings(false, true, true, false, true);
+        when(userService.updateNotificationSettings(id, request)).thenReturn(request);
+
+        restTestClient.put().uri("/v1/users/me/notifications")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(NotificationSettings.class)
+                .isEqualTo(request);
+    }
+
+    @Test
+    void updateNotificationSettings_rejectsAMissingSetting() {
+        authenticateAsJane();
+
+        restTestClient.put().uri("/v1/users/me/notifications")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new NotificationSettings(true, null, true, true, true))
                 .exchange()
                 .expectStatus().isBadRequest();
     }

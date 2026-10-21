@@ -10,6 +10,7 @@ import com.myplunt.storage.StorageService;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.CompleteOnboardingRequest;
+import com.myplunt.user.dto.NotificationSettings;
 import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
@@ -226,6 +227,30 @@ public class UserService {
         user.setOnboardingCompletedAt(Instant.now());
         userRepository.save(user);
         auditLog.recorded(AuditEvent.ONBOARDING_COMPLETED, userId, userId, Map.of("skipped", request.skipped()));
+    }
+
+    public NotificationSettings notificationSettings(User user) {
+        return new NotificationSettings(user.isNotifyWaterReminders(), user.isNotifyWeatherAlerts(),
+                user.isNotifyFriendActivity(), user.isNotifyFriendNudges(), user.isNotifyPlantSitting());
+    }
+
+    @Transactional
+    public NotificationSettings updateNotificationSettings(UUID userId, NotificationSettings request) {
+        User user = loadUser(userId);
+        user.setNotifyWaterReminders(request.waterReminders());
+        user.setNotifyWeatherAlerts(request.weatherAlerts());
+        user.setNotifyFriendActivity(request.friendActivity());
+        user.setNotifyFriendNudges(request.friendNudges());
+        user.setNotifyPlantSitting(request.plantSitting());
+        User saved = userRepository.save(user);
+        NotificationSettings settings = notificationSettings(saved);
+        auditLog.recorded(AuditEvent.NOTIFICATION_SETTINGS_UPDATED, userId, userId, Map.of(
+                "water_reminders", settings.waterReminders(),
+                "weather_alerts", settings.weatherAlerts(),
+                "friend_activity", settings.friendActivity(),
+                "friend_nudges", settings.friendNudges(),
+                "plant_sitting", settings.plantSitting()));
+        return settings;
     }
 
     // Removing a picture the user doesn't have is a no-op, so a retried request still succeeds.
