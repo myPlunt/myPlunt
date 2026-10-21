@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 
+import { usePushTokenRegistration } from '@/features/notifications/use-push-token-registration';
 import { useResumeTour } from '@/features/onboarding/use-resume-tour';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -7,6 +8,7 @@ export default function AppLayout() {
   const theme = useTheme();
   // Mounted once per sign-in, behind the auth gate.
   useResumeTour();
+  usePushTokenRegistration();
 
   // Screens render their own AppHeader, so the native header (and its iOS
   // Liquid Glass back button) stays hidden on both platforms.
