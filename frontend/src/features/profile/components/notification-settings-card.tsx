@@ -41,13 +41,21 @@ const OPTIONS: {
 
 export function NotificationSettingsCard() {
   const theme = useTheme();
-  const { settings, error, isLoading, retry, toggle } = useNotificationSettings();
+  const { settings, allowed, error, isLoading, retry, toggle, turnOn } = useNotificationSettings();
 
   return (
     <View
       className="gap-2 rounded-2xl border-[1.5px] border-input-border bg-background-element px-4 py-3"
       style={Shadow.card}>
       <Text className="type-label text-accent">NOTIFICATIONS</Text>
+      {allowed === false && (
+        <View className="items-start gap-2">
+          <Text className="type-body-medium text-text-secondary">
+            Notifications are off for myPlunt on this phone, so you won&apos;t get any of these.
+          </Text>
+          <Button label="Turn on notifications" variant="secondary" onPress={turnOn} />
+        </View>
+      )}
       {isLoading ? (
         // Colour props (spinner) read the theme instead of a class.
         <ActivityIndicator accessibilityLabel="Loading notification settings" color={theme.primary} />

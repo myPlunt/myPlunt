@@ -38,7 +38,7 @@ beforeEach(() => {
   mockedUseProfile.mockReturnValue({ user: jane, error: null, isLoading: false, retry });
   mockedUseOnboardingStore.mockReturnValue(onboarding);
   mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail: jest.fn(), updateAvatar: jest.fn(), removeAvatar: jest.fn(), updateNotificationSettings: jest.fn() });
-  mockedUseNotificationSettings.mockReturnValue({ settings: notifications, error: null, isLoading: false, retry: jest.fn(), toggle });
+  mockedUseNotificationSettings.mockReturnValue({ settings: notifications, allowed: true, turnOn: jest.fn(), error: null, isLoading: false, retry: jest.fn(), toggle });
 });
 
 afterEach(() => {

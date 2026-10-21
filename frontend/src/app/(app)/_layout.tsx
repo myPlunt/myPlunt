@@ -21,6 +21,8 @@ export default function AppLayout() {
       <Stack.Screen name="tour-done" options={{ gestureEnabled: false }} />
       {/* Tour step 3, opened from Edit profile; no swipe back for the same reason. */}
       <Stack.Screen name="location" options={{ gestureEnabled: false }} />
+      {/* Tour step 4, opened from the location step; no swipe back either. */}
+      <Stack.Screen name="notifications" options={{ gestureEnabled: false }} />
       <Stack.Screen name="settings" />
       <Stack.Screen name="edit-profile" />
       {/* Opened from the people icon in the profile's menu, also during the tour's friends

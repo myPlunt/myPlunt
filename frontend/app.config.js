@@ -65,6 +65,8 @@ export default {
           locationWhenInUsePermission: "myPlunt uses your city to warn you about weather that affects your plants.",
         },
       ],
+      // Asked once, during the tour; Settings links to the system page when it was denied.
+      "expo-notifications",
       [
         "expo-splash-screen",
         {

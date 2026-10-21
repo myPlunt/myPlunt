@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logFailedUi } from '@/lib/logger';
+import { notificationsAllowed, turnOnNotifications } from '@/lib/notification-permission';
 import type { NotificationSettings } from '@/lib/user/types';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -16,6 +18,18 @@ export function useNotificationSettings() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
+  // Whether the phone lets myPlunt show notifications at all; null until checked.
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const check = () => notificationsAllowed().then(setAllowed, () => setAllowed(null));
+    check();
+    // Checked again on return, since the user may have changed it in the phone's settings.
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') check();
+    });
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,8 +57,12 @@ export function useNotificationSettings() {
 
   return {
     settings,
+    allowed,
     error,
     isLoading,
+    async turnOn() {
+      setAllowed(await turnOnNotifications());
+    },
     retry() {
       setError(null);
       setIsLoading(true);

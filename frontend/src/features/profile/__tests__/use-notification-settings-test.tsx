@@ -1,12 +1,15 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { AppState } from 'react-native';
 
 import * as profileService from '@/features/profile/profile-service';
 import { useNotificationSettings } from '@/features/profile/use-notification-settings';
 import { ApiError } from '@/lib/auth/api-client';
 import { tokenStorage } from '@/lib/auth/token-storage';
+import { notificationsAllowed } from '@/lib/notification-permission';
 import { AuthStoreProvider } from '@/stores/auth-store';
 
 jest.mock('@/features/profile/profile-service');
+jest.mock('@/lib/notification-permission');
 jest.mock('@/lib/auth/token-storage', () => ({
   tokenStorage: { getTokens: jest.fn() },
 }));
@@ -18,6 +21,8 @@ const allOn = { waterReminders: true, weatherAlerts: true, friendActivity: true,
 beforeEach(() => {
   mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
   mockedProfileService.getNotificationSettings.mockResolvedValue(allOn);
+  jest.mocked(notificationsAllowed).mockResolvedValue(true);
+  jest.spyOn(AppState, 'addEventListener').mockReturnValue({ remove: jest.fn() } as unknown as ReturnType<typeof AppState.addEventListener>);
 });
 
 afterEach(() => {
