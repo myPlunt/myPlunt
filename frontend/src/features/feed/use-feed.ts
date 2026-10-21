@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { Post } from '@/lib/post/types';
 import { useAuthStore } from '@/stores/auth-store';
+import { useReloadOnReconnect } from '@/stores/network-store';
 
 /** Loads a list of posts on focus: the feed (getFeed) or the user's own (getMyPosts). */
 export function useFeed(fetchPosts: () => Promise<Post[]>) {
@@ -47,6 +48,8 @@ export function useFeed(fetchPosts: () => Promise<Post[]>) {
       };
     }, [load]),
   );
+  // And when the connection comes back, so the screen catches up by itself.
+  useReloadOnReconnect(() => load(() => false));
 
   return {
     posts,

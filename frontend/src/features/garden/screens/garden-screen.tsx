@@ -19,6 +19,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { describeError } from '@/lib/auth/api-client';
 import type { Room } from '@/lib/garden/types';
 import { logFailedUi } from '@/lib/logger';
+import { useNetworkStore } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
 export function GardenScreen() {
@@ -34,6 +35,7 @@ export function GardenScreen() {
   const isTourStep = isPlantStep || isWaterStep;
   useTourBackLock(isTourStep);
   const { waterPlants } = useGardenActions();
+  const { isOffline, explainOffline } = useNetworkStore();
   const [isWatering, setIsWatering] = useState(false);
   const [waterError, setWaterError] = useState<string | null>(null);
   // The plants picked to water; null when the user isn't picking.
@@ -116,11 +118,11 @@ export function GardenScreen() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Water plants"
-                  accessibilityHint="Pick the plants you watered"
-                  onPress={startSelecting}
+                  accessibilityHint={isOffline ? "Doesn't work offline" : 'Pick the plants you watered'}
+                  onPress={isOffline ? () => explainOffline('Watering') : startSelecting}
                   className={`h-10 w-10 items-center justify-center rounded-full active:opacity-70 ${
                     isWaterStep ? 'border-2 border-primary' : ''
-                  }`}>
+                  } ${isOffline ? 'opacity-40' : ''}`}>
                   {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
                   <SymbolView
                     name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}

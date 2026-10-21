@@ -8,10 +8,12 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
+import { OfflineNotice } from '@/components/layout/offline-notice';
 import { SplashOverlay } from '@/components/splash/splash-overlay';
 import { useScreenViewLogging } from '@/hooks/use-screen-view-logging';
 import { startLogging } from '@/lib/logger';
 import { AuthStoreProvider, useAuthStore } from '@/stores/auth-store';
+import { NetworkStoreProvider } from '@/stores/network-store';
 import { OnboardingStoreProvider } from '@/stores/onboarding-store';
 
 SplashScreen.preventAutoHideAsync();
@@ -52,8 +54,12 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthStoreProvider>
         <OnboardingStoreProvider>
-          <SplashOverlay />
-          <RootNavigator />
+          <NetworkStoreProvider>
+            <SplashOverlay />
+            <RootNavigator />
+            {/* Floats over whichever screen is open. */}
+            <OfflineNotice />
+          </NetworkStoreProvider>
         </OnboardingStoreProvider>
       </AuthStoreProvider>
     </ThemeProvider>

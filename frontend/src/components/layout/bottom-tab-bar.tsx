@@ -5,6 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useNetworkStore } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
 type SymbolName = SymbolViewProps['name'];
@@ -13,6 +14,8 @@ interface TabConfig {
   route: string;
   label: string;
   icon: SymbolName;
+  /** Its screen still works offline, from what's saved on the phone. */
+  worksOffline?: boolean;
 }
 
 const feedTab: TabConfig = {
@@ -30,6 +33,7 @@ const rightTabs: TabConfig[] = [
     route: 'garden',
     label: 'Garden',
     icon: { ios: 'leaf.fill', android: 'potted_plant', web: 'potted_plant' },
+    worksOffline: true,
   },
   {
     route: 'profile',
@@ -56,13 +60,21 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
   // so it stays on and gets a ring like the other controls the tour points at.
   const isPlantStep = step === 'plant';
   const addLocked = locked && !isPlantStep;
+  // Offline, what needs the connection is greyed out but still answers a press: the notice
+  // says it doesn't work offline, rather than nothing happening.
+  const { isOffline, explainOffline } = useNetworkStore();
 
-  function renderTab({ route, label, icon }: TabConfig) {
+  function renderTab({ route, label, icon, worksOffline }: TabConfig) {
     const target = state.routes.find((r) => r.name === route);
     if (!target) return null;
     const focused = activeRoute === route;
+    const offline = isOffline && !worksOffline;
 
     function onPress() {
+      if (offline) {
+        explainOffline(label);
+        return;
+      }
       // Emitting tabPress keeps the navigator's own behaviour (e.g. a screen
       // can listen for it) before we switch tabs.
       const event = navigation.emit({ type: 'tabPress', target: target!.key, canPreventDefault: true });
@@ -77,10 +89,13 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
         accessibilityRole="tab"
         accessibilityLabel={label}
         accessibilityState={{ selected: focused, disabled: locked }}
+        // Offline it still takes the press (to explain), so it isn't marked disabled; the hint says it.
+        accessibilityHint={offline ? "Doesn't work offline" : undefined}
         disabled={locked}
         onPress={onPress}
-        // The tab the user is on stays as it is; only the ones that would leave the step fade.
-        className={`flex-1 items-center gap-1 py-2 active:opacity-70 ${locked && !focused ? 'opacity-40' : ''}`}>
+        // In the tour the tab the user is on stays as it is; only the ones that would leave the
+        // step fade. Offline every tab that needs the connection fades, the open one too.
+        className={`flex-1 items-center gap-1 py-2 active:opacity-70 ${(locked && !focused) || offline ? 'opacity-40' : ''}`}>
         {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
         <SymbolView
           name={icon}
@@ -106,11 +121,12 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
             accessibilityRole="button"
             accessibilityLabel="Add plant"
             accessibilityState={{ selected: addOpen, disabled: addLocked }}
+            accessibilityHint={isOffline ? "Doesn't work offline" : undefined}
             disabled={addLocked}
-            onPress={() => router.push('/add')}
+            onPress={() => (isOffline ? explainOffline('Adding plants') : router.push('/add'))}
             className={`-mt-6 h-14 w-14 items-center justify-center rounded-full active:opacity-80 ${
               addOpen ? 'bg-action-primary' : 'bg-primary'
-            } ${addLocked ? 'opacity-40' : ''}`}
+            } ${addLocked || isOffline ? 'opacity-40' : ''}`}
             style={Shadow.card}>
             {/* Drawn around the button rather than as its border, so the bar's layout doesn't move. */}
             {isPlantStep && (

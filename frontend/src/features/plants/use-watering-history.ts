@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { WateringHistory } from '@/lib/plant/types';
 import { useAuthStore } from '@/stores/auth-store';
+import { useReloadOnReconnect } from '@/stores/network-store';
 
 import { cachedWateringHistory } from './offline-pages';
 
@@ -50,6 +51,8 @@ export function useWateringHistory(plantId: string) {
       };
     }, [load]),
   );
+  // And when the connection comes back, so the screen catches up by itself.
+  useReloadOnReconnect(() => load(() => false));
 
   return {
     history,

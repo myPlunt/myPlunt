@@ -7,6 +7,7 @@ import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { timeBetween } from '@/features/plants/growth';
 import { useTheme } from '@/hooks/use-theme';
 import type { PlantPhoto as PlantPhotoData } from '@/lib/plant/types';
+import { useNetworkStore } from '@/stores/network-store';
 
 interface GrowthSectionProps {
   plantName: string;
@@ -36,6 +37,7 @@ export function GrowthSection({
   highlightAdd = false,
 }: GrowthSectionProps) {
   const theme = useTheme();
+  const { isOffline, explainOffline } = useNetworkStore();
   const scrollRef = useRef<ScrollView>(null);
   const first = photos[0]?.takenAt;
   const last = photos.at(-1)?.takenAt;
@@ -105,8 +107,9 @@ export function GrowthSection({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Add a new photo"
-          onPress={onAdd}
-          className={`items-center gap-1 active:opacity-70 ${photos.length > 0 ? 'ml-2' : ''}`}>
+          accessibilityHint={isOffline ? "Doesn't work offline" : undefined}
+          onPress={isOffline ? () => explainOffline('Adding photos') : onAdd}
+          className={`items-center gap-1 active:opacity-70 ${photos.length > 0 ? 'ml-2' : ''} ${isOffline ? 'opacity-40' : ''}`}>
           <View className="h-[53px] w-[53px] items-center justify-center rounded-xl border-2 border-dashed border-primary">
             {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
             <SymbolView name={{ ios: 'plus', android: 'add', web: 'add' }} tintColor={theme.primary} size={20} />
