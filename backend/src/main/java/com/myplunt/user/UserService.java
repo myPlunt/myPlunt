@@ -9,6 +9,8 @@ import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.storage.StorageService;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.dto.ChangeEmailRequest;
+import com.myplunt.user.dto.CompleteOnboardingRequest;
+import com.myplunt.user.dto.NotificationSettings;
 import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,6 +47,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final StorageService storageService;
     private final FriendshipRepository friendshipRepository;
+    private final UserSettingsRepository userSettingsRepository;
     private final AuditLog auditLog;
 
     public UserService(
@@ -51,11 +55,13 @@ public class UserService {
             PasswordEncoder passwordEncoder,
             StorageService storageService,
             FriendshipRepository friendshipRepository,
+            UserSettingsRepository userSettingsRepository,
             AuditLog auditLog) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.storageService = storageService;
         this.friendshipRepository = friendshipRepository;
+        this.userSettingsRepository = userSettingsRepository;
         this.auditLog = auditLog;
     }
 
@@ -63,7 +69,8 @@ public class UserService {
     // /me don't query the same row twice. Endpoints that modify the user load it
     // fresh instead of reusing the principal (see updateProfile, changeEmail).
     public UserResponse toResponse(User user) {
-        return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), user.getBio(), avatarUrl(user));
+        return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), user.getBio(), avatarUrl(user),
+                user.getOnboardingCompletedAt() != null);
     }
 
     // Other users whose username contains the query, best matches first (see UserRepository.search),
@@ -211,6 +218,51 @@ public class UserService {
         user.setCity(request.city() == null || request.city().isBlank() ? null : request.city().strip());
         userRepository.save(user);
         auditLog.recorded(AuditEvent.LOCATION_UPDATED, userId, userId, Map.of());
+    }
+
+    // Retaking the tour from Settings ends here again; only the first time is saved and logged.
+    @Transactional
+    public void completeOnboarding(UUID userId, CompleteOnboardingRequest request) {
+        User user = loadUser(userId);
+        if (user.getOnboardingCompletedAt() != null) {
+            return;
+        }
+        user.setOnboardingCompletedAt(Instant.now());
+        userRepository.save(user);
+        auditLog.recorded(AuditEvent.ONBOARDING_COMPLETED, userId, userId, Map.of("skipped", request.skipped()));
+    }
+
+    @Transactional(readOnly = true)
+    public NotificationSettings notificationSettings(UUID userId) {
+        return toNotificationSettings(loadSettings(userId));
+    }
+
+    @Transactional
+    public NotificationSettings updateNotificationSettings(UUID userId, NotificationSettings request) {
+        UserSettings settings = loadSettings(userId);
+        settings.setWateringReminders(request.waterReminders());
+        settings.setWeatherAlerts(request.weatherAlerts());
+        settings.setFriendPostNotifications(request.friendActivity());
+        settings.setFriendNudges(request.friendNudges());
+        settings.setDelegationRequests(request.plantSitting());
+        NotificationSettings saved = toNotificationSettings(userSettingsRepository.save(settings));
+        auditLog.recorded(AuditEvent.NOTIFICATION_SETTINGS_UPDATED, userId, userId, Map.of(
+                "water_reminders", saved.waterReminders(),
+                "weather_alerts", saved.weatherAlerts(),
+                "friend_activity", saved.friendActivity(),
+                "friend_nudges", saved.friendNudges(),
+                "plant_sitting", saved.plantSitting()));
+        return saved;
+    }
+
+    // Accounts that never saved a setting have no row yet; they get the defaults, and the first save creates it.
+    private UserSettings loadSettings(UUID userId) {
+        return userSettingsRepository.findById(userId).orElseGet(() -> new UserSettings(userId));
+    }
+
+    private static NotificationSettings toNotificationSettings(UserSettings settings) {
+        return new NotificationSettings(settings.isWateringReminders(), settings.isWeatherAlerts(),
+                settings.isFriendPostNotifications(), settings.isFriendNudges(), settings.isDelegationRequests());
     }
 
     // Removing a picture the user doesn't have is a no-op, so a retried request still succeeds.

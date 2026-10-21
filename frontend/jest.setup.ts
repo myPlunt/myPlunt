@@ -42,3 +42,12 @@ jest.mock('react-native-reanimated', () => {
   const animation = { delay: () => animation, duration: () => animation };
   return { __esModule: true, default: { View }, FadeInUp: animation, FadeOutUp: animation };
 });
+
+// expo-notifications warns about Expo Go push support as soon as it's imported, and asks a native
+// module Jest doesn't have. Tests that check the permission flow mock it themselves.
+jest.mock('expo-notifications', () => ({
+  AndroidImportance: { DEFAULT: 3 },
+  setNotificationChannelAsync: jest.fn(),
+  requestPermissionsAsync: jest.fn(),
+  getPermissionsAsync: jest.fn(),
+}));

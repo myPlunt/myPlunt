@@ -4,15 +4,15 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
+import { useOnboardingActions } from '@/features/onboarding/use-onboarding-actions';
 import { useTourBack } from '@/features/onboarding/use-tour-back';
 import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
-import { useOnboardingStore } from '@/stores/onboarding-store';
 
 // The tour's last page, shown in place of the tabs after its last step (a skipped tour ends
 // without it). Its button ends the tour and brings the tabs back on the feed.
 export function TourDoneScreen() {
   const router = useRouter();
-  const { finish } = useOnboardingStore();
+  const { endTour } = useOnboardingActions();
   useTourBackLock(true);
   const goBack = useTourBack();
 
@@ -35,7 +35,7 @@ export function TourDoneScreen() {
               label="Start gardening"
               size="large"
               onPress={() => {
-                finish();
+                endTour(false);
                 router.replace('/');
               }}
             />

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { LinkCard } from '@/components/ui/link-card';
 import { useAuthActions } from '@/features/auth/use-auth-actions';
 import { ChangeEmailForm } from '@/features/profile/components/change-email-form';
+import { NotificationSettingsCard } from '@/features/profile/components/notification-settings-card';
 import { useProfile } from '@/features/profile/use-profile';
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -36,7 +37,9 @@ export function SettingsScreen() {
         <ScrollView
           contentContainerClassName="w-full max-w-content grow gap-6 self-center p-6"
           keyboardShouldPersistTaps="handled">
-          <View className="gap-3 rounded-2xl bg-background-element p-4" style={Shadow.card}>
+          <View
+            className="gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element px-4 py-3"
+            style={Shadow.card}>
             <Text className="type-label text-accent">ACCOUNT</Text>
             {isLoading ? (
               // Colour props (spinner, icons) read the theme instead of a class.
@@ -55,6 +58,8 @@ export function SettingsScreen() {
               <Text className="type-caption text-text-secondary">Coming soon</Text>
             </View>
           </View>
+
+          <NotificationSettingsCard />
 
           <LinkCard
             title="Take the tour again"

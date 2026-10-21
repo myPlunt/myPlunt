@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -35,6 +36,10 @@ public class User {
     private String city;
     private Double latitude;
     private Double longitude;
+
+    // Null until the user finishes or skips the app tour.
+    @Column(name = "onboarding_completed_at")
+    private Instant onboardingCompletedAt;
 
     protected User() {}
 
@@ -110,5 +115,13 @@ public class User {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public Instant getOnboardingCompletedAt() {
+        return onboardingCompletedAt;
+    }
+
+    public void setOnboardingCompletedAt(Instant onboardingCompletedAt) {
+        this.onboardingCompletedAt = onboardingCompletedAt;
     }
 }

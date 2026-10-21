@@ -77,6 +77,8 @@ export const lightColors = {
   noteOrange: brand.noteOrange,
   notePink: brand.notePink,
   noteTeal: brand.noteTeal,
+  // Track of a switched-on toggle (Settings > Notifications); its border and knob use actionPrimary.
+  toggleOnTrack: brand.fern300,
   // Staging pill only; production never shows it.
   staging: brand.mustard500,
 } as const;

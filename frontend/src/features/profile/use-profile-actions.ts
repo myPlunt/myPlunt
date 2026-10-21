@@ -1,5 +1,10 @@
 import { ApiError } from '@/lib/auth/api-client';
-import type { ChangeEmailRequest, UpdateAvatarRequest, UpdateProfileRequest } from '@/lib/user/types';
+import type {
+  ChangeEmailRequest,
+  NotificationSettings,
+  UpdateAvatarRequest,
+  UpdateProfileRequest,
+} from '@/lib/user/types';
 import { useAuthStore } from '@/stores/auth-store';
 
 import * as profileService from './profile-service';
@@ -34,6 +39,10 @@ export function useProfileActions() {
 
     removeAvatar() {
       return signOutIfExpired(profileService.removeAvatar());
+    },
+
+    updateNotificationSettings(settings: NotificationSettings) {
+      return signOutIfExpired(profileService.updateNotificationSettings(settings));
     },
   };
 }
