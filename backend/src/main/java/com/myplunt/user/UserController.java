@@ -86,7 +86,7 @@ public class UserController {
 
     @GetMapping(ApiPaths.Users.ME_NOTIFICATIONS)
     public NotificationSettings notificationSettings(@AuthenticationPrincipal User principal) {
-        return userService.notificationSettings(principal);
+        return userService.notificationSettings(principal.getId());
     }
 
     @PutMapping(ApiPaths.Users.ME_NOTIFICATIONS)

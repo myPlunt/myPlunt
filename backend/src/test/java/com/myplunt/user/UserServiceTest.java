@@ -59,6 +59,9 @@ class UserServiceTest {
     @Mock
     private FriendshipRepository friendshipRepository;
 
+    @Mock
+    private UserSettingsRepository userSettingsRepository;
+
     private final UUID id = UUID.randomUUID();
     private User jane;
 
@@ -69,7 +72,7 @@ class UserServiceTest {
     }
 
     private UserService userService() {
-        return new UserService(userRepository, passwordEncoder, storageService, friendshipRepository, auditLog);
+        return new UserService(userRepository, passwordEncoder, storageService, friendshipRepository, userSettingsRepository, auditLog);
     }
 
     @Test
@@ -204,17 +207,23 @@ class UserServiceTest {
     }
 
     @Test
-    void updateNotificationSettings_savesAndReturnsTheNewSettings() {
-        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
-        when(userRepository.save(jane)).thenReturn(jane);
+    void updateNotificationSettings_createsTheRowForAUserWhoNeverSavedOne() {
+        when(userSettingsRepository.findById(id)).thenReturn(Optional.empty());
+        when(userSettingsRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         NotificationSettings request = new NotificationSettings(false, true, true, false, true);
 
         NotificationSettings saved = userService().updateNotificationSettings(id, request);
 
         assertThat(saved).isEqualTo(request);
-        assertThat(jane.isNotifyWaterReminders()).isFalse();
-        assertThat(jane.isNotifyFriendNudges()).isFalse();
+        verify(userSettingsRepository).save(any(UserSettings.class));
         verify(auditLog).recorded(eq(AuditEvent.NOTIFICATION_SETTINGS_UPDATED), eq(id), eq(id), anyMap());
+    }
+
+    @Test
+    void notificationSettings_turnsEverythingOnForAUserWithoutARow() {
+        when(userSettingsRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThat(userService().notificationSettings(id)).isEqualTo(new NotificationSettings(true, true, true, true, true));
     }
 
     @Test

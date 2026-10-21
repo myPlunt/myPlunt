@@ -47,6 +47,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final StorageService storageService;
     private final FriendshipRepository friendshipRepository;
+    private final UserSettingsRepository userSettingsRepository;
     private final AuditLog auditLog;
 
     public UserService(
@@ -54,11 +55,13 @@ public class UserService {
             PasswordEncoder passwordEncoder,
             StorageService storageService,
             FriendshipRepository friendshipRepository,
+            UserSettingsRepository userSettingsRepository,
             AuditLog auditLog) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.storageService = storageService;
         this.friendshipRepository = friendshipRepository;
+        this.userSettingsRepository = userSettingsRepository;
         this.auditLog = auditLog;
     }
 
@@ -229,28 +232,37 @@ public class UserService {
         auditLog.recorded(AuditEvent.ONBOARDING_COMPLETED, userId, userId, Map.of("skipped", request.skipped()));
     }
 
-    public NotificationSettings notificationSettings(User user) {
-        return new NotificationSettings(user.isNotifyWaterReminders(), user.isNotifyWeatherAlerts(),
-                user.isNotifyFriendActivity(), user.isNotifyFriendNudges(), user.isNotifyPlantSitting());
+    @Transactional(readOnly = true)
+    public NotificationSettings notificationSettings(UUID userId) {
+        return toNotificationSettings(loadSettings(userId));
     }
 
     @Transactional
     public NotificationSettings updateNotificationSettings(UUID userId, NotificationSettings request) {
-        User user = loadUser(userId);
-        user.setNotifyWaterReminders(request.waterReminders());
-        user.setNotifyWeatherAlerts(request.weatherAlerts());
-        user.setNotifyFriendActivity(request.friendActivity());
-        user.setNotifyFriendNudges(request.friendNudges());
-        user.setNotifyPlantSitting(request.plantSitting());
-        User saved = userRepository.save(user);
-        NotificationSettings settings = notificationSettings(saved);
+        UserSettings settings = loadSettings(userId);
+        settings.setWateringReminders(request.waterReminders());
+        settings.setWeatherAlerts(request.weatherAlerts());
+        settings.setFriendPostNotifications(request.friendActivity());
+        settings.setFriendNudges(request.friendNudges());
+        settings.setDelegationRequests(request.plantSitting());
+        NotificationSettings saved = toNotificationSettings(userSettingsRepository.save(settings));
         auditLog.recorded(AuditEvent.NOTIFICATION_SETTINGS_UPDATED, userId, userId, Map.of(
-                "water_reminders", settings.waterReminders(),
-                "weather_alerts", settings.weatherAlerts(),
-                "friend_activity", settings.friendActivity(),
-                "friend_nudges", settings.friendNudges(),
-                "plant_sitting", settings.plantSitting()));
-        return settings;
+                "water_reminders", saved.waterReminders(),
+                "weather_alerts", saved.weatherAlerts(),
+                "friend_activity", saved.friendActivity(),
+                "friend_nudges", saved.friendNudges(),
+                "plant_sitting", saved.plantSitting()));
+        return saved;
+    }
+
+    // Accounts that never saved a setting have no row yet; they get the defaults, and the first save creates it.
+    private UserSettings loadSettings(UUID userId) {
+        return userSettingsRepository.findById(userId).orElseGet(() -> new UserSettings(userId));
+    }
+
+    private static NotificationSettings toNotificationSettings(UserSettings settings) {
+        return new NotificationSettings(settings.isWateringReminders(), settings.isWeatherAlerts(),
+                settings.isFriendPostNotifications(), settings.isFriendNudges(), settings.isDelegationRequests());
     }
 
     // Removing a picture the user doesn't have is a no-op, so a retried request still succeeds.
