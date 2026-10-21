@@ -1,9 +1,11 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
+import { savePlantPagesForOffline } from '@/features/plants/offline-pages';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { Garden } from '@/lib/garden/types';
 import { logBug } from '@/lib/logger';
+import { cachedFetch } from '@/lib/offline/cache';
 import { useAuthStore } from '@/stores/auth-store';
 
 import * as gardenService from './garden-service';
@@ -31,13 +33,20 @@ export function useGarden(userId?: string) {
 
   // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
-    (isCancelled: () => boolean) =>
-      gardenService
-        .getGarden(userId)
+    (isCancelled: () => boolean) => {
+      // Only the user's own garden is kept for offline: a friend's page needs the connection
+      // for their profile before it ever shows their garden.
+      const request: Promise<{ data: Garden; savedAt: string | null }> = userId
+        ? gardenService.getGarden(userId).then((data) => ({ data, savedAt: null }))
+        : cachedFetch('garden', () => gardenService.getGarden());
+      return request
         .then((result) => {
+          // Fresh from the server, so its plants' pages are brought up to date for offline too.
+          if (!userId && result.savedAt === null) savePlantPagesForOffline(result.data).catch(() => {});
           if (isCancelled()) return;
-          reportUnusableWateringDates(result);
-          setGarden(result);
+          // A saved copy was already checked when it was fresh.
+          if (result.savedAt === null) reportUnusableWateringDates(result.data);
+          setGarden(result.data);
           setError(null);
         })
         .catch((err) => {
@@ -51,7 +60,8 @@ export function useGarden(userId?: string) {
         })
         .finally(() => {
           if (!isCancelled()) setIsLoading(false);
-        }),
+        });
+    },
     [userId, setUnauthenticated],
   );
 

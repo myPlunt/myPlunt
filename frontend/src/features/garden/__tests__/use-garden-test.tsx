@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import * as gardenService from '@/features/garden/garden-service';
 import { useGarden } from '@/features/garden/use-garden';
@@ -34,6 +34,14 @@ function renderWithStore() {
   });
 }
 
+// Loads the garden once, as on an earlier visit, which saves a copy of it on the device.
+async function visitGarden() {
+  mockedGardenService.getGarden.mockResolvedValue(garden);
+  const { result, unmount } = await renderWithStore();
+  await waitFor(() => expect(result.current.garden.garden).toEqual(garden));
+  await unmount();
+}
+
 it('loads the garden', async () => {
   mockedGardenService.getGarden.mockResolvedValue(garden);
   const { result } = await renderWithStore();
@@ -57,4 +65,40 @@ it('signs the user out when the session has expired', async () => {
 
   await waitFor(() => expect(result.current.store.status).toBe('unauthenticated'));
   expect(result.current.garden.error).toBeNull();
+});
+
+describe('without a connection', () => {
+  const offline = new ApiError(0, 'Network request failed', {
+    detail: "Can't reach myPlunt right now. Check your connection and try again.",
+  });
+
+  it('shows the garden saved on the last visit', async () => {
+    await visitGarden();
+    mockedGardenService.getGarden.mockRejectedValue(offline);
+    const { result } = await renderWithStore();
+
+    await waitFor(() => expect(result.current.garden.isLoading).toBe(false));
+    expect(result.current.garden.garden).toEqual(garden);
+    expect(result.current.garden.error).toBeNull();
+  });
+
+  it('shows the error when no garden was saved yet', async () => {
+    mockedGardenService.getGarden.mockRejectedValue(offline);
+    const { result } = await renderWithStore();
+
+    await waitFor(() => expect(result.current.garden.isLoading).toBe(false));
+    expect(result.current.garden.garden).toBeNull();
+    expect(result.current.garden.error).toBe(offline.detail);
+  });
+});
+
+it('waits for the server, even with a garden saved', async () => {
+  await visitGarden();
+  mockedGardenService.getGarden.mockReturnValue(new Promise(() => {}));
+  const { result } = await renderWithStore();
+
+  // The saved copy's photo links may have expired, so it only shows once there's no answer.
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+  expect(result.current.garden.isLoading).toBe(true);
+  expect(result.current.garden.garden).toBeNull();
 });

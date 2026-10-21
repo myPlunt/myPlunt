@@ -178,4 +178,22 @@ describe('failed requests', () => {
     expect(error).toMatchObject({ status: 0 });
     expect(describeError(error)).toBe("Can't reach myPlunt right now. Check your connection and try again.");
   });
+
+  it('gives up on a GET without a response in 10 seconds, as if there were no connection', async () => {
+    jest.useFakeTimers();
+    // A weak connection: nothing comes back until the request is called off.
+    (globalThis.fetch as jest.Mock).mockImplementation(
+      (_url: string, { signal }: RequestInit) =>
+        new Promise((_resolve, reject) => signal?.addEventListener('abort', () => reject(new Error('Aborted')))),
+    );
+
+    try {
+      const request = apiFetch('/v1/garden').catch((err) => err);
+      await jest.advanceTimersByTimeAsync(10_000);
+
+      expect(await request).toMatchObject({ status: 0 });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
