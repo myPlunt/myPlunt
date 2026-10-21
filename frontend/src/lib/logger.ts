@@ -55,6 +55,7 @@ export type FrontendEvent =
   | 'camera_permission_denied'
   | 'location_permission_denied'
   | 'notification_permission_denied'
+  | 'push_token_register_failed'
   | 'login_failed_ui'
   | 'registration_failed_ui'
   | 'plant_save_failed_ui'
