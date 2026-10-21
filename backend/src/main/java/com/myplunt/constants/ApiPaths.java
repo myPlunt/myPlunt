@@ -64,6 +64,10 @@ public final class ApiPaths {
         public static final String SEARCH = BASE + "/search";
         // Literal paths (/me, /search) win over this template.
         public static final String BY_ID = BASE + "/{userId}";
+        // A friend's garden, PluntDex and posts, for their profile; friends only.
+        public static final String GARDEN = BY_ID + "/garden";
+        public static final String DISCOVERED_SPECIES = BY_ID + "/species/discovered";
+        public static final String POSTS = BY_ID + "/posts";
 
         private Users() {}
     }

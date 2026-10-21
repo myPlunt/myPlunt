@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/user/user-avatar';
+import { useGarden } from '@/features/garden/use-garden';
 import { FeedPlantCard } from '@/features/feed/components/feed-plant-card';
 import { StickyNote } from '@/features/feed/components/sticky-note';
 import { getMyPosts } from '@/features/feed/feed-service';
@@ -14,7 +15,11 @@ import { OnboardingCard } from '@/features/onboarding/components/onboarding-card
 import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { PostFilter, type PostFilterValue } from '@/features/profile/components/post-filter';
 import { ProfileMenu, ProfileMenuButton } from '@/features/profile/components/profile-menu';
+import { ProfileStats } from '@/features/profile/components/profile-stats';
+import { profileStats } from '@/features/profile/profile-stats';
 import { useProfile } from '@/features/profile/use-profile';
+import { useDiscoveredSpecies } from '@/features/species/use-discovered-species';
+import { useSpecies } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
@@ -22,6 +27,11 @@ export function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { user, error, isLoading, retry } = useProfile();
+  // Only for the stats; if any of them fails, the numbers just show a dash.
+  const { garden } = useGarden();
+  const { discovered } = useDiscoveredSpecies();
+  const { species } = useSpecies();
+  const stats = garden && discovered && species ? profileStats(garden, discovered, species) : null;
   const posts = useFeed(getMyPosts);
   const [filter, setFilter] = useState<PostFilterValue>('all');
   const shown = posts.posts?.filter((post) => filter === 'all' || post.type === filter) ?? [];
@@ -90,6 +100,13 @@ export function ProfileScreen() {
                     <View className={`rounded-2xl border-2 p-1 ${isBioStep ? 'border-primary' : 'border-transparent'}`}>
                       <Button label="Edit profile" variant="subtle" onPress={() => router.push('/edit-profile')} />
                     </View>
+                  </View>
+                  <View className="mt-6 self-stretch">
+                    <ProfileStats
+                      stats={stats}
+                      onOpenGarden={() => router.push('/garden')}
+                      onOpenPluntdex={() => router.push('/pluntdex')}
+                    />
                   </View>
                 </>
               )

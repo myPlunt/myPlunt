@@ -4,6 +4,9 @@ import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.friend.dto.SendFriendRequest;
+import com.myplunt.garden.dto.GardenResponse;
+import com.myplunt.post.dto.PostResponse;
+import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
 import com.myplunt.user.dto.UserSummaryResponse;
@@ -20,6 +23,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -173,6 +178,75 @@ class FriendControllerTest {
         restTestClient.post().uri("/v1/friends/" + UUID.randomUUID() + "/remove")
                 .exchange()
                 .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void garden_returnsTheFriendsGardenInTheViewersZone() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+        GardenResponse garden = new GardenResponse(List.of());
+        when(friendService.getFriendGarden(janeId, tomId, ZoneId.of("Europe/Amsterdam"))).thenReturn(garden);
+
+        get("/v1/users/" + tomId + "/garden?zone=Europe/Amsterdam")
+                .expectStatus().isOk()
+                .expectBody(GardenResponse.class)
+                .isEqualTo(garden);
+    }
+
+    @Test
+    void discoveredSpecies_returnsTheFriendsDiscoveries() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+        List<DiscoveredSpeciesResponse> discovered =
+                List.of(new DiscoveredSpeciesResponse(UUID.randomUUID(), Instant.parse("2026-10-01T10:00:00Z")));
+        when(friendService.getFriendDiscoveredSpecies(janeId, tomId)).thenReturn(discovered);
+
+        get("/v1/users/" + tomId + "/species/discovered")
+                .expectStatus().isOk()
+                .expectBody(new ParameterizedTypeReference<List<DiscoveredSpeciesResponse>>() {})
+                .isEqualTo(discovered);
+    }
+
+    @Test
+    void posts_returnsTheFriendsPosts() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+        List<PostResponse> posts = List.of(new PostResponse(UUID.randomUUID(), "question", null, null, null,
+                "Why are the leaves yellow?", null, Instant.parse("2026-10-01T10:00:00Z")));
+        when(friendService.getFriendPosts(janeId, tomId)).thenReturn(posts);
+
+        get("/v1/users/" + tomId + "/posts")
+                .expectStatus().isOk()
+                .expectBody(new ParameterizedTypeReference<List<PostResponse>>() {})
+                .isEqualTo(posts);
+    }
+
+    // The same 404 as an unknown user, so a stranger can't tell who exists.
+    @Test
+    void friendData_returnsNotFoundWhenNotFriends() {
+        authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+        IllegalStateException notFriends = new IllegalStateException("You're not friends with this user");
+        when(friendService.getFriendGarden(any(), any(), any())).thenThrow(notFriends);
+        when(friendService.getFriendDiscoveredSpecies(any(), any())).thenThrow(notFriends);
+        when(friendService.getFriendPosts(any(), any())).thenThrow(notFriends);
+
+        get("/v1/users/" + tomId + "/garden").expectStatus().isNotFound();
+        get("/v1/users/" + tomId + "/species/discovered").expectStatus().isNotFound();
+        get("/v1/users/" + tomId + "/posts").expectStatus().isNotFound();
+    }
+
+    @Test
+    void friendData_rejectsRequestsWithoutAToken() {
+        restTestClient.get().uri("/v1/users/" + UUID.randomUUID() + "/garden").exchange().expectStatus().isUnauthorized();
+        restTestClient.get().uri("/v1/users/" + UUID.randomUUID() + "/posts").exchange().expectStatus().isUnauthorized();
+        restTestClient.get().uri("/v1/users/" + UUID.randomUUID() + "/species/discovered")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    private RestTestClient.ResponseSpec get(String uri) {
+        return restTestClient.get().uri(uri).header("Authorization", "Bearer access-token").exchange();
     }
 
     private RestTestClient.ResponseSpec postAnswer(String uri) {

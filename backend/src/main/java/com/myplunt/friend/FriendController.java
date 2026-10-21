@@ -3,6 +3,9 @@ package com.myplunt.friend;
 import com.myplunt.constants.ApiPaths;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.friend.dto.SendFriendRequest;
+import com.myplunt.garden.dto.GardenResponse;
+import com.myplunt.post.dto.PostResponse;
+import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.user.User;
 import com.myplunt.user.dto.UserSummaryResponse;
 import jakarta.validation.Valid;
@@ -12,9 +15,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -69,5 +74,27 @@ public class FriendController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remove(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
         friendService.remove(principal.getId(), userId);
+    }
+
+    // A friend's garden, for their profile. zone is the viewer's IANA time zone, like GET /v1/garden.
+    @GetMapping(ApiPaths.Users.GARDEN)
+    public GardenResponse garden(
+            @AuthenticationPrincipal User principal,
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "UTC") ZoneId zone) {
+        return friendService.getFriendGarden(principal.getId(), userId, zone);
+    }
+
+    // The species a friend has discovered, for their PluntDex on their profile.
+    @GetMapping(ApiPaths.Users.DISCOVERED_SPECIES)
+    public List<DiscoveredSpeciesResponse> discoveredSpecies(
+            @AuthenticationPrincipal User principal, @PathVariable UUID userId) {
+        return friendService.getFriendDiscoveredSpecies(principal.getId(), userId);
+    }
+
+    // A friend's posts, newest first, for their profile.
+    @GetMapping(ApiPaths.Users.POSTS)
+    public List<PostResponse> posts(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
+        return friendService.getFriendPosts(principal.getId(), userId);
     }
 }

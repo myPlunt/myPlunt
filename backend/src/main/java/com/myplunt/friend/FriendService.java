@@ -3,8 +3,13 @@ package com.myplunt.friend;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.dto.FriendRequestsResponse;
+import com.myplunt.garden.GardenService;
+import com.myplunt.garden.dto.GardenResponse;
+import com.myplunt.post.PostService;
+import com.myplunt.post.dto.PostResponse;
+import com.myplunt.species.SpeciesService;
+import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.user.User;
-import com.myplunt.user.UserRepository;
 import com.myplunt.user.UserService;
 import com.myplunt.user.dto.UserSummaryResponse;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -13,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,18 +27,24 @@ import java.util.UUID;
 public class FriendService {
 
     private final FriendshipRepository friendshipRepository;
-    private final UserRepository userRepository;
     private final UserService userService;
+    private final GardenService gardenService;
+    private final SpeciesService speciesService;
+    private final PostService postService;
     private final AuditLog auditLog;
 
     public FriendService(
             FriendshipRepository friendshipRepository,
-            UserRepository userRepository,
             UserService userService,
+            GardenService gardenService,
+            SpeciesService speciesService,
+            PostService postService,
             AuditLog auditLog) {
         this.friendshipRepository = friendshipRepository;
-        this.userRepository = userRepository;
         this.userService = userService;
+        this.gardenService = gardenService;
+        this.speciesService = speciesService;
+        this.postService = postService;
         this.auditLog = auditLog;
     }
 
@@ -70,12 +82,40 @@ public class FriendService {
     // Deleted like a declined request, so either of them can ask again later.
     @Transactional
     public void remove(UUID userId, UUID friendId) {
-        Friendship friendship = friendshipRepository.findBetween(userId, List.of(friendId)).stream()
+        friendshipRepository.delete(acceptedFriendship(userId, friendId));
+        auditLog.recorded(AuditEvent.FRIEND_REMOVED, userId, userId, Map.of("other_user_id", friendId));
+    }
+
+    // A friend's garden for their profile; zone is the viewer's, like GET /v1/garden.
+    @Transactional(readOnly = true)
+    public GardenResponse getFriendGarden(UUID userId, UUID friendId, ZoneId zone) {
+        requireFriends(userId, friendId);
+        return gardenService.getGarden(friendId, zone);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DiscoveredSpeciesResponse> getFriendDiscoveredSpecies(UUID userId, UUID friendId) {
+        requireFriends(userId, friendId);
+        return speciesService.getDiscoveredSpecies(friendId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> getFriendPosts(UUID userId, UUID friendId) {
+        requireFriends(userId, friendId);
+        return postService.getUserPosts(userId, friendId);
+    }
+
+    // Only friends see each other's garden, PluntDex and posts. Strangers and pending requests get the
+    // same 404 as an unknown user, so it doesn't tell them who exists.
+    private void requireFriends(UUID userId, UUID otherId) {
+        acceptedFriendship(userId, otherId);
+    }
+
+    private Friendship acceptedFriendship(UUID userId, UUID otherId) {
+        return friendshipRepository.findBetween(userId, List.of(otherId)).stream()
                 .filter(f -> Friendship.ACCEPTED.equals(f.getStatus()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("You're not friends with this user"));
-        friendshipRepository.delete(friendship);
-        auditLog.recorded(AuditEvent.FRIEND_REMOVED, userId, userId, Map.of("other_user_id", friendId));
     }
 
     // Looked up by direction, so accept/decline can't touch the user's own request and cancel can't touch one they received.
@@ -94,8 +134,7 @@ public class FriendService {
         if (requesterId.equals(receiverId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't add yourself as a friend");
         }
-        User receiver = userRepository.findById(receiverId)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+        User receiver = userService.loadUser(receiverId);
 
         List<Friendship> existing = friendshipRepository.findBetween(requesterId, List.of(receiverId));
         if (!existing.isEmpty()) {

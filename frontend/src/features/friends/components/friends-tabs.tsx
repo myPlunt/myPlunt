@@ -1,12 +1,6 @@
-import { Pressable, Text, View } from 'react-native';
+import { Tabs } from '@/components/ui/tabs';
 
 export type FriendsTab = 'find' | 'friends' | 'requests';
-
-const TABS: { tab: FriendsTab; label: string }[] = [
-  { tab: 'find', label: 'Find' },
-  { tab: 'friends', label: 'Friends' },
-  { tab: 'requests', label: 'Requests' },
-];
 
 interface FriendsTabsProps {
   tab: FriendsTab;
@@ -15,32 +9,17 @@ interface FriendsTabsProps {
   requestCount: number;
 }
 
-/** The Friends screen's tabs: Find · Friends · Requests, the open one underlined in green. */
+/** The Friends screen's tabs: Find · Friends · Requests. */
 export function FriendsTabs({ tab, onChange, requestCount }: FriendsTabsProps) {
   return (
-    <View accessibilityRole="tablist" className="flex-row border-b border-border">
-      {TABS.map(({ tab: value, label }) => {
-        const selected = value === tab;
-        const badge = value === 'requests' && requestCount > 0 ? requestCount : null;
-        return (
-          <Pressable
-            key={value}
-            accessibilityRole="tab"
-            accessibilityLabel={badge ? `${label}, ${badge} waiting` : label}
-            accessibilityState={{ selected }}
-            onPress={() => onChange(value)}
-            className="flex-1 flex-row items-center justify-center gap-1.5 pb-3 pt-2 active:opacity-70">
-            <Text className={`type-button-medium ${selected ? 'text-text' : 'text-text-secondary'}`}>{label}</Text>
-            {/* Sits over the strip's bottom border, so the open tab reads as joined to the content below. */}
-            {selected && <View className="absolute -bottom-px left-4 right-4 h-[3px] rounded-t bg-action-primary" />}
-            {badge && (
-              <View className="min-w-5 items-center rounded-full bg-action-primary px-1.5">
-                <Text className="type-label text-background-element">{badge}</Text>
-              </View>
-            )}
-          </Pressable>
-        );
-      })}
-    </View>
+    <Tabs
+      tabs={[
+        { value: 'find', label: 'Find' },
+        { value: 'friends', label: 'Friends' },
+        { value: 'requests', label: 'Requests', badge: requestCount },
+      ]}
+      value={tab}
+      onChange={onChange}
+    />
   );
 }

@@ -22,7 +22,8 @@ function reportUnusableWateringDates(garden: Garden) {
   }
 }
 
-export function useGarden() {
+/** The signed-in user's garden, or with userId a friend's, for their profile. */
+export function useGarden(userId?: string) {
   const { setUnauthenticated } = useAuthStore();
   const [garden, setGarden] = useState<Garden | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export function useGarden() {
   const load = useCallback(
     (isCancelled: () => boolean) =>
       gardenService
-        .getGarden()
+        .getGarden(userId)
         .then((result) => {
           if (isCancelled()) return;
           reportUnusableWateringDates(result);
@@ -51,7 +52,7 @@ export function useGarden() {
         .finally(() => {
           if (!isCancelled()) setIsLoading(false);
         }),
-    [setUnauthenticated],
+    [userId, setUnauthenticated],
   );
 
   // Loads on focus, not just on mount, so the watering status is fresh whenever
