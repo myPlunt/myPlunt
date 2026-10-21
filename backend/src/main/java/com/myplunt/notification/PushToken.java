@@ -1,0 +1,51 @@
+package com.myplunt.notification;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+import java.time.Instant;
+import java.util.UUID;
+
+// The Expo push token of one of the user's phones (ExponentPushToken[...]), with its time zone.
+@Entity
+@Table(name = "push_tokens")
+public class PushToken {
+    @Id
+    private String token;
+
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
+    @Column(name = "time_zone", nullable = false)
+    private String timeZone;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    protected PushToken() {}
+
+    public PushToken(String token, UUID userId, String timeZone) {
+        this.token = token;
+        this.userId = userId;
+        this.timeZone = timeZone;
+        this.updatedAt = Instant.now();
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public String getTimeZone() {
+        return timeZone;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+}

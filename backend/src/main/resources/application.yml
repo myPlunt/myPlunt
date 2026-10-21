@@ -41,6 +41,9 @@ app:
     secret: ${JWT_SECRET}
     access-token-ttl-minutes: 15
     refresh-token-ttl-days: 30
+  # Expo's push service, which delivers to both APNs and FCM with one Expo push token.
+  push:
+    expo-url: https://exp.host/--/api/v2/push/send
   storage:
     endpoint: ${STORAGE_ENDPOINT}
     bucket: ${STORAGE_BUCKET}
