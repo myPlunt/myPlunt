@@ -11,6 +11,7 @@ export function useFeed(fetchPosts: () => Promise<Post[]>) {
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
@@ -51,6 +52,12 @@ export function useFeed(fetchPosts: () => Promise<Post[]>) {
     posts,
     error,
     isLoading,
+    isRefreshing,
+    // Pull-to-refresh: keeps the current posts on screen while the new ones load.
+    refresh() {
+      setIsRefreshing(true);
+      return load(() => false).finally(() => setIsRefreshing(false));
+    },
     retry() {
       setError(null);
       setIsLoading(true);

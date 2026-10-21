@@ -45,7 +45,7 @@ const species = [
 beforeEach(() => {
   jest.mocked(useOnboardingStore).mockReturnValue({ step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null });
   mockedUseSpecies.mockReturnValue({ species, error: null, retry: jest.fn() });
-  mockedUseDiscoveredSpecies.mockReturnValue({ discovered: [{ speciesId: 'basil', discoveredAt: '2026-10-11T09:30:00Z' }], error: null, isLoading: false, retry: jest.fn() });
+  mockedUseDiscoveredSpecies.mockReturnValue({ refresh: jest.fn(), discovered: [{ speciesId: 'basil', discoveredAt: '2026-10-11T09:30:00Z' }], error: null, isLoading: false, retry: jest.fn() });
 });
 
 afterEach(() => {

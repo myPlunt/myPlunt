@@ -63,5 +63,8 @@ export function useDiscoveredSpecies(userId?: string) {
       setIsLoading(true);
       load(() => false);
     },
+    refresh() {
+      return load(() => false);
+    },
   };
 }

@@ -35,7 +35,7 @@ const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: null,
 beforeEach(() => {
   mockedUseRouter.mockReturnValue({ back, dismissTo, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
   mockedUseAuthActions.mockReturnValue({ login: jest.fn(), register: jest.fn(), logout });
-  mockedUseProfile.mockReturnValue({ user: jane, error: null, isLoading: false, retry });
+  mockedUseProfile.mockReturnValue({ refresh: jest.fn(), user: jane, error: null, isLoading: false, retry });
   mockedUseOnboardingStore.mockReturnValue(onboarding);
   mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail: jest.fn(), updateAvatar: jest.fn(), removeAvatar: jest.fn(), updateNotificationSettings: jest.fn() });
   mockedUseNotificationSettings.mockReturnValue({ settings: notifications, allowed: true, turnOn: jest.fn(), error: null, isLoading: false, retry: jest.fn(), toggle });
