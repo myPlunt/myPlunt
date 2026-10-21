@@ -1,11 +1,14 @@
 package com.myplunt.user;
 
+import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.Friendship;
 import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.storage.StorageService;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.dto.ChangeEmailRequest;
+import com.myplunt.user.dto.CompleteOnboardingRequest;
+import com.myplunt.user.dto.NotificationSettings;
 import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
@@ -22,13 +25,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -52,6 +59,9 @@ class UserServiceTest {
     @Mock
     private FriendshipRepository friendshipRepository;
 
+    @Mock
+    private UserSettingsRepository userSettingsRepository;
+
     private final UUID id = UUID.randomUUID();
     private User jane;
 
@@ -62,7 +72,7 @@ class UserServiceTest {
     }
 
     private UserService userService() {
-        return new UserService(userRepository, passwordEncoder, storageService, friendshipRepository, auditLog);
+        return new UserService(userRepository, passwordEncoder, storageService, friendshipRepository, userSettingsRepository, auditLog);
     }
 
     @Test
@@ -73,7 +83,7 @@ class UserServiceTest {
 
         UserResponse response = userService().updateProfile(id, new UpdateProfileRequest("janey", "  Fern collector  "));
 
-        assertThat(response).isEqualTo(new UserResponse(id, "janey", "jane@example.com", "Fern collector", null));
+        assertThat(response).isEqualTo(new UserResponse(id, "janey", "jane@example.com", "Fern collector", null, false));
     }
 
     @Test
@@ -178,6 +188,42 @@ class UserServiceTest {
         assertThat(jane.getLongitude()).isEqualTo(6.89);
         assertThat(jane.getCity()).isEqualTo("Enschede");
         verify(userRepository).save(jane);
+    }
+
+    @Test
+    void completeOnboarding_savesAndLogsTheFirstTimeOnly() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+
+        userService().completeOnboarding(id, new CompleteOnboardingRequest(true));
+        Instant completedAt = jane.getOnboardingCompletedAt();
+        // Retaking the tour from Settings finishes it again.
+        userService().completeOnboarding(id, new CompleteOnboardingRequest(false));
+
+        assertThat(completedAt).isNotNull();
+        assertThat(jane.getOnboardingCompletedAt()).isEqualTo(completedAt);
+        verify(userRepository).save(jane);
+        verify(auditLog).recorded(AuditEvent.ONBOARDING_COMPLETED, id, id, Map.of("skipped", true));
+        verify(auditLog).recorded(any(), any(), any(), anyMap());
+    }
+
+    @Test
+    void updateNotificationSettings_createsTheRowForAUserWhoNeverSavedOne() {
+        when(userSettingsRepository.findById(id)).thenReturn(Optional.empty());
+        when(userSettingsRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        NotificationSettings request = new NotificationSettings(false, true, true, false, true);
+
+        NotificationSettings saved = userService().updateNotificationSettings(id, request);
+
+        assertThat(saved).isEqualTo(request);
+        verify(userSettingsRepository).save(any(UserSettings.class));
+        verify(auditLog).recorded(eq(AuditEvent.NOTIFICATION_SETTINGS_UPDATED), eq(id), eq(id), anyMap());
+    }
+
+    @Test
+    void notificationSettings_turnsEverythingOnForAUserWithoutARow() {
+        when(userSettingsRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThat(userService().notificationSettings(id)).isEqualTo(new NotificationSettings(true, true, true, true, true));
     }
 
     @Test

@@ -23,13 +23,13 @@ const onboarding = { step: null, start: jest.fn(), next: jest.fn(), skipPast: je
 const back = jest.fn();
 const retry = jest.fn();
 const user = userEvent.setup();
-const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: null, avatarUrl: null };
+const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: null, avatarUrl: null, onboardingCompleted: true };
 
 beforeEach(() => {
   mockedUseRouter.mockReturnValue({ back, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
   mockedUseProfile.mockReturnValue({ user: jane, error: null, isLoading: false, retry });
   mockedUseOnboardingStore.mockReturnValue(onboarding);
-  mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail: jest.fn(), updateAvatar: jest.fn(), removeAvatar: jest.fn() });
+  mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail: jest.fn(), updateAvatar: jest.fn(), removeAvatar: jest.fn(), updateNotificationSettings: jest.fn() });
 });
 
 afterEach(() => {
@@ -56,7 +56,7 @@ describe('EditProfileScreen', () => {
   it('during the tour, saving the bio moves to the picture step on this same screen', async () => {
     mockedUseOnboardingStore.mockReturnValue({ ...onboarding, step: 'bio' });
     const updateProfile = jest.fn().mockResolvedValue({ ...jane, bio: 'Fern collector' });
-    mockedUseProfileActions.mockReturnValue({ updateProfile, changeEmail: jest.fn(), updateAvatar: jest.fn(), removeAvatar: jest.fn() });
+    mockedUseProfileActions.mockReturnValue({ updateProfile, changeEmail: jest.fn(), updateAvatar: jest.fn(), removeAvatar: jest.fn(), updateNotificationSettings: jest.fn() });
     await render(<EditProfileScreen />);
 
     await user.type(screen.getByLabelText('Bio'), 'Fern collector');

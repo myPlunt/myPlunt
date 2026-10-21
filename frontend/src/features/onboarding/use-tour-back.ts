@@ -32,6 +32,10 @@ export function useTourBack() {
         router.navigate('/profile');
         router.push('/location');
         return;
+      case 'notifications':
+        router.navigate('/profile');
+        router.push('/notifications');
+        return;
       case 'plant':
       case 'water':
         router.navigate('/garden');

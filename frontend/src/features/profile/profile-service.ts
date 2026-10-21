@@ -3,7 +3,13 @@ import { logAction } from '@/lib/logger';
 import type { WateringLog, WateringStreak } from '@/lib/plant/types';
 import { createRequestId } from '@/lib/request-id';
 import { timeZoneQuery } from '@/lib/time-zone';
-import type { ChangeEmailRequest, UpdateAvatarRequest, UpdateProfileRequest, User } from '@/lib/user/types';
+import type {
+  ChangeEmailRequest,
+  NotificationSettings,
+  UpdateAvatarRequest,
+  UpdateProfileRequest,
+  User,
+} from '@/lib/user/types';
 
 export async function getCurrentUser(): Promise<User> {
   return apiFetch<User>('/v1/users/me');
@@ -32,6 +38,16 @@ export async function removeAvatar(): Promise<void> {
   const requestId = createRequestId();
   logAction('avatar_remove_submitted', { requestId });
   return apiFetch<void>('/v1/users/me/avatar', { method: 'DELETE', requestId });
+}
+
+export async function getNotificationSettings(): Promise<NotificationSettings> {
+  return apiFetch<NotificationSettings>('/v1/users/me/notifications');
+}
+
+export async function updateNotificationSettings(settings: NotificationSettings): Promise<NotificationSettings> {
+  const requestId = createRequestId();
+  logAction('notification_settings_update_submitted', { requestId });
+  return apiFetch<NotificationSettings>('/v1/users/me/notifications', { method: 'PUT', body: settings, requestId });
 }
 
 export async function getWateringStreak(): Promise<WateringStreak> {

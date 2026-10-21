@@ -16,7 +16,7 @@ const mockedUseProfileActions = jest.mocked(useProfileActions);
 const updateAvatar = jest.fn();
 const removeAvatar = jest.fn();
 const user = userEvent.setup();
-const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: null, avatarUrl: 'https://storage/old.jpg' };
+const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: null, avatarUrl: 'https://storage/old.jpg', onboardingCompleted: true };
 const noPhoto: PhotoUpload = {
   uri: null,
   key: null,
@@ -31,7 +31,7 @@ const noPhoto: PhotoUpload = {
 
 beforeEach(() => {
   mockedUsePhotoUpload.mockReturnValue(noPhoto);
-  mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail: jest.fn(), updateAvatar, removeAvatar });
+  mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail: jest.fn(), updateAvatar, removeAvatar, updateNotificationSettings: jest.fn() });
 });
 
 afterEach(() => {

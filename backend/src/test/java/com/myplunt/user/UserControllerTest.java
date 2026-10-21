@@ -3,6 +3,7 @@ package com.myplunt.user;
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.user.dto.ChangeEmailRequest;
+import com.myplunt.user.dto.NotificationSettings;
 import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
@@ -54,14 +55,14 @@ class UserControllerTest {
         ReflectionTestUtils.setField(user, "id", id);
         when(jwtService.parseAndValidate("access-token")).thenReturn(id);
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
-        when(userService.toResponse(user)).thenReturn(new UserResponse(id, "jane", "jane@example.com", null, null));
+        when(userService.toResponse(user)).thenReturn(new UserResponse(id, "jane", "jane@example.com", null, null, false));
 
         restTestClient.get().uri("/v1/users/me")
                 .header("Authorization", "Bearer access-token")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(UserResponse.class)
-                .isEqualTo(new UserResponse(id, "jane", "jane@example.com", null, null));
+                .isEqualTo(new UserResponse(id, "jane", "jane@example.com", null, null, false));
     }
 
     @Test
@@ -85,7 +86,7 @@ class UserControllerTest {
         UUID id = authenticateAsJane();
         UpdateProfileRequest request = new UpdateProfileRequest("janey", "Fern collector");
         when(userService.updateProfile(eq(id), eq(request)))
-                .thenReturn(new UserResponse(id, "janey", "jane@example.com", "Fern collector", null));
+                .thenReturn(new UserResponse(id, "janey", "jane@example.com", "Fern collector", null, false));
 
         restTestClient.put().uri("/v1/users/me")
                 .header("Authorization", "Bearer access-token")
@@ -94,7 +95,7 @@ class UserControllerTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(UserResponse.class)
-                .isEqualTo(new UserResponse(id, "janey", "jane@example.com", "Fern collector", null));
+                .isEqualTo(new UserResponse(id, "janey", "jane@example.com", "Fern collector", null, false));
     }
 
     @Test
@@ -114,7 +115,7 @@ class UserControllerTest {
         UUID id = authenticateAsJane();
         ChangeEmailRequest request = new ChangeEmailRequest("new@example.com", "password123");
         when(userService.changeEmail(eq(id), eq(request)))
-                .thenReturn(new UserResponse(id, "jane", "new@example.com", null, null));
+                .thenReturn(new UserResponse(id, "jane", "new@example.com", null, null, false));
 
         restTestClient.put().uri("/v1/users/me/email")
                 .header("Authorization", "Bearer access-token")
@@ -123,7 +124,7 @@ class UserControllerTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(UserResponse.class)
-                .isEqualTo(new UserResponse(id, "jane", "new@example.com", null, null));
+                .isEqualTo(new UserResponse(id, "jane", "new@example.com", null, null, false));
     }
 
     @Test
@@ -173,7 +174,7 @@ class UserControllerTest {
     void updateAvatar_returnsTheUserWithTheirNewPicture() {
         UUID id = authenticateAsJane();
         UpdateAvatarRequest request = new UpdateAvatarRequest("avatars/" + id + "/new.jpg");
-        UserResponse updated = new UserResponse(id, "jane", "jane@example.com", null, "https://storage/new.jpg");
+        UserResponse updated = new UserResponse(id, "jane", "jane@example.com", null, "https://storage/new.jpg", false);
         when(userService.updateAvatar(id, request)).thenReturn(updated);
 
         restTestClient.put().uri("/v1/users/me/avatar")
@@ -221,6 +222,34 @@ class UserControllerTest {
                 .header("Authorization", "Bearer access-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new UpdateLocationRequest(200.0, 6.89, "Enschede"))
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void updateNotificationSettings_returnsTheSavedSettings() {
+        UUID id = authenticateAsJane();
+        NotificationSettings request = new NotificationSettings(false, true, true, false, true);
+        when(userService.updateNotificationSettings(id, request)).thenReturn(request);
+
+        restTestClient.put().uri("/v1/users/me/notifications")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(NotificationSettings.class)
+                .isEqualTo(request);
+    }
+
+    @Test
+    void updateNotificationSettings_rejectsAMissingSetting() {
+        authenticateAsJane();
+
+        restTestClient.put().uri("/v1/users/me/notifications")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new NotificationSettings(true, null, true, true, true))
                 .exchange()
                 .expectStatus().isBadRequest();
     }
