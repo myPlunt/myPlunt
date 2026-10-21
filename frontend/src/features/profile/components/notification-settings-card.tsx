@@ -1,4 +1,5 @@
-import { ActivityIndicator, Switch, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Animated, Pressable, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { useNotificationSettings } from '@/features/profile/use-notification-settings';
@@ -6,12 +7,36 @@ import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { NotificationSettings } from '@/lib/user/types';
 
-const OPTIONS: { key: keyof NotificationSettings; label: string; description: string }[] = [
-  { key: 'waterReminders', label: 'Water reminders', description: 'When one of your plants needs water.' },
-  { key: 'weatherAlerts', label: 'Weather alerts', description: 'Frost, heat or storms where your plants are.' },
-  { key: 'friendActivity', label: 'Friend alerts', description: "News about your friends' plants." },
-  { key: 'friendNudges', label: 'Friend nudges', description: 'When a friend reminds you to water your plants.' },
-  { key: 'plantSitting', label: 'Plant sitting', description: 'When a friend asks you to look after their plants.' },
+const OPTIONS: {
+  key: keyof NotificationSettings;
+  label: string;
+  description: string;
+}[] = [
+  {
+    key: 'waterReminders',
+    label: 'Water reminders',
+    description: 'When one of your plants needs water.',
+  },
+  {
+    key: 'weatherAlerts',
+    label: 'Weather alerts',
+    description: 'Frost, heat or storms where your plants are.',
+  },
+  {
+    key: 'friendActivity',
+    label: 'Friend alerts',
+    description: "News about your friends' plants.",
+  },
+  {
+    key: 'friendNudges',
+    label: 'Friend nudges',
+    description: 'When a friend reminds you to water your plants.',
+  },
+  {
+    key: 'plantSitting',
+    label: 'Plant sitting',
+    description: 'When a friend asks you to look after their plants.',
+  },
 ];
 
 export function NotificationSettingsCard() {
@@ -24,7 +49,7 @@ export function NotificationSettingsCard() {
       style={Shadow.card}>
       <Text className="type-label text-accent">NOTIFICATIONS</Text>
       {isLoading ? (
-        // Colour props (spinner, switch) read the theme instead of a class.
+        // Colour props (spinner) read the theme instead of a class.
         <ActivityIndicator accessibilityLabel="Loading notification settings" color={theme.primary} />
       ) : (
         settings &&
@@ -34,17 +59,7 @@ export function NotificationSettingsCard() {
               <Text className="type-body-medium text-text">{label}</Text>
               <Text className="type-caption text-text-secondary">{description}</Text>
             </View>
-            {/* Same colours on both platforms; ios_backgroundColor fills the off track on iOS.
-                Switch has no size prop, so it's scaled down to sit with the smaller text. */}
-            <Switch
-              className="scale-75"
-              accessibilityLabel={label}
-              value={settings[key]}
-              onValueChange={(value) => toggle(key, value)}
-              trackColor={{ false: theme.border, true: theme.actionPrimary }}
-              ios_backgroundColor={theme.border}
-              thumbColor={theme.backgroundElement}
-            />
+            <Toggle label={label} checked={settings[key]} onChange={(value) => toggle(key, value)} />
           </View>
         ))
       )}
@@ -55,5 +70,61 @@ export function NotificationSettingsCard() {
         </View>
       )}
     </View>
+  );
+}
+
+// Our own toggle instead of the native Switch, which looks different on each platform (Liquid Glass on
+// iOS). On is a light Fern track with a Hunter Green border and knob; the knob slides and the colours fade.
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const theme = useTheme();
+  const [progress] = useState(() => new Animated.Value(checked ? 1 : 0));
+
+  useEffect(() => {
+    // Colours can't run on the native driver, and one value drives both colour and position.
+    Animated.timing(progress, { toValue: checked ? 1 : 0, duration: 180, useNativeDriver: false }).start();
+  }, [checked, progress]);
+
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityState={{ checked }}
+      onPress={() => onChange(!checked)}
+      hitSlop={8}
+      className="active:opacity-70">
+      {/* Animated values go through style; colour props read the theme instead of a class. */}
+      <Animated.View
+        className="h-6 w-10 justify-center rounded-full border-[1.5px] px-1"
+        style={{
+          backgroundColor: progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [theme.background, theme.toggleOnTrack],
+          }),
+          borderColor: progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [theme.inputBorder, theme.actionPrimary],
+          }),
+        }}>
+        <Animated.View
+          className="h-4 w-4 rounded-full"
+          style={{
+            backgroundColor: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [theme.inputBorder, theme.actionPrimary],
+            }),
+            // Track 40 - 3 border - 8 padding - 16 knob = 13px of travel, 4px clear of each end.
+            transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, 13] }) }],
+          }}
+        />
+      </Animated.View>
+    </Pressable>
   );
 }

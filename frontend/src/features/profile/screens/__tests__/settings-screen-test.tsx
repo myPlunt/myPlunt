@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
+import { render, screen, userEvent } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 
 import { useAuthActions } from '@/features/auth/use-auth-actions';
@@ -57,8 +57,8 @@ describe('SettingsScreen', () => {
   it('turns a kind of notification off from its switch', async () => {
     await render(<SettingsScreen />);
 
-    expect(screen.getByRole('switch', { name: 'Plant sitting' })).toHaveProp('value', false);
-    fireEvent(screen.getByRole('switch', { name: 'Water reminders' }), 'valueChange', false);
+    expect(screen.getByRole('switch', { name: 'Plant sitting' })).not.toBeChecked();
+    await user.press(screen.getByRole('switch', { name: 'Water reminders' }));
 
     expect(toggle).toHaveBeenCalledWith('waterReminders', false);
   });
