@@ -1,3 +1,4 @@
+import { removePushToken } from '@/features/notifications/push-token-service';
 import { publicFetch } from '@/lib/auth/api-client';
 import { tokenStorage } from '@/lib/auth/token-storage';
 import type { AuthResponse, LoginRequest, RegisterRequest } from '@/lib/auth/types';
@@ -23,6 +24,8 @@ export async function logout(): Promise<void> {
   // Sent while the session still exists; queued lines would otherwise go out with the next
   // user who signs in on this device, under their id.
   await flushLogs();
+  // Same reason: once signed out, this phone shouldn't keep getting the account's reminders.
+  await removePushToken().catch(() => {});
   const tokens = await tokenStorage.getTokens();
   await tokenStorage.clearTokens();
   if (tokens) {
