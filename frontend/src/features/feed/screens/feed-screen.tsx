@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
@@ -21,7 +21,7 @@ import type { Post } from '@/lib/post/types';
 export function FeedScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { posts, error, isLoading, retry } = useFeed(getFeed);
+  const { posts, error, isLoading, isRefreshing, refresh, retry } = useFeed(getFeed);
   const days = groupByAge(posts ?? [], new Date());
   // Across the days, in the order they're shown, so the in-a-row limit spans day marks.
   const postIds = days.flatMap((day) => day.posts.map((post) => post.id));
@@ -57,7 +57,18 @@ export function FeedScreen() {
 
         {/* No bottom padding: the stem runs to the edge, so it looks like it grows out from
             under the tab bar. The newest growth is at the top, under today's mark. */}
-        <ScrollView contentContainerClassName="w-full max-w-content grow self-center px-6">
+        <ScrollView
+          contentContainerClassName="w-full max-w-content grow self-center px-6"
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={refresh}
+              // iOS colours the spinner with tintColor, Android with colors and progressBackgroundColor.
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+              progressBackgroundColor={theme.backgroundElement}
+            />
+          }>
           {isLoading ? (
             // A colour prop, so it reads the theme instead of a class.
             <ActivityIndicator accessibilityLabel="Loading feed" color={theme.primary} className="mt-6" />

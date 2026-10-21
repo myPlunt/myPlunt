@@ -15,7 +15,7 @@ export function useProfile() {
 
   // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
-    (isCancelled: () => boolean) => {
+    (isCancelled: () => boolean) =>
       profileService
         .getCurrentUser()
         .then((result) => {
@@ -32,8 +32,7 @@ export function useProfile() {
         })
         .finally(() => {
           if (!isCancelled()) setIsLoading(false);
-        });
-    },
+        }),
     [setUnauthenticated],
   );
 
@@ -57,6 +56,10 @@ export function useProfile() {
       setError(null);
       setIsLoading(true);
       load(() => false);
+    },
+    // Reloads without the loading state, so the profile stays on screen (pull-to-refresh).
+    refresh() {
+      return load(() => false);
     },
   };
 }

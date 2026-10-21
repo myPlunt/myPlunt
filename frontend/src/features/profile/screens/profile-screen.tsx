@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
@@ -26,16 +26,17 @@ import { useOnboardingStore } from '@/stores/onboarding-store';
 export function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { user, error, isLoading, retry } = useProfile();
+  const { user, error, isLoading, retry, refresh: refreshProfile } = useProfile();
   // Only for the stats; if any of them fails, the numbers just show a dash.
-  const { garden } = useGarden();
-  const { discovered } = useDiscoveredSpecies();
+  const { garden, refresh: refreshGarden } = useGarden();
+  const { discovered, refresh: refreshDiscovered } = useDiscoveredSpecies();
   const { species } = useSpecies();
   const stats = garden && discovered && species ? profileStats(garden, discovered, species) : null;
   const posts = useFeed(getMyPosts);
   const [filter, setFilter] = useState<PostFilterValue>('all');
   const shown = posts.posts?.filter((post) => filter === 'all' || post.type === filter) ?? [];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { step } = useOnboardingStore();
   const isBioStep = step === 'bio' && !!user;
   // The friends step starts here, with the menu open on the friends icon; its card follows
@@ -48,6 +49,14 @@ export function ProfileScreen() {
   // right under the burger's box and continue the column at the same 40px step.
   const [headerTop, setHeaderTop] = useState(0);
   const [burgerBottom, setBurgerBottom] = useState(0);
+
+  // Pull-to-refresh reloads everything on screen; the stats come from the garden and species.
+  function refresh() {
+    setIsRefreshing(true);
+    Promise.all([refreshProfile(), posts.refresh(), refreshGarden(), refreshDiscovered()]).finally(() =>
+      setIsRefreshing(false),
+    );
+  }
 
   return (
     <View className="flex-1 bg-background">
@@ -67,7 +76,18 @@ export function ProfileScreen() {
           />
         </View>
 
-        <ScrollView contentContainerClassName="w-full max-w-content grow gap-6 self-center p-6">
+        <ScrollView
+          contentContainerClassName="w-full max-w-content grow gap-6 self-center p-6"
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={refresh}
+              // iOS colours the spinner with tintColor, Android with colors and progressBackgroundColor.
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+              progressBackgroundColor={theme.backgroundElement}
+            />
+          }>
           <View className="items-center gap-1">
             <View>
               <UserAvatar size={96} url={user?.avatarUrl} accessibilityLabel="Your profile picture" />

@@ -27,7 +27,7 @@ const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: null,
 
 beforeEach(() => {
   mockedUseRouter.mockReturnValue({ back, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
-  mockedUseProfile.mockReturnValue({ user: jane, error: null, isLoading: false, retry });
+  mockedUseProfile.mockReturnValue({ refresh: jest.fn(), user: jane, error: null, isLoading: false, retry });
   mockedUseOnboardingStore.mockReturnValue(onboarding);
   mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail: jest.fn(), updateAvatar: jest.fn(), removeAvatar: jest.fn(), updateNotificationSettings: jest.fn() });
 });
@@ -45,7 +45,7 @@ describe('EditProfileScreen', () => {
   });
 
   it('shows the error and retries when asked', async () => {
-    mockedUseProfile.mockReturnValue({ user: null, error: 'Something went wrong.', isLoading: false, retry });
+    mockedUseProfile.mockReturnValue({ refresh: jest.fn(), user: null, error: 'Something went wrong.', isLoading: false, retry });
     await render(<EditProfileScreen />);
 
     await user.press(screen.getByRole('button', { name: 'Try again' }));
