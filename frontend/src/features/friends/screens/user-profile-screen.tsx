@@ -229,7 +229,7 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
       }
       renderItem={({ item: row }) =>
         'room' in row ? (
-          <RoomSection room={row.room} now={now} readOnly />
+          <RoomSection room={row.room} now={now} ownerId={user.id} />
         ) : 'posts' in row ? (
           // Three to a row like on your own profile; each cell is a third wide, padded instead of gapped.
           <View className="-mx-1.5 flex-row">

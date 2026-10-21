@@ -75,6 +75,9 @@ public final class ApiPaths {
         public static final String GARDEN = BY_ID + "/garden";
         public static final String DISCOVERED_SPECIES = BY_ID + "/species/discovered";
         public static final String POSTS = BY_ID + "/posts";
+        // One of a friend's plants and its growth photos, opened from their garden; read-only.
+        public static final String PLANT = BY_ID + "/plants/{plantId}";
+        public static final String PLANT_PHOTOS = PLANT + "/photos";
 
         private Users() {}
     }

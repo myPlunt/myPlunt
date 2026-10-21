@@ -13,6 +13,7 @@ jest.mock('@/features/feed/use-feed-actions');
 
 const user = userEvent.setup();
 const back = jest.fn();
+const push = jest.fn();
 const deletePost = jest.fn();
 
 function question(friendship: QuestionPost['author']['friendship']): QuestionPost {
@@ -29,7 +30,7 @@ function question(friendship: QuestionPost['author']['friendship']): QuestionPos
 }
 
 beforeEach(() => {
-  jest.mocked(useRouter).mockReturnValue({ back, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
+  jest.mocked(useRouter).mockReturnValue({ back, push, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
   jest.mocked(useFeedActions).mockReturnValue({ askQuestion: jest.fn(), updatePost: jest.fn(), deletePost });
 });
 
@@ -44,6 +45,15 @@ describe('PostScreen', () => {
 
     expect(screen.getByText('Why are my leaves red?')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Edit post' })).toBeNull();
+  });
+
+  it("opens the friend's profile from their picture", async () => {
+    jest.mocked(usePost).mockReturnValue({ post: question('friends'), error: null, isLoading: false, retry: jest.fn() });
+    await render(<PostScreen postId="q1" />);
+
+    await user.press(screen.getByRole('button', { name: "Open emma's profile" }));
+
+    expect(push).toHaveBeenCalledWith({ pathname: '/user/[id]', params: { id: 'u1' } });
   });
 
   it("deletes the user's own post from the pencil and leaves the page", async () => {

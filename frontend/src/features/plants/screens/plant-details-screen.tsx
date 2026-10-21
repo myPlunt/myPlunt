@@ -28,18 +28,20 @@ import { useOnboardingStore } from '@/stores/onboarding-store';
 
 /**
  * One of the user's plants, opened from its card in the garden. The pencil opens the edit
- * screen; "Delete plant" at the bottom removes it after asking.
+ * screen; "Delete plant" at the bottom removes it after asking. With ownerId it's a friend's
+ * plant, opened from their profile: shown read-only, without anything that changes it.
  */
-export function PlantDetailsScreen({ plantId }: { plantId: string }) {
+export function PlantDetailsScreen({ plantId, ownerId }: { plantId: string; ownerId?: string }) {
   const theme = useTheme();
   const router = useRouter();
-  const { plant, error, isLoading, retry } = usePlant(plantId);
+  const { plant, error, isLoading, retry } = usePlant(plantId, ownerId);
+  const isOwn = ownerId === undefined;
   // The tour's photo step, opened here right after its first plant was saved. It only shows
   // where photos are added (most users add one with the plant anyway); "Got it" moves on to the
   // watering step in the garden. Add under Growth still works; leaving otherwise would strand
   // the card, so back, edit, history and delete are off.
   const { step, next } = useOnboardingStore();
-  const isPhotoStep = step === 'photo' && !!plant;
+  const isPhotoStep = step === 'photo' && !!plant && isOwn;
   useTourBackLock(isPhotoStep);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -58,6 +60,7 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
           showBack={!isPhotoStep}
           right={
             plant &&
+            isOwn &&
             !isPhotoStep && (
               <Pressable
                 accessibilityRole="button"
@@ -93,10 +96,17 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
             ) : (
               plant && (
                 <>
-                  <PlantDetailsContent plant={plant} isPhotoStep={isPhotoStep} onGrowthLayout={showGrowth} />
-                  <View pointerEvents={isPhotoStep ? 'none' : 'auto'}>
-                    <DeletePlant plant={plant} />
-                  </View>
+                  <PlantDetailsContent
+                    plant={plant}
+                    ownerId={ownerId}
+                    isPhotoStep={isPhotoStep}
+                    onGrowthLayout={showGrowth}
+                  />
+                  {isOwn && (
+                    <View pointerEvents={isPhotoStep ? 'none' : 'auto'}>
+                      <DeletePlant plant={plant} />
+                    </View>
+                  )}
                 </>
               )
             )}
@@ -125,15 +135,18 @@ export function PlantDetailsScreen({ plantId }: { plantId: string }) {
 
 interface PlantDetailsContentProps {
   plant: PlantDetails;
+  /** Set for a friend's plant, which hides growth journal, adding photos and watering history. */
+  ownerId?: string;
   isPhotoStep: boolean;
   /** Where the Growth section starts in the page, so the photo step can scroll to it. */
   onGrowthLayout: (y: number) => void;
 }
 
-function PlantDetailsContent({ plant, isPhotoStep, onGrowthLayout }: PlantDetailsContentProps) {
+function PlantDetailsContent({ plant, ownerId, isPhotoStep, onGrowthLayout }: PlantDetailsContentProps) {
   const router = useRouter();
+  const isOwn = ownerId === undefined;
   // Empty while loading or on an error: the carousel then falls back to the plant's own photo.
-  const photos = usePlantPhotos(plant.id).photos ?? [];
+  const photos = usePlantPhotos(plant.id, ownerId).photos ?? [];
   // null shows the newest photo, also after a new one was added.
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const shownIndex = Math.min(selectedIndex ?? photos.length - 1, photos.length - 1);
@@ -184,19 +197,21 @@ function PlantDetailsContent({ plant, isPhotoStep, onGrowthLayout }: PlantDetail
           photos={photos}
           selectedIndex={shownIndex}
           onSelect={setSelectedIndex}
-          onSeeAll={() => router.push({ pathname: '/plant/[id]/growth', params: { id: plant.id } })}
-          onAdd={() => router.push({ pathname: '/plant/[id]/add-photo', params: { id: plant.id } })}
+          onSeeAll={isOwn ? () => router.push({ pathname: '/plant/[id]/growth', params: { id: plant.id } }) : undefined}
+          onAdd={isOwn ? () => router.push({ pathname: '/plant/[id]/add-photo', params: { id: plant.id } }) : undefined}
           highlightAdd={isPhotoStep}
         />
       </View>
 
-      <View pointerEvents={isPhotoStep ? 'none' : 'auto'}>
-        <LinkCard
-          title="Watering history"
-          icon={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
-          onPress={() => router.push({ pathname: '/plant/[id]/waterings', params: { id: plant.id } })}
-        />
-      </View>
+      {isOwn && (
+        <View pointerEvents={isPhotoStep ? 'none' : 'auto'}>
+          <LinkCard
+            title="Watering history"
+            icon={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
+            onPress={() => router.push({ pathname: '/plant/[id]/waterings', params: { id: plant.id } })}
+          />
+        </View>
+      )}
 
       {plant.notes && (
         <View className="gap-2 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4" style={Shadow.card}>

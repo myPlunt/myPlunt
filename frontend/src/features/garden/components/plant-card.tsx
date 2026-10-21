@@ -19,12 +19,12 @@ interface PlantCardProps {
   now: Date;
   /** Set while the user picks plants to water: pressing the card then toggles it instead of opening it. */
   selection?: PlantSelection;
-  /** A friend's plant: shown, but pressing it does nothing (its details page is the owner's only). */
-  readOnly?: boolean;
+  /** Set for a friend's plant: its details page then loads it from them and is read-only. */
+  ownerId?: string;
 }
 
 /** One plant in a room; pressing it opens the plant's details, or selects it while picking plants to water. */
-export function PlantCard({ plant, now, selection, readOnly = false }: PlantCardProps) {
+export function PlantCard({ plant, now, selection, ownerId }: PlantCardProps) {
   const router = useRouter();
   const theme = useTheme();
   const selected = selection?.selected ?? false;
@@ -39,12 +39,11 @@ export function PlantCard({ plant, now, selection, readOnly = false }: PlantCard
             accessibilityHint: 'Selects this plant for watering',
             onPress: selection.onToggle,
           }
-        : readOnly
-        ? { disabled: true }
         : {
             accessibilityRole: 'button',
             accessibilityHint: "Shows this plant's details",
-            onPress: () => router.push({ pathname: '/plant/[id]', params: { id: plant.id } }),
+            onPress: () =>
+              router.push({ pathname: '/plant/[id]', params: { id: plant.id, ...(ownerId && { ownerId }) } }),
           })}
       accessibilityLabel={plant.name}
       // The streak badge sits inside the card, which reads as one element, so it's announced here.

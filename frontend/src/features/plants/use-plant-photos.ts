@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import * as plantService from './plant-service';
 
 /** The plant's growth photos, oldest first, for its details and growth screens. */
-export function usePlantPhotos(plantId: string) {
+export function usePlantPhotos(plantId: string, ownerId?: string) {
   const { setUnauthenticated } = useAuthStore();
   const [photos, setPhotos] = useState<PlantPhoto[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +18,7 @@ export function usePlantPhotos(plantId: string) {
   const load = useCallback(
     (isCancelled: () => boolean) => {
       plantService
-        .getPlantPhotos(plantId)
+        .getPlantPhotos(plantId, ownerId)
         .then((result) => {
           if (isCancelled()) return;
           setPhotos(result);
@@ -37,7 +37,7 @@ export function usePlantPhotos(plantId: string) {
           if (!isCancelled()) setIsLoading(false);
         });
     },
-    [plantId, setUnauthenticated],
+    [plantId, ownerId, setUnauthenticated],
   );
 
   // Loads on focus, not just on mount, so a photo added on the add-photo screen shows up.
