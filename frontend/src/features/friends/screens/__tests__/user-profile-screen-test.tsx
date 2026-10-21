@@ -120,7 +120,7 @@ it("switches to a friend's PluntDex from the tab or the discovered count", async
 
   await user.press(screen.getByRole('tab', { name: 'PluntDex' }));
   expect(screen.getByRole('button', { name: 'Monstera, discovered' })).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Basil, not discovered yet' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Basil, not discovered yet' })).toBeNull();
   expect(screen.queryByText('Monty')).toBeNull();
 
   await user.press(screen.getByRole('tab', { name: 'Garden' }));

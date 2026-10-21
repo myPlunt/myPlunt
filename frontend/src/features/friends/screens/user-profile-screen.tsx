@@ -151,10 +151,13 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
     for (const room of garden.garden.rooms) rows.push({ key: room.id ?? 'other', room });
   }
   if (!error && tab === 'pluntdex' && species.species && discovered.discovered) {
-    const all = species.species;
-    for (let i = 0; i < all.length; i += 2) rows.push({ key: all[i].id, species: all.slice(i, i + 2) });
+    // Only what they've found: the rest of the list isn't theirs to show.
+    const found = species.species.filter((s) => discoveredIds.has(s.id));
+    for (let i = 0; i < found.length; i += 2) rows.push({ key: found[i].id, species: found.slice(i, i + 2) });
   }
   const isLoading = !error && rows.length === 0 && (tab === 'garden' ? !garden.garden : !species.species || !discovered.discovered);
+  const emptyText =
+    tab === 'garden' ? `${user.username} hasn't added any plants yet.` : `${user.username} hasn't discovered any species yet.`;
 
   return (
     <FlatList
@@ -165,21 +168,14 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
         <View className="gap-6">
           {header}
           <ProfileStats stats={stats} onOpenGarden={() => setTab('garden')} onOpenPluntdex={() => setTab('pluntdex')} />
-          <View className="gap-3">
-            <Tabs
-              tabs={[
-                { value: 'garden', label: 'Garden' },
-                { value: 'pluntdex', label: 'PluntDex' },
-              ]}
-              value={tab}
-              onChange={setTab}
-            />
-            {tab === 'pluntdex' && !error && (
-              <Text className="type-body-medium text-text-secondary">
-                Ticked: the species {user.username} has discovered.
-              </Text>
-            )}
-          </View>
+          <Tabs
+            tabs={[
+              { value: 'garden', label: 'Garden' },
+              { value: 'pluntdex', label: 'PluntDex' },
+            ]}
+            value={tab}
+            onChange={setTab}
+          />
         </View>
       }
       ListFooterComponent={
@@ -194,10 +190,8 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
             accessibilityLabel={tab === 'garden' ? 'Loading garden' : 'Loading PluntDex'}
             color={theme.primary}
           />
-        ) : tab === 'garden' && rows.length === 0 ? (
-          <Text className="type-body-medium text-center text-text-secondary">
-            {user.username} hasn&apos;t added any plants yet.
-          </Text>
+        ) : rows.length === 0 ? (
+          <Text className="type-body-medium text-center text-text-secondary">{emptyText}</Text>
         ) : null
       }
       renderItem={({ item: row }) =>
@@ -210,7 +204,7 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
                 key={s.id}
                 species={s}
                 number={numbers.get(s.id) ?? ''}
-                discovered={discoveredIds.has(s.id)}
+                discovered
                 onPress={() => router.push({ pathname: '/species/[id]', params: { id: s.id } })}
               />
             ))}
