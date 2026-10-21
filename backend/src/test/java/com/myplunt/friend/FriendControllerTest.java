@@ -5,6 +5,7 @@ import com.myplunt.config.SecurityConfig;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.friend.dto.SendFriendRequest;
 import com.myplunt.garden.dto.GardenResponse;
+import com.myplunt.post.dto.PostResponse;
 import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
@@ -206,22 +207,39 @@ class FriendControllerTest {
                 .isEqualTo(discovered);
     }
 
+    @Test
+    void posts_returnsTheFriendsPosts() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+        List<PostResponse> posts = List.of(new PostResponse(UUID.randomUUID(), "question", null, null, null,
+                "Why are the leaves yellow?", null, Instant.parse("2026-10-01T10:00:00Z")));
+        when(friendService.getFriendPosts(janeId, tomId)).thenReturn(posts);
+
+        get("/v1/users/" + tomId + "/posts")
+                .expectStatus().isOk()
+                .expectBody(new ParameterizedTypeReference<List<PostResponse>>() {})
+                .isEqualTo(posts);
+    }
+
     // The same 404 as an unknown user, so a stranger can't tell who exists.
     @Test
-    void gardenAndDiscoveredSpecies_returnNotFoundWhenNotFriends() {
+    void friendData_returnsNotFoundWhenNotFriends() {
         authenticateAsJane();
         UUID tomId = UUID.randomUUID();
         IllegalStateException notFriends = new IllegalStateException("You're not friends with this user");
         when(friendService.getFriendGarden(any(), any(), any())).thenThrow(notFriends);
         when(friendService.getFriendDiscoveredSpecies(any(), any())).thenThrow(notFriends);
+        when(friendService.getFriendPosts(any(), any())).thenThrow(notFriends);
 
         get("/v1/users/" + tomId + "/garden").expectStatus().isNotFound();
         get("/v1/users/" + tomId + "/species/discovered").expectStatus().isNotFound();
+        get("/v1/users/" + tomId + "/posts").expectStatus().isNotFound();
     }
 
     @Test
-    void gardenAndDiscoveredSpecies_rejectRequestsWithoutAToken() {
+    void friendData_rejectsRequestsWithoutAToken() {
         restTestClient.get().uri("/v1/users/" + UUID.randomUUID() + "/garden").exchange().expectStatus().isUnauthorized();
+        restTestClient.get().uri("/v1/users/" + UUID.randomUUID() + "/posts").exchange().expectStatus().isUnauthorized();
         restTestClient.get().uri("/v1/users/" + UUID.randomUUID() + "/species/discovered")
                 .exchange()
                 .expectStatus().isUnauthorized();

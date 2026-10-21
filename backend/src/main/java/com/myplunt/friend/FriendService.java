@@ -5,6 +5,8 @@ import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.garden.GardenService;
 import com.myplunt.garden.dto.GardenResponse;
+import com.myplunt.post.PostService;
+import com.myplunt.post.dto.PostResponse;
 import com.myplunt.species.SpeciesService;
 import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.user.User;
@@ -28,6 +30,7 @@ public class FriendService {
     private final UserService userService;
     private final GardenService gardenService;
     private final SpeciesService speciesService;
+    private final PostService postService;
     private final AuditLog auditLog;
 
     public FriendService(
@@ -35,11 +38,13 @@ public class FriendService {
             UserService userService,
             GardenService gardenService,
             SpeciesService speciesService,
+            PostService postService,
             AuditLog auditLog) {
         this.friendshipRepository = friendshipRepository;
         this.userService = userService;
         this.gardenService = gardenService;
         this.speciesService = speciesService;
+        this.postService = postService;
         this.auditLog = auditLog;
     }
 
@@ -94,7 +99,13 @@ public class FriendService {
         return speciesService.getDiscoveredSpecies(friendId);
     }
 
-    // Only friends see each other's garden and PluntDex. Strangers and pending requests get the
+    @Transactional(readOnly = true)
+    public List<PostResponse> getFriendPosts(UUID userId, UUID friendId) {
+        requireFriends(userId, friendId);
+        return postService.getUserPosts(userId, friendId);
+    }
+
+    // Only friends see each other's garden, PluntDex and posts. Strangers and pending requests get the
     // same 404 as an unknown user, so it doesn't tell them who exists.
     private void requireFriends(UUID userId, UUID otherId) {
         acceptedFriendship(userId, otherId);

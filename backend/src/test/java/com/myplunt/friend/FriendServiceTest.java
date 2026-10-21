@@ -5,6 +5,8 @@ import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.garden.GardenService;
 import com.myplunt.garden.dto.GardenResponse;
+import com.myplunt.post.PostService;
+import com.myplunt.post.dto.PostResponse;
 import com.myplunt.species.SpeciesService;
 import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.user.User;
@@ -50,6 +52,9 @@ class FriendServiceTest {
     private SpeciesService speciesService;
 
     @Mock
+    private PostService postService;
+
+    @Mock
     private AuditLog auditLog;
 
     private final UUID janeId = UUID.randomUUID();
@@ -63,7 +68,7 @@ class FriendServiceTest {
     }
 
     private FriendService friendService() {
-        return new FriendService(friendshipRepository, userService, gardenService, speciesService, auditLog);
+        return new FriendService(friendshipRepository, userService, gardenService, speciesService, postService, auditLog);
     }
 
     private void assertConflict(String message) {
@@ -196,7 +201,7 @@ class FriendServiceTest {
 
     // Tom sent the request here, so it also checks the friendship counts whoever asked.
     @Test
-    void getFriendGardenAndDiscoveredSpecies_returnAFriendsData() {
+    void getFriendGardenSpeciesAndPosts_returnAFriendsData() {
         Friendship friends = new Friendship(tomId, janeId);
         friends.accept();
         when(friendshipRepository.findBetween(janeId, List.of(tomId))).thenReturn(List.of(friends));
@@ -205,28 +210,34 @@ class FriendServiceTest {
         List<DiscoveredSpeciesResponse> discovered =
                 List.of(new DiscoveredSpeciesResponse(UUID.randomUUID(), Instant.parse("2026-10-01T10:00:00Z")));
         when(speciesService.getDiscoveredSpecies(tomId)).thenReturn(discovered);
+        List<PostResponse> posts = List.of(new PostResponse(
+                UUID.randomUUID(), "question", null, null, null, "Why are the leaves yellow?", null, Instant.now()));
+        when(postService.getUserPosts(janeId, tomId)).thenReturn(posts);
 
         assertThat(friendService().getFriendGarden(janeId, tomId, ZoneId.of("Europe/Amsterdam"))).isEqualTo(garden);
         assertThat(friendService().getFriendDiscoveredSpecies(janeId, tomId)).isEqualTo(discovered);
+        assertThat(friendService().getFriendPosts(janeId, tomId)).isEqualTo(posts);
     }
 
     // A request either way isn't a friendship yet, so their garden stays private until it's accepted.
     @Test
-    void getFriendGardenAndDiscoveredSpecies_failForStrangersAndPendingRequests() {
-        when(friendshipRepository.findBetween(janeId, List.of(tomId)))
-                .thenReturn(List.of())
-                .thenReturn(List.of(new Friendship(janeId, tomId)))
-                .thenReturn(List.of(new Friendship(tomId, janeId)));
+    void getFriendGardenSpeciesAndPosts_failForStrangersAndPendingRequests() {
+        List<List<Friendship>> notFriends =
+                List.of(List.of(), List.of(new Friendship(janeId, tomId)), List.of(new Friendship(tomId, janeId)));
 
-        for (int i = 0; i < 3; i++) {
+        for (List<Friendship> between : notFriends) {
+            when(friendshipRepository.findBetween(janeId, List.of(tomId))).thenReturn(between);
             assertThatThrownBy(() -> friendService().getFriendGarden(janeId, tomId, ZoneId.of("UTC")))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("You're not friends with this user");
             assertThatThrownBy(() -> friendService().getFriendDiscoveredSpecies(janeId, tomId))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("You're not friends with this user");
+            assertThatThrownBy(() -> friendService().getFriendPosts(janeId, tomId))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("You're not friends with this user");
         }
-        verifyNoInteractions(gardenService, speciesService);
+        verifyNoInteractions(gardenService, speciesService, postService);
     }
 
     @Test

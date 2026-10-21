@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,11 +10,16 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Tabs } from '@/components/ui/tabs';
 import { UserAvatar } from '@/components/user/user-avatar';
 import { FriendRequestActions } from '@/features/friends/components/friend-request-actions';
+import { FeedPlantCard } from '@/features/feed/components/feed-plant-card';
+import { StickyNote } from '@/features/feed/components/sticky-note';
+import { getUserPosts } from '@/features/feed/feed-service';
+import { useFeed } from '@/features/feed/use-feed';
 import { cancelFriendRequest, removeFriend, sendFriendRequest } from '@/features/friends/friends-service';
 import { useUserProfile } from '@/features/friends/use-user-profile';
 import { RoomSection } from '@/features/garden/components/room-section';
 import { useGarden } from '@/features/garden/use-garden';
 import { SpeciesCard } from '@/features/pluntdex/components/species-card';
+import { PostFilter, type PostFilterValue } from '@/features/profile/components/post-filter';
 import { ProfileStats } from '@/features/profile/components/profile-stats';
 import { profileStats } from '@/features/profile/profile-stats';
 import { useDiscoveredSpecies } from '@/features/species/use-discovered-species';
@@ -23,6 +28,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { Room } from '@/lib/garden/types';
 import { logFailedUi } from '@/lib/logger';
+import type { Post } from '@/lib/post/types';
 import type { Species } from '@/lib/species/types';
 import type { UserSummary } from '@/lib/user/types';
 import { useAuthStore } from '@/stores/auth-store';
@@ -111,11 +117,17 @@ function FriendsOnly() {
   );
 }
 
-type FriendTab = 'garden' | 'pluntdex';
+type FriendTab = 'garden' | 'pluntdex' | 'posts';
 
-// One list for the whole screen (header, stats, tabs, then rooms or rows of two species), so the
-// rooms and species cards are virtualised and nothing nests a list in a ScrollView.
-type Row = { key: string; room: Room } | { key: string; species: Species[] };
+const LOADING_LABELS: Record<FriendTab, string> = {
+  garden: 'Loading garden',
+  pluntdex: 'Loading PluntDex',
+  posts: 'Loading posts',
+};
+
+// One list for the whole screen (header, stats, tabs, then rooms, rows of two species or rows of
+// three posts), so the cards are virtualised and nothing nests a list in a ScrollView.
+type Row = { key: string; room: Room } | { key: string; species: Species[] } | { key: string; posts: Post[] };
 
 function FriendContent({ user, header }: { user: UserSummary; header: ReactNode }) {
   const theme = useTheme();
@@ -123,7 +135,11 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
   const garden = useGarden(user.id);
   const discovered = useDiscoveredSpecies(user.id);
   const species = useSpecies();
+  // useFeed reloads whenever its fetcher changes, so it's kept stable.
+  const fetchPosts = useCallback(() => getUserPosts(user.id), [user.id]);
+  const posts = useFeed(fetchPosts);
   const [tab, setTab] = useState<FriendTab>('garden');
+  const [filter, setFilter] = useState<PostFilterValue>('all');
 
   // Taken per render, so "today" moves on if the screen stays open past midnight.
   const now = new Date();
@@ -135,11 +151,16 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
   // Numbered by place in the full list, like the PluntDex tab.
   const numbers = new Map(species.species?.map((s, i) => [s.id, String(i + 1).padStart(3, '0')]));
 
-  const error = tab === 'garden' ? garden.error : (species.error ?? discovered.error);
+  const error =
+    tab === 'garden' ? garden.error : tab === 'posts' ? posts.error : (species.error ?? discovered.error);
   // Loads again whichever failed.
   function retry() {
     if (tab === 'garden') {
       garden.retry();
+      return;
+    }
+    if (tab === 'posts') {
+      posts.retry();
       return;
     }
     if (species.error) species.retry();
@@ -155,9 +176,20 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
     const found = species.species.filter((s) => discoveredIds.has(s.id));
     for (let i = 0; i < found.length; i += 2) rows.push({ key: found[i].id, species: found.slice(i, i + 2) });
   }
-  const isLoading = !error && rows.length === 0 && (tab === 'garden' ? !garden.garden : !species.species || !discovered.discovered);
+  if (!error && tab === 'posts' && posts.posts) {
+    const shown = posts.posts.filter((post) => filter === 'all' || post.type === filter);
+    for (let i = 0; i < shown.length; i += 3) rows.push({ key: shown[i].id, posts: shown.slice(i, i + 3) });
+  }
+  const isLoaded = tab === 'garden' ? !!garden.garden : tab === 'posts' ? !!posts.posts : !!species.species && !!discovered.discovered;
+  const isLoading = !error && rows.length === 0 && !isLoaded;
   const emptyText =
-    tab === 'garden' ? `${user.username} hasn't added any plants yet.` : `${user.username} hasn't discovered any species yet.`;
+    tab === 'garden'
+      ? `${user.username} hasn't added any plants yet.`
+      : tab === 'pluntdex'
+        ? `${user.username} hasn't discovered any species yet.`
+        : posts.posts?.length
+          ? 'Nothing of this kind yet.'
+          : `${user.username} hasn't shared anything yet.`;
 
   return (
     <FlatList
@@ -168,14 +200,18 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
         <View className="gap-6">
           {header}
           <ProfileStats stats={stats} onOpenGarden={() => setTab('garden')} onOpenPluntdex={() => setTab('pluntdex')} />
-          <Tabs
-            tabs={[
-              { value: 'garden', label: 'Garden' },
-              { value: 'pluntdex', label: 'PluntDex' },
-            ]}
-            value={tab}
-            onChange={setTab}
-          />
+          <View className="gap-3">
+            <Tabs
+              tabs={[
+                { value: 'garden', label: 'Garden' },
+                { value: 'pluntdex', label: 'PluntDex' },
+                { value: 'posts', label: 'Posts' },
+              ]}
+              value={tab}
+              onChange={setTab}
+            />
+            {tab === 'posts' && !error && !!posts.posts?.length && <PostFilter value={filter} onChange={setFilter} />}
+          </View>
         </View>
       }
       ListFooterComponent={
@@ -186,10 +222,7 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
           </View>
         ) : isLoading ? (
           // A colour prop, so it reads the theme instead of a class.
-          <ActivityIndicator
-            accessibilityLabel={tab === 'garden' ? 'Loading garden' : 'Loading PluntDex'}
-            color={theme.primary}
-          />
+          <ActivityIndicator accessibilityLabel={LOADING_LABELS[tab]} color={theme.primary} />
         ) : rows.length === 0 ? (
           <Text className="type-body-medium text-center text-text-secondary">{emptyText}</Text>
         ) : null
@@ -197,6 +230,15 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
       renderItem={({ item: row }) =>
         'room' in row ? (
           <RoomSection room={row.room} now={now} readOnly />
+        ) : 'posts' in row ? (
+          // Three to a row like on your own profile; each cell is a third wide, padded instead of gapped.
+          <View className="-mx-1.5 flex-row">
+            {row.posts.map((post) => (
+              <View key={post.id} className="w-1/3 px-1.5">
+                {post.type === 'question' ? <StickyNote post={post} hideAuthor /> : <FeedPlantCard post={post} hideAuthor />}
+              </View>
+            ))}
+          </View>
         ) : (
           <View className="flex-row justify-between">
             {row.species.map((s) => (

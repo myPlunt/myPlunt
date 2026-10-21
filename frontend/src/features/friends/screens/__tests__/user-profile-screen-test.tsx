@@ -1,5 +1,6 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
 
+import { useFeed } from '@/features/feed/use-feed';
 import {
   acceptFriendRequest,
   cancelFriendRequest,
@@ -13,6 +14,7 @@ import { useDiscoveredSpecies } from '@/features/species/use-discovered-species'
 import { useSpecies } from '@/features/species/use-species';
 import { ApiError } from '@/lib/auth/api-client';
 import type { Garden } from '@/lib/garden/types';
+import type { Post } from '@/lib/post/types';
 import type { Species } from '@/lib/species/types';
 import { AuthStoreProvider } from '@/stores/auth-store';
 
@@ -24,6 +26,7 @@ jest.mock('@/features/friends/friends-service');
 jest.mock('@/features/garden/use-garden');
 jest.mock('@/features/species/use-discovered-species');
 jest.mock('@/features/species/use-species');
+jest.mock('@/features/feed/use-feed');
 
 const mockedUseUserProfile = jest.mocked(useUserProfile);
 const mockedSendFriendRequest = jest.mocked(sendFriendRequest);
@@ -34,6 +37,7 @@ const mockedRemove = jest.mocked(removeFriend);
 const mockedUseGarden = jest.mocked(useGarden);
 const mockedUseDiscoveredSpecies = jest.mocked(useDiscoveredSpecies);
 const mockedUseSpecies = jest.mocked(useSpecies);
+const mockedUseFeed = jest.mocked(useFeed);
 const user = userEvent.setup();
 const retry = jest.fn();
 const jane = {
@@ -84,7 +88,32 @@ function species(id: string, commonName: string): Species {
   };
 }
 
+const author = { ...jane, friendship: 'friends' } as const;
+const posts: Post[] = [
+  {
+    id: 'post1',
+    type: 'question',
+    author,
+    plantId: null,
+    plantName: null,
+    body: 'Why are the leaves yellow?',
+    photoUrl: null,
+    createdAt: '2026-10-20T10:00:00Z',
+  },
+  {
+    id: 'post2',
+    type: 'new_plant',
+    author,
+    plantId: 'p1',
+    plantName: 'Monty',
+    body: null,
+    photoUrl: null,
+    createdAt: '2026-10-19T10:00:00Z',
+  },
+];
+
 beforeEach(() => {
+  mockedUseFeed.mockReturnValue({ posts, error: null, isLoading: false, retry: jest.fn() });
   mockedUseGarden.mockReturnValue({ garden, error: null, isLoading: false, retry: jest.fn(), refresh: jest.fn() });
   mockedUseSpecies.mockReturnValue({
     species: [species('monstera', 'Monstera'), species('basil', 'Basil')],
@@ -126,6 +155,28 @@ it("switches to a friend's PluntDex from the tab or the discovered count", async
   await user.press(screen.getByRole('tab', { name: 'Garden' }));
   await user.press(screen.getByRole('button', { name: '1 of 2 species discovered' }));
   expect(screen.getByRole('button', { name: 'Monstera, discovered' })).toBeOnTheScreen();
+});
+
+it("shows a friend's posts and filters them by kind", async () => {
+  await showProfile({ user: { ...jane, friendship: 'friends' } });
+
+  await user.press(screen.getByRole('tab', { name: 'Posts' }));
+  expect(screen.getByRole('button', { name: 'Question: Why are the leaves yellow?' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Monty' })).toBeOnTheScreen();
+
+  await user.press(screen.getByRole('tab', { name: 'Questions' }));
+  expect(screen.getByRole('button', { name: 'Question: Why are the leaves yellow?' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Monty' })).toBeNull();
+});
+
+it("says when a friend hasn't shared anything yet", async () => {
+  mockedUseFeed.mockReturnValue({ posts: [], error: null, isLoading: false, retry: jest.fn() });
+  await showProfile({ user: { ...jane, friendship: 'friends' } });
+
+  await user.press(screen.getByRole('tab', { name: 'Posts' }));
+
+  expect(screen.getByText("jane_doe hasn't shared anything yet.")).toBeOnTheScreen();
+  expect(screen.queryByRole('tab', { name: 'Questions' })).toBeNull();
 });
 
 it("shows why a friend's garden didn't load and retries it", async () => {

@@ -141,7 +141,14 @@ public class PostService {
     // The user's own posts, newest first, for their profile.
     @Transactional(readOnly = true)
     public List<PostResponse> getOwnPosts(UUID userId) {
-        return toResponses(userId, postRepository.findOwn(userId, FEED_TYPES));
+        return getUserPosts(userId, userId);
+    }
+
+    // authorId's posts, newest first, as viewerId sees them. Doesn't check they're friends;
+    // FriendService does that before a friend's profile gets here.
+    @Transactional(readOnly = true)
+    public List<PostResponse> getUserPosts(UUID viewerId, UUID authorId) {
+        return toResponses(viewerId, postRepository.findOwn(authorId, FEED_TYPES));
     }
 
     // The post's own page. Someone else's post that isn't a friend's answers 404, like one that doesn't exist.

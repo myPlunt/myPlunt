@@ -4,6 +4,7 @@ import com.myplunt.constants.ApiPaths;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.friend.dto.SendFriendRequest;
 import com.myplunt.garden.dto.GardenResponse;
+import com.myplunt.post.dto.PostResponse;
 import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.user.User;
 import com.myplunt.user.dto.UserSummaryResponse;
@@ -89,5 +90,11 @@ public class FriendController {
     public List<DiscoveredSpeciesResponse> discoveredSpecies(
             @AuthenticationPrincipal User principal, @PathVariable UUID userId) {
         return friendService.getFriendDiscoveredSpecies(principal.getId(), userId);
+    }
+
+    // A friend's posts, newest first, for their profile.
+    @GetMapping(ApiPaths.Users.POSTS)
+    public List<PostResponse> posts(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
+        return friendService.getFriendPosts(principal.getId(), userId);
     }
 }
