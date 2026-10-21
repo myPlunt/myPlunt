@@ -63,7 +63,7 @@ describe('WateringHistoryScreen', () => {
     expect(screen.getByLabelText('Current streak: 1')).toBeOnTheScreen();
     expect(screen.getByLabelText('Best streak: 1')).toBeOnTheScreen();
     expect(screen.getByLabelText('On time: 67%')).toBeOnTheScreen();
-    expect(screen.getByText(/within 3 days of the one before/)).toBeOnTheScreen();
+    expect(screen.getByText(/on the day they.re due, every 3 days/)).toBeOnTheScreen();
   });
 
   it('lists every watering in the order the backend sends them, marked on time or late', async () => {

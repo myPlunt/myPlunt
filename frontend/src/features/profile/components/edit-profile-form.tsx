@@ -11,7 +11,7 @@ import type { User } from '@/lib/user/types';
 const BIO_MAX_LENGTH = 255;
 
 /** Edits username and bio. Takes the loaded user so the fields start filled in. */
-export function EditProfileForm({ user }: { user: User }) {
+export function EditProfileForm({ user, onSaved }: { user: User; onSaved?: () => void }) {
   const { updateProfile } = useProfileActions();
   // The last saved values: what "changed" is measured against.
   const [saved, setSaved] = useState(user);
@@ -35,6 +35,7 @@ export function EditProfileForm({ user }: { user: User }) {
       setUsername(updated.username);
       setBio(updated.bio ?? '');
       setJustSaved(true);
+      onSaved?.();
     } catch (err) {
       logFailedUi('profile_update_failed_ui', err);
       if (err instanceof ApiError && err.fieldErrors) {

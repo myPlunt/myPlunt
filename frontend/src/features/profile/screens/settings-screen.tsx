@@ -1,20 +1,32 @@
+import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { LinkCard } from '@/components/ui/link-card';
 import { useAuthActions } from '@/features/auth/use-auth-actions';
 import { ChangeEmailForm } from '@/features/profile/components/change-email-form';
 import { useProfile } from '@/features/profile/use-profile';
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 // Account settings. Profile details (username, bio, picture) live on Edit profile.
 export function SettingsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { logout } = useAuthActions();
   const { user, error, isLoading, retry } = useProfile();
+  const onboarding = useOnboardingStore();
+
+  function retakeTour() {
+    onboarding.start();
+    // Back to the tabs: they redirect to the welcome page once they're in front, and a
+    // redirect doesn't run while this page covers them.
+    router.dismissTo('/');
+  }
 
   return (
     <View className="flex-1 bg-background">
@@ -43,6 +55,12 @@ export function SettingsScreen() {
               <Text className="type-caption text-text-secondary">Coming soon</Text>
             </View>
           </View>
+
+          <LinkCard
+            title="Take the tour again"
+            icon={{ ios: 'map', android: 'tour', web: 'tour' }}
+            onPress={retakeTour}
+          />
 
           <Pressable
             accessibilityRole="button"

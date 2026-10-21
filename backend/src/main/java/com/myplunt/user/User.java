@@ -31,6 +31,11 @@ public class User {
     @Column(name = "avatar_key")
     private String avatarKey;
 
+    // Where the user's plants are, for weather alerts; null until they share it.
+    private String city;
+    private Double latitude;
+    private Double longitude;
+
     protected User() {}
 
     public User(String username, String email, String passwordHash) {
@@ -81,5 +86,29 @@ public class User {
 
     public void setAvatarKey(String avatarKey) {
         this.avatarKey = avatarKey;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 }

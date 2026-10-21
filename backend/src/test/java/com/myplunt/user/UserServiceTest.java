@@ -7,6 +7,7 @@ import com.myplunt.storage.StorageService;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.UpdateAvatarRequest;
+import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
 import com.myplunt.user.dto.UserSummaryResponse;
@@ -165,6 +166,18 @@ class UserServiceTest {
         assertThat(jane.getAvatarKey()).isNull();
         verify(userRepository).save(jane);
         verify(storageService).deleteObject("avatars/" + id + "/old.jpg");
+    }
+
+    @Test
+    void updateLocation_savesTheCoordinatesAndTrimmedCity() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+
+        userService().updateLocation(id, new UpdateLocationRequest(52.22, 6.89, "  Enschede "));
+
+        assertThat(jane.getLatitude()).isEqualTo(52.22);
+        assertThat(jane.getLongitude()).isEqualTo(6.89);
+        assertThat(jane.getCity()).isEqualTo("Enschede");
+        verify(userRepository).save(jane);
     }
 
     @Test
