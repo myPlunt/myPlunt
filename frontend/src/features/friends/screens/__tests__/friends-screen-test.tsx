@@ -1,5 +1,5 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { acceptFriendRequest } from '@/features/friends/friends-service';
 import { useFriends } from '@/features/friends/use-friends';
@@ -9,7 +9,7 @@ import { useOnboardingStore } from '@/stores/onboarding-store';
 
 import { FriendsScreen } from '../friends-screen';
 
-jest.mock('expo-router', () => ({ useRouter: jest.fn(), Stack: { Screen: () => null } }));
+jest.mock('expo-router', () => ({ useRouter: jest.fn(), useLocalSearchParams: jest.fn(), Stack: { Screen: () => null } }));
 jest.mock('@/stores/onboarding-store', () => ({
   ...jest.requireActual('@/stores/onboarding-store'),
   useOnboardingStore: jest.fn(),
@@ -59,6 +59,7 @@ async function openTab(name: RegExp) {
 beforeEach(() => {
   friendsState({});
   mockedUseRouter.mockReturnValue({ push, dismissTo } as unknown as ReturnType<typeof useRouter>);
+  jest.mocked(useLocalSearchParams).mockReturnValue({});
   jest.mocked(useOnboardingStore).mockReturnValue(onboarding);
   mockedUseUserSearch.mockReturnValue({ users: null, error: null, isLoading: false });
 });
@@ -110,6 +111,14 @@ it('opens on Find, with the number of requests waiting on the Requests tab', asy
 
   expect(screen.getByRole('tab', { name: 'Find' })).toBeSelected();
   expect(screen.getByRole('tab', { name: 'Requests, 1 waiting' })).toBeOnTheScreen();
+});
+
+it('opens on Requests when a friend-request notification links to it', async () => {
+  jest.mocked(useLocalSearchParams).mockReturnValue({ tab: 'requests' });
+  await render(<FriendsScreen />, { wrapper: AuthStoreProvider });
+
+  expect(screen.getByRole('tab', { name: 'Requests, 1 waiting' })).toBeSelected();
+  expect(screen.getByText('sam')).toBeOnTheScreen();
 });
 
 it('shows no badge when no requests are waiting', async () => {
