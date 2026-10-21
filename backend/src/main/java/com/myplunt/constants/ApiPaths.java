@@ -68,6 +68,8 @@ public final class ApiPaths {
         public static final String ME_NOTIFICATIONS = ME + "/notifications";
         // PUT saves this phone's Expo push token and time zone, DELETE removes it (logout).
         public static final String ME_PUSH_TOKEN = ME + "/push-token";
+        // GET lists the notifications the user was sent, newest first.
+        public static final String ME_INBOX = ME + "/inbox";
         public static final String SEARCH = BASE + "/search";
         // Literal paths (/me, /search) win over this template.
         public static final String BY_ID = BASE + "/{userId}";
