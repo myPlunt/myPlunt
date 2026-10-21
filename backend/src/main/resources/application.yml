@@ -37,6 +37,13 @@ app:
     bootstrap:
       email: ${ADMIN_BOOTSTRAP_EMAIL:}
       password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+  # Server health for the dashboard's Overview, fetched over the Coolify Docker network (container
+  # name + port). kuma-status-page: the slug of a Kuma status page holding the monitors to show.
+  # Blank: that part of the Overview shows as not set up.
+  monitoring:
+    kuma-url: ${KUMA_URL:}
+    kuma-status-page: ${KUMA_STATUS_PAGE:}
+    glances-url: ${GLANCES_URL:}
   jwt:
     secret: ${JWT_SECRET}
     access-token-ttl-minutes: 15
