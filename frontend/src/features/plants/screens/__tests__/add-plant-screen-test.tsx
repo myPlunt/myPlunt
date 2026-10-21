@@ -79,7 +79,7 @@ beforeEach(() => {
     species: [{ id: 's1', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7, region: null, sunlightNeeds: null, common: false, imageUrl: null }],
     error: null, retry: jest.fn() });
   mockedUseGarden.mockReturnValue({ garden, error: null, isLoading: false, retry: jest.fn(), refresh: jest.fn() });
-  jest.mocked(useDiscoveredSpecies).mockReturnValue({ discovered: [], error: null, isLoading: false, retry: jest.fn() });
+  jest.mocked(useDiscoveredSpecies).mockReturnValue({ refresh: jest.fn(), discovered: [], error: null, isLoading: false, retry: jest.fn() });
 });
 
 afterEach(() => {
@@ -137,7 +137,7 @@ describe('AddPlantScreen', () => {
   });
 
   it('closes straight away when the species was already discovered', async () => {
-    jest.mocked(useDiscoveredSpecies).mockReturnValue({
+    jest.mocked(useDiscoveredSpecies).mockReturnValue({ refresh: jest.fn(),
       discovered: [{ speciesId: 's1', discoveredAt: '2026-10-11T09:30:00Z' }],
       error: null,
       isLoading: false,

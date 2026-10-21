@@ -113,14 +113,14 @@ const posts: Post[] = [
 ];
 
 beforeEach(() => {
-  mockedUseFeed.mockReturnValue({ posts, error: null, isLoading: false, retry: jest.fn() });
+  mockedUseFeed.mockReturnValue({ posts, error: null, isLoading: false, isRefreshing: false, refresh: jest.fn(), retry: jest.fn() });
   mockedUseGarden.mockReturnValue({ garden, error: null, isLoading: false, retry: jest.fn(), refresh: jest.fn() });
   mockedUseSpecies.mockReturnValue({
     species: [species('monstera', 'Monstera'), species('basil', 'Basil')],
     error: null,
     retry: jest.fn(),
   });
-  mockedUseDiscoveredSpecies.mockReturnValue({
+  mockedUseDiscoveredSpecies.mockReturnValue({ refresh: jest.fn(),
     discovered: [{ speciesId: 'monstera', discoveredAt: '2026-10-01T10:00:00Z' }],
     error: null,
     isLoading: false,
@@ -170,7 +170,7 @@ it("shows a friend's posts and filters them by kind", async () => {
 });
 
 it("says when a friend hasn't shared anything yet", async () => {
-  mockedUseFeed.mockReturnValue({ posts: [], error: null, isLoading: false, retry: jest.fn() });
+  mockedUseFeed.mockReturnValue({ posts: [], error: null, isLoading: false, isRefreshing: false, refresh: jest.fn(), retry: jest.fn() });
   await showProfile({ user: { ...jane, friendship: 'friends' } });
 
   await user.press(screen.getByRole('tab', { name: 'Posts' }));

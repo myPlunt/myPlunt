@@ -40,7 +40,7 @@ const myPosts: Post[] = [
 
 beforeEach(() => {
   mockedUseRouter.mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
-  mockedUseProfile.mockReturnValue({ user: jane, error: null, isLoading: false, retry });
+  mockedUseProfile.mockReturnValue({ refresh: jest.fn(), user: jane, error: null, isLoading: false, retry });
   jest.mocked(useGarden).mockReturnValue({
     garden: { rooms: [{ id: 'r1', name: 'Balcony', plants: [] }] },
     error: null,
@@ -49,8 +49,8 @@ beforeEach(() => {
     refresh: jest.fn(),
   });
   jest.mocked(useSpecies).mockReturnValue({ species: [], error: null, retry: jest.fn() });
-  jest.mocked(useDiscoveredSpecies).mockReturnValue({ discovered: [], error: null, isLoading: false, retry: jest.fn() });
-  mockedUseFeed.mockReturnValue({ posts: [], error: null, isLoading: false, retry });
+  jest.mocked(useDiscoveredSpecies).mockReturnValue({ refresh: jest.fn(), discovered: [], error: null, isLoading: false, retry: jest.fn() });
+  mockedUseFeed.mockReturnValue({ posts: [], error: null, isLoading: false, isRefreshing: false, refresh: jest.fn(), retry });
   mockedUseOnboardingStore.mockReturnValue(onboarding);
 });
 
@@ -84,7 +84,7 @@ describe('ProfileScreen', () => {
   });
 
   it("lists the user's own posts in the order they come, newest first", async () => {
-    mockedUseFeed.mockReturnValue({ posts: myPosts, error: null, isLoading: false, retry });
+    mockedUseFeed.mockReturnValue({ posts: myPosts, error: null, isLoading: false, isRefreshing: false, refresh: jest.fn(), retry });
     await render(<ProfileScreen />);
 
     expect(mockedUseFeed).toHaveBeenCalledWith(getMyPosts);
@@ -93,7 +93,7 @@ describe('ProfileScreen', () => {
   });
 
   it('shows only the kind of post picked in the filter', async () => {
-    mockedUseFeed.mockReturnValue({ posts: myPosts, error: null, isLoading: false, retry });
+    mockedUseFeed.mockReturnValue({ posts: myPosts, error: null, isLoading: false, isRefreshing: false, refresh: jest.fn(), retry });
     await render(<ProfileScreen />);
 
     await user.press(screen.getByRole('tab', { name: 'Questions' }));
@@ -105,7 +105,7 @@ describe('ProfileScreen', () => {
   });
 
   it('shows the error and retries when asked', async () => {
-    mockedUseProfile.mockReturnValue({ user: null, error: 'User not found', isLoading: false, retry });
+    mockedUseProfile.mockReturnValue({ refresh: jest.fn(), user: null, error: 'User not found', isLoading: false, retry });
     await render(<ProfileScreen />);
 
     expect(screen.getByText('User not found')).toBeOnTheScreen();

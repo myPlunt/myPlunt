@@ -76,7 +76,7 @@ const garden: Garden = {
 beforeEach(() => {
   jest.mocked(useRouter).mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
   jest.mocked(useSpecies).mockReturnValue({ species, error: null, retry: jest.fn() });
-  jest.mocked(useDiscoveredSpecies).mockReturnValue({
+  jest.mocked(useDiscoveredSpecies).mockReturnValue({ refresh: jest.fn(),
     discovered: [{ speciesId: 'basil', discoveredAt: '2026-10-11T09:30:00Z' }],
     error: null,
     isLoading: false,
