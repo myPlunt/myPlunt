@@ -51,4 +51,7 @@ jest.mock('expo-notifications', () => ({
   requestPermissionsAsync: jest.fn(),
   getPermissionsAsync: jest.fn(),
   getExpoPushTokenAsync: jest.fn(),
+  useLastNotificationResponse: jest.fn(),
+  clearLastNotificationResponse: jest.fn(),
+  DEFAULT_ACTION_IDENTIFIER: 'expo.modules.notifications.actions.DEFAULT',
 }));

@@ -5,6 +5,7 @@ import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.garden.GardenService;
 import com.myplunt.garden.dto.GardenResponse;
+import com.myplunt.notification.PushNotificationService;
 import com.myplunt.post.PostService;
 import com.myplunt.post.dto.PostResponse;
 import com.myplunt.species.SpeciesService;
@@ -55,6 +56,9 @@ class FriendServiceTest {
     private PostService postService;
 
     @Mock
+    private PushNotificationService pushNotificationService;
+
+    @Mock
     private AuditLog auditLog;
 
     private final UUID janeId = UUID.randomUUID();
@@ -68,7 +72,7 @@ class FriendServiceTest {
     }
 
     private FriendService friendService() {
-        return new FriendService(friendshipRepository, userService, gardenService, speciesService, postService, auditLog);
+        return new FriendService(friendshipRepository, userService, gardenService, speciesService, postService, pushNotificationService, auditLog);
     }
 
     private void assertConflict(String message) {
@@ -90,6 +94,7 @@ class FriendServiceTest {
         assertThat(saved.getValue().getRequesterId()).isEqualTo(janeId);
         assertThat(saved.getValue().getReceiverId()).isEqualTo(tomId);
         assertThat(saved.getValue().getStatus()).isEqualTo(Friendship.PENDING);
+        verify(pushNotificationService).sendFriendRequest(janeId, tomId);
     }
 
     @Test
@@ -108,6 +113,7 @@ class FriendServiceTest {
 
         assertConflict("You're already friends");
         verify(friendshipRepository, never()).saveAndFlush(any());
+        verifyNoInteractions(pushNotificationService);
     }
 
     @Test

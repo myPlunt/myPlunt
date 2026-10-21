@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,7 +31,9 @@ export function FriendsScreen() {
     next();
     router.dismissTo('/garden');
   }
-  const [tab, setTab] = useState<FriendsTab>('find');
+  // ?tab=requests when opened from a friend-request notification.
+  const params = useLocalSearchParams<{ tab?: FriendsTab }>();
+  const [tab, setTab] = useState<FriendsTab>(params.tab ?? 'find');
   // Kept here, so switching tabs and back doesn't clear the search.
   const [query, setQuery] = useState('');
   // Loaded whatever the tab, so the Requests badge shows from the start.
