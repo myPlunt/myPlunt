@@ -53,13 +53,28 @@ public class AdminLogService {
                 FROM logs WHERE logged_at >= ? GROUP BY 1, 2 ORDER BY 1""",
                 (rs, row) -> new DayCount(rs.getObject("day", LocalDate.class), rs.getString("level"), rs.getLong(3)),
                 since);
-        List<EventCount> topActions = jdbc.query(eventCounts("level = 'action'"), EVENT_COUNT, since, TOP_ACTIONS);
+        // Screen views are logged on every navigation and would fill the whole chart.
+        List<EventCount> topActions = jdbc.query(
+                eventCounts("level = 'action' AND details->>'event' IS DISTINCT FROM 'screen_viewed'"),
+                EVENT_COUNT, since, TOP_ACTIONS);
         List<EventCount> topProblems = jdbc.query(
                 eventCounts("level IN ('error', 'bug', 'warning')"), EVENT_COUNT, since, TOP_PROBLEMS);
 
         long total = byLevel.stream().mapToLong(Count::count).sum();
         return new LogOverviewResponse(range, total, byLevel, byLocation, perDay, topActions, topProblems);
     }
+
+    // Errors and bugs in the last hour, and how many an hour is usual (the 7 days before it), for
+    // the Overview's error spike alert.
+    public ErrorRate errorRate() {
+        return jdbc.queryForObject("""
+                SELECT count(*) FILTER (WHERE logged_at >= now() - interval '1 hour'),
+                       count(*) FILTER (WHERE logged_at < now() - interval '1 hour') / (7 * 24.0)
+                FROM logs WHERE level IN ('error', 'bug') AND logged_at >= now() - interval '7 days 1 hour'""",
+                (rs, row) -> new ErrorRate(rs.getLong(1), rs.getDouble(2)));
+    }
+
+    public record ErrorRate(long lastHour, double usualPerHour) {}
 
     // Newest first. level and location are optional filters; both are bound, never concatenated.
     public LogPageResponse entries(String level, String location, int page, int size) {
