@@ -1,5 +1,6 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
 
+import { useFeed } from '@/features/feed/use-feed';
 import {
   acceptFriendRequest,
   cancelFriendRequest,
@@ -8,7 +9,13 @@ import {
   sendFriendRequest,
 } from '@/features/friends/friends-service';
 import { useUserProfile } from '@/features/friends/use-user-profile';
+import { useGarden } from '@/features/garden/use-garden';
+import { useDiscoveredSpecies } from '@/features/species/use-discovered-species';
+import { useSpecies } from '@/features/species/use-species';
 import { ApiError } from '@/lib/auth/api-client';
+import type { Garden } from '@/lib/garden/types';
+import type { Post } from '@/lib/post/types';
+import type { Species } from '@/lib/species/types';
 import { AuthStoreProvider } from '@/stores/auth-store';
 
 import { UserProfileScreen } from '../user-profile-screen';
@@ -16,6 +23,10 @@ import { UserProfileScreen } from '../user-profile-screen';
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/friends/use-user-profile');
 jest.mock('@/features/friends/friends-service');
+jest.mock('@/features/garden/use-garden');
+jest.mock('@/features/species/use-discovered-species');
+jest.mock('@/features/species/use-species');
+jest.mock('@/features/feed/use-feed');
 
 const mockedUseUserProfile = jest.mocked(useUserProfile);
 const mockedSendFriendRequest = jest.mocked(sendFriendRequest);
@@ -23,6 +34,10 @@ const mockedAccept = jest.mocked(acceptFriendRequest);
 const mockedDecline = jest.mocked(declineFriendRequest);
 const mockedCancel = jest.mocked(cancelFriendRequest);
 const mockedRemove = jest.mocked(removeFriend);
+const mockedUseGarden = jest.mocked(useGarden);
+const mockedUseDiscoveredSpecies = jest.mocked(useDiscoveredSpecies);
+const mockedUseSpecies = jest.mocked(useSpecies);
+const mockedUseFeed = jest.mocked(useFeed);
 const user = userEvent.setup();
 const retry = jest.fn();
 const jane = {
@@ -38,8 +53,148 @@ function showProfile(profile: Partial<ReturnType<typeof useUserProfile>>) {
   return render(<UserProfileScreen userId="u2" />, { wrapper: AuthStoreProvider });
 }
 
+const garden: Garden = {
+  rooms: [
+    {
+      id: 'r1',
+      name: 'Living room',
+      plants: [
+        {
+          id: 'p1',
+          name: 'Monty',
+          speciesId: 'monstera',
+          speciesName: 'Monstera',
+          wateringFrequencyDays: 7,
+          lastWateredAt: '2026-10-18T09:00:00Z',
+          nextWateringAt: '2026-10-25T09:00:00Z',
+          wateringStreak: 9,
+          photoUrl: null,
+        },
+      ],
+    },
+  ],
+};
+
+function species(id: string, commonName: string): Species {
+  return {
+    id,
+    commonName,
+    scientificName: `${commonName} sp.`,
+    wateringFrequencyDays: 7,
+    region: null,
+    sunlightNeeds: null,
+    common: true,
+    imageUrl: null,
+  };
+}
+
+const author = { ...jane, friendship: 'friends' } as const;
+const posts: Post[] = [
+  {
+    id: 'post1',
+    type: 'question',
+    author,
+    plantId: null,
+    plantName: null,
+    body: 'Why are the leaves yellow?',
+    photoUrl: null,
+    createdAt: '2026-10-20T10:00:00Z',
+  },
+  {
+    id: 'post2',
+    type: 'new_plant',
+    author,
+    plantId: 'p1',
+    plantName: 'Monty',
+    body: null,
+    photoUrl: null,
+    createdAt: '2026-10-19T10:00:00Z',
+  },
+];
+
+beforeEach(() => {
+  mockedUseFeed.mockReturnValue({ posts, error: null, isLoading: false, retry: jest.fn() });
+  mockedUseGarden.mockReturnValue({ garden, error: null, isLoading: false, retry: jest.fn(), refresh: jest.fn() });
+  mockedUseSpecies.mockReturnValue({
+    species: [species('monstera', 'Monstera'), species('basil', 'Basil')],
+    error: null,
+    retry: jest.fn(),
+  });
+  mockedUseDiscoveredSpecies.mockReturnValue({
+    discovered: [{ speciesId: 'monstera', discoveredAt: '2026-10-01T10:00:00Z' }],
+    error: null,
+    isLoading: false,
+    retry: jest.fn(),
+  });
+});
+
 afterEach(() => {
   jest.resetAllMocks();
+});
+
+it("shows a friend's stats and garden, with plants you can't open", async () => {
+  await showProfile({ user: { ...jane, friendship: 'friends' } });
+
+  expect(mockedUseGarden).toHaveBeenCalledWith('u2');
+  expect(mockedUseDiscoveredSpecies).toHaveBeenCalledWith('u2');
+  expect(screen.getByRole('button', { name: '1 plant' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: '1 of 2 species discovered' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Top watering streak 9' })).toBeOnTheScreen();
+  expect(screen.getByText('Monty')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Monty' })).toBeNull();
+});
+
+it("switches to a friend's PluntDex from the tab or the discovered count", async () => {
+  await showProfile({ user: { ...jane, friendship: 'friends' } });
+
+  await user.press(screen.getByRole('tab', { name: 'PluntDex' }));
+  expect(screen.getByRole('button', { name: 'Monstera, discovered' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Basil, not discovered yet' })).toBeNull();
+  expect(screen.queryByText('Monty')).toBeNull();
+
+  await user.press(screen.getByRole('tab', { name: 'Garden' }));
+  await user.press(screen.getByRole('button', { name: '1 of 2 species discovered' }));
+  expect(screen.getByRole('button', { name: 'Monstera, discovered' })).toBeOnTheScreen();
+});
+
+it("shows a friend's posts and filters them by kind", async () => {
+  await showProfile({ user: { ...jane, friendship: 'friends' } });
+
+  await user.press(screen.getByRole('tab', { name: 'Posts' }));
+  expect(screen.getByRole('button', { name: 'Question: Why are the leaves yellow?' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Monty' })).toBeOnTheScreen();
+
+  await user.press(screen.getByRole('tab', { name: 'Questions' }));
+  expect(screen.getByRole('button', { name: 'Question: Why are the leaves yellow?' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Monty' })).toBeNull();
+});
+
+it("says when a friend hasn't shared anything yet", async () => {
+  mockedUseFeed.mockReturnValue({ posts: [], error: null, isLoading: false, retry: jest.fn() });
+  await showProfile({ user: { ...jane, friendship: 'friends' } });
+
+  await user.press(screen.getByRole('tab', { name: 'Posts' }));
+
+  expect(screen.getByText("jane_doe hasn't shared anything yet.")).toBeOnTheScreen();
+  expect(screen.queryByRole('tab', { name: 'Questions' })).toBeNull();
+});
+
+it("shows why a friend's garden didn't load and retries it", async () => {
+  const retryGarden = jest.fn();
+  mockedUseGarden.mockReturnValue({ garden: null, error: 'Something went wrong', isLoading: false, retry: retryGarden, refresh: jest.fn() });
+  await showProfile({ user: { ...jane, friendship: 'friends' } });
+
+  await user.press(screen.getByRole('button', { name: 'Try again' }));
+
+  expect(retryGarden).toHaveBeenCalled();
+});
+
+it("keeps a stranger's garden private and doesn't ask for it", async () => {
+  await showProfile({});
+
+  expect(screen.getByText('Only friends can see this garden')).toBeOnTheScreen();
+  expect(screen.queryByRole('tab', { name: 'Garden' })).toBeNull();
+  expect(mockedUseGarden).not.toHaveBeenCalled();
 });
 
 it('sends a friend request and then offers to cancel it', async () => {
@@ -94,6 +249,8 @@ it('removes a friend after asking, leaving them to add again', async () => {
 
   expect(mockedRemove).toHaveBeenCalledWith('u2');
   expect(screen.getByRole('button', { name: 'Add friend' })).toBeOnTheScreen();
+  expect(screen.queryByText('Monty')).toBeNull();
+  expect(screen.getByText('Only friends can see this garden')).toBeOnTheScreen();
 });
 
 it('keeps the friend when the popup is cancelled', async () => {
@@ -127,6 +284,7 @@ it('lets you accept a request they sent', async () => {
 
   expect(mockedAccept).toHaveBeenCalledWith('u2');
   expect(screen.getByRole('button', { name: 'Friends' })).toBeOnTheScreen();
+  expect(screen.getByText('Monty')).toBeOnTheScreen();
 });
 
 it('lets you decline a request they sent, leaving them to add again', async () => {

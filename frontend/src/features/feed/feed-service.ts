@@ -13,6 +13,11 @@ export async function getMyPosts(): Promise<Post[]> {
   return apiFetch<Post[]>('/v1/posts/mine');
 }
 
+/** A friend's posts, newest first, for their profile (the backend turns away anyone else). */
+export async function getUserPosts(userId: string): Promise<Post[]> {
+  return apiFetch<Post[]>(`/v1/users/${userId}/posts`);
+}
+
 /** One post of the user's or a friend's, for its own page. */
 export async function getPost(postId: string): Promise<Post> {
   return apiFetch<Post>(`/v1/posts/${postId}`);
