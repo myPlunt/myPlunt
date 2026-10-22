@@ -41,12 +41,7 @@ public class SecurityConfig {
                     response.setStatus(HttpStatus.UNAUTHORIZED.value());
                 }))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                ApiPaths.Auth.BASE + "/**",
-                                ApiPaths.Ops.RESET_DB,
-                                ApiPaths.Ops.SEND_WEATHER_ALERTS,
-                                "/actuator/**")
-                        .permitAll()
+                        .requestMatchers(ApiPaths.Auth.BASE + "/**", "/actuator/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

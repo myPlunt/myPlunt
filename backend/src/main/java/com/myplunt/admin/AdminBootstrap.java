@@ -30,6 +30,10 @@ public class AdminBootstrap implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        createAdmin();
+    }
+
+    public void createAdmin() {
         if (email.isEmpty() || adminUserRepository.findByEmail(email).isPresent()) {
             return;
         }

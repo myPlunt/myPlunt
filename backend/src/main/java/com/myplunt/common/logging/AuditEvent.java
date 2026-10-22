@@ -43,6 +43,5 @@ public enum AuditEvent {
     // changed_by is an admin_users id here, not a users id.
     SPECIES_APPROVED,
     SPECIES_REJECTED,
-    DATABASE_RESET,
-    DATABASE_RESET_REJECTED
+    DATABASE_RESET
 }
