@@ -25,7 +25,7 @@ const OPTIONS: {
   {
     key: 'friendActivity',
     label: 'Friend alerts',
-    description: "News about your friends' plants.",
+    description: "News about your friends' plants, and their comments and likes on your posts.",
   },
   {
     key: 'friendNudges',

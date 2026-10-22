@@ -2,6 +2,8 @@ package com.myplunt.post;
 
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
+import com.myplunt.notification.PostNotice;
+import com.myplunt.notification.PushNotificationService;
 import com.myplunt.plant.LatestPhoto;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantPhoto;
@@ -67,8 +69,12 @@ class PostServiceTest {
     @Mock
     private AuditLog auditLog;
 
+    @Mock
+    private PushNotificationService pushNotificationService;
+
     private PostService postService() {
-        return new PostService(postRepository, postCommentRepository, postReactionRepository, userRepository, plantPhotoRepository, userService, storageService, auditLog);
+        return new PostService(postRepository, postCommentRepository, postReactionRepository, userRepository, plantPhotoRepository, userService, storageService, auditLog,
+                pushNotificationService);
     }
 
     private static <T> T withId(T entity, UUID id) {
@@ -231,6 +237,8 @@ class PostServiceTest {
         assertThat(saved.getValue().getAuthorId()).isEqualTo(me.getId());
         assertThat(response.body()).isEqualTo("Too much sun");
         assertThat(response.author()).isEqualTo(self);
+        verify(pushNotificationService).sendPostComment(me.getId(),
+                new PostNotice(question.getId(), question.getUserId(), Post.QUESTION, null, "Why?"), "Too much sun");
     }
 
     // Not a friend's post (or no post at all): 404, and nothing is saved.
@@ -261,6 +269,8 @@ class PostServiceTest {
         assertThat(saved.getValue().getPostId()).isEqualTo(question.getId());
         assertThat(saved.getValue().getUserId()).isEqualTo(userId);
         verify(auditLog).recorded(AuditEvent.POST_WATERED, userId, userId, Map.of("post_id", question.getId()));
+        verify(pushNotificationService).sendPostWatered(userId,
+                new PostNotice(question.getId(), question.getUserId(), Post.QUESTION, null, "Why?"));
     }
 
     @Test

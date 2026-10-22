@@ -9,6 +9,7 @@ import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantRepository;
 import com.myplunt.plant.WateringLogRepository;
 import com.myplunt.plant.WateringSchedule;
+import com.myplunt.post.Post;
 import com.myplunt.storage.StorageService;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
@@ -52,6 +53,10 @@ public class PushNotificationService {
     // App routes a tap opens (expo-router paths).
     static final String GARDEN_URL = "/garden";
     static final String FRIEND_REQUESTS_URL = "/friends?tab=requests";
+    static final String POST_URL = "/post/";
+
+    // A comment or question is quoted only this far, so it fits the banner (and notifications.body).
+    static final int QUOTE_LENGTH = 100;
 
     // How many of the newest notifications the list shows.
     static final int INBOX_SIZE = 50;
@@ -217,13 +222,56 @@ public class PushNotificationService {
     // It's listed even when the receiver has no phone with push, so they still see the request there.
     @Async
     public void sendFriendRequest(UUID requesterId, UUID receiverId) {
-        String requester = userRepository.findById(requesterId).map(User::getUsername).orElse("Someone");
-        String title = "New friend request 🌱";
-        String body = requester + " wants to be friends.";
-        notificationRepository.save(new Notification(receiverId, requesterId, title, body, FRIEND_REQUESTS_URL));
-        send(pushTokenRepository.findByUserId(receiverId).stream()
-                .map(pushToken -> new ExpoPushMessage(pushToken.getToken(), title, body, FRIEND_REQUESTS_URL))
+        notify(receiverId, requesterId, "New friend request 🌱", username(requesterId) + " wants to be friends.",
+                FRIEND_REQUESTS_URL);
+    }
+
+    // A friend's comment on the user's post; a tap opens the post. A comment on a question is an
+    // answer to it. Off with the user's "Friend alerts" (friend_post_notifications), like other news from friends.
+    @Async
+    public void sendPostComment(UUID commenterId, PostNotice post, String comment) {
+        if (!wantsFriendPostNotifications(post.ownerId())) {
+            return;
+        }
+        String who = username(commenterId);
+        boolean isQuestion = Post.QUESTION.equals(post.type());
+        notify(post.ownerId(), commenterId,
+                isQuestion ? "New answer 💬" : "New comment 💬",
+                (isQuestion ? who + " answered your question: " : who + " commented on " + post.plantName() + ": ")
+                        + quote(comment),
+                POST_URL + post.postId());
+    }
+
+    // A friend's drop of water (the app's like) on the user's post, saying which post it was.
+    // shortcut: watering, taking it back and watering again notifies twice; collapse repeats if friends complain.
+    @Async
+    public void sendPostWatered(UUID fromId, PostNotice post) {
+        if (!wantsFriendPostNotifications(post.ownerId())) {
+            return;
+        }
+        String what = switch (post.type()) {
+            case Post.QUESTION -> "your question " + quote(post.question());
+            case Post.NEW_PHOTO -> "your photo of " + post.plantName() + ".";
+            default -> "your new plant " + post.plantName() + ".";
+        };
+        notify(post.ownerId(), fromId, "New like 💧", username(fromId) + " liked " + what, POST_URL + post.postId());
+    }
+
+    // In quotes, cut short so it fits the banner (and notifications.body).
+    static String quote(String text) {
+        return "\"" + (text.length() > QUOTE_LENGTH ? text.substring(0, QUOTE_LENGTH).strip() + "…" : text) + "\"";
+    }
+
+    // Listed for the user and pushed to every phone of theirs; listed even without one, so they still see it.
+    private void notify(UUID userId, UUID fromUserId, String title, String body, String url) {
+        notificationRepository.save(new Notification(userId, fromUserId, title, body, url));
+        send(pushTokenRepository.findByUserId(userId).stream()
+                .map(pushToken -> new ExpoPushMessage(pushToken.getToken(), title, body, url))
                 .toList());
+    }
+
+    private String username(UUID userId) {
+        return userRepository.findById(userId).map(User::getUsername).orElse("Someone");
     }
 
     // shortcut: no read/unread state and old rows are never deleted; add both if the list grows noisy.
@@ -260,6 +308,10 @@ public class PushNotificationService {
 
     private boolean wantsWeatherAlerts(UUID userId) {
         return userSettingsRepository.findById(userId).map(UserSettings::isWeatherAlerts).orElse(true);
+    }
+
+    private boolean wantsFriendPostNotifications(UUID userId) {
+        return userSettingsRepository.findById(userId).map(UserSettings::isFriendPostNotifications).orElse(true);
     }
 
     // Only plants due on today's date: overdue ones already had their reminder on the day.
