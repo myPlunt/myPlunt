@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useFeedActions } from '@/features/feed/use-feed-actions';
 import { usePost } from '@/features/feed/use-post';
 import { ApiError } from '@/lib/auth/api-client';
-import type { PostComment, QuestionPost } from '@/lib/post/types';
+import type { Post, PostComment, QuestionPost } from '@/lib/post/types';
 
 import { PostScreen } from '../post-screen';
 
@@ -37,7 +37,7 @@ function question(friendship: QuestionPost['author']['friendship']): QuestionPos
   };
 }
 
-function loaded(post: QuestionPost, comments: PostComment[] = []) {
+function loaded(post: Post, comments: PostComment[] = []) {
   return { post, comments, addLocalComment, error: null, isLoading: false, isRefreshing: false, refresh, retry: jest.fn() };
 }
 
@@ -65,12 +65,12 @@ afterEach(() => {
 });
 
 describe('PostScreen', () => {
-  it("has no pencil on a friend's post", async () => {
+  it("has no post menu on a friend's post", async () => {
     jest.mocked(usePost).mockReturnValue(loaded(question('friends')));
     await render(<PostScreen postId="q1" />);
 
     expect(screen.getByText('Why are my leaves red?')).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Edit post' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull();
   });
 
   it("opens the friend's profile from their picture", async () => {
@@ -82,17 +82,30 @@ describe('PostScreen', () => {
     expect(push).toHaveBeenCalledWith({ pathname: '/user/[id]', params: { id: 'u1' } });
   });
 
-  it("deletes the user's own post from the pencil and leaves the page", async () => {
+  it("deletes the user's own post from the menu's bin and leaves the page", async () => {
     jest.mocked(usePost).mockReturnValue(loaded(question(null)));
     deletePost.mockResolvedValue(undefined);
     await render(<PostScreen postId="q1" />);
 
-    await user.press(screen.getByRole('button', { name: 'Edit post' }));
+    await user.press(screen.getByRole('button', { name: 'Open menu' }));
+    expect(screen.getByRole('button', { name: 'Edit post' })).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Delete post' }));
     await user.press(screen.getByRole('button', { name: 'Delete' }));
 
     expect(deletePost).toHaveBeenCalledWith('q1');
     expect(back).toHaveBeenCalled();
+  });
+
+  it('offers only the bin on a new plant post, which has no words to edit', async () => {
+    jest.mocked(usePost).mockReturnValue(
+      loaded({ ...question(null), type: 'new_plant', plantId: 'p1', plantName: 'Gus the Fern', body: null }),
+    );
+    await render(<PostScreen postId="q1" />);
+
+    await user.press(screen.getByRole('button', { name: 'Open menu' }));
+
+    expect(screen.getByRole('button', { name: 'Delete post' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Edit post' })).toBeNull();
   });
 
   it('sends a comment and shows it under the post', async () => {

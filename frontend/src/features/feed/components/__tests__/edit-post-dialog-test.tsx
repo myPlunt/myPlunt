@@ -61,7 +61,7 @@ afterEach(() => {
 describe('EditPostDialog', () => {
   it("saves the question's new text, trimmed", async () => {
     updatePost.mockResolvedValue({ ...question, body: 'Why are they yellow?' });
-    await render(<EditPostDialog post={question} onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} />);
+    await render(<EditPostDialog post={question} mode="edit" onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} />);
 
     await user.clear(screen.getByLabelText('Question'));
     await user.type(screen.getByLabelText('Question'), ' Why are they yellow? ');
@@ -75,7 +75,7 @@ describe('EditPostDialog', () => {
     updatePost.mockRejectedValue(
       new ApiError(400, 'Bad Request', { detail: 'Invalid', fieldErrors: { body: 'Text must be at most 280 characters.' } }),
     );
-    await render(<EditPostDialog post={photoPost} onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} />);
+    await render(<EditPostDialog post={photoPost} mode="edit" onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} />);
 
     await user.clear(screen.getByLabelText('Comment (optional)'));
     await user.press(screen.getByRole('button', { name: 'Save' }));
@@ -87,9 +87,8 @@ describe('EditPostDialog', () => {
 
   it('deletes the post only after the user confirms', async () => {
     deletePost.mockResolvedValue(undefined);
-    await render(<EditPostDialog post={photoPost} onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} />);
+    await render(<EditPostDialog post={photoPost} mode="delete" onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} />);
 
-    await user.press(screen.getByRole('button', { name: 'Delete post' }));
     expect(deletePost).not.toHaveBeenCalled();
     await user.press(screen.getByRole('button', { name: 'Delete' }));
 
