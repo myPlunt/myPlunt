@@ -43,6 +43,8 @@ public enum AuditEvent {
     POST_UPDATED,
     POST_DELETED,
     COMMENT_ADDED,
+    POST_WATERED,
+    POST_UNWATERED,
     // Not something the user did: the late watering that ended a streak.
     WATERING_STREAK_BROKEN,
     // reason: too_large. The upload was deleted from storage.

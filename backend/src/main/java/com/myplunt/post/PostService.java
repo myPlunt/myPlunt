@@ -25,8 +25,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -43,6 +45,7 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final PostCommentRepository postCommentRepository;
+    private final PostReactionRepository postReactionRepository;
     private final UserRepository userRepository;
     private final PlantPhotoRepository plantPhotoRepository;
     private final UserService userService;
@@ -52,6 +55,7 @@ public class PostService {
     public PostService(
             PostRepository postRepository,
             PostCommentRepository postCommentRepository,
+            PostReactionRepository postReactionRepository,
             UserRepository userRepository,
             PlantPhotoRepository plantPhotoRepository,
             UserService userService,
@@ -59,6 +63,7 @@ public class PostService {
             AuditLog auditLog) {
         this.postRepository = postRepository;
         this.postCommentRepository = postCommentRepository;
+        this.postReactionRepository = postReactionRepository;
         this.userRepository = userRepository;
         this.plantPhotoRepository = plantPhotoRepository;
         this.userService = userService;
@@ -81,7 +86,7 @@ public class PostService {
         auditLog.recorded(AuditEvent.QUESTION_ASKED, userId, userId,
                 Map.of("post_id", saved.getId(), "has_photo", request.photoKey() != null));
         User author = userRepository.findById(userId).orElseThrow(() -> new IllegalStateException("User not found"));
-        return toResponse(saved, author, null, null, 0);
+        return toResponse(saved, author, null, null, 0, 0, false);
     }
 
     // Only the words are the post's own: a question's text or a new photo's comment. A new plant
@@ -185,6 +190,28 @@ public class PostService {
         return toResponse(saved, author);
     }
 
+    // A drop of water on a friend's post: the app's like. Watering it again changes nothing.
+    @Transactional
+    public void water(UUID userId, UUID postId) {
+        Post post = findVisiblePost(userId, postId);
+        if (post.getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't water your own post.");
+        }
+        if (postReactionRepository.existsByPostIdAndUserId(postId, userId)) {
+            return;
+        }
+        postReactionRepository.save(new PostReaction(postId, userId));
+        auditLog.recorded(AuditEvent.POST_WATERED, userId, userId, Map.of("post_id", postId));
+    }
+
+    // Takes the user's drop back. Only their own row is touched, so it needs no visibility check.
+    @Transactional
+    public void unwater(UUID userId, UUID postId) {
+        if (postReactionRepository.deleteByPostIdAndUserId(postId, userId) > 0) {
+            auditLog.recorded(AuditEvent.POST_UNWATERED, userId, userId, Map.of("post_id", postId));
+        }
+    }
+
     private Post findVisiblePost(UUID userId, UUID postId) {
         return postRepository.findVisible(postId, userId, FEED_TYPES)
                 .orElseThrow(() -> new IllegalStateException("Post not found"));
@@ -195,12 +222,19 @@ public class PostService {
                 comment.getId(), userService.toSummary(author, null), comment.getBody(), comment.getCreatedAt());
     }
 
-    // Maps the posts in their given order, loading authors, plant photos and comment counts in one query each.
+    // Maps the posts in their given order, loading authors, plant photos, comment and water counts
+    // and the viewer's drops in one query each.
     private List<PostResponse> toResponses(UUID userId, List<Post> posts) {
+        List<UUID> postIds = posts.stream().map(Post::getId).toList();
         Map<UUID, Long> commentCounts = postCommentRepository
-                .countByPostIds(posts.stream().map(Post::getId).toList())
+                .countByPostIds(postIds)
                 .stream()
-                .collect(Collectors.toMap(CommentCount::postId, CommentCount::count));
+                .collect(Collectors.toMap(PostCount::postId, PostCount::count));
+        Map<UUID, Long> waterCounts = postReactionRepository
+                .countByPostIds(postIds)
+                .stream()
+                .collect(Collectors.toMap(PostCount::postId, PostCount::count));
+        Set<UUID> watered = new HashSet<>(postReactionRepository.findWateredPostIds(userId, postIds));
         Map<UUID, User> authors = userRepository.findAllById(posts.stream().map(Post::getUserId).distinct().toList())
                 .stream()
                 .collect(Collectors.toMap(User::getId, Function.identity()));
@@ -219,14 +253,24 @@ public class PostService {
                     // Only the user and their friends are in the feed.
                     String friendship = author.getId().equals(userId) ? null : "friends";
                     String latestPhotoKey = post.getPlant() == null ? null : photoKeys.get(post.getPlant().getId());
-                    return toResponse(post, author, friendship, latestPhotoKey, commentCounts.getOrDefault(post.getId(), 0L));
+                    return toResponse(post, author, friendship, latestPhotoKey,
+                            commentCounts.getOrDefault(post.getId(), 0L),
+                            waterCounts.getOrDefault(post.getId(), 0L),
+                            watered.contains(post.getId()));
                 })
                 .toList();
     }
 
     // A question shows its own photo, a photo post the photo that was shared, and a new plant
     // the plant's current one (latestPhotoKey).
-    private PostResponse toResponse(Post post, User author, String friendship, String latestPhotoKey, long commentCount) {
+    private PostResponse toResponse(
+            Post post,
+            User author,
+            String friendship,
+            String latestPhotoKey,
+            long commentCount,
+            long waterCount,
+            boolean wateredByMe) {
         String photoKey = post.getPhotoKey() != null
                 ? post.getPhotoKey()
                 : post.getPhoto() != null ? post.getPhoto().getPhotoKey() : latestPhotoKey;
@@ -240,6 +284,8 @@ public class PostService {
                 post.getBody(),
                 photoKey == null ? null : storageService.createReadUrl(photoKey),
                 commentCount,
+                waterCount,
+                wateredByMe,
                 post.getCreatedAt());
     }
 }

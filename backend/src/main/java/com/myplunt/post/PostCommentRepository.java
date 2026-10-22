@@ -13,10 +13,10 @@ public interface PostCommentRepository extends JpaRepository<PostComment, UUID> 
 
     // One row per post that has comments; posts without any are absent.
     @Query("""
-            select new com.myplunt.post.CommentCount(c.postId, count(c))
+            select new com.myplunt.post.PostCount(c.postId, count(c))
             from PostComment c
             where c.postId in :postIds
             group by c.postId
             """)
-    List<CommentCount> countByPostIds(Collection<UUID> postIds);
+    List<PostCount> countByPostIds(Collection<UUID> postIds);
 }

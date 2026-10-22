@@ -50,6 +50,9 @@ class PostServiceTest {
     private PostCommentRepository postCommentRepository;
 
     @Mock
+    private PostReactionRepository postReactionRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -65,7 +68,7 @@ class PostServiceTest {
     private AuditLog auditLog;
 
     private PostService postService() {
-        return new PostService(postRepository, postCommentRepository, userRepository, plantPhotoRepository, userService, storageService, auditLog);
+        return new PostService(postRepository, postCommentRepository, postReactionRepository, userRepository, plantPhotoRepository, userService, storageService, auditLog);
     }
 
     private static <T> T withId(T entity, UUID id) {
@@ -74,7 +77,7 @@ class PostServiceTest {
     }
 
     @Test
-    void getFeed_mapsEachPostWithItsAuthorThePlantsCurrentPhotoAndCommentCount() {
+    void getFeed_mapsEachPostWithItsAuthorThePlantsCurrentPhotoAndItsCounts() {
         User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
         User friend = withId(new User("emma", "emma@example.com", "hashed"), UUID.randomUUID());
         Plant gus = withId(new Plant(friend.getId(), "Gus the Fern"), UUID.randomUUID());
@@ -88,7 +91,11 @@ class PostServiceTest {
                 .thenReturn(List.of(new LatestPhoto(gus.getId(), "plants/gus.jpg")));
         when(storageService.createReadUrl("plants/gus.jpg")).thenReturn("https://storage.test/gus.jpg?signed");
         when(postCommentRepository.countByPostIds(anyCollection()))
-                .thenReturn(List.of(new CommentCount(friendsPost.getId(), 3)));
+                .thenReturn(List.of(new PostCount(friendsPost.getId(), 3)));
+        when(postReactionRepository.countByPostIds(anyCollection()))
+                .thenReturn(List.of(new PostCount(friendsPost.getId(), 2)));
+        when(postReactionRepository.findWateredPostIds(eq(me.getId()), anyCollection()))
+                .thenReturn(List.of(friendsPost.getId()));
         UserSummaryResponse emma = new UserSummaryResponse(friend.getId(), "emma", null, null, "friends");
         UserSummaryResponse self = new UserSummaryResponse(me.getId(), "me", null, null, null);
         when(userService.toSummary(friend, "friends")).thenReturn(emma);
@@ -98,8 +105,8 @@ class PostServiceTest {
 
         assertThat(feed).containsExactly(
                 new PostResponse(friendsPost.getId(), Post.NEW_PLANT, emma, gus.getId(), "Gus the Fern", null,
-                        "https://storage.test/gus.jpg?signed", 3, friendsPost.getCreatedAt()),
-                new PostResponse(myPost.getId(), Post.NEW_PLANT, self, vera.getId(), "Vera", null, null, 0, myPost.getCreatedAt()));
+                        "https://storage.test/gus.jpg?signed", 3, 2, true, friendsPost.getCreatedAt()),
+                new PostResponse(myPost.getId(), Post.NEW_PLANT, self, vera.getId(), "Vera", null, null, 0, 0, false, myPost.getCreatedAt()));
     }
 
     // Seen from the viewer's side, so the author is labelled a friend rather than the viewer themselves.
@@ -236,6 +243,38 @@ class PostServiceTest {
         assertThatThrownBy(() -> postService().addComment(userId, postId, new AddCommentRequest("Hi")))
                 .isInstanceOf(IllegalStateException.class);
         verify(postCommentRepository, never()).save(any());
+    }
+
+    @Test
+    void water_savesADropOnAFriendsPostOnlyOnce() {
+        UUID userId = UUID.randomUUID();
+        Post question = withId(new Post(UUID.randomUUID(), "Why?", null), UUID.randomUUID());
+        when(postRepository.findVisible(eq(question.getId()), eq(userId), anyCollection()))
+                .thenReturn(Optional.of(question));
+        when(postReactionRepository.existsByPostIdAndUserId(question.getId(), userId)).thenReturn(false, true);
+
+        postService().water(userId, question.getId());
+        postService().water(userId, question.getId());
+
+        ArgumentCaptor<PostReaction> saved = ArgumentCaptor.forClass(PostReaction.class);
+        verify(postReactionRepository).save(saved.capture());
+        assertThat(saved.getValue().getPostId()).isEqualTo(question.getId());
+        assertThat(saved.getValue().getUserId()).isEqualTo(userId);
+        verify(auditLog).recorded(AuditEvent.POST_WATERED, userId, userId, Map.of("post_id", question.getId()));
+    }
+
+    @Test
+    void water_rejectsTheUsersOwnPostAndSavesNothing() {
+        UUID userId = UUID.randomUUID();
+        Post question = withId(new Post(userId, "Why?", null), UUID.randomUUID());
+        when(postRepository.findVisible(eq(question.getId()), eq(userId), anyCollection()))
+                .thenReturn(Optional.of(question));
+
+        assertThatThrownBy(() -> postService().water(userId, question.getId()))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(postReactionRepository, never()).save(any());
     }
 
     @Test
