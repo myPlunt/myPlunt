@@ -34,8 +34,8 @@ const user = userEvent.setup();
 const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: 'Fern collector', avatarUrl: null, onboardingCompleted: true };
 const author = { id: 'u1', username: 'jane', bio: null, avatarUrl: null, friendship: null };
 const myPosts: Post[] = [
-  { id: 'p2', type: 'question', author, plantId: null, plantName: null, body: 'Why are my leaves red?', photoUrl: null, createdAt: '2026-10-19T10:00:00Z' },
-  { id: 'p1', type: 'new_plant', author, plantId: 'plant1', plantName: 'Gus the Fern', body: null, photoUrl: null, createdAt: '2026-10-18T10:00:00Z' },
+  { id: 'p2', type: 'question', author, plantId: null, plantName: null, body: 'Why are my leaves red?', photoUrl: null, commentCount: 0, createdAt: '2026-10-19T10:00:00Z' },
+  { id: 'p1', type: 'new_plant', author, plantId: 'plant1', plantName: 'Gus the Fern', body: null, photoUrl: null, commentCount: 0, createdAt: '2026-10-18T10:00:00Z' },
 ];
 
 beforeEach(() => {

@@ -1,5 +1,5 @@
 import { ApiError } from '@/lib/auth/api-client';
-import type { AskQuestionRequest, UpdatePostRequest } from '@/lib/post/types';
+import type { AddCommentRequest, AskQuestionRequest, UpdatePostRequest } from '@/lib/post/types';
 import { useAuthStore } from '@/stores/auth-store';
 
 import * as feedService from './feed-service';
@@ -23,5 +23,6 @@ export function useFeedActions() {
     askQuestion: (request: AskQuestionRequest) => run(() => feedService.askQuestion(request)),
     updatePost: (postId: string, request: UpdatePostRequest) => run(() => feedService.updatePost(postId, request)),
     deletePost: (postId: string) => run(() => feedService.deletePost(postId)),
+    addComment: (postId: string, request: AddCommentRequest) => run(() => feedService.addComment(postId, request)),
   };
 }

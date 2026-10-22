@@ -7,7 +7,9 @@ import com.myplunt.common.logging.StructuredLog;
 import com.myplunt.plant.LatestPhoto;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantPhotoRepository;
+import com.myplunt.post.dto.AddCommentRequest;
 import com.myplunt.post.dto.AskQuestionRequest;
+import com.myplunt.post.dto.CommentResponse;
 import com.myplunt.post.dto.PostResponse;
 import com.myplunt.post.dto.UpdatePostRequest;
 import com.myplunt.storage.StorageService;
@@ -40,6 +42,7 @@ public class PostService {
     private static final int FEED_SIZE = 50;
 
     private final PostRepository postRepository;
+    private final PostCommentRepository postCommentRepository;
     private final UserRepository userRepository;
     private final PlantPhotoRepository plantPhotoRepository;
     private final UserService userService;
@@ -48,12 +51,14 @@ public class PostService {
 
     public PostService(
             PostRepository postRepository,
+            PostCommentRepository postCommentRepository,
             UserRepository userRepository,
             PlantPhotoRepository plantPhotoRepository,
             UserService userService,
             StorageService storageService,
             AuditLog auditLog) {
         this.postRepository = postRepository;
+        this.postCommentRepository = postCommentRepository;
         this.userRepository = userRepository;
         this.plantPhotoRepository = plantPhotoRepository;
         this.userService = userService;
@@ -76,7 +81,7 @@ public class PostService {
         auditLog.recorded(AuditEvent.QUESTION_ASKED, userId, userId,
                 Map.of("post_id", saved.getId(), "has_photo", request.photoKey() != null));
         User author = userRepository.findById(userId).orElseThrow(() -> new IllegalStateException("User not found"));
-        return toResponse(saved, author, null, null);
+        return toResponse(saved, author, null, null, 0);
     }
 
     // Only the words are the post's own: a question's text or a new photo's comment. A new plant
@@ -154,13 +159,48 @@ public class PostService {
     // The post's own page. Someone else's post that isn't a friend's answers 404, like one that doesn't exist.
     @Transactional(readOnly = true)
     public PostResponse getPost(UUID userId, UUID postId) {
-        Post post = postRepository.findVisible(postId, userId, FEED_TYPES)
-                .orElseThrow(() -> new IllegalStateException("Post not found"));
-        return toResponses(userId, List.of(post)).getFirst();
+        return toResponses(userId, List.of(findVisiblePost(userId, postId))).getFirst();
     }
 
-    // Maps the posts in their given order, loading authors and plant photos in one query each.
+    // A post's comments, oldest first, for anyone who may see the post.
+    @Transactional(readOnly = true)
+    public List<CommentResponse> getComments(UUID userId, UUID postId) {
+        findVisiblePost(userId, postId);
+        List<PostComment> comments = postCommentRepository.findByPostIdOrderByCreatedAtAsc(postId);
+        Map<UUID, User> authors = userRepository
+                .findAllById(comments.stream().map(PostComment::getAuthorId).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+        return comments.stream().map(comment -> toResponse(comment, authors.get(comment.getAuthorId()))).toList();
+    }
+
+    // Anyone who may see a post may comment on it: its author and their friends.
+    @Transactional
+    public CommentResponse addComment(UUID userId, UUID postId, AddCommentRequest request) {
+        findVisiblePost(userId, postId);
+        PostComment saved = postCommentRepository.save(new PostComment(postId, userId, request.body()));
+        auditLog.recorded(AuditEvent.COMMENT_ADDED, userId, userId,
+                Map.of("post_id", postId, "comment_id", saved.getId()));
+        User author = userRepository.findById(userId).orElseThrow(() -> new IllegalStateException("User not found"));
+        return toResponse(saved, author);
+    }
+
+    private Post findVisiblePost(UUID userId, UUID postId) {
+        return postRepository.findVisible(postId, userId, FEED_TYPES)
+                .orElseThrow(() -> new IllegalStateException("Post not found"));
+    }
+
+    private CommentResponse toResponse(PostComment comment, User author) {
+        return new CommentResponse(
+                comment.getId(), userService.toSummary(author, null), comment.getBody(), comment.getCreatedAt());
+    }
+
+    // Maps the posts in their given order, loading authors, plant photos and comment counts in one query each.
     private List<PostResponse> toResponses(UUID userId, List<Post> posts) {
+        Map<UUID, Long> commentCounts = postCommentRepository
+                .countByPostIds(posts.stream().map(Post::getId).toList())
+                .stream()
+                .collect(Collectors.toMap(CommentCount::postId, CommentCount::count));
         Map<UUID, User> authors = userRepository.findAllById(posts.stream().map(Post::getUserId).distinct().toList())
                 .stream()
                 .collect(Collectors.toMap(User::getId, Function.identity()));
@@ -179,14 +219,14 @@ public class PostService {
                     // Only the user and their friends are in the feed.
                     String friendship = author.getId().equals(userId) ? null : "friends";
                     String latestPhotoKey = post.getPlant() == null ? null : photoKeys.get(post.getPlant().getId());
-                    return toResponse(post, author, friendship, latestPhotoKey);
+                    return toResponse(post, author, friendship, latestPhotoKey, commentCounts.getOrDefault(post.getId(), 0L));
                 })
                 .toList();
     }
 
     // A question shows its own photo, a photo post the photo that was shared, and a new plant
     // the plant's current one (latestPhotoKey).
-    private PostResponse toResponse(Post post, User author, String friendship, String latestPhotoKey) {
+    private PostResponse toResponse(Post post, User author, String friendship, String latestPhotoKey, long commentCount) {
         String photoKey = post.getPhotoKey() != null
                 ? post.getPhotoKey()
                 : post.getPhoto() != null ? post.getPhoto().getPhotoKey() : latestPhotoKey;
@@ -199,6 +239,7 @@ public class PostService {
                 plant == null ? null : plant.getName(),
                 post.getBody(),
                 photoKey == null ? null : storageService.createReadUrl(photoKey),
+                commentCount,
                 post.getCreatedAt());
     }
 }

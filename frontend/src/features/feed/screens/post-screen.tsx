@@ -1,7 +1,16 @@
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
@@ -9,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/user/user-avatar';
 import { Shadow } from '@/constants/theme';
 import { EditPostDialog } from '@/features/feed/components/edit-post-dialog';
+import { PostComments } from '@/features/feed/components/post-comments';
 import { noteColor, noteTilt } from '@/features/feed/note-colors';
 import { usePost } from '@/features/feed/use-post';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
@@ -19,12 +29,12 @@ const KINDS: Record<Post['type'], string> = { new_plant: 'New plant', new_photo:
 
 /**
  * A post's own page, opened from it on the feed or the profile: who posted it, when, and the
- * post itself, big. The pencil (only on the user's own posts) edits or deletes it.
+ * post itself, big, with its comments below. The pencil (only on the user's own posts) edits or deletes it.
  */
 export function PostScreen({ postId }: { postId: string }) {
   const theme = useTheme();
   const router = useRouter();
-  const { post: loaded, error, isLoading, retry } = usePost(postId);
+  const { post: loaded, comments, addLocalComment, error, isLoading, isRefreshing, refresh, retry } = usePost(postId);
   // The saved version, so an edit shows without loading the page again.
   const [edited, setEdited] = useState<Post | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -43,41 +53,68 @@ export function PostScreen({ postId }: { postId: string }) {
 
   return (
     <View className="flex-1 bg-background">
-      <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
-        <AppHeader
-          showBack
-          right={
-            isOwn && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Edit post"
-                onPress={() => setIsEditing(true)}
-                className="h-10 w-10 items-center justify-center active:opacity-70">
-                {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
-                <SymbolView
-                  name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
-                  tintColor={theme.actionPrimary}
-                  size={22}
-                />
-              </Pressable>
-            )
-          }
-        />
+      <KeyboardAvoidingView
+        className="flex-1"
+        // iOS needs padding to lift the comment box above the keyboard; Android resizes the
+        // window itself, so shrinking the height is enough there.
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
+          <AppHeader
+            showBack
+            right={
+              isOwn && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit post"
+                  onPress={() => setIsEditing(true)}
+                  className="h-10 w-10 items-center justify-center active:opacity-70">
+                  {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
+                  <SymbolView
+                    name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
+                    tintColor={theme.actionPrimary}
+                    size={22}
+                  />
+                </Pressable>
+              )
+            }
+          />
 
-        <ScrollView contentContainerClassName="w-full max-w-content grow gap-4 self-center p-6">
-          {isLoading ? (
-            // A colour prop, so it reads the theme instead of a class.
-            <ActivityIndicator accessibilityLabel="Loading post" color={theme.primary} className="mt-6" />
-          ) : error ? (
-            <View className="items-center gap-3">
-              <Text className="type-body-medium text-error">{error}</Text>
-              <Button label="Try again" variant="secondary" onPress={retry} />
-            </View>
-          ) : (
-            post && <PostContent post={post} isOwn={isOwn} />
-          )}
-        </ScrollView>
-      </SafeAreaView>
+          <ScrollView
+            contentContainerClassName="w-full max-w-content grow gap-4 self-center p-6"
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={() => {
+                  // The reloaded post replaces an edit saved here.
+                  setEdited(null);
+                  refresh();
+                }}
+                // iOS colours the spinner with tintColor, Android with colors and progressBackgroundColor.
+                tintColor={theme.primary}
+                colors={[theme.primary]}
+                progressBackgroundColor={theme.backgroundElement}
+              />
+            }>
+            {isLoading ? (
+              // A colour prop, so it reads the theme instead of a class.
+              <ActivityIndicator accessibilityLabel="Loading post" color={theme.primary} className="mt-6" />
+            ) : error ? (
+              <View className="items-center gap-3">
+                <Text className="type-body-medium text-error">{error}</Text>
+                <Button label="Try again" variant="secondary" onPress={retry} />
+              </View>
+            ) : (
+              post && (
+                <>
+                  <PostContent post={post} isOwn={isOwn} />
+                  <PostComments postId={post.id} comments={comments} onAdded={addLocalComment} />
+                </>
+              )
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
 
       {isEditing && post && (
         <EditPostDialog
