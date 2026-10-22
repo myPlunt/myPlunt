@@ -26,6 +26,13 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 afterEach(() => mockStorage.clear());
 
+// expo-network is a native module too. Online by default; network-store-test and the tabs
+// layout's test mock it themselves to go offline. Plain functions, for the same reason as above.
+jest.mock('expo-network', () => ({
+  useNetworkState: () => ({ isConnected: true, isInternetReachable: true }),
+  getNetworkStateAsync: async () => ({ isConnected: true, isInternetReachable: true }),
+}));
+
 // expo-media-library's classes extend a native object that doesn't exist in Jest, so even
 // importing it fails. Many screens import it indirectly (the photo menu), so it's stubbed
 // once here; use-recent-photos-test drives this mock.
@@ -66,6 +73,7 @@ jest.mock('react-native-reanimated', () => {
     default: { View },
     FadeInUp: animation,
     FadeOutUp: animation,
+    FadeOutDown: animation,
     Keyframe: function Keyframe() {
       return animation;
     },

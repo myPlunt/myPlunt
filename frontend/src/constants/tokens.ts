@@ -79,6 +79,8 @@ export const lightColors = {
   noteTeal: brand.noteTeal,
   // Track of a switched-on toggle (Settings > Notifications); its border and knob use actionPrimary.
   toggleOnTrack: brand.fern300,
+  // Info shown over the page: the header's offline explanation and the offline notice. Text on it is actionPrimary.
+  info: brand.fern100,
   // Staging pill only; production never shows it.
   staging: brand.mustard500,
 } as const;

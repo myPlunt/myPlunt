@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { PlantPhoto } from '@/lib/plant/types';
 import { useAuthStore } from '@/stores/auth-store';
+import { useReloadOnReconnect } from '@/stores/network-store';
 
 import { cachedPlantPhotos } from './offline-pages';
 import * as plantService from './plant-service';
@@ -56,6 +57,8 @@ export function usePlantPhotos(plantId: string, ownerId?: string) {
       };
     }, [load]),
   );
+  // And when the connection comes back, so the screen catches up by itself.
+  useReloadOnReconnect(() => load(() => false));
 
   return {
     photos,

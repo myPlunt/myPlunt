@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/use-theme';
 import type { Room } from '@/lib/garden/types';
+import { useNetworkStore } from '@/stores/network-store';
 
 import { plantsNeedingWater, roomSummary, sortByNextWatering } from '../watering';
 import { PlantCard } from './plant-card';
@@ -28,6 +29,7 @@ interface RoomSectionProps {
 // the one due soonest first.
 export function RoomSection({ room, now, selection, onEdit, ownerId }: RoomSectionProps) {
   const theme = useTheme();
+  const { isOffline, explainOffline } = useNetworkStore();
   const needsWater = plantsNeedingWater({ rooms: [room] }, now).length > 0;
   const plantIds = room.plants.map((plant) => plant.id);
   const allSelected = selection !== undefined && plantIds.every((id) => selection.selectedIds.has(id));
@@ -45,9 +47,10 @@ export function RoomSection({ room, now, selection, onEdit, ownerId }: RoomSecti
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Edit ${room.name}`}
-                  onPress={onEdit}
+                  accessibilityHint={isOffline ? "Doesn't work offline" : undefined}
+                  onPress={isOffline ? () => explainOffline('Editing planters') : onEdit}
                   hitSlop={8}
-                  className="h-6 w-6 items-center justify-center active:opacity-70">
+                  className={`h-6 w-6 items-center justify-center active:opacity-70 ${isOffline ? 'opacity-40' : ''}`}>
                   {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
                   <SymbolView
                     name={{ ios: 'pencil', android: 'edit', web: 'edit' }}

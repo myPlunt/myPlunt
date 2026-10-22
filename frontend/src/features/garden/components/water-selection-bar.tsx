@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Shadow } from '@/constants/theme';
+import { useNetworkStore } from '@/stores/network-store';
 
 interface WaterSelectionBarProps {
   selectedCount: number;
@@ -13,6 +14,7 @@ interface WaterSelectionBarProps {
 
 /** Sits under the garden while the user picks plants to water, with the count and the actions. */
 export function WaterSelectionBar({ selectedCount, onWater, onCancel, loading, error }: WaterSelectionBarProps) {
+  const { isOffline, explainOffline } = useNetworkStore();
   const title =
     selectedCount === 0
       ? 'Tap to select the plants you watered.'
@@ -29,8 +31,9 @@ export function WaterSelectionBar({ selectedCount, onWater, onCancel, loading, e
         <Button
           label="Water"
           accessibilityLabel={`Water ${selectedCount} ${selectedCount === 1 ? 'plant' : 'plants'}`}
-          onPress={onWater}
+          onPress={isOffline ? () => explainOffline('Watering') : onWater}
           disabled={selectedCount === 0}
+          dimmed={isOffline}
           loading={loading}
         />
       </View>

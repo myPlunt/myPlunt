@@ -24,6 +24,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logAction, logFailedUi } from '@/lib/logger';
 import type { PlantDetails } from '@/lib/plant/types';
+import { useNetworkStore } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
 /**
@@ -35,6 +36,7 @@ export function PlantDetailsScreen({ plantId, ownerId }: { plantId: string; owne
   const theme = useTheme();
   const router = useRouter();
   const { plant, error, isLoading, retry } = usePlant(plantId, ownerId);
+  const { isOffline, explainOffline } = useNetworkStore();
   const isOwn = ownerId === undefined;
   // The tour's photo step, opened here right after its first plant was saved. It only shows
   // where photos are added (most users add one with the plant anyway); "Got it" moves on to the
@@ -65,8 +67,13 @@ export function PlantDetailsScreen({ plantId, ownerId }: { plantId: string; owne
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Edit plant"
-                onPress={() => router.push({ pathname: '/plant/[id]/edit', params: { id: plant.id } })}
-                className="h-10 w-10 items-center justify-center active:opacity-70">
+                accessibilityHint={isOffline ? "Doesn't work offline" : undefined}
+                onPress={
+                  isOffline
+                    ? () => explainOffline('Editing plants')
+                    : () => router.push({ pathname: '/plant/[id]/edit', params: { id: plant.id } })
+                }
+                className={`h-10 w-10 items-center justify-center active:opacity-70 ${isOffline ? 'opacity-40' : ''}`}>
                 {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
                 <SymbolView
                   name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
@@ -226,6 +233,7 @@ function PlantDetailsContent({ plant, ownerId, isPhotoStep, onGrowthLayout }: Pl
 function DeletePlant({ plant }: { plant: PlantDetails }) {
   const router = useRouter();
   const { deletePlant } = usePlantActions();
+  const { isOffline, explainOffline } = useNetworkStore();
   const [isConfirming, setIsConfirming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -258,11 +266,16 @@ function DeletePlant({ plant }: { plant: PlantDetails }) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Delete plant"
+        accessibilityHint={isOffline ? "Doesn't work offline" : undefined}
         onPress={() => {
+          if (isOffline) {
+            explainOffline('Deleting plants');
+            return;
+          }
           logAction('plant_delete_started', { context: { plant_id: plant.id } });
           setIsConfirming(true);
         }}
-        className="items-center py-2 active:opacity-70">
+        className={`items-center py-2 active:opacity-70 ${isOffline ? 'opacity-40' : ''}`}>
         <Text className="type-button-medium text-error">Delete plant</Text>
       </Pressable>
       <ConfirmDialog
