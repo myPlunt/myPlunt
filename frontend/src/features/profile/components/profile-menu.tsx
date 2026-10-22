@@ -1,7 +1,7 @@
 import { useRouter, type Href } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useEffect, useState } from 'react';
-import { Animated, Pressable, View, type LayoutChangeEvent } from 'react-native';
+import { Animated, Pressable, Text, View, type LayoutChangeEvent } from 'react-native';
 import Reanimated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 
 import { useTheme } from '@/hooks/use-theme';
@@ -27,6 +27,18 @@ const profileItems: MenuItem[] = [
   },
 ];
 
+function CountBadge({ count }: { count: number }) {
+  return (
+    <View
+      pointerEvents="none"
+      className="absolute -right-0.5 -top-0.5 h-[18px] min-w-[18px] items-center justify-center rounded-full bg-error px-1">
+      <Text className="type-label text-background-element" style={{ includeFontPadding: false }}>
+        {count > 9 ? '9+' : count}
+      </Text>
+    </View>
+  );
+}
+
 // The burger's three bars fill the same 22×22 square as the menu's icons, so it lines up
 // with them in the column. Closed they're all full width; open they shorten from the top
 // down into a left-aligned fan.
@@ -40,11 +52,11 @@ const BAR_WIDTHS = { closed: [22, 22, 22], open: [22, 15, 8] };
 interface ProfileMenuButtonProps {
   open: boolean;
   onPress: () => void;
-  /** Reports the button's box, so the menu can start right under it. */
   onLayout: (event: LayoutChangeEvent) => void;
+  unreadCount?: number;
 }
 
-export function ProfileMenuButton({ open, onPress, onLayout }: ProfileMenuButtonProps) {
+export function ProfileMenuButton({ open, onPress, onLayout, unreadCount = 0 }: ProfileMenuButtonProps) {
   // Created once; 0 is closed, 1 open.
   const [progress] = useState(() => new Animated.Value(open ? 1 : 0));
 
@@ -56,7 +68,7 @@ export function ProfileMenuButton({ open, onPress, onLayout }: ProfileMenuButton
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={open ? 'Close menu' : 'Open menu'}
+      accessibilityLabel={open ? 'Close menu' : unreadCount ? `Open menu, ${unreadCount} new notifications` : 'Open menu'}
       accessibilityState={{ expanded: open }}
       onPress={onPress}
       onLayout={onLayout}
@@ -74,22 +86,18 @@ export function ProfileMenuButton({ open, onPress, onLayout }: ProfileMenuButton
           </Animated.View>
         ))}
       </View>
+      {!open && unreadCount > 0 && <CountBadge count={unreadCount} />}
     </Pressable>
   );
 }
 
 interface ProfileMenuProps {
   open: boolean;
-  /** Where the burger's 40px box ends, so the icons continue the column at the same step. */
   top: number;
   onClose: () => void;
-  /** The profile's icons when left out. */
   items?: MenuItem[];
-  /**
-   * During the tour: the one page the step leads to (null for none). The other icons are off,
-   * that one is ringed, and there's no dismiss layer, so the tour card below stays pressable.
-   */
   tourHref?: Href | null;
+  unreadCount?: number;
 }
 
 /**
@@ -99,7 +107,7 @@ interface ProfileMenuProps {
  * only the icons and the dismiss layer come and go. Rendered as the screen's last child, so
  * it draws above the page on both platforms (Android draws later siblings on top).
  */
-export function ProfileMenu({ open, top, onClose, items = profileItems, tourHref }: ProfileMenuProps) {
+export function ProfileMenu({ open, top, onClose, items = profileItems, tourHref, unreadCount = 0 }: ProfileMenuProps) {
   const theme = useTheme();
   const router = useRouter();
 
@@ -116,6 +124,7 @@ export function ProfileMenu({ open, top, onClose, items = profileItems, tourHref
             items.map((item, index) => {
               const isTourItem = tourHref !== undefined && 'href' in item && item.href === tourHref;
               const locked = tourHref !== undefined && !isTourItem;
+              const badge = 'href' in item && item.href === '/inbox' ? unreadCount : 0;
               return (
                 // FadeInUp starts 25px above and slides down into place, FadeOutUp goes back up.
                 // Staggered so the menu unrolls downwards and rolls up from the bottom; reanimated
@@ -126,7 +135,7 @@ export function ProfileMenu({ open, top, onClose, items = profileItems, tourHref
                   exiting={FadeOutUp.delay((items.length - 1 - index) * 70).duration(240)}>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={item.label}
+                    accessibilityLabel={badge ? `${item.label}, ${badge} new` : item.label}
                     accessibilityState={{ disabled: locked }}
                     disabled={locked}
                     onPress={() => {
@@ -138,6 +147,7 @@ export function ProfileMenu({ open, top, onClose, items = profileItems, tourHref
                       locked ? 'opacity-40' : ''
                     } ${isTourItem ? 'border-2 border-primary' : ''}`}>
                     <SymbolView name={item.icon} tintColor={item.destructive ? theme.error : theme.actionPrimary} size={22} />
+                    {badge > 0 && <CountBadge count={badge} />}
                   </Pressable>
                 </Reanimated.View>
               );

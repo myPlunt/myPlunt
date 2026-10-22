@@ -6,6 +6,7 @@ import type { InboxNotification } from '@/lib/notification/types';
 import { useAuthStore } from '@/stores/auth-store';
 
 import { getInbox } from './inbox-service';
+import { markInboxSeen } from './use-unread-count';
 
 /** The user's notifications list, loaded on focus so new ones show when they come back. */
 export function useInbox() {
@@ -23,6 +24,8 @@ export function useInbox() {
           if (isCancelled()) return;
           setNotifications(result);
           setError(null);
+          // They're on screen now, so the profile's unread count starts over from here.
+          markInboxSeen(result);
         })
         .catch((err) => {
           if (isCancelled()) return;
