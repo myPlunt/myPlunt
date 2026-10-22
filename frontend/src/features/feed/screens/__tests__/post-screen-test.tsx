@@ -19,6 +19,7 @@ const deletePost = jest.fn();
 const addComment = jest.fn();
 const addLocalComment = jest.fn();
 const refresh = jest.fn();
+const waterPost = jest.fn();
 
 function question(friendship: QuestionPost['author']['friendship']): QuestionPost {
   return {
@@ -30,6 +31,8 @@ function question(friendship: QuestionPost['author']['friendship']): QuestionPos
     body: 'Why are my leaves red?',
     photoUrl: null,
     commentCount: 0,
+    waterCount: 0,
+    wateredByMe: false,
     createdAt: '2026-10-19T10:00:00Z',
   };
 }
@@ -47,7 +50,14 @@ const comment: PostComment = {
 
 beforeEach(() => {
   jest.mocked(useRouter).mockReturnValue({ back, push, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
-  jest.mocked(useFeedActions).mockReturnValue({ askQuestion: jest.fn(), updatePost: jest.fn(), deletePost, addComment });
+  jest.mocked(useFeedActions).mockReturnValue({
+    askQuestion: jest.fn(),
+    updatePost: jest.fn(),
+    deletePost,
+    addComment,
+    waterPost,
+    unwaterPost: jest.fn(),
+  });
 });
 
 afterEach(() => {
@@ -110,5 +120,24 @@ describe('PostScreen', () => {
     expect(await screen.findByText('Post not found')).toBeOnTheScreen();
     expect(addLocalComment).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Add a comment')).toHaveDisplayValue('Me too');
+  });
+
+  it("waters a friend's post and takes the drop back when it fails", async () => {
+    jest.mocked(usePost).mockReturnValue(loaded(question('friends')));
+    waterPost.mockRejectedValue(new ApiError(404, 'Not Found', { detail: 'Post not found' }));
+    await render(<PostScreen postId="q1" />);
+
+    await user.press(screen.getByRole('button', { name: 'Water this post' }));
+
+    expect(waterPost).toHaveBeenCalledWith('q1');
+    expect(await screen.findByRole('button', { name: 'Water this post' })).toHaveAccessibilityValue({ text: '0 drops' });
+  });
+
+  it("only shows the drops on the user's own post", async () => {
+    jest.mocked(usePost).mockReturnValue(loaded(question(null)));
+    await render(<PostScreen postId="q1" />);
+
+    expect(screen.getByLabelText('0 drops')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Water this post' })).toBeNull();
   });
 });

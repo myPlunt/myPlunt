@@ -23,6 +23,8 @@ export function useFeedActions() {
     askQuestion: (request: AskQuestionRequest) => run(() => feedService.askQuestion(request)),
     updatePost: (postId: string, request: UpdatePostRequest) => run(() => feedService.updatePost(postId, request)),
     deletePost: (postId: string) => run(() => feedService.deletePost(postId)),
+    waterPost: (postId: string) => run(() => feedService.waterPost(postId)),
+    unwaterPost: (postId: string) => run(() => feedService.unwaterPost(postId)),
     addComment: (postId: string, request: AddCommentRequest) => run(() => feedService.addComment(postId, request)),
   };
 }

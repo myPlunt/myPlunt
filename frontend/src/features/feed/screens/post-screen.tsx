@@ -19,6 +19,7 @@ import { UserAvatar } from '@/components/user/user-avatar';
 import { Shadow } from '@/constants/theme';
 import { EditPostDialog } from '@/features/feed/components/edit-post-dialog';
 import { PostComments } from '@/features/feed/components/post-comments';
+import { WaterDrop } from '@/features/feed/components/water-drop';
 import { noteColor, noteTilt } from '@/features/feed/note-colors';
 import { usePost } from '@/features/feed/use-post';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
@@ -108,6 +109,9 @@ export function PostScreen({ postId }: { postId: string }) {
               post && (
                 <>
                   <PostContent post={post} isOwn={isOwn} />
+                  <View className="flex-row">
+                    <WaterDrop post={post} />
+                  </View>
                   <PostComments postId={post.id} comments={comments} onAdded={addLocalComment} />
                 </>
               )
