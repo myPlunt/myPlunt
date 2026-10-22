@@ -11,6 +11,8 @@ function post(id: string, createdAt: Date): PlantPost {
     body: null,
     photoUrl: null,
     commentCount: 0,
+    waterCount: 0,
+    wateredByMe: false,
     createdAt: createdAt.toISOString(),
   };
 }

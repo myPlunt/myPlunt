@@ -45,6 +45,8 @@ export type FrontendEvent =
   | 'post_delete_cancelled'
   | 'post_delete_submitted'
   | 'comment_add_submitted'
+  | 'post_water_submitted'
+  | 'post_unwater_submitted'
   | 'photo_upload_submitted'
   | 'photo_picker_cancelled'
   // warnings
@@ -78,6 +80,7 @@ export type FrontendEvent =
   | 'post_update_failed_ui'
   | 'post_delete_failed_ui'
   | 'comment_add_failed_ui'
+  | 'post_water_failed_ui'
   | 'friend_request_failed_ui'
   | 'friend_remove_failed_ui'
   | 'photo_upload_failed_ui'

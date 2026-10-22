@@ -100,6 +100,8 @@ const posts: Post[] = [
     body: 'Why are the leaves yellow?',
     photoUrl: null,
     commentCount: 0,
+    waterCount: 0,
+    wateredByMe: false,
     createdAt: '2026-10-20T10:00:00Z',
   },
   {
@@ -111,6 +113,8 @@ const posts: Post[] = [
     body: null,
     photoUrl: null,
     commentCount: 0,
+    waterCount: 0,
+    wateredByMe: false,
     createdAt: '2026-10-19T10:00:00Z',
   },
 ];
@@ -167,12 +171,12 @@ it("shows a friend's posts and filters them by kind", async () => {
   await showProfile({ user: { ...jane, friendship: 'friends' } });
 
   await user.press(screen.getByRole('tab', { name: 'Posts' }));
-  expect(screen.getByRole('button', { name: 'Question: Why are the leaves yellow?, 0 comments' })).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Monty, 0 comments' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Question: Why are the leaves yellow?, 0 comments, 0 drops' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Monty, 0 comments, 0 drops' })).toBeOnTheScreen();
 
   await user.press(screen.getByRole('tab', { name: 'Questions' }));
-  expect(screen.getByRole('button', { name: 'Question: Why are the leaves yellow?, 0 comments' })).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Monty, 0 comments' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Question: Why are the leaves yellow?, 0 comments, 0 drops' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Monty, 0 comments, 0 drops' })).toBeNull();
 });
 
 it("says when a friend hasn't shared anything yet", async () => {

@@ -59,3 +59,16 @@ export async function addComment(postId: string, request: AddCommentRequest): Pr
   logAction('comment_add_submitted', { requestId, context: { post_id: postId } });
   return apiFetch<PostComment>(`/v1/posts/${postId}/comments`, { method: 'POST', body: request, requestId });
 }
+
+/** Waters a friend's post (the app's like); doing it twice changes nothing. */
+export async function waterPost(postId: string): Promise<void> {
+  const requestId = createRequestId();
+  logAction('post_water_submitted', { requestId, context: { post_id: postId } });
+  return apiFetch<void>(`/v1/posts/${postId}/water`, { method: 'PUT', requestId });
+}
+
+export async function unwaterPost(postId: string): Promise<void> {
+  const requestId = createRequestId();
+  logAction('post_unwater_submitted', { requestId, context: { post_id: postId } });
+  return apiFetch<void>(`/v1/posts/${postId}/water`, { method: 'DELETE', requestId });
+}

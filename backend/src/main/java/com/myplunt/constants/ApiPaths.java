@@ -142,6 +142,8 @@ public final class ApiPaths {
         public static final String QUESTIONS = BASE + "/questions";
         // GET lists a visible post's comments, oldest first; POST adds one.
         public static final String COMMENTS = BY_ID + "/comments";
+        // PUT waters a friend's post (the app's like), DELETE takes the drop back. Both are idempotent.
+        public static final String WATER = BY_ID + "/water";
 
         private Posts() {}
     }
