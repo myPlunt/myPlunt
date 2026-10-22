@@ -231,6 +231,7 @@ function PlantDetailsContent({ plant, ownerId, isPhotoStep, onGrowthLayout }: Pl
 }
 
 function DeletePlant({ plant }: { plant: PlantDetails }) {
+  const theme = useTheme();
   const router = useRouter();
   const { deletePlant } = usePlantActions();
   const { isOffline, explainOffline } = useNetworkStore();
@@ -275,7 +276,9 @@ function DeletePlant({ plant }: { plant: PlantDetails }) {
           logAction('plant_delete_started', { context: { plant_id: plant.id } });
           setIsConfirming(true);
         }}
-        className={`items-center py-2 active:opacity-70 ${isOffline ? 'opacity-40' : ''}`}>
+        className={`flex-row items-center justify-center gap-2 py-2 active:opacity-70 ${isOffline ? 'opacity-40' : ''}`}>
+        {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
+        <SymbolView name={{ ios: 'trash', android: 'delete', web: 'delete' }} tintColor={theme.error} size={18} />
         <Text className="type-button-medium text-error">Delete plant</Text>
       </Pressable>
       <ConfirmDialog

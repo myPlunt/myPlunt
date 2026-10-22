@@ -6,7 +6,13 @@ import Reanimated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 
 import { useTheme } from '@/hooks/use-theme';
 
-const items: { label: string; href: Href; icon: SymbolViewProps['name'] }[] = [
+/** An icon in the menu: it opens a page, or runs onPress (e.g. the post page's edit and delete). */
+export type MenuItem = { label: string; icon: SymbolViewProps['name']; destructive?: boolean } & (
+  | { href: Href }
+  | { onPress: () => void }
+);
+
+const profileItems: MenuItem[] = [
   { label: 'Open settings', href: '/settings', icon: { ios: 'gearshape.fill', android: 'settings', web: 'settings' } },
   { label: 'Open friends', href: '/friends', icon: { ios: 'person.2.fill', android: 'group', web: 'group' } },
   {
@@ -77,6 +83,8 @@ interface ProfileMenuProps {
   /** Where the burger's 40px box ends, so the icons continue the column at the same step. */
   top: number;
   onClose: () => void;
+  /** The profile's icons when left out. */
+  items?: MenuItem[];
   /**
    * During the tour: the one page the step leads to (null for none). The other icons are off,
    * that one is ringed, and there's no dismiss layer, so the tour card below stays pressable.
@@ -91,7 +99,7 @@ interface ProfileMenuProps {
  * only the icons and the dismiss layer come and go. Rendered as the screen's last child, so
  * it draws above the page on both platforms (Android draws later siblings on top).
  */
-export function ProfileMenu({ open, top, onClose, tourHref }: ProfileMenuProps) {
+export function ProfileMenu({ open, top, onClose, items = profileItems, tourHref }: ProfileMenuProps) {
   const theme = useTheme();
   const router = useRouter();
 
@@ -106,7 +114,7 @@ export function ProfileMenu({ open, top, onClose, tourHref }: ProfileMenuProps) 
         <View pointerEvents="box-none" className="w-full max-w-content items-end px-6">
           {open &&
             items.map((item, index) => {
-              const isTourItem = tourHref !== undefined && item.href === tourHref;
+              const isTourItem = tourHref !== undefined && 'href' in item && item.href === tourHref;
               const locked = tourHref !== undefined && !isTourItem;
               return (
                 // FadeInUp starts 25px above and slides down into place, FadeOutUp goes back up.
@@ -123,12 +131,13 @@ export function ProfileMenu({ open, top, onClose, tourHref }: ProfileMenuProps) 
                     disabled={locked}
                     onPress={() => {
                       onClose();
-                      router.push(item.href);
+                      if ('href' in item) router.push(item.href);
+                      else item.onPress();
                     }}
                     className={`h-10 w-10 items-center justify-center rounded-full active:opacity-70 ${
                       locked ? 'opacity-40' : ''
                     } ${isTourItem ? 'border-2 border-primary' : ''}`}>
-                    <SymbolView name={item.icon} tintColor={theme.actionPrimary} size={22} />
+                    <SymbolView name={item.icon} tintColor={item.destructive ? theme.error : theme.actionPrimary} size={22} />
                   </Pressable>
                 </Reanimated.View>
               );

@@ -12,22 +12,20 @@ import type { Post } from '@/lib/post/types';
 
 interface EditPostDialogProps {
   post: Post;
+  /** Which of the post menu's icons opened it: the pencil or the bin. */
+  mode: 'edit' | 'delete';
   onClose: () => void;
   onSaved: (post: Post) => void;
   onDeleted: () => void;
 }
 
 /**
- * Edits the user's own post, or deletes it after asking. Only the words are the post's own
- * (a question's text, a new photo's comment), so a new plant post opens straight on deleting.
- * Both steps live in one modal because a second Modal opened on top of another doesn't show on iOS.
+ * Edits the words of the user's own post (a question's text, a new photo's comment), or asks
+ * before deleting it. A new plant post has no words of its own, so it's only ever deleted.
  */
-export function EditPostDialog({ post, onClose, onSaved, onDeleted }: EditPostDialogProps) {
+export function EditPostDialog({ post, mode, onClose, onSaved, onDeleted }: EditPostDialogProps) {
   const { updatePost, deletePost } = useFeedActions();
   const [body, setBody] = useState(post.body ?? '');
-  // A new plant post has nothing to edit, so all there is to ask is whether to delete it.
-  const canEdit = post.type !== 'new_plant';
-  const [isConfirmingDelete, setIsConfirmingDelete] = useState(!canEdit);
   const [isBusy, setIsBusy] = useState(false);
   const [bodyError, setBodyError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +97,7 @@ export function EditPostDialog({ post, onClose, onSaved, onDeleted }: EditPostDi
           />
           {/* Shadow tokens set both iOS shadow* and Android elevation. */}
           <View className="w-full max-w-[360px] gap-3 rounded-2xl bg-background-element p-5" style={Shadow.card}>
-            {isConfirmingDelete ? (
+            {mode === 'delete' ? (
               <>
                 <Text accessibilityRole="header" className="type-subtitle-large text-text">
                   Delete this post?
@@ -115,13 +113,7 @@ export function EditPostDialog({ post, onClose, onSaved, onDeleted }: EditPostDi
                     style={{ borderWidth: 0 }}
                     onPress={() => {
                       logAction('post_delete_cancelled', { context: { post_id: post.id } });
-                      // Back to editing, or out for a new plant post, which has no edit step.
-                      if (!canEdit) {
-                        close();
-                        return;
-                      }
-                      setIsConfirmingDelete(false);
-                      setError(null);
+                      close();
                     }}
                   />
                   <Button label="Delete" variant="destructive" loading={isBusy} onPress={confirmDelete} />
@@ -154,19 +146,6 @@ export function EditPostDialog({ post, onClose, onSaved, onDeleted }: EditPostDi
                   />
                   <Button label="Save" loading={isBusy} disabled={!canSave} onPress={save} />
                 </View>
-                <View className="h-px bg-input-border" />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Delete post"
-                  disabled={isBusy}
-                  onPress={() => {
-                    logAction('post_delete_started', { context: { post_id: post.id } });
-                    setError(null);
-                    setIsConfirmingDelete(true);
-                  }}
-                  className="items-center py-1 active:opacity-70">
-                  <Text className="type-button-medium text-error">Delete post</Text>
-                </Pressable>
               </>
             )}
           </View>

@@ -1,5 +1,4 @@
 import { useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -24,7 +23,9 @@ import { useWaterDrop, WaterDropView } from '@/features/feed/components/water-dr
 import { noteColor, noteTilt } from '@/features/feed/note-colors';
 import { usePost } from '@/features/feed/use-post';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
+import { ProfileMenu, ProfileMenuButton, type MenuItem } from '@/features/profile/components/profile-menu';
 import { useTheme } from '@/hooks/use-theme';
+import { logAction } from '@/lib/logger';
 import type { Post } from '@/lib/post/types';
 
 const KINDS: Record<Post['type'], string> = { new_plant: 'New plant', new_photo: 'New photo', question: 'Question' };
@@ -34,7 +35,8 @@ const DOUBLE_TAP_MS = 300;
 
 /**
  * A post's own page, opened from it on the feed or the profile: who posted it, when, and the
- * post itself, big, with its comments below. The pencil (only on the user's own posts) edits or deletes it.
+ * post itself, big, with its comments below. On the user's own posts the burger opens the
+ * profile's menu with a pencil (questions and new photos, the posts with words to edit) and a bin.
  */
 export function PostScreen({ postId }: { postId: string }) {
   const theme = useTheme();
@@ -42,10 +44,28 @@ export function PostScreen({ postId }: { postId: string }) {
   const { post: loaded, comments, addLocalComment, error, isLoading, isRefreshing, refresh, retry } = usePost(postId);
   // The saved version, so an edit shows without loading the page again.
   const [edited, setEdited] = useState<Post | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [dialog, setDialog] = useState<'edit' | 'delete' | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // Where the header sits and where the burger ends inside it, so the icons start right under the burger.
+  const [headerTop, setHeaderTop] = useState(0);
+  const [burgerBottom, setBurgerBottom] = useState(0);
   const post = edited ?? loaded;
   // Only the user and their friends can open a post; null friendship means it's the user's own.
   const isOwn = post?.author.friendship === null;
+  const deleteItem: MenuItem = {
+    label: 'Delete post',
+    icon: { ios: 'trash', android: 'delete', web: 'delete' },
+    destructive: true,
+    onPress: () => {
+      logAction('post_delete_started', { context: { post_id: postId } });
+      setDialog('delete');
+    },
+  };
+  // A new plant post has no words of its own, so all there is to do is delete it.
+  const menuItems: MenuItem[] =
+    post?.type === 'new_plant'
+      ? [deleteItem]
+      : [{ label: 'Edit post', icon: { ios: 'pencil', android: 'edit', web: 'edit' }, onPress: () => setDialog('edit') }, deleteItem];
 
   function leave() {
     // Nothing underneath when the app was opened straight onto this page, so go to the feed.
@@ -64,25 +84,21 @@ export function PostScreen({ postId }: { postId: string }) {
         // window itself, so shrinking the height is enough there.
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
-          <AppHeader
-            showBack
-            right={
-              isOwn && (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Edit post"
-                  onPress={() => setIsEditing(true)}
-                  className="h-10 w-10 items-center justify-center active:opacity-70">
-                  {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
-                  <SymbolView
-                    name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
-                    tintColor={theme.actionPrimary}
-                    size={22}
+          {/* y counts the safe-area padding above the header; the menu is positioned from the same edge. */}
+          <View onLayout={({ nativeEvent: { layout } }) => setHeaderTop(layout.y)}>
+            <AppHeader
+              showBack
+              right={
+                isOwn && (
+                  <ProfileMenuButton
+                    open={isMenuOpen}
+                    onPress={() => setIsMenuOpen((open) => !open)}
+                    onLayout={({ nativeEvent: { layout } }) => setBurgerBottom(layout.y + layout.height)}
                   />
-                </Pressable>
-              )
-            }
-          />
+                )
+              }
+            />
+          </View>
 
           <ScrollView
             contentContainerClassName="w-full max-w-content grow gap-4 self-center p-6"
@@ -118,16 +134,27 @@ export function PostScreen({ postId }: { postId: string }) {
               )
             )}
           </ScrollView>
+
+          {/* Last child, so it draws above the page on both platforms. */}
+          {isOwn && (
+            <ProfileMenu
+              open={isMenuOpen}
+              top={headerTop + burgerBottom}
+              onClose={() => setIsMenuOpen(false)}
+              items={menuItems}
+            />
+          )}
         </SafeAreaView>
       </KeyboardAvoidingView>
 
-      {isEditing && post && (
+      {dialog && post && (
         <EditPostDialog
           post={post}
-          onClose={() => setIsEditing(false)}
+          mode={dialog}
+          onClose={() => setDialog(null)}
           onSaved={(saved) => {
             setEdited(saved);
-            setIsEditing(false);
+            setDialog(null);
           }}
           onDeleted={leave}
         />
