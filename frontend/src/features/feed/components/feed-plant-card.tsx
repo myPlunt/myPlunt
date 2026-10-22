@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
-import { Pressable, Text } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Shadow } from '@/constants/theme';
+import { CommentCount, commentsLabel } from '@/features/feed/components/comment-count';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { logAction } from '@/lib/logger';
 import type { PlantPost } from '@/lib/post/types';
@@ -23,8 +24,8 @@ export function FeedPlantCard({ post, hideAuthor = false }: { post: PlantPost; h
     // Shadow goes through style so it sets both iOS shadow* and Android elevation.
     <Pressable
       accessibilityRole="button"
-      // The card is one element to a screen reader, so the comment goes in its label.
-      accessibilityLabel={post.body ? `${post.plantName}: ${post.body}` : post.plantName}
+      // The card is one element to a screen reader, so the comment and the count go in its label.
+      accessibilityLabel={`${post.body ? `${post.plantName}: ${post.body}` : post.plantName}, ${commentsLabel(post.commentCount)}`}
       accessibilityHint="Opens the post"
       onPress={() => {
         logAction('post_opened', { context: { post_id: post.id, post_type: post.type } });
@@ -51,6 +52,9 @@ export function FeedPlantCard({ post, hideAuthor = false }: { post: PlantPost; h
           {post.body}
         </Text>
       )}
+      <View className="px-1 pb-1">
+        <CommentCount count={post.commentCount} />
+      </View>
     </Pressable>
   );
 }
