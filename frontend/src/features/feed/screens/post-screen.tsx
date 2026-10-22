@@ -1,7 +1,16 @@
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
@@ -25,7 +34,7 @@ const KINDS: Record<Post['type'], string> = { new_plant: 'New plant', new_photo:
 export function PostScreen({ postId }: { postId: string }) {
   const theme = useTheme();
   const router = useRouter();
-  const { post: loaded, comments, addLocalComment, error, isLoading, retry } = usePost(postId);
+  const { post: loaded, comments, addLocalComment, error, isLoading, isRefreshing, refresh, retry } = usePost(postId);
   // The saved version, so an edit shows without loading the page again.
   const [edited, setEdited] = useState<Post | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -72,7 +81,21 @@ export function PostScreen({ postId }: { postId: string }) {
 
           <ScrollView
             contentContainerClassName="w-full max-w-content grow gap-4 self-center p-6"
-            keyboardShouldPersistTaps="handled">
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={() => {
+                  // The reloaded post replaces an edit saved here.
+                  setEdited(null);
+                  refresh();
+                }}
+                // iOS colours the spinner with tintColor, Android with colors and progressBackgroundColor.
+                tintColor={theme.primary}
+                colors={[theme.primary]}
+                progressBackgroundColor={theme.backgroundElement}
+              />
+            }>
             {isLoading ? (
               // A colour prop, so it reads the theme instead of a class.
               <ActivityIndicator accessibilityLabel="Loading post" color={theme.primary} className="mt-6" />

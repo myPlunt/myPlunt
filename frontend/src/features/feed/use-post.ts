@@ -14,10 +14,11 @@ export function usePost(postId: string) {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
-    (isCancelled: () => boolean) => {
+    (isCancelled: () => boolean) =>
       Promise.all([feedService.getPost(postId), feedService.getComments(postId)])
         .then(([loadedPost, loadedComments]) => {
           if (isCancelled()) return;
@@ -36,8 +37,7 @@ export function usePost(postId: string) {
         })
         .finally(() => {
           if (!isCancelled()) setIsLoading(false);
-        });
-    },
+        }),
     [postId, setUnauthenticated],
   );
 
@@ -61,6 +61,12 @@ export function usePost(postId: string) {
     },
     error,
     isLoading,
+    isRefreshing,
+    // Pull-to-refresh: keeps the post on screen while it and its newest comments load.
+    refresh() {
+      setIsRefreshing(true);
+      return load(() => false).finally(() => setIsRefreshing(false));
+    },
     retry() {
       setError(null);
       setIsLoading(true);

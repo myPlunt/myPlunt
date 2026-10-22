@@ -18,6 +18,7 @@ const push = jest.fn();
 const deletePost = jest.fn();
 const addComment = jest.fn();
 const addLocalComment = jest.fn();
+const refresh = jest.fn();
 
 function question(friendship: QuestionPost['author']['friendship']): QuestionPost {
   return {
@@ -34,7 +35,7 @@ function question(friendship: QuestionPost['author']['friendship']): QuestionPos
 }
 
 function loaded(post: QuestionPost, comments: PostComment[] = []) {
-  return { post, comments, addLocalComment, error: null, isLoading: false, retry: jest.fn() };
+  return { post, comments, addLocalComment, error: null, isLoading: false, isRefreshing: false, refresh, retry: jest.fn() };
 }
 
 const comment: PostComment = {
