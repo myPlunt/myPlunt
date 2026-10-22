@@ -6,26 +6,17 @@ import { readCache, writeCache } from '@/lib/offline/cache';
 
 import { getInbox } from './inbox-service';
 
-// When the newest notification the user has seen was sent. Kept with the cache, which is
-// cleared on sign-in, so it always belongs to the account that's signed in.
-// shortcut: "seen" lives on this device only, so another phone still counts them; move it to
-// the server (a seen-at on the user) if people use myPlunt on more than one device.
+
 const SEEN_KEY = 'inbox-seen';
 
-/** Marks everything in the list as seen; called when the notifications list loads. */
 export function markInboxSeen(notifications: InboxNotification[]) {
   if (notifications.length) writeCache(SEEN_KEY, notifications[0].createdAt);
 }
 
-/**
- * How many notifications arrived since the list was last opened, loaded on focus so it drops
- * to zero when the user comes back from it. Stays 0 when it can't be loaded: it's only a hint.
- */
+
 export function useUnreadCount() {
   const [count, setCount] = useState(0);
 
-  // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
-  // shortcut: loads the whole inbox (capped by the backend) to count it; add a count endpoint if it gets slow.
   const load = useCallback(
     (isCancelled: () => boolean) =>
       Promise.all([getInbox(), readCache<string>(SEEN_KEY)])
@@ -38,7 +29,6 @@ export function useUnreadCount() {
     [],
   );
 
-  // useFocusEffect needs a memoized callback.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -51,7 +41,7 @@ export function useUnreadCount() {
 
   return {
     count,
-    // Pull-to-refresh; never rejects, so it can't hold up the rest of the page's refresh.
+    // Pull-to-refresh; 
     refresh: () => load(() => false),
   };
 }

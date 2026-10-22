@@ -52,8 +52,6 @@ export function ProfileScreen() {
   const [headerTop, setHeaderTop] = useState(0);
   const [burgerBottom, setBurgerBottom] = useState(0);
 
-  // Pull-to-refresh reloads everything on screen; the stats come from the garden and species,
-  // the burger's badge from the notifications.
   function refresh() {
     setIsRefreshing(true);
     Promise.all([refreshProfile(), posts.refresh(), refreshGarden(), refreshDiscovered(), refreshUnread()]).finally(() =>
@@ -63,10 +61,7 @@ export function ProfileScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      {/* No bottom edge: the tab bar below already pads for the home indicator. */}
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
-        {/* y counts the safe-area padding above the header; the menu is positioned from the
-            same edge. The burger's own layout is relative to the header's row. */}
         <View onLayout={({ nativeEvent: { layout } }) => setHeaderTop(layout.y)}>
           <AppHeader
             right={
@@ -86,7 +81,6 @@ export function ProfileScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={refresh}
-              // iOS colours the spinner with tintColor, Android with colors and progressBackgroundColor.
               tintColor={theme.primary}
               colors={[theme.primary]}
               progressBackgroundColor={theme.backgroundElement}
@@ -97,13 +91,6 @@ export function ProfileScreen() {
               <UserAvatar size={96} url={user?.avatarUrl} accessibilityLabel="Your profile picture" />
 
 
-              {/* TO think we need to show the streak badge here, but we don't have the streak data yet. */}
-              {/* The streak sould be just increasing never decreassing we dont know how to make that happen yet. */}
-              {/* {streak !== null && (
-                <View className="absolute -bottom-1 -right-1">
-                  <WateringStreakBadge streak={streak} />
-                </View>
-              )} */}
             </View>
             {isLoading ? (
               <ActivityIndicator accessibilityLabel="Loading profile" color={theme.primary} className="mt-4" />
@@ -120,7 +107,6 @@ export function ProfileScreen() {
                   {user.bio && <Text className="type-body-large mt-3 text-center text-text">{user.bio}</Text>}
                   <View className="mt-4 flex-row items-center gap-3">
                     <Button label="My garden" disabled={isTourStep} onPress={() => router.push('/garden')} />
-                    {/* During the tour's bio step a ring points at the button the card talks about. */}
                     <View className={`rounded-2xl border-2 p-1 ${isBioStep ? 'border-primary' : 'border-transparent'}`}>
                       <Button label="Edit profile" variant="subtle" onPress={() => router.push('/edit-profile')} />
                     </View>
@@ -151,10 +137,7 @@ export function ProfileScreen() {
                 <>
                   <PostFilter value={filter} onChange={setFilter} />
                   {shown.length ? (
-                    // Newest first, three to a row. Each cell is a third wide with padding instead of
-                    // gap, which would push the third one onto the next row; -m-1.5 undoes the outer edge.
-                    // They don't open during the bio step, which would leave the tour.
-                    <View className="-m-1.5 flex-row flex-wrap" pointerEvents={isTourStep ? 'none' : 'auto'}>
+                     <View className="-m-1.5 flex-row flex-wrap" pointerEvents={isTourStep ? 'none' : 'auto'}>
                       {shown.map((post) => (
                         <View key={post.id} className="w-1/3 p-1.5">
                           {post.type === 'question' ? <StickyNote post={post} hideAuthor /> : <FeedPlantCard post={post} hideAuthor />}
@@ -176,7 +159,6 @@ export function ProfileScreen() {
 
         {isBioStep && (
           <View className="absolute inset-x-3 bottom-3">
-            {/* Both buttons open Edit profile: the next step, the picture, is on that screen. */}
             <OnboardingCard
               step="bio"
               title="Tell people about you"
@@ -190,9 +172,7 @@ export function ProfileScreen() {
 
         {isFriendsStep && (
           <View className="absolute inset-x-3 bottom-3">
-            {/* "Not now" skips the friends page too: the next step, the first plant, is in the garden.
-                The card's own button opens the friends page: testers never spotted the menu icon. */}
-            <OnboardingCard
+             <OnboardingCard
               step="friends"
               title="Find your friends"
               body="Search for people by their username and add them. Their plants show up in your feed. You can always find friends again in the menu up top."
@@ -203,8 +183,6 @@ export function ProfileScreen() {
           </View>
         )}
 
-        {/* During the bio step the menu leads nowhere; during the friends step it's held open
-            with only the friends icon on. */}
         <ProfileMenu
           open={isMenuOpen || isFriendsStep}
           top={headerTop + burgerBottom}

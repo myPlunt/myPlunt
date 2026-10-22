@@ -27,13 +27,11 @@ const profileItems: MenuItem[] = [
   },
 ];
 
-/** A count on an icon's top-right corner; 9+ past nine, so it stays small. */
 function CountBadge({ count }: { count: number }) {
   return (
     <View
       pointerEvents="none"
       className="absolute -right-0.5 -top-0.5 h-[18px] min-w-[18px] items-center justify-center rounded-full bg-error px-1">
-      {/* Android adds font padding above the digits, which pushes them off centre in the pill. */}
       <Text className="type-label text-background-element" style={{ includeFontPadding: false }}>
         {count > 9 ? '9+' : count}
       </Text>
@@ -54,9 +52,7 @@ const BAR_WIDTHS = { closed: [22, 22, 22], open: [22, 15, 8] };
 interface ProfileMenuButtonProps {
   open: boolean;
   onPress: () => void;
-  /** Reports the button's box, so the menu can start right under it. */
   onLayout: (event: LayoutChangeEvent) => void;
-  /** Unread notifications, shown on the burger while the menu (and its bell) is closed. */
   unreadCount?: number;
 }
 
@@ -97,17 +93,10 @@ export function ProfileMenuButton({ open, onPress, onLayout, unreadCount = 0 }: 
 
 interface ProfileMenuProps {
   open: boolean;
-  /** Where the burger's 40px box ends, so the icons continue the column at the same step. */
   top: number;
   onClose: () => void;
-  /** The profile's icons when left out. */
   items?: MenuItem[];
-  /**
-   * During the tour: the one page the step leads to (null for none). The other icons are off,
-   * that one is ringed, and there's no dismiss layer, so the tour card below stays pressable.
-   */
   tourHref?: Href | null;
-  /** Unread notifications, shown on the bell. */
   unreadCount?: number;
 }
 
