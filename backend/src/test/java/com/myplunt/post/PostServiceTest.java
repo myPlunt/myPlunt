@@ -6,7 +6,9 @@ import com.myplunt.plant.LatestPhoto;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantPhoto;
 import com.myplunt.plant.PlantPhotoRepository;
+import com.myplunt.post.dto.AddCommentRequest;
 import com.myplunt.post.dto.AskQuestionRequest;
+import com.myplunt.post.dto.CommentResponse;
 import com.myplunt.post.dto.PostResponse;
 import com.myplunt.post.dto.UpdatePostRequest;
 import com.myplunt.storage.StorageService;
@@ -45,6 +47,9 @@ class PostServiceTest {
     private PostRepository postRepository;
 
     @Mock
+    private PostCommentRepository postCommentRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -60,7 +65,7 @@ class PostServiceTest {
     private AuditLog auditLog;
 
     private PostService postService() {
-        return new PostService(postRepository, userRepository, plantPhotoRepository, userService, storageService, auditLog);
+        return new PostService(postRepository, postCommentRepository, userRepository, plantPhotoRepository, userService, storageService, auditLog);
     }
 
     private static <T> T withId(T entity, UUID id) {
@@ -69,7 +74,7 @@ class PostServiceTest {
     }
 
     @Test
-    void getFeed_mapsEachPostWithItsAuthorAndThePlantsCurrentPhoto() {
+    void getFeed_mapsEachPostWithItsAuthorThePlantsCurrentPhotoAndCommentCount() {
         User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
         User friend = withId(new User("emma", "emma@example.com", "hashed"), UUID.randomUUID());
         Plant gus = withId(new Plant(friend.getId(), "Gus the Fern"), UUID.randomUUID());
@@ -82,6 +87,8 @@ class PostServiceTest {
         when(plantPhotoRepository.findLatestPhotos(anyCollection()))
                 .thenReturn(List.of(new LatestPhoto(gus.getId(), "plants/gus.jpg")));
         when(storageService.createReadUrl("plants/gus.jpg")).thenReturn("https://storage.test/gus.jpg?signed");
+        when(postCommentRepository.countByPostIds(anyCollection()))
+                .thenReturn(List.of(new CommentCount(friendsPost.getId(), 3)));
         UserSummaryResponse emma = new UserSummaryResponse(friend.getId(), "emma", null, null, "friends");
         UserSummaryResponse self = new UserSummaryResponse(me.getId(), "me", null, null, null);
         when(userService.toSummary(friend, "friends")).thenReturn(emma);
@@ -91,8 +98,8 @@ class PostServiceTest {
 
         assertThat(feed).containsExactly(
                 new PostResponse(friendsPost.getId(), Post.NEW_PLANT, emma, gus.getId(), "Gus the Fern", null,
-                        "https://storage.test/gus.jpg?signed", friendsPost.getCreatedAt()),
-                new PostResponse(myPost.getId(), Post.NEW_PLANT, self, vera.getId(), "Vera", null, null, myPost.getCreatedAt()));
+                        "https://storage.test/gus.jpg?signed", 3, friendsPost.getCreatedAt()),
+                new PostResponse(myPost.getId(), Post.NEW_PLANT, self, vera.getId(), "Vera", null, null, 0, myPost.getCreatedAt()));
     }
 
     // Seen from the viewer's side, so the author is labelled a friend rather than the viewer themselves.
@@ -196,6 +203,39 @@ class PostServiceTest {
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(post.getBody()).isNull();
+    }
+
+    @Test
+    void addComment_savesItUnderAFriendsPost() {
+        User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
+        Post question = withId(new Post(UUID.randomUUID(), "Why?", null), UUID.randomUUID());
+        when(postRepository.findVisible(eq(question.getId()), eq(me.getId()), anyCollection()))
+                .thenReturn(Optional.of(question));
+        when(postCommentRepository.save(any())).thenAnswer(invocation -> withId(invocation.getArgument(0), UUID.randomUUID()));
+        when(userRepository.findById(me.getId())).thenReturn(Optional.of(me));
+        UserSummaryResponse self = new UserSummaryResponse(me.getId(), "me", null, null, null);
+        when(userService.toSummary(me, null)).thenReturn(self);
+
+        CommentResponse response = postService().addComment(me.getId(), question.getId(), new AddCommentRequest("Too much sun"));
+
+        ArgumentCaptor<PostComment> saved = ArgumentCaptor.forClass(PostComment.class);
+        verify(postCommentRepository).save(saved.capture());
+        assertThat(saved.getValue().getPostId()).isEqualTo(question.getId());
+        assertThat(saved.getValue().getAuthorId()).isEqualTo(me.getId());
+        assertThat(response.body()).isEqualTo("Too much sun");
+        assertThat(response.author()).isEqualTo(self);
+    }
+
+    // Not a friend's post (or no post at all): 404, and nothing is saved.
+    @Test
+    void addComment_throwsNotFoundForAPostTheUserCantSeeAndSavesNothing() {
+        UUID userId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        when(postRepository.findVisible(eq(postId), eq(userId), anyCollection())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> postService().addComment(userId, postId, new AddCommentRequest("Hi")))
+                .isInstanceOf(IllegalStateException.class);
+        verify(postCommentRepository, never()).save(any());
     }
 
     @Test

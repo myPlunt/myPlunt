@@ -3,7 +3,8 @@ import { useRouter } from 'expo-router';
 
 import { useFeedActions } from '@/features/feed/use-feed-actions';
 import { usePost } from '@/features/feed/use-post';
-import type { QuestionPost } from '@/lib/post/types';
+import { ApiError } from '@/lib/auth/api-client';
+import type { PostComment, QuestionPost } from '@/lib/post/types';
 
 import { PostScreen } from '../post-screen';
 
@@ -15,6 +16,9 @@ const user = userEvent.setup();
 const back = jest.fn();
 const push = jest.fn();
 const deletePost = jest.fn();
+const addComment = jest.fn();
+const addLocalComment = jest.fn();
+const refresh = jest.fn();
 
 function question(friendship: QuestionPost['author']['friendship']): QuestionPost {
   return {
@@ -25,13 +29,25 @@ function question(friendship: QuestionPost['author']['friendship']): QuestionPos
     plantName: null,
     body: 'Why are my leaves red?',
     photoUrl: null,
+    commentCount: 0,
     createdAt: '2026-10-19T10:00:00Z',
   };
 }
 
+function loaded(post: QuestionPost, comments: PostComment[] = []) {
+  return { post, comments, addLocalComment, error: null, isLoading: false, isRefreshing: false, refresh, retry: jest.fn() };
+}
+
+const comment: PostComment = {
+  id: 'c1',
+  author: { id: 'u2', username: 'tom', bio: null, avatarUrl: null, friendship: null },
+  body: 'Too much sun, I think',
+  createdAt: '2026-10-20T10:00:00Z',
+};
+
 beforeEach(() => {
   jest.mocked(useRouter).mockReturnValue({ back, push, canGoBack: () => true } as unknown as ReturnType<typeof useRouter>);
-  jest.mocked(useFeedActions).mockReturnValue({ askQuestion: jest.fn(), updatePost: jest.fn(), deletePost });
+  jest.mocked(useFeedActions).mockReturnValue({ askQuestion: jest.fn(), updatePost: jest.fn(), deletePost, addComment });
 });
 
 afterEach(() => {
@@ -40,7 +56,7 @@ afterEach(() => {
 
 describe('PostScreen', () => {
   it("has no pencil on a friend's post", async () => {
-    jest.mocked(usePost).mockReturnValue({ post: question('friends'), error: null, isLoading: false, retry: jest.fn() });
+    jest.mocked(usePost).mockReturnValue(loaded(question('friends')));
     await render(<PostScreen postId="q1" />);
 
     expect(screen.getByText('Why are my leaves red?')).toBeOnTheScreen();
@@ -48,7 +64,7 @@ describe('PostScreen', () => {
   });
 
   it("opens the friend's profile from their picture", async () => {
-    jest.mocked(usePost).mockReturnValue({ post: question('friends'), error: null, isLoading: false, retry: jest.fn() });
+    jest.mocked(usePost).mockReturnValue(loaded(question('friends')));
     await render(<PostScreen postId="q1" />);
 
     await user.press(screen.getByRole('button', { name: "Open emma's profile" }));
@@ -57,7 +73,7 @@ describe('PostScreen', () => {
   });
 
   it("deletes the user's own post from the pencil and leaves the page", async () => {
-    jest.mocked(usePost).mockReturnValue({ post: question(null), error: null, isLoading: false, retry: jest.fn() });
+    jest.mocked(usePost).mockReturnValue(loaded(question(null)));
     deletePost.mockResolvedValue(undefined);
     await render(<PostScreen postId="q1" />);
 
@@ -67,5 +83,32 @@ describe('PostScreen', () => {
 
     expect(deletePost).toHaveBeenCalledWith('q1');
     expect(back).toHaveBeenCalled();
+  });
+
+  it('sends a comment and shows it under the post', async () => {
+    jest.mocked(usePost).mockReturnValue(loaded(question('friends')));
+    addComment.mockResolvedValue(comment);
+    await render(<PostScreen postId="q1" />);
+
+    await user.type(screen.getByLabelText('Add a comment'), '  Too much sun, I think ');
+    await user.press(screen.getByRole('button', { name: 'Send' }));
+
+    expect(addComment).toHaveBeenCalledWith('q1', { body: 'Too much sun, I think' });
+    expect(addLocalComment).toHaveBeenCalledWith(comment);
+    expect(screen.getByLabelText('Add a comment')).toHaveDisplayValue('');
+  });
+
+  it('lists the comments and keeps the text when sending fails', async () => {
+    jest.mocked(usePost).mockReturnValue(loaded(question('friends'), [comment]));
+    addComment.mockRejectedValue(new ApiError(404, 'Not Found', { detail: 'Post not found' }));
+    await render(<PostScreen postId="q1" />);
+
+    expect(screen.getByText('Too much sun, I think')).toBeOnTheScreen();
+    await user.type(screen.getByLabelText('Add a comment'), 'Me too');
+    await user.press(screen.getByRole('button', { name: 'Send' }));
+
+    expect(await screen.findByText('Post not found')).toBeOnTheScreen();
+    expect(addLocalComment).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Add a comment')).toHaveDisplayValue('Me too');
   });
 });

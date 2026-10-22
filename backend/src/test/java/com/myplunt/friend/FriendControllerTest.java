@@ -212,7 +212,7 @@ class FriendControllerTest {
         UUID janeId = authenticateAsJane();
         UUID tomId = UUID.randomUUID();
         List<PostResponse> posts = List.of(new PostResponse(UUID.randomUUID(), "question", null, null, null,
-                "Why are the leaves yellow?", null, Instant.parse("2026-10-01T10:00:00Z")));
+                "Why are the leaves yellow?", null, 0, Instant.parse("2026-10-01T10:00:00Z")));
         when(friendService.getFriendPosts(janeId, tomId)).thenReturn(posts);
 
         get("/v1/users/" + tomId + "/posts")
