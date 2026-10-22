@@ -76,6 +76,18 @@ public class PostController {
         return postService.addComment(principal.getId(), postId, request);
     }
 
+    @PutMapping(ApiPaths.Posts.WATER)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void water(@AuthenticationPrincipal User principal, @PathVariable UUID postId) {
+        postService.water(principal.getId(), postId);
+    }
+
+    @DeleteMapping(ApiPaths.Posts.WATER)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void unwater(@AuthenticationPrincipal User principal, @PathVariable UUID postId) {
+        postService.unwater(principal.getId(), postId);
+    }
+
     @DeleteMapping(ApiPaths.Posts.BY_ID)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@AuthenticationPrincipal User principal, @PathVariable UUID postId) {

@@ -222,7 +222,7 @@ class FriendServiceTest {
                 List.of(new DiscoveredSpeciesResponse(UUID.randomUUID(), Instant.parse("2026-10-01T10:00:00Z")));
         when(speciesService.getDiscoveredSpecies(tomId)).thenReturn(discovered);
         List<PostResponse> posts = List.of(new PostResponse(
-                UUID.randomUUID(), "question", null, null, null, "Why are the leaves yellow?", null, 0, Instant.now()));
+                UUID.randomUUID(), "question", null, null, null, "Why are the leaves yellow?", null, 0, 0, false, Instant.now()));
         when(postService.getUserPosts(janeId, tomId)).thenReturn(posts);
         UUID plantId = UUID.randomUUID();
         PlantDetailsResponse plant = new PlantDetailsResponse(

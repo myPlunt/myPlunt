@@ -7,6 +7,9 @@ interface BasePost {
   /** Short-lived link to the post's photo; null when there's none. */
   photoUrl: string | null;
   commentCount: number;
+  /** Drops of water (the app's like) friends gave it, and whether the signed-in user gave one. */
+  waterCount: number;
+  wateredByMe: boolean;
   createdAt: string;
 }
 
