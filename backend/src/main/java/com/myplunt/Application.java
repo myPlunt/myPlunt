@@ -6,7 +6,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-// Runs the hourly watering reminders, and sends push notifications off the request thread (PushNotificationService).
 @EnableScheduling
 @EnableAsync
 public class Application {

@@ -9,18 +9,14 @@ import { useReloadOnReconnect } from '@/stores/network-store';
 import { cachedPlantPhotos } from './offline-pages';
 import * as plantService from './plant-service';
 
-/** The plant's growth photos, oldest first, for its details and growth screens. */
 export function usePlantPhotos(plantId: string, ownerId?: string) {
   const { setUnauthenticated } = useAuthStore();
   const [photos, setPhotos] = useState<PlantPhoto[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) => {
-      // Only the user's own plants are kept for offline, like the garden: a friend's plant
-      // page needs the connection for their profile first.
       const request: Promise<{ data: PlantPhoto[] }> = ownerId
         ? plantService.getPlantPhotos(plantId, ownerId).then((data) => ({ data }))
         : cachedPlantPhotos(plantId);
@@ -32,7 +28,6 @@ export function usePlantPhotos(plantId: string, ownerId?: string) {
         })
         .catch((err) => {
           if (isCancelled()) return;
-          // apiFetch already tried a refresh; a 401 here means the session is gone.
           if (err instanceof ApiError && err.status === 401) {
             setUnauthenticated();
             return;
@@ -46,8 +41,6 @@ export function usePlantPhotos(plantId: string, ownerId?: string) {
     [plantId, ownerId, setUnauthenticated],
   );
 
-  // Loads on focus, not just on mount, so a photo added on the add-photo screen shows up.
-  // useFocusEffect needs a memoized callback.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -57,7 +50,6 @@ export function usePlantPhotos(plantId: string, ownerId?: string) {
       };
     }, [load]),
   );
-  // And when the connection comes back, so the screen catches up by itself.
   useReloadOnReconnect(() => load(() => false));
 
   return {

@@ -26,9 +26,6 @@ export function GardenScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { garden, error, isLoading, retry, refresh } = useGarden();
-  // The tour's first-plant step: its card opens the Add sheet, and saving a plant there ends
-  // the step (AddPlantScreen). Then the watering step, back here after the plant's page: it
-  // shows the drop that starts watering, and "Got it" or watering moves on.
   const { step, next, skipPast } = useOnboardingStore();
   const isPlantStep = step === 'plant';
   const isWaterStep = step === 'water';
@@ -40,10 +37,8 @@ export function GardenScreen() {
   const [waterError, setWaterError] = useState<string | null>(null);
   // The plants picked to water; null when the user isn't picking.
   const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null);
-  // The planter whose rename/delete dialog is open.
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
 
-  // Taken per render, so "today" moves on if the screen stays open past midnight.
   const now = new Date();
   const due = garden ? plantsNeedingWater(garden, now) : [];
   const allPlantIds = garden ? garden.rooms.flatMap((room) => room.plants.map((plant) => plant.id)) : [];
@@ -101,11 +96,9 @@ export function GardenScreen() {
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
-        {/* A tab, so no back button; plants are added with the tab bar's + button. */}
         <AppHeader
           right={
-            // While picking plants, Select all takes the water icon's spot (both are h-10),
-            // so nothing on the page moves when selection mode starts.
+            // Select all takes the water icon's spot (both h-10), so nothing moves when picking starts.
             selectedIds ? (
               <Button
                 label={allSelected ? 'Deselect all' : 'Select all'}
@@ -123,7 +116,6 @@ export function GardenScreen() {
                   className={`h-10 w-10 items-center justify-center rounded-full active:opacity-70 ${
                     isWaterStep ? 'border-2 border-primary' : ''
                   } ${isOffline ? 'opacity-40' : ''}`}>
-                  {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
                   <SymbolView
                     name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
                     tintColor={theme.water}
@@ -139,7 +131,6 @@ export function GardenScreen() {
           // Room to scroll the garden out from under the tour card.
           contentContainerClassName={`w-full max-w-content grow gap-8 self-center px-6 pt-2 ${isTourStep ? 'pb-72' : 'pb-8'}`}>
           {isLoading ? (
-            // Colour props (spinner) read the theme instead of a class.
             <ActivityIndicator accessibilityLabel="Loading garden" color={theme.primary} className="mt-6" />
           ) : error ? (
             <View className="items-center gap-3">
@@ -166,8 +157,7 @@ export function GardenScreen() {
                     error={waterError}
                   />
                 )}
-                {/* The plants don't open during the tour's steps, which would leave them; picking
-                    plants to water still works. */}
+                {/* Plants don't open during the tour's steps, which would leave them; picking still works. */}
                 <View className="gap-8" pointerEvents={isTourStep && !selectedIds ? 'none' : 'auto'}>
                   {garden.rooms.map((room) => (
                     <RoomSection
@@ -186,7 +176,6 @@ export function GardenScreen() {
           )}
         </ScrollView>
 
-        {/* While picking plants it stays, stacked above the selection bar instead of over it. */}
         {isWaterStep && (
           <View className={selectedIds ? 'px-3 pb-3' : 'absolute inset-x-3 bottom-3'}>
             <OnboardingCard
@@ -218,8 +207,7 @@ export function GardenScreen() {
               body="Add a plant you have at home, here or with the + below: where it stands and how often it likes water. We'll remind you when it's thirsty."
               actionLabel="Add a plant"
               onAction={() => router.push('/add')}
-              // The photo and watering steps after this one need the plant, so without one
-              // they're skipped too; otherwise they'd wait for a card that never shows.
+              // The later steps need the plant, so they're skipped too; they'd wait for a card that never shows.
               onSkip={() => skipPast('water')}
             />
           </View>
@@ -232,7 +220,6 @@ export function GardenScreen() {
             onClose={() => setEditingRoom(null)}
             onChanged={() => {
               setEditingRoom(null);
-              // A deleted planter's plants now show up under "Other plants".
               refresh();
             }}
           />

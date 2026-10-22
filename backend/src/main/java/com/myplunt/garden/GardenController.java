@@ -19,7 +19,6 @@ public class GardenController {
         this.gardenService = gardenService;
     }
 
-    // zone is the app's IANA time zone ("Europe/Amsterdam"); watering streaks count days in it.
     @GetMapping(ApiPaths.Garden.BASE)
     public GardenResponse garden(@AuthenticationPrincipal User principal, @RequestParam(defaultValue = "UTC") ZoneId zone) {
         return gardenService.getGarden(principal.getId(), zone);

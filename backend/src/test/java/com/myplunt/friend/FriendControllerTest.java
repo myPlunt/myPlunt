@@ -221,7 +221,6 @@ class FriendControllerTest {
                 .isEqualTo(posts);
     }
 
-    // The same 404 as an unknown user, so a stranger can't tell who exists.
     @Test
     void friendData_returnsNotFoundWhenNotFriends() {
         authenticateAsJane();

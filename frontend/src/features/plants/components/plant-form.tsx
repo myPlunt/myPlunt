@@ -27,34 +27,24 @@ import type { Planter } from '@/lib/planter/types';
 import type { Species } from '@/lib/species/types';
 
 const NOTES_MAX_LENGTH = 1000;
-// Same rule as the backend's CreatePlantRequest and UpdatePlantRequest; spaces around the name don't count.
+// Same as the backend's CreatePlantRequest; spaces around the name don't count.
 const NAME_MIN_LENGTH = 3;
 
 // Fields the backend may reject that live on step 1; an error there sends the user back to it.
 const STEP_1_FIELDS = ['name', 'speciesId', 'photoKey'];
 
-// Suggestions shown under the species search, one per ruled line.
 const MAX_SPECIES_SUGGESTIONS = 3;
 
 interface PlantFormProps {
-  /** The plant to edit, whose values fill the form; leave it out to add a new plant. */
   plant?: PlantDetails;
-  /** A species to start a new plant with, e.g. when added from its Pluntdex page. */
   initialSpecies?: Pick<Species, 'id' | 'commonName'>;
-  /** The approved species to search; null while they load. */
   species: Species[] | null;
   speciesError: string | null;
-  /** The user's planters to pick from; null while they load. */
   planters: Planter[] | null;
   plantersError: string | null;
   onSaved: (plant: Plant) => void;
 }
 
-/**
- * A plant in two steps on the ruled paper: who it is (name, species, photo), then how it
- * lives (light, watering, notes, planter). Values carry over between the steps. Adds a
- * new plant, or saves changes to `plant` when given; then calls onSaved with the result.
- */
 export function PlantForm({
   plant,
   initialSpecies,
@@ -66,12 +56,10 @@ export function PlantForm({
 }: PlantFormProps) {
   const theme = useTheme();
   const { createPlant, updatePlant } = usePlantActions();
-  // Uploads as soon as a photo is picked, so it's usually done by the time the form is.
   const photo = usePhotoUpload('PLANT');
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState(plant?.name ?? '');
-  // The length hint shows only once the user has left the name field, and never while they're
-  // in it, so it doesn't nag while they type or fix a typo.
+  // The length hint waits until the user has left the field, so it doesn't nag while they type.
   const [hasLeftName, setHasLeftName] = useState(false);
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [speciesQuery, setSpeciesQuery] = useState(plant?.speciesName ?? initialSpecies?.commonName ?? '');
@@ -98,16 +86,12 @@ export function PlantForm({
     speciesQuery.trim() === '' || selectedSpecies || !species
       ? []
       : species.filter((item) => matchesSpecies(item, speciesQuery)).slice(0, MAX_SPECIES_SUGGESTIONS);
-  // Searching from the moment the field is focused until a species is picked; a search
-  // left unfinished (text but no pick) stays open after leaving the field.
+  // A search left unfinished (text but no pick) stays open after leaving the field.
   const isSearchingSpecies = !selectedSpecies && (isSpeciesFocused || speciesQuery.trim() !== '');
-  // Lines under the species field: one for an error or the picked species, room for every
-  // suggestion while searching, none otherwise.
   const speciesRows = speciesError || selectedSpecies ? 1 : isSearchingSpecies ? MAX_SPECIES_SUGGESTIONS : 0;
 
   function changeSpeciesQuery(text: string) {
     setSpeciesQuery(text);
-    // Typing again means searching again, so the earlier pick no longer applies.
     setSpeciesId(null);
   }
 
@@ -159,7 +143,6 @@ export function PlantForm({
             onBlur={() => {
               setIsNameFocused(false);
               setHasLeftName(true);
-              // The same moment the length hint appears under the field.
               if (nameLength < NAME_MIN_LENGTH) {
                 logWarning('form_validation_failed', { context: { form: 'plant', fields: 'name' } });
               }
@@ -178,9 +161,7 @@ export function PlantForm({
             placeholder="Search, e.g. Monstera"
             autoCapitalize="words"
           />
-          {/* Fixed sizes, so the photo below only moves when the search opens, closes or
-              settles on a pick, and then slides (AnimatedLines). While searching, the space is
-              always MAX_SPECIES_SUGGESTIONS lines, whatever is typed or deleted. */}
+          {/* Fixed sizes, so the photo below only moves (and slides) when the search opens, closes or picks. */}
           <AnimatedLines rows={speciesRows}>
             {speciesError ? (
               <ErrorLine message={speciesError} />
@@ -200,7 +181,6 @@ export function PlantForm({
               </RuledLine>
             ) : species === null ? (
               <View className="justify-center" style={oneLine}>
-                {/* A colour prop, so it reads the theme instead of a class. */}
                 <ActivityIndicator accessibilityLabel="Loading species" color={theme.primary} className="self-start" />
               </View>
             ) : speciesSuggestions.length === 0 ? (
@@ -241,7 +221,6 @@ export function PlantForm({
                 label={option.label}
                 icon={option.icon}
                 selected={light === option.value}
-                // Light is optional, so tapping the chosen option clears it again.
                 onPress={() => setLight(light === option.value ? null : option.value)}
               />
             ))}
@@ -254,7 +233,6 @@ export function PlantForm({
           <View className="flex-row items-center gap-2" style={oneLine}>
             <SymbolView
               name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
-              // The approved water blue, the same as the water line in the garden's pots.
               tintColor={theme.water}
               size={18}
             />
@@ -266,16 +244,12 @@ export function PlantForm({
               onChangeText={(text) => setWateringEveryDays(text.replace(/\D/g, ''))}
               keyboardType="number-pad"
               maxLength={3}
-              // Left empty, the plant follows the species' frequency, or 7 days without one
-              // (WateringSchedule on the backend), so hint at it.
+              // Left empty, the species' frequency or the backend's 7-day default applies, so hint at it.
               placeholder={String(selectedSpecies?.wateringFrequencyDays ?? 7)}
-              // A colour prop, not a style, so it can't take a class.
               placeholderTextColor={theme.placeholder}
               className={`w-16 rounded-[10px] border-[1.5px] bg-background-element text-center text-text ${
                 fieldErrors.wateringEveryDays ? 'border-error' : 'border-input-border'
               }`}
-              // Fits inside one line with a gap to the rules (a computed size, not a class),
-              // with its number centred in the box.
               style={[{ height: boxHeight(1) }, singleLineInputText]}
             />
             <Text className="type-body-large text-text">days</Text>
@@ -302,7 +276,6 @@ export function PlantForm({
             <ErrorLine message={plantersError} />
           ) : allPlanters === null ? (
             <View className="justify-center" style={oneLine}>
-              {/* A colour prop, so it reads the theme instead of a class. */}
               <ActivityIndicator accessibilityLabel="Loading planters" color={theme.primary} className="self-start" />
             </View>
           ) : (
@@ -313,12 +286,10 @@ export function PlantForm({
               onAdded={(planter) => setAddedPlanters((current) => [...current, planter])}
             />
           )}
-          {/* Only a new plant is news for the feed, not an edit. */}
           {!plant && <ShareToFeedCheckbox checked={shareToFeed} onChange={setShareToFeed} />}
         </>
       )}
 
-      {/* One line before the buttons, which shows the error, if any. */}
       <RuledLine>
         {error && (
           <Text className="type-body-medium text-error" numberOfLines={1} adjustsFontSizeToFit>
@@ -326,9 +297,7 @@ export function PlantForm({
           </Text>
         )}
       </RuledLine>
-      {/* Centred in one line with the same gap to the rules as the input boxes. A
-          disabled button is see-through (opacity), so the paper-coloured backing keeps
-          the ruled lines from showing through it. */}
+      {/* Backs the see-through disabled button, so the ruled lines don't show through it. */}
       <View className="flex-row items-center gap-3" style={oneLine}>
         {step === 1 ? (
           <View className="flex-1 rounded-[10px] bg-background-element">
@@ -346,7 +315,6 @@ export function PlantForm({
                 label="Back"
                 variant="secondary"
                 onPress={() => setStep(1)}
-                // Keeps the secondary fill but drops its outline, which looked busy on the ruled paper.
                 style={{ height: boxHeight(1), borderWidth: 0 }}
               />
             </View>
@@ -367,7 +335,6 @@ export function PlantForm({
   );
 }
 
-/** Chips that wrap onto as many whole lines as they need, each centred on its line. */
 function ChoiceGroup({ children }: { children: ReactNode }) {
   return (
     <View accessibilityRole="radiogroup" className="flex-row flex-wrap gap-x-2">

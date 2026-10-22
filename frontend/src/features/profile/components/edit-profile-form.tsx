@@ -10,7 +10,6 @@ import type { User } from '@/lib/user/types';
 
 const BIO_MAX_LENGTH = 255;
 
-/** Edits username and bio. Takes the loaded user so the fields start filled in. */
 export function EditProfileForm({ user, onSaved }: { user: User; onSaved?: () => void }) {
   const { updateProfile } = useProfileActions();
   // The last saved values: what "changed" is measured against.

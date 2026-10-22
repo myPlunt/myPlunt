@@ -10,7 +10,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
-    // The user's friendships with any of the others, whichever of the two sent the request.
     @Query("""
             select f from Friendship f
             where (f.requesterId = :userId and f.receiverId in :otherIds)
@@ -20,7 +19,6 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
 
     Optional<Friendship> findByRequesterIdAndReceiverIdAndStatus(UUID requesterId, UUID receiverId, String status);
 
-    // People whose request to the user is waiting for an answer, newest first.
     @Query("""
             select u from Friendship f join User u on u.id = f.requesterId
             where f.receiverId = :userId and f.status = 'pending'
@@ -28,7 +26,6 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
             """)
     List<User> findRequesters(UUID userId);
 
-    // People the user asked who haven't answered yet, newest first.
     @Query("""
             select u from Friendship f join User u on u.id = f.receiverId
             where f.requesterId = :userId and f.status = 'pending'
@@ -36,7 +33,6 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
             """)
     List<User> findRequested(UUID userId);
 
-    // The user's friends, whichever of the two asked, A to Z.
     @Query("""
             select u from Friendship f
             join User u on (u.id = f.receiverId and f.requesterId = :userId)

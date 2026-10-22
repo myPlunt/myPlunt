@@ -15,8 +15,6 @@ const TOUR_PARTS = [
   'Explore the PluntDex',
 ];
 
-// Page 0 of the tour, shown right after registering in place of the tabs. Leaving brings the
-// tabs back: on the profile, where the first step is, or on the feed when the tour is skipped.
 export function WelcomeScreen() {
   const router = useRouter();
   const { next } = useOnboardingStore();
@@ -35,9 +33,7 @@ export function WelcomeScreen() {
           <Image className="h-40 w-36 self-center" source={require('@/assets/images/Logo.png')} contentFit="contain" />
 
           <View className="gap-3">
-            {/* The title wraps onto two lines; h1's 64px line height spaces them too far apart.
-                Lateef's tall capitals get clipped at the top below ~58px, so this is as tight
-                as it goes. style, because type-h1 would win over a leading-* class. */}
+            {/* 58 is as tight as Lateef goes before its capitals clip. A style, as type-h1 beats a leading-* class. */}
             <Text className="type-h1 text-center text-action-primary" style={{ lineHeight: 58 }}>
               Welcome to myPlunt
             </Text>

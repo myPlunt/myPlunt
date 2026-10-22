@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { WateringCalendar } from '@/features/profile/components/watering-calendar';
 import { useWateringCalendar } from '@/features/profile/use-watering-calendar';
 
-/** A month of the user's waterings across all their plants, opened from their profile. */
 export function WateringCalendarScreen() {
   const calendar = useWateringCalendar();
 
@@ -43,9 +42,7 @@ export function WateringCalendarScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Lateef's natural line is ~1.45× its size; a shorter line height clips the bottom of the
-  // glyphs on iOS. Android's extra font padding is dropped so both platforms place it the
-  // same. A style, because a leading-* class loses to type-h3.
+  // Lateef needs a taller line or iOS clips its glyphs. A style, as a leading-* class loses to type-h3.
   title: {
     lineHeight: 58,
     includeFontPadding: false,

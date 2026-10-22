@@ -11,15 +11,10 @@ import { logAction, logFailedUi } from '@/lib/logger';
 interface EditPlanterDialogProps {
   planter: { id: string; name: string; plantCount: number };
   onClose: () => void;
-  /** Called after the planter was renamed or deleted, so the garden can reload. */
   onChanged: () => void;
 }
 
-/**
- * Renames a planter, or deletes it after asking. Deleting keeps its plants: they move to
- * "Other plants". Both steps live in one modal because a second Modal opened on top of
- * another doesn't show on iOS.
- */
+/** Rename and delete share one modal: a second Modal opened on top of another doesn't show on iOS. */
 export function EditPlanterDialog({ planter, onClose, onChanged }: EditPlanterDialogProps) {
   const { renamePlanter, deletePlanter } = usePlanterActions();
   const [name, setName] = useState(planter.name);
@@ -35,7 +30,6 @@ export function EditPlanterDialog({ planter, onClose, onChanged }: EditPlanterDi
     if (!isBusy) onClose();
   }
 
-  // An expired session already signed the user out (usePlanterActions), so there's nothing to show.
   function showError(err: unknown, field?: boolean) {
     if (err instanceof ApiError && err.status === 401) return;
     const fieldError = err instanceof ApiError ? err.fieldErrors?.name : undefined;
@@ -79,12 +73,9 @@ export function EditPlanterDialog({ planter, onClose, onChanged }: EditPlanterDi
       : `Its ${planter.plantCount === 1 ? 'plant moves' : `${planter.plantCount} plants move`} to Other plants; no plants are deleted. This can't be undone.`;
 
   return (
-    // onRequestClose is Android's back button.
     <Modal visible transparent animationType="fade" onRequestClose={close}>
       <KeyboardAvoidingView
         className="flex-1"
-        // iOS needs padding to lift the dialog above the keyboard; Android resizes the
-        // window itself, so shrinking the height is enough there.
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View className="flex-1 items-center justify-center px-6">
           <Pressable
@@ -93,7 +84,6 @@ export function EditPlanterDialog({ planter, onClose, onChanged }: EditPlanterDi
             onPress={close}
             className="absolute inset-0 bg-text opacity-40"
           />
-          {/* Shadow tokens set both iOS shadow* and Android elevation. */}
           <View className="w-full max-w-[360px] gap-3 rounded-2xl bg-background-element p-5" style={Shadow.card}>
             {isConfirmingDelete ? (
               <>
@@ -107,7 +97,6 @@ export function EditPlanterDialog({ planter, onClose, onChanged }: EditPlanterDi
                     label="Cancel"
                     variant="secondary"
                     disabled={isBusy}
-                    // No outline, like the Cancel in the planter picker.
                     style={{ borderWidth: 0 }}
                     onPress={() => {
                       logAction('planter_delete_cancelled', { context: { planter_id: planter.id } });
@@ -139,7 +128,6 @@ export function EditPlanterDialog({ planter, onClose, onChanged }: EditPlanterDi
                     variant="secondary"
                     disabled={isBusy}
                     onPress={close}
-                    // No outline, like the Cancel in the planter picker.
                     style={{ borderWidth: 0 }}
                   />
                   <Button label="Save" loading={isBusy} disabled={!canSave} onPress={save} />

@@ -22,14 +22,12 @@ public class PushTokenController {
         this.pushNotificationService = pushNotificationService;
     }
 
-    // Sent by the app on every start while notifications are allowed, so the zone stays current.
     @PutMapping(ApiPaths.Users.ME_PUSH_TOKEN)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void register(@AuthenticationPrincipal User principal, @Valid @RequestBody PushTokenRequest request) {
         pushNotificationService.registerToken(principal.getId(), request);
     }
 
-    // Sent on logout, so the phone stops getting the account's reminders.
     @DeleteMapping(ApiPaths.Users.ME_PUSH_TOKEN)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remove(@AuthenticationPrincipal User principal, @Valid @RequestBody RemovePushTokenRequest request) {

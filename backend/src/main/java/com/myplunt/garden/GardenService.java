@@ -39,8 +39,6 @@ public class GardenService {
         this.plantService = plantService;
     }
 
-    // The user's living plants grouped by room, in the order the rooms were created.
-    // Empty rooms are included; plants without a room come last, in their own group.
     @Transactional(readOnly = true)
     public GardenResponse getGarden(UUID ownerId, ZoneId zone) {
         List<Plant> plants = plantService.getLivingPlants(ownerId);
@@ -49,7 +47,6 @@ public class GardenService {
         Map<UUID, String> photoUrls = plantService.getPhotoUrls(plantIds);
         Map<UUID, Integer> streaks = plantService.getWateringStreaks(plants, zone);
 
-        // LinkedHashMap allows the null key used for plants without a room.
         Map<UUID, List<GardenPlantResponse>> plantsByRoom = new LinkedHashMap<>();
         for (Plant plant : plants) {
             plantsByRoom.computeIfAbsent(plant.getPlanterId(), id -> new ArrayList<>())
@@ -70,8 +67,7 @@ public class GardenService {
         return new GardenResponse(rooms);
     }
 
-    // PlantService only lets a plant into one of its owner's planters, so this can't happen. If
-    // it does, those plants are missing from the garden, and the user can't see why.
+    // Can't happen (PlantService checks the planter), but if it does those plants vanish from the garden.
     private static void reportPlantsInUnknownPlanters(
             UUID ownerId, Map<UUID, List<GardenPlantResponse>> plantsByRoom, List<Planter> planters) {
         Set<UUID> known = planters.stream().map(Planter::getId).collect(Collectors.toSet());

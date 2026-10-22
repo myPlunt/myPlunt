@@ -6,9 +6,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-// There's no admin sign-up, so the first admin comes from ADMIN_BOOTSTRAP_EMAIL and
-// ADMIN_BOOTSTRAP_PASSWORD. Created once: if that admin exists, nothing changes, so the password
-// can't be reset by restarting with another one. Unset (the default), nothing happens.
+// Created once: restarting with another ADMIN_BOOTSTRAP_PASSWORD doesn't change an existing admin's.
 @Component
 public class AdminBootstrap implements ApplicationRunner {
 
@@ -35,7 +33,6 @@ public class AdminBootstrap implements ApplicationRunner {
         if (email.isEmpty() || adminUserRepository.findByEmail(email).isPresent()) {
             return;
         }
-        // Stops the backend from starting rather than create an admin with a weak password.
         if (password.length() < MIN_PASSWORD_LENGTH) {
             throw new IllegalStateException(
                     "ADMIN_BOOTSTRAP_PASSWORD must be at least " + MIN_PASSWORD_LENGTH + " characters.");

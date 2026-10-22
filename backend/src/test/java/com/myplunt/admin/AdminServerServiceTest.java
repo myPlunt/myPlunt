@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.within;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-// Kuma and Glances are faked with the JDK's HTTP server, answering what their real APIs answer.
 class AdminServerServiceTest {
 
     private static final Map<String, String> RESPONSES = Map.of(

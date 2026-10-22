@@ -76,7 +76,6 @@ afterEach(() => {
   jest.resetAllMocks();
 });
 
-/** Renames the plant and saves from step 2. */
 async function renameAndSave(name: string) {
   await user.clear(screen.getByLabelText('Name'));
   await user.type(screen.getByLabelText('Name'), name);

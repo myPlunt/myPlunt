@@ -6,17 +6,13 @@ import { SpeciesPicture } from '@/features/pluntdex/components/species-picture';
 import type { Species } from '@/lib/species/types';
 
 interface DiscoveryDialogProps {
-  /** The species just discovered; the dialog shows while it's set. */
   species: Species | null;
-  /** Its place in the Pluntdex, e.g. "012". */
   number: string;
   onClose: () => void;
 }
 
-/** The Pokédex moment: shown when a new plant is the user's first of its species. */
 export function DiscoveryDialog({ species, number, onClose }: DiscoveryDialogProps) {
   return (
-    // onRequestClose is Android's back button.
     <Modal visible={species !== null} transparent animationType="fade" onRequestClose={onClose}>
       <View className="flex-1 items-center justify-center px-6">
         <Pressable
@@ -26,7 +22,6 @@ export function DiscoveryDialog({ species, number, onClose }: DiscoveryDialogPro
           className="absolute inset-0 bg-text opacity-40"
         />
         {species && (
-          // Shadow tokens set both iOS shadow* and Android elevation.
           <View
             className="w-full max-w-[360px] items-center gap-3 rounded-3xl bg-background-element p-6"
             style={Shadow.card}>
@@ -47,9 +42,7 @@ export function DiscoveryDialog({ species, number, onClose }: DiscoveryDialogPro
 }
 
 const styles = StyleSheet.create({
-  // Lateef's natural line is ~1.45× its size; type-h4's 40 clips the bottom of the glyphs
-  // on iOS, and Android's extra font padding is dropped so both platforms match. A style,
-  // because a leading-* class loses to type-h4.
+  // Lateef needs a taller line than type-h4's or iOS clips its glyphs. A style, as leading-* loses to type-h4.
   title: {
     lineHeight: 46,
     includeFontPadding: false,

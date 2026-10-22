@@ -13,26 +13,18 @@ import { useDiscoveredSpecies } from '@/features/species/use-discovered-species'
 import { useSpecies } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * One Pluntdex entry, opened from its card. A discovered species shows when it was discovered
- * and the user's plants of it; one not discovered yet keeps its picture blurred and offers to
- * add a plant of it, which discovers it.
- */
 export function SpeciesDetailsScreen({ speciesId }: { speciesId: string }) {
   const theme = useTheme();
   const router = useRouter();
   const { species, error: speciesError, retry: retrySpecies } = useSpecies();
-  // Both reload on focus, so coming back from adding a plant shows the species discovered.
   const { discovered, error: discoveredError, isLoading, retry: retryDiscovered } = useDiscoveredSpecies();
   const { garden } = useGarden();
 
   const index = species?.findIndex((s) => s.id === speciesId) ?? -1;
   const entry = species?.[index];
   const discoveredAt = discovered?.find((c) => c.speciesId === speciesId)?.discoveredAt ?? null;
-  // Plants can be deleted since, so a discovered species may have none left.
   const plants = garden?.rooms.flatMap((room) => room.plants).filter((p) => p.speciesId === speciesId) ?? [];
   const error = speciesError ?? discoveredError;
-  // Loads again whichever of the two failed.
   function retry() {
     if (speciesError) retrySpecies();
     if (discoveredError) retryDiscovered();
@@ -50,7 +42,6 @@ export function SpeciesDetailsScreen({ speciesId }: { speciesId: string }) {
               <Button label="Try again" variant="secondary" onPress={retry} />
             </View>
           ) : isLoading || !species ? (
-            // A colour prop, so it reads the theme instead of a class.
             <ActivityIndicator accessibilityLabel="Loading species" color={theme.primary} className="mt-6" />
           ) : !entry ? (
             <Text className="type-body-medium text-center text-text-secondary">
@@ -58,7 +49,6 @@ export function SpeciesDetailsScreen({ speciesId }: { speciesId: string }) {
             </Text>
           ) : (
             <>
-              {/* The name belongs to the picture, so it sits closer to it than the page's gap-6. */}
               <View className="gap-3">
                 <View>
                   <SpeciesPicture
@@ -80,7 +70,6 @@ export function SpeciesDetailsScreen({ speciesId }: { speciesId: string }) {
                 </View>
               </View>
 
-              {/* Shadow goes through style so it sets both iOS shadow* and Android elevation. */}
               <View
                 className="gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4"
                 style={Shadow.card}>
@@ -98,7 +87,6 @@ export function SpeciesDetailsScreen({ speciesId }: { speciesId: string }) {
                   className="gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4"
                   style={Shadow.card}>
                   <View className="flex-row items-center gap-2">
-                    {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
                     <SymbolView
                       name={{ ios: 'checkmark.seal.fill', android: 'verified', web: 'verified' }}
                       tintColor={theme.primary}
@@ -162,9 +150,8 @@ export function SpeciesDetailsScreen({ speciesId }: { speciesId: string }) {
 }
 
 const styles = StyleSheet.create({
-  // Same as a plant's name on its details page: Lateef's natural line is ~1.45× its size, so
-  // type-h4's 40 clips the glyphs on iOS; the negative margin pulls the capitals up towards
-  // the picture. A style, because a leading-* class loses to type-h4.
+  // Lateef needs a taller line than type-h4's or iOS clips its glyphs; the negative margin pulls the
+  // capitals up to the picture. A style, as a leading-* class loses to type-h4.
   name: {
     lineHeight: 46,
     marginTop: -6,

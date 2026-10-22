@@ -11,7 +11,6 @@ public record UpdateProfileRequest(
                 String username,
         @Size(max = 255, message = "Bio must be at most 255 characters.") String bio) {
 
-    // Strip before validation runs, so " alice" can't be stored as a look-alike of "alice".
     public UpdateProfileRequest {
         username = username == null ? null : username.strip();
     }

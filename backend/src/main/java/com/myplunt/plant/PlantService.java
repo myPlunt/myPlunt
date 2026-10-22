@@ -77,8 +77,7 @@ public class PlantService {
     public PlantResponse create(UUID ownerId, CreatePlantRequest request) {
         requireOwnPlanter(ownerId, request.planterId());
         Species species = findApprovedSpecies(request.speciesId());
-        // Confirmed before anything is saved: a key that isn't the owner's, is missing or is too
-        // big fails here (404/400) and no plant is created. Confirming also keeps the bucket's
+        // Before anything is saved, so a bad key creates nothing. Confirming also stops the bucket's
         // lifecycle rule from deleting the upload.
         if (request.photoKey() != null) {
             storageService.confirmUpload(ownerId, request.photoKey());
@@ -122,7 +121,6 @@ public class PlantService {
         return toDetails(findOwnPlant(ownerId, plantId));
     }
 
-    // Replaces the editable fields. The photo only changes when a new one was uploaded.
     @Transactional
     public PlantDetailsResponse update(UUID ownerId, UUID plantId, UpdatePlantRequest request) {
         Plant plant = findOwnPlant(ownerId, plantId);
@@ -131,7 +129,6 @@ public class PlantService {
         }
         requireOwnPlanter(ownerId, request.planterId());
         Species species = findApprovedSpecies(request.speciesId());
-        // Confirmed before anything changes, for the same reasons as in create.
         if (request.photoKey() != null) {
             storageService.confirmUpload(ownerId, request.photoKey());
         }
@@ -171,13 +168,11 @@ public class PlantService {
         return species == null ? null : species.getId();
     }
 
-    // The owner's living plants, oldest first, with their species already loaded.
     @Transactional(readOnly = true)
     public List<Plant> getLivingPlants(UUID ownerId) {
         return plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(ownerId);
     }
 
-    // When each plant was last watered. Plants that were never watered are left out of the map.
     @Transactional(readOnly = true)
     public Map<UUID, Instant> getLastWateredAt(List<UUID> plantIds) {
         if (plantIds.isEmpty()) {
@@ -187,7 +182,6 @@ public class PlantService {
                 .collect(Collectors.toMap(LastWatering::plantId, LastWatering::wateredAt));
     }
 
-    // A short-lived link to each plant's current photo. Plants without a photo are left out of the map.
     @Transactional(readOnly = true)
     public Map<UUID, String> getPhotoUrls(List<UUID> plantIds) {
         if (plantIds.isEmpty()) {
@@ -197,7 +191,6 @@ public class PlantService {
                 .collect(Collectors.toMap(
                         LatestPhoto::plantId,
                         photo -> storageService.createReadUrl(photo.photoKey()),
-                        // Two photos taken at the same moment: either will do.
                         (first, second) -> first));
     }
 
@@ -226,16 +219,13 @@ public class PlantService {
         int streak = WateringConsistency.of(plant, all, zone, now).currentStreak();
 
         auditLog.recorded(AuditEvent.PLANT_WATERED, userId, userId, Map.of("plant_id", plant.getId(), "streak", streak));
-        // A late watering is the only thing that resets a streak to 0. No changed_by: it's the
-        // consequence of the watering, not something the user chose.
+        // No changed_by: the streak broke as a consequence of the watering, not by the user's choice.
         if (streakBefore > 0 && streak == 0) {
             auditLog.recorded(AuditEvent.WATERING_STREAK_BROKEN, userId, null,
                     Map.of("plant_id", plant.getId(), "lost_streak", streakBefore));
         }
     }
 
-    // Also for plants that have died, so their record stays readable. Days are counted in the
-    // user's time zone, so "on time" flips at their own midnight.
     @Transactional(readOnly = true)
     public WateringHistoryResponse getWateringHistory(UUID ownerId, UUID plantId, ZoneId zone) {
         Plant plant = findOwnPlant(ownerId, plantId);
@@ -258,7 +248,6 @@ public class PlantService {
                 newestFirst);
     }
 
-    // Also for plants that have died, so their growth stays viewable.
     @Transactional(readOnly = true)
     public List<PlantPhotoResponse> getPhotos(UUID ownerId, UUID plantId) {
         findOwnPlant(ownerId, plantId);
@@ -267,15 +256,12 @@ public class PlantService {
                 .toList();
     }
 
-    // The newest photo (by takenAt) is the plant's main photo, so an old library photo lands
-    // in the middle of the timeline without replacing it.
     @Transactional
     public PlantPhotoResponse addPhoto(UUID ownerId, UUID plantId, AddPlantPhotoRequest request) {
         Plant plant = findOwnPlant(ownerId, plantId);
         if (!plant.isAlive()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't get new photos");
         }
-        // Confirmed before saving, for the same reasons as in create.
         storageService.confirmUpload(ownerId, request.photoKey());
 
         PlantPhoto photo = new PlantPhoto(
@@ -294,7 +280,6 @@ public class PlantService {
         return toPhotoResponse(saved);
     }
 
-    // Changing the date moves the photo in the timeline; the newest one is the main photo.
     @Transactional
     public PlantPhotoResponse updatePhoto(UUID ownerId, UUID plantId, UUID photoId, UpdatePlantPhotoRequest request) {
         Plant plant = findOwnPlant(ownerId, plantId);
@@ -303,7 +288,6 @@ public class PlantService {
         }
         PlantPhoto photo = findPhoto(plantId, photoId);
         String caption = cleanNotes(request.caption());
-        // Names only: the note is the user's own words, so its value stays out of the log.
         List<String> changedFields = new ArrayList<>();
         if (!Objects.equals(photo.getTakenAt(), request.takenAt())) changedFields.add("taken_at");
         if (!Objects.equals(photo.getCaption(), caption)) changedFields.add("caption");
@@ -316,17 +300,16 @@ public class PlantService {
         return toPhotoResponse(saved);
     }
 
-    // Also for plants that have died, as deleting the whole plant is. Feed posts of the photo
-    // go with it (ON DELETE CASCADE in V1).
+    // Feed posts of the photo go with it (ON DELETE CASCADE).
     @Transactional
     public void deletePhoto(UUID ownerId, UUID plantId, UUID photoId) {
         findOwnPlant(ownerId, plantId);
         PlantPhoto photo = findPhoto(plantId, photoId);
         plantPhotoRepository.delete(photo);
         auditLog.recorded(AuditEvent.PLANT_PHOTO_DELETED, ownerId, ownerId, Map.of("plant_id", plantId, "photo_id", photoId));
-        // Flushed first so the row is really gone before its file is, as in delete().
+        // Flushed so the row is gone before the file is.
         plantPhotoRepository.flush();
-        // The photo is already gone for the user, so a leftover file only costs storage.
+        // A leftover file only costs storage.
         try {
             storageService.deleteObject(photo.getPhotoKey());
         } catch (RuntimeException e) {
@@ -345,7 +328,6 @@ public class PlantService {
                 photo.getId(), storageService.createReadUrl(photo.getPhotoKey()), photo.getTakenAt(), photo.getCaption());
     }
 
-    // Each plant's current watering streak (see WateringConsistency), in one query for all of them.
     @Transactional(readOnly = true)
     public Map<UUID, Integer> getWateringStreaks(List<Plant> plants, ZoneId zone) {
         if (plants.isEmpty()) {
@@ -377,7 +359,6 @@ public class PlantService {
         return wateringLogRepository.findOwnersWaterings(ownerId, from, to);
     }
 
-    // Living plants only: a plant that died no longer has a streak to keep up.
     @Transactional(readOnly = true)
     public WateringStreakResponse getWateringStreak(UUID ownerId, ZoneId zone) {
         int total = getWateringStreaks(getLivingPlants(ownerId), zone).values().stream()
@@ -386,8 +367,7 @@ public class PlantService {
         return new WateringStreakResponse(total);
     }
 
-    // Removes the plant from the garden for good, dead or alive. Its waterings, photos, care
-    // delegations and posts go with it (ON DELETE CASCADE in V1).
+    // Its waterings, photos, delegations and posts go with it (ON DELETE CASCADE).
     @Transactional
     public void delete(UUID ownerId, UUID plantId) {
         Plant plant = findOwnPlant(ownerId, plantId);
@@ -395,11 +375,10 @@ public class PlantService {
         plantRepository.delete(plant);
         auditLog.recorded(AuditEvent.PLANT_DELETED, ownerId, ownerId,
                 Map.of("plant_id", plantId, "photo_count", photoKeys.size()));
-        // Flushed first so the plant is really gone before its files are; a failed delete
-        // then leaves the photos in place.
+        // Flushed so the plant is gone before its files: a failed delete then leaves the photos in place.
         plantRepository.flush();
         for (String key : photoKeys) {
-            // The plant is already gone for the user, so a leftover file only costs storage.
+            // A leftover file only costs storage.
             try {
                 storageService.deleteObject(key);
             } catch (RuntimeException e) {
@@ -409,20 +388,17 @@ public class PlantService {
         }
     }
 
-    // Someone else's plant answers "not found" too, so ids of other users' plants don't leak.
     private Plant findOwnPlant(UUID ownerId, UUID plantId) {
         return plantRepository.findByIdAndOwnerId(plantId, ownerId)
                 .orElseThrow(() -> new IllegalStateException("Plant not found"));
     }
 
-    // Someone else's planter answers "not found" too, for the same reason. Null means no planter.
     private void requireOwnPlanter(UUID ownerId, UUID planterId) {
         if (planterId != null && !planterRepository.existsByIdAndOwnerId(planterId, ownerId)) {
             throw new IllegalStateException("Planter not found");
         }
     }
 
-    // Unapproved species aren't offered in the app, so they answer "not found" too. Null means no species.
     private Species findApprovedSpecies(UUID speciesId) {
         return speciesId == null
                 ? null
@@ -430,7 +406,6 @@ public class PlantService {
                         .orElseThrow(() -> new IllegalStateException("Species not found"));
     }
 
-    // Adds the species to the owner's Pluntdex. Deleting the plant later doesn't undo it.
     private void markDiscovered(UUID ownerId, Species species) {
         if (species != null) {
             speciesRepository.markDiscovered(ownerId, species.getId());

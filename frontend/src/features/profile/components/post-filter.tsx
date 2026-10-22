@@ -16,7 +16,6 @@ interface PostFilterProps {
   onChange: (value: PostFilterValue) => void;
 }
 
-/** Pills above the user's posts on their profile: All · Questions · New plants · New photos. */
 export function PostFilter({ value, onChange }: PostFilterProps) {
   return (
     // Wraps instead of scrolling, so all four stay visible on narrow phones.

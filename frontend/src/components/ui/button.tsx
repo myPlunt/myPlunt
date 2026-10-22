@@ -13,15 +13,12 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   loading?: boolean;
   /** Looks disabled but still takes the press, e.g. to say it doesn't work offline. */
   dimmed?: boolean;
-  /** Layout overrides a class can't express, e.g. a computed height. Applied after the shadow. */
   style?: StyleProp<ViewStyle>;
 }
 
-// `spinner` is a theme key because ActivityIndicator takes a colour prop, not a class.
 const variantClasses: Record<ButtonVariant, { container: string; text: string; spinner: ThemeColor }> = {
   primary: { container: 'bg-action-primary', text: 'text-background-element', spinner: 'backgroundElement' },
   secondary: { container: 'bg-background border border-border', text: 'text-text', spinner: 'text' },
-  // Soft Linen fill without an outline, for low-emphasis actions such as Edit profile.
   subtle: { container: 'bg-background-element', text: 'text-text', spinner: 'text' },
   destructive: { container: 'bg-error', text: 'text-background-element', spinner: 'backgroundElement' },
   ghost: { container: 'bg-transparent', text: 'text-primary', spinner: 'primary' },

@@ -15,7 +15,6 @@ const navigate = jest.fn();
 const push = jest.fn();
 const user = userEvent.setup();
 
-// The bar on the garden tab, with or without a connection.
 function renderBar(isOffline: boolean) {
   jest.mocked(useNetworkStore).mockReturnValue({ isOffline, reconnects: 0, notice: null, explainOffline });
   const routes = ['index', 'pluntdex', 'garden', 'profile'].map((name) => ({ key: name, name, params: undefined }));

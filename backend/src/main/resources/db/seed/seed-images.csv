@@ -1,5 +1,5 @@
 # Seed storage key -> image downloaded into the bucket on startup (see StorageConfig).
-# Keys are without the storage prefix; StorageConfig and V9 both put app.storage.prefix in front.
+# Keys are without the storage prefix; StorageConfig and the db/seed SQL both put app.storage.prefix in front.
 # Species and plants: Wikimedia Commons (freely licensed). Avatars: pravatar.cc.
 species/10000000-0000-0000-0000-000000000009/seed.jpg,https://commons.wikimedia.org/wiki/Special:FilePath/Monstera_deliciosa2.jpg?width=960
 species/10000000-0000-0000-0000-000000000010/seed.jpg,https://commons.wikimedia.org/wiki/Special:FilePath/Money_Plant_%28Epipremnum_aureum%29_4.jpg?width=960

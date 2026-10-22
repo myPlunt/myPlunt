@@ -10,8 +10,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-// A friend's like on a post. The app only has one kind, a water drop, so emoji is always WATER;
-// uq_post_reactions_post_user keeps it to one per user and post.
+// The app's like: emoji is always WATER, a water drop.
 @Entity
 @Table(name = "post_reactions")
 public class PostReaction {

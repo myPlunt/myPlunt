@@ -16,17 +16,13 @@ import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { useTheme } from '@/hooks/use-theme';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
-// Everything social except posts: finding people, your friends, and requests to answer. Also the
-// tour's friends step, whose card sits at the bottom while the user searches.
 export function FriendsScreen() {
   const router = useRouter();
   const { step, next } = useOnboardingStore();
   const isFriendsStep = step === 'friends';
-  // Leaving would strand the card; a person's profile can still be opened to add them, and the
-  // card's buttons are the way on.
+  // Leaving would strand the tour card; its buttons are the way on.
   useTourBackLock(isFriendsStep);
 
-  // The next step, the first plant, is in the garden: this page closes onto that tab.
   function moveOn() {
     next();
     router.dismissTo('/garden');
@@ -46,12 +42,10 @@ export function FriendsScreen() {
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
-        {/* No swipe back during the step either, for the same reason. */}
         <Stack.Screen options={{ gestureEnabled: !isFriendsStep }} />
         <AppHeader showBack={!isFriendsStep} />
 
-        {/* The card is placed inside this view, not the SafeAreaView: an absolute child
-            ignores its parent's padding, so it would sit under the home indicator. */}
+        {/* Inside this view, not the SafeAreaView: an absolute child ignores its parent's padding. */}
         <View className="flex-1">
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -85,7 +79,6 @@ export function FriendsScreen() {
                     <Text className="type-label text-accent">RECEIVED</Text>
                     {friends.requests.received.map((user) => (
                       <PersonRow key={user.id} user={user} onPress={() => openProfile(user.id)}>
-                        {/* Reloads both lists, so someone accepted moves to Friends. */}
                         <FriendRequestActions userId={user.id} onAnswered={friends.reload} />
                       </PersonRow>
                     ))}
@@ -146,10 +139,8 @@ function FindTab({ query, onChangeQuery, openProfile }: FindTabProps) {
       ) : error ? (
         <Text className="type-body-medium text-error">{error}</Text>
       ) : hasResults ? (
-        // Results of the previous query stay, dimmed, while the next one loads.
         <View className={`gap-3 ${isLoading ? 'opacity-50' : ''}`}>
           {users.map((user) => (
-            // Their profile shows whether either of you asked, and lets you add them.
             <PersonRow
               key={user.id}
               user={user}
@@ -169,7 +160,6 @@ function FindTab({ query, onChangeQuery, openProfile }: FindTabProps) {
 
 function Loading({ label }: { label: string }) {
   const theme = useTheme();
-  // A colour prop, so it reads the theme instead of a class.
   return <ActivityIndicator accessibilityLabel={label} color={theme.primary} className="mt-4" />;
 }
 

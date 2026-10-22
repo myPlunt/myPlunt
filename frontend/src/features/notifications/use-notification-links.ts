@@ -2,7 +2,6 @@ import * as Notifications from 'expo-notifications';
 import { useRouter, type Href } from 'expo-router';
 import { useEffect } from 'react';
 
-/** Opens the screen a tapped notification points to (its data.url), e.g. a friend request opens Requests. */
 export function useNotificationLinks() {
   const router = useRouter();
   // Also holds the tap that launched the app, so it works from a closed app too.

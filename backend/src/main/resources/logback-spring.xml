@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- The console keeps Spring Boot's readable format and shows everything but the app's lines.
-     The structured lines (backend, audit and the app's) go to the logs table, hooked up by
-     DatabaseLogging once the app is ready. -->
+<!-- The logs table appender is added in code (DatabaseLogging) once the database is ready. -->
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>

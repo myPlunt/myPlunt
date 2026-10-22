@@ -14,7 +14,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
-// Guarded by the same secret as the database reset.
 @RestController
 @Profile("staging")
 public class WeatherAlertOpsController {

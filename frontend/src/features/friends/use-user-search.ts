@@ -14,7 +14,6 @@ interface SearchResult {
   error: string | null;
 }
 
-/** Searches people as the query is typed, waiting for a pause so each keystroke isn't a request. */
 export function useUserSearch(query: string) {
   const { setUnauthenticated } = useAuthStore();
   const [result, setResult] = useState<SearchResult | null>(null);
@@ -32,7 +31,6 @@ export function useUserSearch(query: string) {
         })
         .catch((err) => {
           if (cancelled) return;
-          // apiFetch already tried a refresh; a 401 here means the session is gone.
           if (err instanceof ApiError && err.status === 401) {
             setUnauthenticated();
             return;
@@ -58,7 +56,6 @@ export function useUserSearch(query: string) {
   };
 }
 
-// Search is case-insensitive, so "Jan" → "jane" still counts as typing on.
 function isPrefix(prefix: string, text: string) {
   return text.toLowerCase().startsWith(prefix.toLowerCase());
 }

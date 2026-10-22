@@ -1,8 +1,7 @@
 const isStaging = process.env.APP_VARIANT === "staging";
 
-// app.config.js can't import src/constants/tokens.ts, so these are copies of
-// brand values from there. Keep them in sync if the palette changes.
-const SAND_DUNE = "#E7DCC5"; // brand.sandDune, Colors.light.background
+// A copy of brand.sandDune in tokens.ts, which this file can't import; keep them in sync.
+const SAND_DUNE = "#E7DCC5";
 
 export default {
   expo: {
@@ -27,8 +26,7 @@ export default {
         monochromeImage: "./assets/images/android-icon-monochrome.png",
       },
       predictiveBackGestureEnabled: false,
-      // expo-location adds both; the tour only needs the city, so the app never asks for
-      // a precise position (Android then offers "approximate" only).
+      // The tour only needs the city, so the app never asks for a precise location.
       blockedPermissions: ["android.permission.ACCESS_FINE_LOCATION"],
     },
     web: {
@@ -39,8 +37,6 @@ export default {
       "expo-router",
       "expo-secure-store",
       [
-        // Camera and library for photographing your own plants,
-        // photosPermission only matters on iOS; Android's photo picker needs no permission.
         "expo-image-picker",
         {
           photosPermission: "myPlunt uses your photos so you can add pictures of your plants.",
@@ -49,8 +45,7 @@ export default {
         },
       ],
       [
-        // Reads the newest photos for the photo menu's grid. Same iOS text as above (both
-        // set NSPhotoLibraryUsageDescription); only photos on Android 13+; we never save.
+        // Sets the same NSPhotoLibraryUsageDescription as expo-image-picker, so keep the two texts equal.
         "expo-media-library",
         {
           photosPermission: "myPlunt uses your photos so you can add pictures of your plants.",
@@ -59,13 +54,11 @@ export default {
         },
       ],
       [
-        // Asked once, during the tour, to save the user's city for weather alerts.
         "expo-location",
         {
           locationWhenInUsePermission: "myPlunt uses your city to warn you about weather that affects your plants.",
         },
       ],
-      // Asked once, during the tour; Settings links to the system page when it was denied.
       "expo-notifications",
       [
         "expo-splash-screen",
@@ -81,7 +74,7 @@ export default {
       reactCompiler: true,
     },
     extra: {
-      // Read at runtime by the staging banner; APP_VARIANT has no EXPO_PUBLIC_ prefix, so it isn't in the JS bundle otherwise.
+      // APP_VARIANT has no EXPO_PUBLIC_ prefix, so this is how the app reads it at runtime.
       appVariant: process.env.APP_VARIANT ?? null,
       router: {},
       eas: {

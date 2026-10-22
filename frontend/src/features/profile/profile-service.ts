@@ -27,7 +27,6 @@ export async function changeEmail(request: ChangeEmailRequest): Promise<User> {
   return apiFetch<User>('/v1/users/me/email', { method: 'PUT', body: request, requestId });
 }
 
-/** Makes an uploaded photo (see uploadPhoto) the profile picture; the old one is deleted. */
 export async function updateAvatar(request: UpdateAvatarRequest): Promise<User> {
   const requestId = createRequestId();
   logAction('avatar_update_submitted', { requestId });

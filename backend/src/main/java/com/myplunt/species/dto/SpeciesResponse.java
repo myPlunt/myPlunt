@@ -2,9 +2,6 @@ package com.myplunt.species.dto;
 
 import java.util.UUID;
 
-// wateringFrequencyDays is null when the species has no known schedule, region and
-// sunlightNeeds when they're unknown, and imageUrl (a short-lived link) when the species
-// has no picture yet.
 public record SpeciesResponse(
         UUID id,
         String commonName,

@@ -14,8 +14,7 @@ public record RegisterRequest(
         @NotBlank(message = "Password must not be blank.")
                 @Size(min = 8, message = "Password must be at least 8 characters.") String password) {
 
-    // Strip before validation runs, so " alice" can't be registered as a look-alike of "alice".
-    // The password is left untouched: spaces in it are intentional.
+    // Strip so " alice" can't pass as "alice". The password keeps its spaces on purpose.
     public RegisterRequest {
         username = username == null ? null : username.strip();
         email = email == null ? null : email.strip();

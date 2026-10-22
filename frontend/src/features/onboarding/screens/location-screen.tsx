@@ -4,7 +4,6 @@ import { PermissionStep } from '@/features/onboarding/components/permission-step
 
 import { shareLocation } from '../location-service';
 
-// Tour step 3. It replaced Edit profile, and replaces itself with the notifications step.
 export function LocationScreen() {
   const router = useRouter();
 

@@ -36,7 +36,6 @@ public class PlantController {
         this.plantService = plantService;
     }
 
-    // The new plant always belongs to the signed-in user (JwtAuthFilter's principal).
     @PostMapping(ApiPaths.Plants.BASE)
     @ResponseStatus(HttpStatus.CREATED)
     public PlantResponse create(@AuthenticationPrincipal User principal, @Valid @RequestBody CreatePlantRequest request) {
@@ -91,7 +90,6 @@ public class PlantController {
         plantService.deletePhoto(principal.getId(), plantId, photoId);
     }
 
-    // zone is the app's IANA time zone ("Europe/Amsterdam"); streaks count days in it.
     @PostMapping(ApiPaths.Plants.WATERINGS)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void water(
@@ -101,7 +99,6 @@ public class PlantController {
         plantService.water(principal.getId(), plantId, zone);
     }
 
-    // zone is the app's IANA time zone ("Europe/Amsterdam"); streaks count days in it.
     @GetMapping(ApiPaths.Plants.WATERINGS)
     public WateringHistoryResponse wateringHistory(
             @AuthenticationPrincipal User principal,

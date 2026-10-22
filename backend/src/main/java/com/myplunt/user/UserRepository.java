@@ -13,8 +13,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByUsername(String username);
 
-    // Usernames containing the query, exact match first, then those starting with it, then the
-    // rest, A to Z within each. query must be lowercase with \, % and _ escaped by a backslash.
+    // query must be lowercase, with \, % and _ escaped by a backslash.
     @Query("""
             select u from User u
             where u.id <> :excludedId and lower(u.username) like concat('%', :query, '%') escape '\\'

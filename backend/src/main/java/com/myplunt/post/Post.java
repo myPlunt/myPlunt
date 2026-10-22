@@ -18,12 +18,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "posts")
 public class Post {
-    // Shared from the Add plant form when the owner ticks "Share this with your friends".
     public static final String NEW_PLANT = "new_plant";
-    // Shared from Add photo; the photo is the post's picture, not the plant's newest one, and
-    // body is the owner's optional comment on it.
     public static final String NEW_PHOTO = "new_photo";
-    // A question for friends (body), with an optional photo of its own (photoKey); not about a plant.
     public static final String QUESTION = "question";
     // A new photo's comment is short, to fit its feed card; a question can be longer.
     public static final int COMMENT_MAX_LENGTH = 120;
@@ -48,7 +44,6 @@ public class Post {
 
     private String body;
 
-    // Storage key of a question's own photo; null for other posts and questions without one.
     @Column(name = "photo_key")
     private String photoKey;
 
@@ -93,7 +88,6 @@ public class Post {
         return plant;
     }
 
-    // Null except for photo posts.
     public PlantPhoto getPhoto() {
         return photo;
     }

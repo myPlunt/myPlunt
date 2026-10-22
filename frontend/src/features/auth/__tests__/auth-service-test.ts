@@ -17,7 +17,6 @@ afterEach(() => {
   jest.resetAllMocks();
 });
 
-// What the signed-in account has saved for offline, e.g. its garden.
 async function saveForOffline() {
   await cachedFetch('garden', async () => ({ rooms: [] }));
   expect(await AsyncStorage.getAllKeys()).not.toEqual([]);

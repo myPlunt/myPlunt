@@ -10,10 +10,6 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.Instant;
 
-// The admin refresh token lives only in this cookie. HttpOnly: the dashboard's JavaScript can't
-// read it, so an XSS can't steal it. SameSite=Strict: other sites can't make the browser send it
-// (no CSRF on refresh/logout). Path: it's only sent to the admin auth endpoints.
-// Secure is off only in dev, where the dashboard runs on plain http://localhost.
 @Component
 public class AdminRefreshCookie {
 

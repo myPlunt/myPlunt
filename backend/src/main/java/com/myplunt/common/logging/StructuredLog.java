@@ -6,9 +6,7 @@ import org.slf4j.spi.LoggingEventBuilder;
 import java.util.Locale;
 import java.util.Map;
 
-// Writes warnings, errors and bugs as structured lines: a "type" and an "event" plus their own
-// fields, which LogLineFormatter turns into one JSON object. Fields are ids, numbers and reasons;
-// never personal data. Actions go through AuditLog instead.
+// Fields are ids, numbers and reasons, never personal data. User actions go through AuditLog.
 public final class StructuredLog {
 
     private StructuredLog() {}

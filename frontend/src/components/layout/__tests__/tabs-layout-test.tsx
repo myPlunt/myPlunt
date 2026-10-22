@@ -9,7 +9,6 @@ import { useOnboardingStore } from '@/stores/onboarding-store';
 
 jest.mock('expo-network', () => ({ getNetworkStateAsync: jest.fn() }));
 jest.mock('expo-router', () => ({ Redirect: () => null, useRouter: jest.fn() }));
-// The navigator itself isn't under test, so it renders nothing.
 jest.mock('expo-router/js-tabs', () => {
   function Tabs() {
     return null;

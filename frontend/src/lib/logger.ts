@@ -4,9 +4,8 @@ import { AppState, Platform } from 'react-native';
 
 import { ApiError, apiFetch } from '@/lib/auth/api-client';
 
-// What the user tried to do and what they saw, stored by the backend in its logs table. Event names
-// describe intent or UI state ("_submitted", "_failed_ui"), never an outcome: only the backend
-// knows whether a change was saved, and logs it under its own names.
+// Event names describe intent or UI state ("_submitted", "_failed_ui"), never an outcome: only the
+// backend knows whether a change was saved.
 export type FrontendEvent =
   // actions
   | 'screen_viewed'
@@ -100,7 +99,6 @@ type LogType = 'error' | 'warning' | 'action' | 'bug' | 'info';
 export type LogContext = Record<string, string | number | boolean | null | undefined>;
 
 interface LogOptions {
-  /** The X-Request-ID of the request this line is about, so it can be matched with the backend's. */
   requestId?: string;
   context?: LogContext;
 }
@@ -153,10 +151,6 @@ export function logBug(event: FrontendEvent, options: LogOptions = {}) {
   enqueue('bug', event, options);
 }
 
-/**
- * What the user saw when a submitted action failed: the status and, for validation errors,
- * which fields were wrong. The request id comes from the ApiError.
- */
 export function logFailedUi(event: FrontendEvent, error: unknown, context: LogContext = {}) {
   const apiError = error instanceof ApiError ? error : undefined;
   logWarning(event, {
@@ -169,12 +163,11 @@ export function logFailedUi(event: FrontendEvent, error: unknown, context: LogCo
   });
 }
 
-/** The route every following line is logged under. */
 export function setCurrentRoute(route: string) {
   currentRoute = route;
 }
 
-/** Sends everything logged so far; resolves once that's done or has failed. Never rejects. */
+/** Resolves once sent or failed; never rejects. */
 export function flushLogs(): Promise<void> {
   if (flushTimer) {
     clearTimeout(flushTimer);
@@ -185,10 +178,7 @@ export function flushLogs(): Promise<void> {
   return sending;
 }
 
-/**
- * Reports errors no code caught, and sends what's queued when the app goes to the
- * background (the user may close it from there). Call once, at startup.
- */
+/** Call once, at startup. Also sends what's queued when the app goes to the background, where it may be closed. */
 export function startLogging() {
   // React Native sets ErrorUtils up on Android and iOS; the web build has no such global.
   if (typeof ErrorUtils !== 'undefined') {
@@ -261,9 +251,7 @@ async function sendQueued() {
   }
 }
 
-// In a dev build warnings, errors and bugs also show up in the Metro terminal and as a LogBox
-// notice: console.warn, because console.error would raise LogBox's red banner for every
-// failed request.
+// Dev builds only. console.warn, because console.error would raise LogBox's red banner for every failed request.
 function printInDev(event: FrontendEvent, { context }: LogOptions, error?: unknown) {
   if (__DEV__) {
     console.warn(`[myPlunt] ${event}`, context ?? '', error ?? '');

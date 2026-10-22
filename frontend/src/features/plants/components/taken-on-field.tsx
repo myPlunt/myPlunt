@@ -12,7 +12,6 @@ interface TakenOnFieldProps {
   onChange: (takenAt: string) => void;
 }
 
-/** "Taken on 20 Aug 2026 ✎ Change" on a ruled line; Change opens a calendar to fix the date. */
 export function TakenOnField({ takenAt, onChange }: TakenOnFieldProps) {
   const theme = useTheme();
   const [isPicking, setIsPicking] = useState(false);
@@ -36,7 +35,6 @@ export function TakenOnField({ takenAt, onChange }: TakenOnFieldProps) {
         <Text className="type-body-medium text-text-secondary" numberOfLines={1}>
           {`Taken on ${label}`}
         </Text>
-        {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
         <SymbolView name={{ ios: 'pencil', android: 'edit', web: 'edit' }} tintColor={theme.actionPrimary} size={14} />
         <Text className="type-button-medium text-action-primary">Change</Text>
       </Pressable>

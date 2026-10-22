@@ -11,22 +11,15 @@ import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logFailedUi } from '@/lib/logger';
 import type { Planter } from '@/lib/planter/types';
 
-// Without a planter the plant goes in the garden's group without a room.
 const NO_PLANTER_LABEL = 'Other plants';
 
 interface PlanterSelectProps {
   planters: Planter[];
   selectedId: string | null;
   onSelect: (planterId: string | null) => void;
-  /** Called with a planter the user just created here; it's already saved. */
   onAdded: (planter: Planter) => void;
 }
 
-/**
- * A dropdown on one ruled line: shows the chosen planter and opens a list of the user's
- * planters, "Other plants" (no planter) and a way to add a new one. Our own modal
- * instead of a native picker, so it looks the same on both platforms.
- */
 export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: PlanterSelectProps) {
   const theme = useTheme();
   const { createPlanter } = usePlanterActions();
@@ -73,12 +66,10 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
         accessibilityValue={{ text: selected?.name ?? NO_PLANTER_LABEL }}
         onPress={() => setIsOpen(true)}
         className="flex-row items-center justify-between rounded-[10px] border-[1.5px] border-input-border bg-background-element px-4 active:opacity-70"
-        // Height comes from the ruled grid, so it can't be a static class.
         style={{ height: boxHeight(1) }}>
         <Text className={`type-body-large ${selected ? 'text-text' : 'text-text-secondary'}`} numberOfLines={1}>
           {selected?.name ?? NO_PLANTER_LABEL}
         </Text>
-        {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
         <SymbolView
           name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }}
           tintColor={theme.textSecondary}
@@ -94,7 +85,6 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
             onPress={close}
             className="absolute inset-0 bg-text opacity-40"
           />
-          {/* Shadow tokens set both iOS shadow* and Android elevation. */}
           <View
             className="max-h-[70%] w-full max-w-[360px] gap-2 rounded-2xl bg-background-element p-4"
             style={Shadow.card}>
@@ -114,7 +104,6 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
                     {option.name}
                   </Text>
                   {option.id === selectedId && (
-                    // tintColor is a colour prop, so it reads the theme instead of a class.
                     <SymbolView
                       name={{ ios: 'checkmark', android: 'check', web: 'check' }}
                       tintColor={theme.primary}
@@ -133,7 +122,6 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
                   value={newName}
                   onChangeText={setNewName}
                   placeholder="e.g. Kitchen windowsill"
-                  // A colour prop, not a style, so it can't take a class.
                   placeholderTextColor={theme.placeholder}
                   autoFocus
                   autoCapitalize="words"
@@ -169,7 +157,6 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
                 accessibilityLabel="Add a planter"
                 onPress={() => setIsAdding(true)}
                 className="flex-row items-center gap-3 py-2 active:opacity-70">
-                {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
                 <SymbolView
                   name={{ ios: 'plus.circle.fill', android: 'add_circle', web: 'add_circle' }}
                   tintColor={theme.primary}

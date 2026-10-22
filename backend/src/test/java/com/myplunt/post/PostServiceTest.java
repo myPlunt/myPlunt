@@ -115,7 +115,6 @@ class PostServiceTest {
                 new PostResponse(myPost.getId(), Post.NEW_PLANT, self, vera.getId(), "Vera", null, null, 0, 0, false, myPost.getCreatedAt()));
     }
 
-    // Seen from the viewer's side, so the author is labelled a friend rather than the viewer themselves.
     @Test
     void getUserPosts_mapsTheAuthorsPostsAsTheViewerSeesThem() {
         User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
@@ -244,7 +243,6 @@ class PostServiceTest {
         verify(pushNotificationService).sendCommentReply(me.getId(), notice, "Too much sun", List.of(earlierCommenter));
     }
 
-    // Not a friend's post (or no post at all): 404, and nothing is saved.
     @Test
     void addComment_throwsNotFoundForAPostTheUserCantSeeAndSavesNothing() {
         UUID userId = UUID.randomUUID();

@@ -21,11 +21,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-// The Overview's server health. Uptime Kuma (its public status page API, so no API key) says
-// whether the backend and database answer; Glances (its REST API, run with -w) gives the host's
-// CPU, memory and disk. Both are on the same Coolify Docker network as the backend. Alerts are
-// worked out on every call, nothing is stored. Like the rest of the admin app nothing here is
-// logged: a source that doesn't answer becomes an alert instead.
+// Kuma's public status-page API (no key needed) and Glances' REST API (run with -w), both on the
+// Coolify network. A source that doesn't answer becomes an alert.
 // ponytail: no caching, every dashboard poll asks Kuma and Glances again; add a short cache if
 // many admins keep the Overview open.
 @Service
@@ -103,8 +100,6 @@ public class AdminServerService {
         return new ServerMetricsResponse(monitors, host, alerts);
     }
 
-    // Every monitor on the status page, in its order. A monitor whose last check failed raises a
-    // critical alert, dated from the first failure in a row.
     private List<Monitor> monitors(List<Alert> alerts) {
         JsonNode page = get(kumaUrl + "/api/status-page/{slug}", kumaStatusPage);
         JsonNode heartbeats = get(kumaUrl + "/api/status-page/heartbeat/{slug}", kumaStatusPage);

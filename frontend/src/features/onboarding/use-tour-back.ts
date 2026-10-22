@@ -2,11 +2,7 @@ import { useRouter } from 'expo-router';
 
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
-/**
- * Back to the tour's previous step, reopening its screen; null on the welcome page, which has
- * nothing before it. Every step's screen is reached from the tabs, so this closes whatever is
- * open on top of them and opens the step's screen from there.
- */
+/** Back to the tour's previous step and its screen; null on the welcome page. */
 export function useTourBack() {
   const router = useRouter();
   const { previous, plantId, back } = useOnboardingStore();
@@ -21,7 +17,6 @@ export function useTourBack() {
         return;
       case 'bio':
       case 'friends':
-        // The friends step starts on the profile, with the menu open on the friends icon.
         router.navigate('/profile');
         return;
       case 'avatar':

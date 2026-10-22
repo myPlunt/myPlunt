@@ -15,7 +15,6 @@ class WateringConsistencyTest {
 
     private static final ZoneId AMSTERDAM = ZoneId.of("Europe/Amsterdam");
 
-    // A local time in Amsterdam in October 2026.
     private static Instant october(int day, int hour) {
         return LocalDateTime.of(2026, 10, day, hour, 0).atZone(AMSTERDAM).toInstant();
     }

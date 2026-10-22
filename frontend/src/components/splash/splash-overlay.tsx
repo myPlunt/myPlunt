@@ -7,8 +7,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 const DURATION = 600;
 
-// Background must match the expo-splash-screen backgroundColor in app.config.js
-// (sandDune = bg-background), so the hand-off from the native splash is seamless.
+// Must match the native splash's backgroundColor in app.config.js, for a seamless hand-off.
 const OVERLAY_CLASSES = 'absolute inset-0 z-[1000] items-center justify-center bg-background';
 
 export function SplashOverlay() {

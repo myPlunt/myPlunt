@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
-// The tour's numbered steps in order. Each screen shows its card while `step` is its own.
 export const ONBOARDING_STEPS = ['bio', 'avatar', 'location', 'notifications', 'friends', 'plant', 'photo', 'water', 'pluntdex'] as const;
 
 export type TourStep = (typeof ONBOARDING_STEPS)[number];
@@ -11,16 +10,10 @@ export type OnboardingStep = 'welcome' | TourStep | 'done';
 interface OnboardingStore {
   /** The step being shown, or null when no tour is running. */
   step: OnboardingStep | null;
-  /** The step the user came from, which Back returns to; null on the welcome page. */
   previous: OnboardingStep | null;
-  /** The plant added in the first-plant step, whose page the photo step is on. */
   plantId: string | null;
   /** Starts the tour on the welcome page; a tour that's already running carries on. */
   start: () => void;
-  /**
-   * Moves to the next step; after the last one comes the "You're all set" page, then the tour
-   * ends. The first-plant step passes the plant it added.
-   */
   next: (plantId?: string) => void;
   /** Moves past `step` and the steps before it, e.g. the steps that need a plant when none was added. */
   skipPast: (step: TourStep) => void;
@@ -31,7 +24,6 @@ interface OnboardingStore {
 
 interface TourState {
   step: OnboardingStep | null;
-  /** The steps the user went through, oldest first; Back pops the last. */
   history: OnboardingStep[];
   plantId: string | null;
 }
@@ -44,7 +36,6 @@ function after(step: OnboardingStep): OnboardingStep | null {
   return ONBOARDING_STEPS[ONBOARDING_STEPS.indexOf(step) + 1] ?? 'done';
 }
 
-// Moving on remembers where the user was, so Back can return there.
 function moveTo(state: TourState, to: OnboardingStep | null): TourState {
   if (state.step === null) return state;
   if (to === null) return NO_TOUR;

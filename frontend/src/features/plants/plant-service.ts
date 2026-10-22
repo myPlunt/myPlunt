@@ -19,7 +19,6 @@ export async function createPlant(request: CreatePlantRequest): Promise<Plant> {
   return apiFetch<Plant>('/v1/plants', { method: 'POST', body: request, requestId });
 }
 
-/** One of the user's plants, or with ownerId a friend's (the backend turns away anyone else). */
 export async function getPlant(plantId: string, ownerId?: string): Promise<PlantDetails> {
   return apiFetch<PlantDetails>(ownerId ? `/v1/users/${ownerId}/plants/${plantId}` : `/v1/plants/${plantId}`);
 }
@@ -40,7 +39,6 @@ export async function getWateringHistory(plantId: string): Promise<WateringHisto
   return apiFetch<WateringHistory>(`/v1/plants/${plantId}/waterings${timeZoneQuery()}`);
 }
 
-/** The plant's growth photos, oldest first. */
 export async function getPlantPhotos(plantId: string, ownerId?: string): Promise<PlantPhoto[]> {
   const path = ownerId ? `/v1/users/${ownerId}/plants/${plantId}` : `/v1/plants/${plantId}`;
   return apiFetch<PlantPhoto[]>(`${path}/photos`);

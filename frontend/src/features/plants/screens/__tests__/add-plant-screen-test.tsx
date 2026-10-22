@@ -53,7 +53,6 @@ const vera = {
   photoUrl: null,
 };
 
-/** Fills in a plant named Vera of the Monstera species and saves it. */
 async function addVeraAsMonstera() {
   await user.type(screen.getByLabelText('Name'), 'Vera');
   await user.type(screen.getByLabelText('Species'), 'mon');

@@ -28,7 +28,6 @@ public class PlantPhoto {
     @Column(name = "uploaded_by")
     private UUID uploadedBy;
 
-    // Storage key, not a URL: StorageService.createReadUrl turns it into a short-lived link.
     @Column(name = "photo_key", nullable = false)
     private String photoKey;
 

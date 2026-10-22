@@ -20,8 +20,8 @@ public class SpeciesService {
         this.storageService = storageService;
     }
 
-    // Every approved species, by common name. The list is small for now, so the app
-    // searches it locally; the Pluntdex will need server-side search and paging.
+    // shortcut: returns every species and the app searches locally; add server-side search and paging
+    // when the list grows.
     @Transactional(readOnly = true)
     public List<SpeciesResponse> getApprovedSpecies() {
         return speciesRepository.findByApprovedTrueOrderByCommonNameAsc().stream()
@@ -38,7 +38,6 @@ public class SpeciesService {
                 .toList();
     }
 
-    // The species the user has ever owned a plant of, including plants since deleted, and when.
     @Transactional(readOnly = true)
     public List<DiscoveredSpeciesResponse> getDiscoveredSpecies(UUID userId) {
         return speciesRepository.findDiscoveredSpecies(userId).stream()

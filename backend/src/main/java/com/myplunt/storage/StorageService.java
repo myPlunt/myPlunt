@@ -84,7 +84,6 @@ public class StorageService {
 
     public void confirmUpload(UUID userId, String key) {
         if (!belongsToUser(key, userId)) {
-            // Don't distinguish "not yours" from "doesn't exist" - same as a missing key.
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Upload not found for key: " + key);
         }
 
@@ -112,15 +111,13 @@ public class StorageService {
         return segments.length >= 2 && segments[segments.length - 2].equals(userId.toString());
     }
 
-    // Whether the key was made for this category by createUploadUrl, so e.g. a plant photo's
-    // key can't become a profile picture (and get deleted along with it later).
+    // Stops e.g. a plant photo's key becoming a profile picture (and being deleted with it later).
     public boolean isCategory(String key, PhotoCategory category) {
         String[] segments = key.split("/");
         return segments.length >= 3 && segments[segments.length - 3].equals(categorySegment(category));
     }
 
-    // Caller (post/profile service) is responsible for checking visibility/ownership
-    // before calling this - this just mints a URL for whatever key it's given.
+    // Mints a link for any key: callers check visibility first.
     public String createReadUrl(String key) {
         GetObjectRequest getRequest = GetObjectRequest.builder().bucket(bucket).key(key).build();
 
@@ -141,6 +138,6 @@ public class StorageService {
     }
 
     private static String categorySegment(PhotoCategory category) {
-        return category.name().toLowerCase() + "s"; // avatar -> avatars, post -> posts
+        return category.name().toLowerCase() + "s";
     }
 }

@@ -7,9 +7,7 @@ import jakarta.persistence.Table;
 
 import java.util.UUID;
 
-// One row per user, but only once they've saved a setting: accounts without one get the
-// defaults (everything on). Only the notification switches are mapped; post_visibility and
-// achievement_notifications aren't used yet and keep their database defaults.
+// A row exists only once the user saves a setting; until then they get the defaults (all on).
 @Entity
 @Table(name = "user_settings")
 public class UserSettings {
@@ -23,18 +21,15 @@ public class UserSettings {
     @Column(name = "weather_alerts", nullable = false)
     private boolean weatherAlerts = true;
 
-    // Stories about friends' plants in the feed.
     @Column(name = "friend_post_notifications", nullable = false)
     private boolean friendPostNotifications = true;
 
     @Column(name = "friend_nudges", nullable = false)
     private boolean friendNudges = true;
 
-    // Friends liking or commenting on the user's posts, and replies where the user commented.
     @Column(name = "post_interactions", nullable = false)
     private boolean postInteractions = true;
 
-    // A friend handing over, or taking back, care of plants (care_delegation).
     @Column(name = "delegation_requests", nullable = false)
     private boolean delegationRequests = true;
 

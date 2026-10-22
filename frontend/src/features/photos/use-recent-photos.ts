@@ -3,13 +3,11 @@ import { useEffect, useState } from 'react';
 
 import { logError } from '@/lib/logger';
 
-/** A photo from the user's own library, ready to show and to upload. */
 export interface LibraryPhoto {
   id: string;
   uri: string;
   width: number;
   height: number;
-  /** When the photo was taken (ISO); null when the library doesn't know. */
   takenAt: string | null;
 }
 
@@ -20,10 +18,6 @@ export type RecentPhotos =
   // Refused, or not available (e.g. Expo Go on Android has no full library access).
   | { status: 'unavailable' };
 
-/**
- * The newest photos in the user's library, loaded while `enabled` (the photo menu is
- * open). Asks for library access the first time; the system remembers the answer.
- */
 export function useRecentPhotos(enabled: boolean, count: number): RecentPhotos {
   const [state, setState] = useState<RecentPhotos>({ status: 'loading' });
 

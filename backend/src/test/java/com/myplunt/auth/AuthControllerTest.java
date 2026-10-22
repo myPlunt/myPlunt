@@ -60,8 +60,6 @@ class AuthControllerTest {
                 .expectStatus().isBadRequest();
     }
 
-    // Logs end up in the error log file (and later a database), so a rejected
-    // password must never be written to them.
     @Test
     void register_propagatesConflictFromService() {
         when(authService.register(any()))

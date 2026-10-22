@@ -86,7 +86,6 @@ class PlantServiceTest {
                 auditLog);
     }
 
-    // Gives the saved plant an id, as the database would.
     private void saveAssignsId() {
         when(plantRepository.save(any())).thenAnswer(invocation -> {
             Plant plant = invocation.getArgument(0);
@@ -107,7 +106,6 @@ class PlantServiceTest {
         verify(plantRepository).save(saved.capture());
         assertThat(saved.getValue().getOwnerId()).isEqualTo(userId);
         assertThat(saved.getValue().isAlive()).isTrue();
-        // Not shared, so nothing reaches the feed.
         verify(postRepository, never()).save(any());
     }
 
@@ -186,7 +184,6 @@ class PlantServiceTest {
         verify(plantPhotoRepository, never()).save(any());
     }
 
-    // A saved plant of the user's, as findByIdAndOwnerId returns it.
     private Plant ownPlant(String name) {
         Plant plant = new Plant(userId, name);
         ReflectionTestUtils.setField(plant, "id", plantId);
@@ -410,7 +407,6 @@ class PlantServiceTest {
         ownPlant("Vera");
         String key = "plants/" + userId + "/growth.jpg";
         Instant takenAt = Instant.parse("2026-08-20T10:00:00Z");
-        // Gives the saved photo an id, as the database would.
         when(plantPhotoRepository.save(any())).thenAnswer(invocation -> {
             PlantPhoto photo = invocation.getArgument(0);
             ReflectionTestUtils.setField(photo, "id", UUID.randomUUID());
@@ -448,7 +444,6 @@ class PlantServiceTest {
         verify(postRepository, never()).save(any());
     }
 
-    // A saved growth photo of the user's plant, as findByIdAndPlantId returns it.
     private PlantPhoto ownPhoto(Plant plant, UUID photoId, String key) {
         PlantPhoto photo = new PlantPhoto(plant, userId, key, Instant.parse("2026-06-14T12:00:00Z"));
         ReflectionTestUtils.setField(photo, "id", photoId);

@@ -63,18 +63,13 @@ public class StorageConfig {
                 .build();
     }
 
-    // StorageService tags every presigned upload "pending=true" and strips it on confirm, so
-    // this rule sweeps up objects whose uploader never confirmed (abandoned/forgotten uploads).
-    // Dev-only, same as the rest of this runner: staging/prod buckets are provisioned externally,
-    // and PutLifecycleConfiguration is a bucket-admin permission the app has no other need for.
+    // Expires uploads that were never confirmed (StorageService tags them pending=true). Dev only:
+    // staging and prod buckets are provisioned externally.
     private static final int PENDING_UPLOAD_EXPIRATION_DAYS = 1;
 
-    // Seed storage key (without the prefix) -> image URL, for the keys the db/seed SQL points at.
-    // Downloaded instead of committed, so the repo has no image files.
     private static final String SEED_IMAGES = "db/seed/seed-images.csv";
 
-    // A 1x1 transparent PNG, stored when a download fails (e.g. offline) so the key still exists.
-    // The app then shows its own placeholder icon through it.
+    // A 1x1 transparent PNG, stored when a download fails so the key still exists.
     private static final byte[] PLACEHOLDER_IMAGE = Base64.getDecoder().decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=");
 
@@ -93,7 +88,6 @@ public class StorageConfig {
             try {
                 s3Client.createBucket(r -> r.bucket(bucket));
             } catch (BucketAlreadyOwnedByYouException ignored) {
-                // already set up from a previous run
             }
 
             s3Client.putBucketLifecycleConfiguration(r -> r
@@ -104,13 +98,11 @@ public class StorageConfig {
                             .filter(f -> f.tag(t -> t.key("pending").value("true")))
                             .expiration(e -> e.days(PENDING_UPLOAD_EXPIRATION_DAYS)))));
 
-            // After the bucket exists, so this one runner covers dev, while staging gets its own below.
             startSeedImageUpload(s3Client, bucket, prefix);
         };
     }
 
-    // Staging loads the db/seed data too, so its bucket needs the photos as well. Its bucket is
-    // provisioned externally, so unlike dev this only uploads the photos.
+    // Staging's bucket is provisioned externally, so it only gets the seed photos.
     @Bean
     @Profile("staging & !dev")
     public ApplicationRunner uploadStagingSeedImages(
@@ -139,7 +131,7 @@ public class StorageConfig {
                     continue;
                 }
                 String[] keyAndUrl = line.split(",", 2);
-                // Same prefixing as StorageService.buildKey, and as V9 does with the storagePrefix placeholder.
+                // Same prefixing as StorageService.buildKey and the seed SQL's storagePrefix.
                 String key = prefix.isBlank() ? keyAndUrl[0] : prefix + "/" + keyAndUrl[0];
                 if (hasRealImage(s3Client, bucket, key)) {
                     continue;
@@ -188,7 +180,6 @@ public class StorageConfig {
                 break;
             }
         }
-        // A fallback, so a warning: the garden shows a blank photo until the next start retries it.
         StructuredLog.warning(log, LogEvent.SEED_IMAGE_PLACEHOLDER_USED, Map.of("url", url));
         return new Image(PLACEHOLDER_IMAGE, "image/png");
     }

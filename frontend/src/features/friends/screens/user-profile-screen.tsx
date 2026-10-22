@@ -35,10 +35,6 @@ import { useAuthStore } from '@/stores/auth-store';
 
 type Friendship = UserSummary['friendship'];
 
-/**
- * Another user's profile, opened from the Friends screen: who they are and where the two of you
- * stand. A friend's also shows their stats, garden and PluntDex.
- */
 export function UserProfileScreen({ userId }: { userId: string }) {
   const theme = useTheme();
   const { user, error, isLoading, retry } = useUserProfile(userId);
@@ -57,7 +53,6 @@ export function UserProfileScreen({ userId }: { userId: string }) {
         ) : (
           <ScrollView contentContainerClassName="w-full max-w-content grow gap-6 self-center p-6">
             {isLoading ? (
-              // A colour prop, so it reads the theme instead of a class.
               <ActivityIndicator accessibilityLabel="Loading profile" color={theme.primary} className="mt-6" />
             ) : error ? (
               <View className="items-center gap-3">
@@ -102,12 +97,10 @@ function ProfileHeader({
   );
 }
 
-// In place of the stats and tabs: the backend only sends a garden to friends.
 function FriendsOnly() {
   const theme = useTheme();
   return (
     <View className="items-center gap-2 rounded-3xl border-[1.5px] border-dashed border-input-border p-8">
-      {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
       <SymbolView name={{ ios: 'lock', android: 'lock', web: 'lock' }} tintColor={theme.accentMuted} size={32} />
       <Text className="type-subtitle-large text-center text-text">Only friends can see this garden</Text>
       <Text className="type-body-medium text-center text-text-secondary">
@@ -125,8 +118,7 @@ const LOADING_LABELS: Record<FriendTab, string> = {
   posts: 'Loading posts',
 };
 
-// One list for the whole screen (header, stats, tabs, then rooms, rows of two species or rows of
-// three posts), so the cards are virtualised and nothing nests a list in a ScrollView.
+// One list for the whole screen, so the cards are virtualised and no list nests in a ScrollView.
 type Row = { key: string; room: Room } | { key: string; species: Species[] } | { key: string; posts: Post[] };
 
 function FriendContent({ user, header }: { user: UserSummary; header: ReactNode }) {
@@ -141,19 +133,16 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
   const [tab, setTab] = useState<FriendTab>('garden');
   const [filter, setFilter] = useState<PostFilterValue>('all');
 
-  // Taken per render, so "today" moves on if the screen stays open past midnight.
   const now = new Date();
   const stats =
     garden.garden && discovered.discovered && species.species
       ? profileStats(garden.garden, discovered.discovered, species.species)
       : null;
   const discoveredIds = new Set(discovered.discovered?.map((d) => d.speciesId));
-  // Numbered by place in the full list, like the PluntDex tab.
   const numbers = new Map(species.species?.map((s, i) => [s.id, String(i + 1).padStart(3, '0')]));
 
   const error =
     tab === 'garden' ? garden.error : tab === 'posts' ? posts.error : (species.error ?? discovered.error);
-  // Loads again whichever failed.
   function retry() {
     if (tab === 'garden') {
       garden.retry();
@@ -172,7 +161,6 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
     for (const room of garden.garden.rooms) rows.push({ key: room.id ?? 'other', room });
   }
   if (!error && tab === 'pluntdex' && species.species && discovered.discovered) {
-    // Only what they've found: the rest of the list isn't theirs to show.
     const found = species.species.filter((s) => discoveredIds.has(s.id));
     for (let i = 0; i < found.length; i += 2) rows.push({ key: found[i].id, species: found.slice(i, i + 2) });
   }
@@ -221,7 +209,6 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
             <Button label="Try again" variant="secondary" onPress={retry} />
           </View>
         ) : isLoading ? (
-          // A colour prop, so it reads the theme instead of a class.
           <ActivityIndicator accessibilityLabel={LOADING_LABELS[tab]} color={theme.primary} />
         ) : rows.length === 0 ? (
           <Text className="type-body-medium text-center text-text-secondary">{emptyText}</Text>
@@ -231,7 +218,6 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
         'room' in row ? (
           <RoomSection room={row.room} now={now} ownerId={user.id} />
         ) : 'posts' in row ? (
-          // Three to a row like on your own profile; each cell is a third wide, padded instead of gapped.
           <View className="-mx-1.5 flex-row">
             {row.posts.map((post) => (
               <View key={post.id} className="w-1/3 px-1.5">
@@ -257,8 +243,6 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
   );
 }
 
-// Add friend for strangers, Cancel request for someone you asked, Accept / Decline for someone who
-// asked you, and Friends (tap to remove) for a friend.
 function FriendshipAction({
   user,
   friendship,
@@ -272,7 +256,6 @@ function FriendshipAction({
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sends or takes back the request; cancelling deletes it, so they're back to someone you can add.
   async function send(cancel: boolean) {
     setIsSending(true);
     setError(null);
@@ -281,7 +264,6 @@ function FriendshipAction({
       setChanged(cancel ? null : 'request_sent');
     } catch (err) {
       logFailedUi('friend_request_failed_ui', err);
-      // apiFetch already tried a refresh; a 401 here means the session is gone.
       if (err instanceof ApiError && err.status === 401) {
         setUnauthenticated();
         return;
@@ -294,7 +276,6 @@ function FriendshipAction({
 
   switch (friendship) {
     case 'friends':
-      // Removing deletes the friendship, so they're back to someone you can add.
       return <RemoveFriend user={user} onRemoved={() => setChanged(null)} />;
     case 'request_sent':
       return (
@@ -311,7 +292,6 @@ function FriendshipAction({
           </Text>
           <FriendRequestActions
             userId={user.id}
-            // Declining deletes the request, so they're back to someone you can add.
             onAnswered={(answer) => setChanged(answer === 'accepted' ? 'friends' : null)}
           />
         </View>
@@ -326,7 +306,6 @@ function FriendshipAction({
   }
 }
 
-// The Friends button: tapping it asks before ending the friendship.
 function RemoveFriend({ user, onRemoved }: { user: UserSummary; onRemoved: () => void }) {
   const { setUnauthenticated } = useAuthStore();
   const [isConfirming, setIsConfirming] = useState(false);
@@ -338,12 +317,10 @@ function RemoveFriend({ user, onRemoved }: { user: UserSummary; onRemoved: () =>
     setError(null);
     try {
       await removeFriend(user.id);
-      // Swaps this button (and its popup) for Add friend.
       onRemoved();
     } catch (err) {
       setIsRemoving(false);
       logFailedUi('friend_remove_failed_ui', err);
-      // apiFetch already tried a refresh; a 401 here means the session is gone.
       if (err instanceof ApiError && err.status === 401) {
         setUnauthenticated();
         return;

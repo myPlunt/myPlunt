@@ -10,9 +10,7 @@ export class ApiError extends Error {
   status: number;
   /** The backend's ProblemDetail "detail" — a message already written to be user-safe. */
   detail?: string;
-  /** Per-field bean-validation messages, keyed by field name, when the backend sent any. */
   fieldErrors?: Record<string, string>;
-  /** The X-Request-ID the request went out with, so a log line about the failure can name it. */
   requestId?: string;
 
   constructor(
@@ -28,8 +26,7 @@ export class ApiError extends Error {
   }
 }
 
-// Prefers the backend's own message; statusMessages is only a fallback for
-// statuses where the backend doesn't send a useful detail (e.g. 500).
+// statusMessages is only a fallback for statuses where the backend sends no useful detail (e.g. 500).
 export function describeError(error: unknown, statusMessages: Record<number, string> = {}): string {
   if (error instanceof ApiError) {
     if (error.detail) return error.detail;
@@ -46,13 +43,10 @@ interface ProblemDetailBody {
 // status 0 marks "no response at all": the backend is down, or the device is offline.
 const NETWORK_ERROR_DETAIL = "Can't reach myPlunt right now. Check your connection and try again.";
 
-// Slower than this, the user is left waiting long enough to notice.
 const SLOW_RESPONSE_MS = 3000;
 
-// A GET with no response by then counts as having none (status 0), so on a weak connection a
-// screen shows its offline copy instead of waiting: React Native's fetch has no time limit of
-// its own on Android. Writes wait as long as it takes, as the backend may still save a slow
-// one and trying it again could save it twice.
+// A GET with no answer by then counts as offline (status 0): React Native's fetch has no time limit
+// on Android. Writes wait as long as it takes, since retrying a slow one could save it twice.
 const GET_TIMEOUT_MS = 10_000;
 
 interface SendOptions {
@@ -60,12 +54,10 @@ interface SendOptions {
   body?: unknown;
   accessToken?: string;
   requestId: string;
-  /** Don't log anything about this request (for the logger's own reports). */
   silent: boolean;
 }
 
-// What a log line says about a request. The query string is left out: a search query can be
-// a person's name.
+// The query string is left out: a search query can be a person's name.
 function requestContext(method: string, path: string) {
   return { method, path: path.split('?')[0] };
 }
@@ -106,8 +98,7 @@ async function parseJsonOrThrow<T>(response: Response, { method, requestId, sile
       if (response.status >= 500) {
         logError('api_request_failed', undefined, { requestId, context });
       } else {
-        // Turned away (validation, not found, conflict): which fields, but not the backend's
-        // detail, which can name another user. The backend logs its own reason.
+        // Only which fields: the backend's detail can name another user, and the backend logs its own reason.
         const fields = body?.errors ? Object.keys(body.errors).join(',') : undefined;
         logWarning('api_request_rejected', { requestId, context: { ...context, fields } });
       }
@@ -125,7 +116,6 @@ async function parseJsonOrThrow<T>(response: Response, { method, requestId, sile
 }
 
 interface PublicFetchOptions {
-  /** Set when the caller already logged the request under this id (e.g. "login_submitted"). */
   requestId?: string;
 }
 
@@ -140,8 +130,7 @@ export async function publicFetch<T>(path: string, body?: unknown, options: Publ
   return parseJsonOrThrow<T>(await send(path, sendOptions), sendOptions, path);
 }
 
-// Multiple requests can 401 at once, so share one
-// in-flight refresh instead of hitting /auth/refresh once per request.
+// Requests that 401 at the same time share one refresh.
 let refreshPromise: Promise<TokenPair> | null = null;
 
 async function refreshTokens(refreshToken: string): Promise<TokenPair> {

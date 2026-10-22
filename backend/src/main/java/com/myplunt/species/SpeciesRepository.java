@@ -16,14 +16,10 @@ public interface SpeciesRepository extends JpaRepository<Species, UUID> {
 
     Optional<Species> findByIdAndApprovedFalse(UUID id);
 
-    // Oldest submission first, so admins review them in the order they came in. The submitter is
-    // fetched in the same query because every row shows their username.
     @Query("select s from Species s left join fetch s.submittedBy where s.approved = false order by s.updatedAt asc")
     List<Species> findPendingWithSubmitter();
 
-    // discovered_species (V7, renamed in V8) is plain SQL: it's a list of ids and dates with no
-    // entity of its own.
-    // Discovering a species twice is a no-op, so callers don't check first.
+    // Native SQL: discovered_species has no entity. Discovering a species twice is a no-op.
     @Modifying
     @Query(value = "insert into discovered_species (user_id, species_id) values (:userId, :speciesId) on conflict do nothing",
             nativeQuery = true)

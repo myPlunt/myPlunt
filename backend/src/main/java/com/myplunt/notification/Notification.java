@@ -10,7 +10,6 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-// One notification the user was sent, as shown in their notifications list.
 @Entity
 @Table(name = "notifications")
 public class Notification {
@@ -21,7 +20,6 @@ public class Notification {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    // Null for notifications from the app itself, like watering reminders.
     @Column(name = "from_user_id")
     private UUID fromUserId;
 

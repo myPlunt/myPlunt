@@ -12,17 +12,12 @@ import type { Post } from '@/lib/post/types';
 
 interface EditPostDialogProps {
   post: Post;
-  /** Which of the post menu's icons opened it: the pencil or the bin. */
   mode: 'edit' | 'delete';
   onClose: () => void;
   onSaved: (post: Post) => void;
   onDeleted: () => void;
 }
 
-/**
- * Edits the words of the user's own post (a question's text, a new photo's comment), or asks
- * before deleting it. A new plant post has no words of its own, so it's only ever deleted.
- */
 export function EditPostDialog({ post, mode, onClose, onSaved, onDeleted }: EditPostDialogProps) {
   const { updatePost, deletePost } = useFeedActions();
   const [body, setBody] = useState(post.body ?? '');
@@ -38,7 +33,6 @@ export function EditPostDialog({ post, mode, onClose, onSaved, onDeleted }: Edit
     if (!isBusy) onClose();
   }
 
-  // An expired session already signed the user out (useFeedActions), so there's nothing to show.
   function showError(err: unknown) {
     if (err instanceof ApiError && err.status === 401) return;
     const fieldError = err instanceof ApiError ? err.fieldErrors?.body : undefined;
@@ -54,7 +48,6 @@ export function EditPostDialog({ post, mode, onClose, onSaved, onDeleted }: Edit
     setError(null);
     setIsBusy(true);
     try {
-      // An empty comment removes it; a question can't get here empty (canSave).
       onSaved(await updatePost(post.id, { body: trimmed === '' ? null : trimmed }));
     } catch (err) {
       logFailedUi('post_update_failed_ui', err, { post_id: post.id });
@@ -81,12 +74,9 @@ export function EditPostDialog({ post, mode, onClose, onSaved, onDeleted }: Edit
     : "It's removed from your friends' feeds, the plant and its photos stay in your garden. This can't be undone.";
 
   return (
-    // onRequestClose is Android's back button.
     <Modal visible transparent animationType="fade" onRequestClose={close}>
       <KeyboardAvoidingView
         className="flex-1"
-        // iOS needs padding to lift the dialog above the keyboard; Android resizes the
-        // window itself, so shrinking the height is enough there.
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View className="flex-1 items-center justify-center px-6">
           <Pressable
@@ -95,7 +85,6 @@ export function EditPostDialog({ post, mode, onClose, onSaved, onDeleted }: Edit
             onPress={close}
             className="absolute inset-0 bg-text opacity-40"
           />
-          {/* Shadow tokens set both iOS shadow* and Android elevation. */}
           <View className="w-full max-w-[360px] gap-3 rounded-2xl bg-background-element p-5" style={Shadow.card}>
             {mode === 'delete' ? (
               <>
@@ -109,7 +98,6 @@ export function EditPostDialog({ post, mode, onClose, onSaved, onDeleted }: Edit
                     label="Cancel"
                     variant="secondary"
                     disabled={isBusy}
-                    // No outline, like the Cancel in the planter picker.
                     style={{ borderWidth: 0 }}
                     onPress={() => {
                       logAction('post_delete_cancelled', { context: { post_id: post.id } });
@@ -141,7 +129,6 @@ export function EditPostDialog({ post, mode, onClose, onSaved, onDeleted }: Edit
                     variant="secondary"
                     disabled={isBusy}
                     onPress={close}
-                    // No outline, like the Cancel in the planter picker.
                     style={{ borderWidth: 0 }}
                   />
                   <Button label="Save" loading={isBusy} disabled={!canSave} onPress={save} />

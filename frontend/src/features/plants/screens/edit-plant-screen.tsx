@@ -10,7 +10,6 @@ import { usePlant } from '@/features/plants/use-plant';
 import { useSpecies } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 
-// Opened from the pencil on a plant's details; the same notebook form as adding a plant, filled in.
 export function EditPlantScreen({ plantId }: { plantId: string }) {
   const theme = useTheme();
   const router = useRouter();
@@ -20,8 +19,6 @@ export function EditPlantScreen({ plantId }: { plantId: string }) {
   const { species, error: speciesError } = useSpecies();
 
   function close() {
-    // Nothing underneath when the app was opened (or reloaded) straight onto this page,
-    // so go to the plant's details, which show the saved changes.
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -35,7 +32,6 @@ export function EditPlantScreen({ plantId }: { plantId: string }) {
     <NotebookPage title="Edit your plant">
       {isLoading ? (
         <View className="justify-center" style={oneLine}>
-          {/* A colour prop, so it reads the theme instead of a class. */}
           <ActivityIndicator accessibilityLabel="Loading plant" color={theme.primary} className="self-start" />
         </View>
       ) : error ? (
@@ -57,8 +53,7 @@ export function EditPlantScreen({ plantId }: { plantId: string }) {
                 Change what you like, then save.
               </Text>
             </RuledLine>
-            {/* Keyed by the plant, so the form fills in once and later refetches (on focus)
-                don't overwrite what the user is typing. */}
+            {/* Keyed, so the form fills in once and later refetches don't overwrite what the user types. */}
             <PlantForm
               key={plant.id}
               plant={plant}

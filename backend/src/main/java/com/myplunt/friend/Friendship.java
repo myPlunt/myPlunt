@@ -10,8 +10,6 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-// One row per pair of users, whoever asked first; the database rejects a second row for the same pair
-// in either direction. A declined request is deleted, so the two can ask again later.
 @Entity
 @Table(name = "friendships")
 public class Friendship {
@@ -28,11 +26,9 @@ public class Friendship {
     @Column(name = "receiver_id", nullable = false)
     private UUID receiverId;
 
-    // pending, accepted, declined or blocked.
     @Column(nullable = false)
     private String status;
 
-    // Set by its database default; only read, to list requests newest first.
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 

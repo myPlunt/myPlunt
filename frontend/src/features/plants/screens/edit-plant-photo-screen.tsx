@@ -15,13 +15,8 @@ import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logFailedUi } from '@/lib/logger';
 import type { PlantPhoto as PlantPhotoData } from '@/lib/plant/types';
 
-// The photo spans as many ruled lines as on the add-photo screen's photo field.
 const PHOTO_ROWS = 6;
 
-/**
- * Changes a growth photo's date and note, opened from "Edit" on the photo in the growth
- * journal. The picture itself stays: a different picture is a new photo.
- */
 export function EditPlantPhotoScreen({ plantId, photoId }: { plantId: string; photoId: string }) {
   const theme = useTheme();
   const router = useRouter();
@@ -29,8 +24,6 @@ export function EditPlantPhotoScreen({ plantId, photoId }: { plantId: string; ph
   const photo = photos?.find((item) => item.id === photoId);
 
   function close() {
-    // Nothing underneath when the app was opened straight onto this page, so go to the
-    // plant's growth journal, which shows the change.
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -42,7 +35,6 @@ export function EditPlantPhotoScreen({ plantId, photoId }: { plantId: string; ph
     <NotebookPage title="Edit growth photo">
       {isLoading ? (
         <View className="justify-center" style={oneLine}>
-          {/* A colour prop, so it reads the theme instead of a class. */}
           <ActivityIndicator accessibilityLabel="Loading photo" color={theme.primary} className="self-start" />
         </View>
       ) : error || !photo ? (
@@ -57,8 +49,7 @@ export function EditPlantPhotoScreen({ plantId, photoId }: { plantId: string; ph
           </View>
         </>
       ) : (
-        // Keyed by the photo, so the form fills in once and later refetches (on focus)
-        // don't overwrite what the user is typing.
+        // Keyed, so the form fills in once and later refetches don't overwrite what the user types.
         <EditPhotoForm key={photo.id} plantId={plantId} photo={photo} onSaved={close} />
       )}
     </NotebookPage>
@@ -89,7 +80,6 @@ function EditPhotoForm({ plantId, photo, onSaved }: { plantId: string; photo: Pl
       if (err instanceof ApiError && err.fieldErrors?.caption) {
         setCaptionError(err.fieldErrors.caption);
       } else if (!(err instanceof ApiError && err.status === 401)) {
-        // An expired session already signed the user out (usePlantActions).
         setError(describeError(err));
       }
       setIsSubmitting(false);
@@ -101,7 +91,6 @@ function EditPhotoForm({ plantId, photo, onSaved }: { plantId: string; photo: Pl
       <RuledLine>
         <Text className="type-label text-text-secondary">Photo</Text>
       </RuledLine>
-      {/* Sizes come from the ruled grid, so they can't be static classes. */}
       <View className="justify-center" style={{ height: PHOTO_ROWS * RULE_HEIGHT }}>
         <View style={{ height: boxHeight(PHOTO_ROWS) }}>
           <PlantPhoto
@@ -127,7 +116,6 @@ function EditPhotoForm({ plantId, photo, onSaved }: { plantId: string; photo: Pl
         autoCorrect
       />
 
-      {/* One line before the button, which shows the error, if any. */}
       <RuledLine>
         {error && (
           <Text className="type-body-medium text-error" numberOfLines={1} adjustsFontSizeToFit>

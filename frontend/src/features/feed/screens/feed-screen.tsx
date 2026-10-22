@@ -27,7 +27,6 @@ export function FeedScreen() {
   const postIds = days.flatMap((day) => day.posts.map((post) => post.id));
   const sideList = feedSides(postIds);
   const sides = new Map(postIds.map((id, i) => [id, sideList[i]]));
-  // Each post's measured height, so a post on the other side can start halfway down the one before.
   const [heights, setHeights] = useState(new Map<string, number>());
 
   function measure(id: string, height: number) {
@@ -40,37 +39,31 @@ export function FeedScreen() {
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         <AppHeader
           right={
-            // Same height as the logo, styled as a small Post-it like the questions it makes.
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="I have a question"
               onPress={() => router.push('/ask')}
               className="h-10 -rotate-2 justify-center rounded-sm bg-note-yellow px-3 active:opacity-70"
-              // Shadow goes through style so it sets both iOS shadow* and Android elevation.
               style={Shadow.card}>
-              {/* The strip of tape, like on the questions in the feed; it fits in the header's top padding. */}
               <View className="absolute -top-2 h-4 w-10 self-center bg-background-element opacity-70" />
               <Text className="type-button-medium text-text">I have a question</Text>
             </Pressable>
           }
         />
 
-        {/* No bottom padding: the stem runs to the edge, so it looks like it grows out from
-            under the tab bar. The newest growth is at the top, under today's mark. */}
+        {/* No bottom padding: the stem runs to the edge, as if it grows from under the tab bar. */}
         <ScrollView
           contentContainerClassName="w-full max-w-content grow self-center px-6"
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={refresh}
-              // iOS colours the spinner with tintColor, Android with colors and progressBackgroundColor.
               tintColor={theme.primary}
               colors={[theme.primary]}
               progressBackgroundColor={theme.backgroundElement}
             />
           }>
           {isLoading ? (
-            // A colour prop, so it reads the theme instead of a class.
             <ActivityIndicator accessibilityLabel="Loading feed" color={theme.primary} className="mt-6" />
           ) : error ? (
             <View className="mt-4 items-start gap-3">
@@ -79,9 +72,6 @@ export function FeedScreen() {
             </View>
           ) : null}
 
-          {/* The stem fills the whole area behind the posts, which hang off both sides of it,
-              newest first: each group's mark (Today, Yesterday, This week, 2 weeks ago...)
-              sits on the stem above its posts. Room at the top for the stem's leaf. */}
           <View className="grow pb-10 pt-8">
             <View className="absolute inset-0 items-center">
               <VineStem />
@@ -101,7 +91,6 @@ export function FeedScreen() {
   );
 }
 
-// Space between posts on the same side, and the smallest gap to the last post on a post's side.
 const ROW_GAP = 16;
 
 interface FeedRowsProps {
@@ -111,22 +100,16 @@ interface FeedRowsProps {
   onMeasure: (id: string, height: number) => void;
 }
 
-/**
- * One post per row, on its side of the stem. A post on the other side from the one before
- * starts halfway down it (feed-rows.ts), so the vine zigzags without posts overlapping.
- */
 function FeedRows({ posts, sides, heights, onMeasure }: FeedRowsProps) {
   const rows = posts.map((post) => ({ id: post.id, side: sides.get(post.id) ?? 'left' }));
   const { marginTops, paddingBottom } = rowOffsets(rows, heights, ROW_GAP);
 
-  // The offsets come from measured heights, so they go through style.
   return (
     <View style={{ paddingBottom }}>
       {posts.map((post, i) => (
         <View
           key={post.id}
           onLayout={(e) => onMeasure(post.id, e.nativeEvent.layout.height)}
-          // Every post sits in a 136px slot and fills it, so notes and plant cards are equals.
           className={`w-[136px] items-center ${rows[i].side === 'right' ? 'self-end' : 'self-start'}`}
           style={{ marginTop: marginTops[i] }}>
           {post.type === 'question' ? <StickyNote post={post} /> : <FeedPlantCard post={post} />}

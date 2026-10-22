@@ -10,14 +10,11 @@ import { useTheme } from '@/hooks/use-theme';
 import { useNetworkStore } from '@/stores/network-store';
 
 interface AppHeaderProps {
-  /** Makes the logo a back button. Off on the tabs, which have nothing to go back to. */
   showBack?: boolean;
   right?: ReactNode;
 }
 
-// Our own header instead of the native stack header, so both platforms get the
-// same look (the iOS native back button renders as Liquid Glass). No page name:
-// the tab bar and each page's own content already say where you are.
+// Our own header, not the native one, so iOS doesn't get a Liquid Glass back button.
 export function AppHeader({ showBack, right }: AppHeaderProps) {
   return (
     // z-10 lifts the offline explanation over the page below the header.
@@ -32,13 +29,10 @@ export function AppHeader({ showBack, right }: AppHeaderProps) {
   );
 }
 
-/** The logo as a back button, for screens that lay out their own top row. */
 export function LogoBackButton() {
   const router = useRouter();
 
   function goBack() {
-    // Nothing to go back to when the app was opened straight onto this screen
-    // (e.g. a deep link), so fall back to the feed.
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -53,10 +47,8 @@ export function LogoBackButton() {
   );
 }
 
-// Long enough to read the explanation, then it gets out of the way.
 const EXPLANATION_MS = 4000;
 
-/** Shown while offline: pressing it says what still works. */
 function OfflineButton() {
   const theme = useTheme();
   const { isOffline } = useNetworkStore();
@@ -79,11 +71,9 @@ function OfflineButton() {
         accessibilityState={{ expanded: isExplaining }}
         onPress={() => setIsExplaining((open) => !open)}
         className="h-8 w-8 items-center justify-center rounded-full border border-input-border bg-background-element active:opacity-70">
-        {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
         <SymbolView name={{ ios: 'wifi.slash', android: 'wifi_off', web: 'wifi_off' }} tintColor={theme.accent} size={16} />
       </Pressable>
       {isExplaining && (
-        // Shadow goes through style so it sets both iOS shadow* and Android elevation.
         <View
           pointerEvents="none"
           className="absolute left-6 top-11 w-60 rounded-xl border border-primary/40 bg-info px-3 py-2"
@@ -97,7 +87,6 @@ function OfflineButton() {
 
 function Logo() {
   const { isOffline } = useNetworkStore();
-  // Greyed out while offline, together with everything that needs the connection.
   return (
     <View style={isOffline && styles.offlineLogo}>
       <Image className="h-10 w-9" source={require('@/assets/images/Logo.png')} contentFit="contain" />

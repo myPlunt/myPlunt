@@ -22,8 +22,6 @@ import { useOnboardingStore } from '@/stores/onboarding-store';
 
 const NO_FILTER: PluntdexFilter = { only: null, region: null };
 
-// Every approved species, numbered like a Pokédex. Species the user has ever owned a plant
-// of are "discovered", even if that plant was deleted since; the rest are shown as unseen entries.
 export function PluntdexScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -31,8 +29,7 @@ export function PluntdexScreen() {
   const { discovered: discoveredList, error: discoveredError, isLoading, retry: retryDiscovered } = useDiscoveredSpecies();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<PluntdexFilter>(NO_FILTER);
-  // The tour's last step: it shows what the PluntDex is, and "Got it" ends the tour. Searching
-  // and filtering still work; a species' page would leave the step, so the cards don't open.
+  // During the tour's last step the cards don't open: a species' page would leave the step.
   const { step, next } = useOnboardingStore();
   const isPluntdexStep = step === 'pluntdex';
   useTourBackLock(isPluntdexStep);
@@ -46,12 +43,10 @@ export function PluntdexScreen() {
   const discoveredCount = species?.filter((s) => discovered.has(s.id)).length ?? 0;
   const progress = total === 0 ? 0 : discoveredCount / total;
   const error = speciesError ?? discoveredError;
-  // Loads again whichever of the two failed.
   function retry() {
     if (speciesError) retrySpecies();
     if (discoveredError) retryDiscovered();
   }
-  // Tapping the picked chip again clears it (ChoiceChip shows a ✕).
   const toggle = (only: 'common' | 'discovered') =>
     setFilter((current) => ({ ...current, only: current.only === only ? null : only }));
   const clearAll = () => {
@@ -59,8 +54,8 @@ export function PluntdexScreen() {
     setFilter(NO_FILTER);
   };
 
-  // The search and filters lead the list so they can stick to the top while the cards scroll;
-  // the cards go two to a row, which keeps them virtualised without numColumns.
+  // The filters are a row of the list so they can stick to the top; two cards per row keeps them
+  // virtualised without numColumns.
   const rows: ('filters' | Species[])[] = ['filters'];
   for (let i = 0; i < visible.length; i += 2) rows.push(visible.slice(i, i + 2));
 
@@ -86,7 +81,6 @@ export function PluntdexScreen() {
             // Room to scroll the cards out from under the tour card.
             contentContainerClassName={`w-full max-w-content grow gap-4 self-center px-6 pt-2 ${isPluntdexStep ? 'pb-72' : 'pb-8'}`}
             ListHeaderComponent={
-              // Shadow goes through style so it sets both iOS shadow* and Android elevation.
               <View className="gap-3 rounded-3xl bg-action-primary p-5" style={Shadow.card}>
                 <View className="flex-row items-center justify-between">
                   <View className="shrink">
@@ -96,7 +90,6 @@ export function PluntdexScreen() {
                     </Text>
                   </View>
                   <View className="h-14 w-14 items-center justify-center rounded-full bg-background-element/15">
-                    {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
                     <SymbolView
                       name={{ ios: 'book.fill', android: 'menu_book', web: 'menu_book' }}
                       tintColor={theme.backgroundElement}
@@ -108,7 +101,6 @@ export function PluntdexScreen() {
                   accessibilityRole="progressbar"
                   accessibilityValue={{ min: 0, max: total, now: discoveredCount }}
                   className="h-2.5 overflow-hidden rounded-full bg-background-element/20">
-                  {/* The width is a runtime fraction, so it can't be a class. */}
                   <View className="h-full rounded-full bg-background-element" style={{ width: `${progress * 100}%` }} />
                 </View>
                 <Text className="type-caption text-background-element/80">
@@ -198,9 +190,7 @@ export function PluntdexScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Lateef's natural line is ~1.45× its size; type-h4's 40 clips the bottom of the glyphs
-  // on iOS, and Android's extra font padding is dropped so both platforms match. A style,
-  // because a leading-* class loses to type-h4.
+  // Lateef needs a taller line than type-h4's or iOS clips its glyphs. A style, as leading-* loses to type-h4.
   count: {
     lineHeight: 46,
     includeFontPadding: false,

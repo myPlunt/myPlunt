@@ -2,7 +2,7 @@ package com.myplunt.common.logging;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-// The categories the app may log under. Debug lines stay on the device.
+// No DEBUG: debug lines stay on the device.
 public enum ClientLogType {
     @JsonProperty("error") ERROR,
     @JsonProperty("warning") WARNING,

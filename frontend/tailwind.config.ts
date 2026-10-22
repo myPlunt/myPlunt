@@ -35,8 +35,7 @@ export default {
       transparent: 'transparent',
       ...colors,
     },
-    // Only the loaded brand fonts (RN has no synthetic bold, so each weight is its own family).
-    // Prefer type-* classes; use these alone for nested text that inherits the size.
+    // Each weight is its own family (React Native has no synthetic bold). Prefer the type-* classes.
     fontFamily: {
       headline: [Fonts.headline.semiBold],
       'headline-medium': [Fonts.headline.medium],

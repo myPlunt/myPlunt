@@ -11,10 +11,7 @@ import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-// Writes each structured log line (LogLineFormatter) to the logs table (V10): its type, time and
-// source get their own columns, the rest goes in details, and the whole line in raw. Runs behind
-// an AsyncAppender (DatabaseLogging), so it's on its own thread, never inside the caller's
-// transaction.
+// Runs behind an AsyncAppender (DatabaseLogging): on its own thread, never in the caller's transaction.
 public class DatabaseLogAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
 
     static final String INSERT = "INSERT INTO logs (level, logged_at, location, details, raw) VALUES (?, ?, ?, ?::jsonb, ?::json)";
@@ -30,8 +27,7 @@ public class DatabaseLogAppender extends UnsynchronizedAppenderBase<ILoggingEven
 
     @Override
     protected void append(ILoggingEvent event) {
-        // A line logged on this thread came from the insert itself (the driver, the pool). Writing
-        // it to the table could fail the same way and loop, so it's only on the console.
+        // A line from this thread came from the insert itself; writing it could fail the same way and loop.
         if (Thread.currentThread().getName().equals(event.getThreadName())) {
             return;
         }

@@ -27,7 +27,6 @@ public class AdminSpeciesController {
         this.speciesService = speciesService;
     }
 
-    // The same approved list the app's Pluntdex shows.
     @GetMapping(ApiPaths.Admin.SPECIES)
     public List<SpeciesResponse> approved() {
         return speciesService.getApprovedSpecies();

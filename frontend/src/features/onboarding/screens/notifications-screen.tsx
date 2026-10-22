@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import { PermissionStep } from '@/features/onboarding/components/permission-step';
 import { requestNotificationPermission } from '@/lib/notification-permission';
 
-// Tour step 4, opened from the location step. Leaving it goes back to the profile, where the friends step starts.
 export function NotificationsScreen() {
   const router = useRouter();
 

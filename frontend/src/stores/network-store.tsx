@@ -1,22 +1,15 @@
 import { useNetworkState, type NetworkState } from 'expo-network';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
-/**
- * Whether the phone says it has no internet. While it's still checking (undefined) that counts
- * as online, so nothing greys out for a moment at startup. A myPlunt server that's down doesn't
- * count: screens show their usual error for that.
- */
+/** Still checking (undefined) counts as online, so nothing greys out at startup. A server that's down isn't offline. */
 export function isOfflineState({ isConnected, isInternetReachable }: NetworkState): boolean {
   return isConnected === false || isInternetReachable === false;
 }
 
 interface NetworkStore {
   isOffline: boolean;
-  /** Goes up each time the connection comes back, so a screen on view can reload. */
   reconnects: number;
-  /** The floating notice's text ("Feed doesn't work offline", "Back online"); null when there's none. */
   notice: string | null;
-  /** Says "<what> doesn't work offline" in the floating notice for a moment. */
   explainOffline: (what: string) => void;
 }
 
@@ -67,10 +60,7 @@ export function useNetworkStore(): NetworkStore {
   return useContext(NetworkStoreContext);
 }
 
-/**
- * Calls reload each time the connection comes back (not when first mounted), so what's on
- * screen replaces the copy saved for offline without the user doing anything.
- */
+/** Calls reload each time the connection comes back, not on mount. */
 export function useReloadOnReconnect(reload: () => void) {
   const { reconnects } = useNetworkStore();
   const seen = useRef(reconnects);

@@ -18,11 +18,6 @@ import { logAction, logFailedUi } from '@/lib/logger';
 import type { PlantPhoto as PlantPhotoData } from '@/lib/plant/types';
 import { useNetworkStore } from '@/stores/network-store';
 
-/**
- * Every growth photo of one plant, newest first, opened from "See all" in its Growth section:
- * each photo with its date and note, and how much time passed between them. Each photo
- * can be edited (date and note) or deleted from here.
- */
 export function GrowthScreen({ plantId }: { plantId: string }) {
   const theme = useTheme();
   const router = useRouter();
@@ -47,7 +42,6 @@ export function GrowthScreen({ plantId }: { plantId: string }) {
               className={`h-10 w-10 items-center justify-center rounded-full bg-action-primary active:opacity-70 ${
                 isOffline ? 'opacity-40' : ''
               }`}>
-              {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
               <SymbolView name={{ ios: 'plus', android: 'add', web: 'add' }} tintColor={theme.backgroundElement} size={20} />
             </Pressable>
           }
@@ -55,7 +49,6 @@ export function GrowthScreen({ plantId }: { plantId: string }) {
 
         <ScrollView contentContainerClassName="w-full max-w-content grow gap-6 self-center px-6 pb-8 pt-2">
           {isLoading ? (
-            // A colour prop, so it reads the theme instead of a class.
             <ActivityIndicator accessibilityLabel="Loading photos" color={theme.primary} className="mt-6" />
           ) : error ? (
             <View className="items-center gap-3">
@@ -92,7 +85,6 @@ function GrowthTimeline({ plantId, photos: loaded }: { plantId: string; photos: 
       setConfirming(null);
     } catch (err) {
       logFailedUi('plant_photo_delete_failed_ui', err, { plant_id: plantId, photo_id: photo.id });
-      // An expired session already signed the user out (usePlantActions).
       if (!(err instanceof ApiError && err.status === 401)) {
         setDeleteError(describeError(err));
       }
@@ -172,7 +164,6 @@ function GrowthEntry({ photo, onEdit, onDelete }: GrowthEntryProps) {
     : null;
 
   return (
-    // Shadow goes through style so it sets both iOS shadow* and Android elevation.
     <View className="flex-row gap-4 rounded-2xl border-[1.5px] border-input-border bg-background-element p-3" style={Shadow.card}>
       <PlantPhoto
         photoUrl={photo.url}
@@ -191,7 +182,6 @@ function GrowthEntry({ photo, onEdit, onDelete }: GrowthEntryProps) {
           accessibilityHint={isOffline ? "Doesn't work offline" : undefined}
           onPress={isOffline ? () => explainOffline('Editing photos') : onEdit}
           className={`h-10 w-10 items-center justify-center active:opacity-70 ${isOffline ? 'opacity-40' : ''}`}>
-          {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
           <SymbolView name={{ ios: 'pencil', android: 'edit', web: 'edit' }} tintColor={theme.actionPrimary} size={18} />
         </Pressable>
         <Pressable
@@ -208,9 +198,7 @@ function GrowthEntry({ photo, onEdit, onDelete }: GrowthEntryProps) {
 }
 
 const styles = StyleSheet.create({
-  // Same as the watering history's title: Lateef needs a taller line than type-h3's, or iOS
-  // clips the bottom of the glyphs, and Android's extra font padding is dropped so both
-  // platforms place it the same. A style, because a leading-* class loses to type-h3.
+  // Lateef needs a taller line than type-h3's or iOS clips its glyphs. A style, as leading-* loses to type-h3.
   title: {
     lineHeight: 58,
     includeFontPadding: false,

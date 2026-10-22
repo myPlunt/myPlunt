@@ -8,7 +8,6 @@ public record UpdatePlanterRequest(
                 @Size(max = 255, message = "Name must be at most 255 characters.")
                 String name) {
 
-    // Strip before validation runs, so a name of only spaces counts as blank.
     public UpdatePlanterRequest {
         name = name == null ? null : name.strip();
     }

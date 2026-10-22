@@ -1,8 +1,5 @@
-// Design tokens as plain data, with no React Native imports, so that
-// tailwind.config.ts (run by Node at build time) and theme.ts (runtime) share
-// one source. Change a value here and both the classes and useTheme() follow.
+// Plain data with no React Native imports, so tailwind.config.ts (Node, at build time) can share it.
 
-// Brand palette
 export const brand = {
   hunterGreen900: '#263521',
   hunterGreen700: '#304329',
@@ -27,17 +24,13 @@ export const brand = {
   grey300: '#BFC3BF',
   grey100: '#F2F2EF',
   white: '#FFFFFF',
-  // Not in brand palette, but fits
   error500: '#B3402F',
-  // Not in brand palette: approved for water only (the water line in the garden's
-  // plant pots). A muted blue so it sits with the earthy brand colours.
+  // Not in the brand palette: approved for water only.
   waterBlue500: '#4E6F9C',
-  // Not in brand palette: approved for the watering pill's "in 2 days" and "tomorrow"
-  // urgency steps, between water blue (3+ days) and error red (today or overdue).
+  // Not in the brand palette: approved for the watering pill's urgency steps only.
   mustard500: '#D4A017',
   orange500: '#E07B24',
-  // Not in brand palette: approved for the feed's sticky-note questions only. The Post-it
-  // "Jaipur" colours, muted (less saturated, lighter) so they sit with the earthy palette.
+  // Not in the brand palette: approved for the feed's sticky notes only (muted Post-it "Jaipur").
   noteGreen: '#C9DCAB',
   noteYellow: '#EEDC9E',
   noteOrange: '#EBC59C',
@@ -45,43 +38,33 @@ export const brand = {
   noteTeal: '#ADD5CD',
 } as const;
 
-// Semantic colour roles. Tailwind exposes each key in kebab-case
-// (backgroundElement -> bg-background-element, textSecondary -> text-text-secondary).
+// Tailwind exposes each key in kebab-case: backgroundElement -> bg-background-element.
 export const lightColors = {
   text: brand.grey900,
   background: brand.sandDune,
   backgroundElement: brand.softLinen,
   textSecondary: brand.grey700,
-  // "primary" (Fern) is used for links/wordmark already on screen — kept as-is.
-  // actionPrimary (Hunter Green) is the design study's actual documented
-  // primary color, reserved for the main action button specifically.
+  // Despite the name, primary (Fern) is for links; actionPrimary (Hunter Green) is the main button's.
   primary: brand.fern500,
   actionPrimary: brand.hunterGreen500,
   accent: brand.oliveWood700,
   accentMuted: brand.oliveWood500,
   border: brand.grey300,
-  // Text-field outline and placeholder; the form field used these brand values directly before.
   inputBorder: brand.oliveWood300,
   placeholder: brand.grey500,
   error: brand.error500,
   water: brand.waterBlue500,
-  // Watering urgency between water (3+ days) and error (today or overdue).
   wateringSoon: brand.mustard500,
   wateringTomorrow: brand.orange500,
-  // Bottom tab bar: icon and label of the open tab and of the others.
   tabActive: brand.hunterGreen500,
   tabInactive: brand.fern500,
-  // Sticky-note questions in the feed; each note gets one of these at random.
   noteGreen: brand.noteGreen,
   noteYellow: brand.noteYellow,
   noteOrange: brand.noteOrange,
   notePink: brand.notePink,
   noteTeal: brand.noteTeal,
-  // Track of a switched-on toggle (Settings > Notifications); its border and knob use actionPrimary.
   toggleOnTrack: brand.fern300,
-  // Info shown over the page: the header's offline explanation and the offline notice. Text on it is actionPrimary.
   info: brand.fern100,
-  // Staging pill only; production never shows it.
   staging: brand.mustard500,
 } as const;
 
@@ -97,12 +80,8 @@ export const Fonts = {
   },
 } as const;
 
-// Type scale. Tailwind turns each entry into a `type-<kebab-name>` class that sets
-// font family, size, line height and letter spacing together (type-h3, type-body-medium...).
-// Brand rule: Lateef is the primary typeface and is used only for headlines (h1–h5),
-// where it gives a warm, organic character. DM Sans is the secondary typeface for
-// everything else (subtitles, body, captions, labels, buttons): clean, geometric and
-// readable at small sizes. tokens-test.ts enforces this split.
+// Each entry becomes a type-<kebab-name> class. Brand rule: Lateef only for headlines (h1–h5), DM Sans
+// for everything else; tokens-test.ts checks it.
 export const Typography = {
   h1: { fontFamily: Fonts.headline.semiBold, fontSize: 56, lineHeight: 64 },
   h2: { fontFamily: Fonts.headline.semiBold, fontSize: 48, lineHeight: 56 },

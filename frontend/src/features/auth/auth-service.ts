@@ -10,8 +10,7 @@ export async function login(credentials: LoginRequest): Promise<void> {
   const requestId = createRequestId();
   logAction('login_submitted', { requestId });
   const tokens = await publicFetch<AuthResponse>('/v1/auth/login', credentials, { requestId });
-  // The data saved for offline belongs to whoever was signed in before. Cleared here, not
-  // only on logout: an expired session ends without one.
+  // Cleared at sign-in too, not only on logout: an expired session ends without one.
   await clearCache();
   await tokenStorage.setTokens(tokens);
 }
@@ -26,14 +25,12 @@ export async function register(details: RegisterRequest): Promise<void> {
 
 export async function logout(): Promise<void> {
   logAction('logout_submitted');
-  // Sent while the session still exists; queued lines would otherwise go out with the next
-  // user who signs in on this device, under their id.
+  // Sent while the session exists; otherwise the lines would go out under the next user's id.
   await flushLogs();
-  // Same reason: once signed out, this phone shouldn't keep getting the account's reminders.
   await removePushToken().catch(() => {});
   const tokens = await tokenStorage.getTokens();
   await tokenStorage.clearTokens();
-  // The data saved for offline goes too; if that fails, the next sign-in clears it.
+  // If this fails, the next sign-in clears it.
   await clearCache().catch(() => {});
   if (tokens) {
     publicFetch('/v1/auth/logout', { refreshToken: tokens.refreshToken }).catch(() => {});

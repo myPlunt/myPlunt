@@ -3,8 +3,6 @@ import { Text, View } from 'react-native';
 
 const isStaging = Constants.expoConfig?.extra?.appVariant === 'staging';
 
-// Shown next to the logo so testers can tell the staging app from production.
-// Renders nothing outside the staging build.
 export function StagingPill() {
   if (!isStaging) {
     return null;

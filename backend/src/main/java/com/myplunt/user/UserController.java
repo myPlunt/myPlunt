@@ -33,7 +33,6 @@ public class UserController {
         this.userService = userService;
     }
 
-    // JwtAuthFilter sets the authenticated User entity as the principal.
     @GetMapping(ApiPaths.Users.ME)
     public UserResponse me(@AuthenticationPrincipal User principal) {
         return userService.toResponse(principal);
@@ -51,7 +50,6 @@ public class UserController {
         return userService.search(principal.getId(), q);
     }
 
-    // Another user's profile, with how they relate to the signed-in user.
     @GetMapping(ApiPaths.Users.BY_ID)
     public UserSummaryResponse user(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
         return userService.getSummary(principal.getId(), userId);
@@ -63,7 +61,6 @@ public class UserController {
         return userService.changeEmail(principal.getId(), request);
     }
 
-    // The app uploads the photo itself (POST /v1/photos/upload-url), then sends its key here.
     @PutMapping(ApiPaths.Users.ME_AVATAR)
     public UserResponse updateAvatar(
             @AuthenticationPrincipal User principal, @Valid @RequestBody UpdateAvatarRequest request) {

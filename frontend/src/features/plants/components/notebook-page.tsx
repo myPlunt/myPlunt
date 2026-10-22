@@ -6,10 +6,6 @@ import { LogoBackButton } from '@/components/layout/app-header';
 import { NotebookMargin, NotebookRules, RULE_HEIGHT } from '@/features/plants/components/notebook-paper';
 import { useKeepFocusedInputVisible } from '@/hooks/use-keep-focused-input-visible';
 
-/**
- * A whole screen as a sheet of notebook paper: the logo (back button) in the margin, the
- * title on the first rule, and the children written on the ruled lines below.
- */
 export function NotebookPage({ title, children }: { title: string; children: ReactNode }) {
   const scrollRef = useKeepFocusedInputVisible();
 
@@ -18,8 +14,6 @@ export function NotebookPage({ title, children }: { title: string; children: Rea
       <NotebookMargin />
       <KeyboardAvoidingView
         className="flex-1"
-        // iOS needs padding to lift the content; Android resizes the window itself,
-        // so shrinking the height is enough there.
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
           <ScrollView
@@ -28,9 +22,7 @@ export function NotebookPage({ title, children }: { title: string; children: Rea
             // Swiping the page or tapping blank paper closes the keyboard, uncovering Save.
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled">
-            {/* One top row instead of a header plus a title: the logo (back button) sits in
-                the margin (w-10 matches the margin line's left-10) and the title starts where
-                the content column does (w-10 + pl-4 = pl-14), sitting on the first rule. */}
+            {/* w-10 matches the margin line's left-10, so w-10 + pl-4 lines the title up with the content's pl-14. */}
             <View className="flex-row items-end pr-6" style={styles.titleArea}>
               <View className="w-10 items-center pb-1">
                 <LogoBackButton />
@@ -44,8 +36,6 @@ export function NotebookPage({ title, children }: { title: string; children: Rea
               </Text>
             </View>
 
-            {/* The rules start here, along the top edge, and fill the rest of the page edge
-                to edge (they cover the padding, so the content starts right of the margin). */}
             <View className="grow pl-14 pr-6" style={styles.ruled}>
               <NotebookRules />
               {children}
@@ -58,13 +48,9 @@ export function NotebookPage({ title, children }: { title: string; children: Rea
 }
 
 const styles = StyleSheet.create({
-  // Sizes follow the ruled grid (RULE_HEIGHT), which classes can't express exactly.
   titleArea: { height: 1.5 * RULE_HEIGHT },
   ruled: { paddingBottom: RULE_HEIGHT },
-  // Lateef's natural line is ~1.45× its size (tall marks above and below), and the
-  // glyphs sit high in it. A full-height line stops iOS clipping the bottom, the
-  // negative margin lowers the baseline onto the rule, and Android's extra font
-  // padding is dropped so both platforms place it the same.
+  // A full-height line stops iOS clipping Lateef; the negative margin lowers its high glyphs onto the rule.
   title: {
     lineHeight: 58,
     marginBottom: -14,

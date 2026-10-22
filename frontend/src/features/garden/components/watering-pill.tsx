@@ -6,9 +6,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 import { wateringStatus, type WateringTone } from '../watering';
 
-// The pill's colour says how urgent watering is. Tints are the tone colour at low
-// opacity, so no new palette colours. `icon` is a theme key because tintColor takes
-// a colour, not a class.
+// Tints are the tone colour at low opacity, so the palette gets no new colours.
 const toneStyles: Record<WateringTone, { pill: string; text: string; icon: ThemeColor }> = {
   later: { pill: 'bg-water/15', text: 'text-water', icon: 'water' },
   soon: { pill: 'bg-watering-soon/15', text: 'text-watering-soon', icon: 'wateringSoon' },
@@ -21,11 +19,6 @@ interface WateringPillProps {
   now: Date;
 }
 
-/**
- * When the plant needs water next ("In 5 days", "Today", "Overdue"), coloured by urgency:
- * blue for 3+ days, mustard for 2, orange for tomorrow, red for today or overdue. A plant
- * watered today stays blue, so a short schedule doesn't look urgent right after watering.
- */
 export function WateringPill({ plant, now }: WateringPillProps) {
   const theme = useTheme();
   const status = wateringStatus(plant, now);

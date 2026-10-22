@@ -24,10 +24,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-// Every request that ends in an error answer is logged here with the server-side reason, as a
-// warning when the client was turned away (4xx) and an error when we failed (5xx). Never the
-// submitted values: they can be passwords. Requests from the admin dashboard (/v1/admin/**) are
-// never logged (see CLAUDE.md); they get the same answers.
+// Logs every error answer, never the submitted values (they can be passwords). Requests from the
+// admin dashboard (/v1/admin/**) aren't logged at all.
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
@@ -56,10 +54,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(status).headers(headers).body(problem);
     }
 
-    // Every other error answer Spring builds (ResponseStatusException, broken JSON, a wrong
-    // method or query parameter) passes through here. A ResponseStatusException's detail is
-    // user-safe by convention, so it's logged as the reason; for the rest only the kind of
-    // problem is, since their messages can quote the submitted value.
+    // A ResponseStatusException's detail is user-safe, so it's logged; other messages can quote the
+    // submitted value, so only their kind is.
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(
             Exception ex, Object body, HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {
@@ -89,8 +85,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    // The client only gets a generic message, so the stack trace has to end up in
-    // the log or the cause is lost.
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleUnexpected(Exception ex, HttpServletRequest request) {
         if (!fromAdmin(request)) {

@@ -9,10 +9,8 @@ const CONTENT_TYPE = 'image/jpeg';
 const UPLOAD_FAILED_DETAIL = "Couldn't upload the photo. Please try again.";
 
 /**
- * Uploads a local JPEG straight to storage and returns its key. The backend only
- * hands out a presigned PUT; the photo itself never goes through it. The upload stays
- * "pending" until something that uses the key (e.g. creating a plant) confirms it, and
- * storage deletes pending uploads after a day.
+ * Uploads straight to storage with a presigned PUT and returns the key. It stays "pending" (deleted
+ * after a day) until something that uses the key, like creating a plant, confirms it.
  */
 export async function uploadPhoto(localUri: string, category: PhotoCategory): Promise<string> {
   const requestId = createRequestId();

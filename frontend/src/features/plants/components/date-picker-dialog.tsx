@@ -9,27 +9,20 @@ import { useTheme } from '@/hooks/use-theme';
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 interface DatePickerDialogProps {
-  /** The day picked so far, which the calendar opens on. */
   value: Date;
   /** Called with midnight on the picked day, in the device's time zone. */
   onPick: (day: Date) => void;
   onClose: () => void;
 }
 
-/**
- * A popup calendar for picking a day up to today. Our own rather than the native pickers,
- * so it looks the same on iOS and Android. Year arrows next to the month ones make going
- * back a few years quick. Render it only while open, so it opens on `value` each time.
- */
+/** Render it only while open, so it opens on `value` each time. */
 export function DatePickerDialog({ value, onPick, onClose }: DatePickerDialogProps) {
   const [month, setMonth] = useState(startOfMonth(value));
-  // Taken per render, so the last pickable day moves on past midnight.
   const today = new Date();
   const thisMonth = startOfMonth(today);
   const picked = dayKey(value);
 
   return (
-    // onRequestClose is Android's back button.
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View className="flex-1 items-center justify-center px-6">
         <Pressable
@@ -38,7 +31,6 @@ export function DatePickerDialog({ value, onPick, onClose }: DatePickerDialogPro
           onPress={onClose}
           className="absolute inset-0 bg-text opacity-40"
         />
-        {/* Shadow tokens set both iOS shadow* and Android elevation. */}
         <View className="w-full max-w-[360px] gap-2 rounded-2xl bg-background-element p-4" style={Shadow.card}>
           <View className="flex-row items-center">
             <NavButton
@@ -64,7 +56,6 @@ export function DatePickerDialog({ value, onPick, onClose }: DatePickerDialogPro
               label="Next year"
               icon={{ ios: 'chevron.right.2', android: 'keyboard_double_arrow_right', web: 'keyboard_double_arrow_right' }}
               disabled={month >= thisMonth}
-              // Never past this month: from March 2026 in an October 2026 world, that's October.
               onPress={() => setMonth(addMonths(month, 12) > thisMonth ? thisMonth : addMonths(month, 12))}
             />
           </View>
@@ -138,7 +129,6 @@ function NavButton({ label, icon, onPress, disabled }: NavButtonProps) {
       disabled={disabled}
       onPress={onPress}
       className={`h-10 w-9 items-center justify-center active:opacity-70 ${disabled ? 'opacity-30' : ''}`}>
-      {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
       <SymbolView name={icon} tintColor={theme.actionPrimary} size={18} />
     </Pressable>
   );

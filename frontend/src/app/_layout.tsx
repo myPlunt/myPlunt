@@ -30,8 +30,7 @@ function RootNavigator() {
     DMSans_400Regular,
   });
 
-  // Splash overlay stays up (it manages its own visibility) until we know
-  // whether there's a stored session and the brand fonts are ready.
+  // The splash overlay covers this until the session and fonts are known.
   if (status === 'loading' || !fontsLoaded) {
     return null;
   }
@@ -57,7 +56,6 @@ export default function RootLayout() {
           <NetworkStoreProvider>
             <SplashOverlay />
             <RootNavigator />
-            {/* Floats over whichever screen is open. */}
             <OfflineNotice />
           </NetworkStoreProvider>
         </OnboardingStoreProvider>

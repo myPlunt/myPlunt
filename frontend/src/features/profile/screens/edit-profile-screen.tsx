@@ -20,13 +20,9 @@ export function EditProfileScreen() {
   const { step, next } = useOnboardingStore();
 
   const isAvatarStep = step === 'avatar' && !!user;
-  // Going back would leave the picture step with its card on a screen the user isn't on; the
-  // card's "Not now" and saving a picture are the ways on.
+  // Leaving would strand the picture step's card; "Not now" and saving a picture are the ways on.
   useTourBackLock(isAvatarStep);
 
-  // During the tour, saving what the step asked for moves it on. The bio's next step, the
-  // picture, is on this screen too; the picture's is the location page, which replaces this one
-  // so leaving it lands on the profile.
   function completeTourStep(saved: TourStep) {
     if (step !== saved) return;
     next();
@@ -36,12 +32,10 @@ export function EditProfileScreen() {
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
-        {/* No swipe back during the picture step either, for the same reason. */}
         <Stack.Screen options={{ gestureEnabled: !isAvatarStep }} />
         <AppHeader showBack={!isAvatarStep} />
 
-        {/* The card is placed inside this view, not the SafeAreaView: an absolute child
-            ignores its parent's padding, so it would sit under the home indicator. */}
+        {/* Inside this view, not the SafeAreaView: an absolute child ignores its parent's padding. */}
         <View className="flex-1">
           <ScrollView
             // Room to scroll the form out from under the tour card.
@@ -50,7 +44,6 @@ export function EditProfileScreen() {
             <View className="gap-3 rounded-2xl bg-background-element p-4" style={Shadow.card}>
               <Text className="type-label text-accent">PROFILE</Text>
               {isLoading ? (
-                // A colour prop, so it reads the theme instead of a class.
                 <ActivityIndicator accessibilityLabel="Loading profile" color={theme.primary} />
               ) : error ? (
                 <View className="items-start gap-3">

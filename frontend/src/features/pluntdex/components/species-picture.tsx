@@ -6,15 +6,10 @@ import type { Species } from '@/lib/species/types';
 interface SpeciesPictureProps {
   species: Species;
   discovered: boolean;
-  /** Size and shape, e.g. "aspect-square w-full rounded-2xl". */
   className: string;
   iconSize: number;
 }
 
-/**
- * A species' picture: sharp once discovered; until then blurred behind a "?", like an unseen
- * Pokédex entry. Shared by the Pluntdex cards and a species' own page.
- */
 export function SpeciesPicture({ species, discovered, className, iconSize }: SpeciesPictureProps) {
   if (discovered) {
     return (
@@ -46,9 +41,7 @@ export function SpeciesPicture({ species, discovered, className, iconSize }: Spe
 }
 
 const styles = StyleSheet.create({
-  // Lateef's natural line is ~1.45× its size; type-h2's shorter line height clips the
-  // glyph on iOS, so the "?" gets its full height and no Android font padding. A style,
-  // because a leading-* class loses to type-h2.
+  // Lateef needs a taller line than type-h2's or iOS clips the "?". A style, as leading-* loses to type-h2.
   mystery: {
     lineHeight: 70,
     includeFontPadding: false,

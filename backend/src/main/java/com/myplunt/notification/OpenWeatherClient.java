@@ -6,7 +6,6 @@ import org.springframework.web.client.RestClient;
 
 import java.util.List;
 
-// OpenWeatherMap's free 5-day / 3-hour forecast.
 @Component
 public class OpenWeatherClient {
 
@@ -23,7 +22,6 @@ public class OpenWeatherClient {
         this.apiKey = apiKey;
     }
 
-    // Without a key (local dev) weather alerts are off.
     public boolean isEnabled() {
         return !apiKey.isBlank();
     }

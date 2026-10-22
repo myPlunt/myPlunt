@@ -15,10 +15,6 @@ import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logFailedUi } from '@/lib/logger';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
-/**
- * Adds a photo to a plant's growth timeline, opened from "Add" in its Growth section: the
- * photo (camera or library), the date it was taken and, when shared, an optional comment for the feed.
- */
 export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
   const router = useRouter();
   const { addPlantPhoto } = usePlantActions();
@@ -34,8 +30,6 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function close() {
-    // Nothing underneath when the app was opened straight onto this page, so go to the
-    // plant's details, which show the new photo.
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -60,8 +54,6 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
         comment: shareToFeed && comment.trim() !== '' ? comment : null,
         shareToFeed,
       });
-      // The photo is more than the tour's photo step asked for, so it moves on, to the
-      // watering step in the garden.
       if (step === 'photo') {
         next();
         router.dismissTo('/garden');
@@ -73,7 +65,6 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
       if (err instanceof ApiError && err.fieldErrors?.comment) {
         setCommentError(err.fieldErrors.comment);
       } else if (!(err instanceof ApiError && err.status === 401)) {
-        // An expired session already signed the user out (usePlantActions).
         setError(describeError(err));
       }
       setIsSubmitting(false);
@@ -113,7 +104,6 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
         />
       )}
 
-      {/* One line before the button, which shows the error, if any. */}
       <RuledLine>
         {error && (
           <Text className="type-body-medium text-error" numberOfLines={1} adjustsFontSizeToFit>
@@ -121,8 +111,7 @@ export function AddPlantPhotoScreen({ plantId }: { plantId: string }) {
           </Text>
         )}
       </RuledLine>
-      {/* A disabled button is see-through (opacity), so the paper-coloured backing keeps
-          the ruled lines from showing through it (as in the plant form). */}
+      {/* Backs the see-through disabled button, so the ruled lines don't show through it. */}
       <View className="justify-center" style={oneLine}>
         <View className="rounded-[10px] bg-background-element">
           <Button
