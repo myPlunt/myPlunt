@@ -148,6 +148,9 @@ describe('ProfileScreen', () => {
     await user.press(screen.getByRole('button', { name: 'Open friends' }));
 
     expect(push).toHaveBeenCalledWith('/friends');
+    push.mockClear();
+    await user.press(screen.getByRole('button', { name: 'Find friends' }));
+    expect(push).toHaveBeenCalledWith('/friends');
   });
 
   it("during the bio step, the menu still opens but can't lead to another page", async () => {
