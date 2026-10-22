@@ -1,0 +1,42 @@
+{
+  "cli": {
+    "version": ">= 24.11.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "environment": "development"
+    },
+    "preview": {
+      "distribution": "internal",
+      "environment": "preview"
+    },
+    "staging": {
+      "extends": "production",
+      "channel": "staging",
+      "environment": "preview",
+      "env": {
+        "APP_VARIANT": "staging"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "environment": "production"
+    }
+  },
+  "submit": {
+    "staging": {
+      "ios": {
+        "ascAppId": "6820191426"
+      }
+    },
+    "production": {
+      "ios": {
+        "ascAppId": "6820138206"
+      }
+    }
+  }
+}

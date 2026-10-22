@@ -8,7 +8,7 @@ RUN ./mvnw package -DskipTests
 
 FROM eclipse-temurin:25
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+RUN apt-get update && apt-get install -y --no-install-recommends curl wget \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080

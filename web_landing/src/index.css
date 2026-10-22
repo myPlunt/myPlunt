@@ -1,16 +1,58 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@import 'tailwindcss';
+
+/*
+ * Design (from Figma: myPlunt Landing / V2).
+ * Every color used on the site must be defined here and referenced via its
+ */
+ 
+@theme {
+  --color-*: initial;
+
+  /* Brand main colors */
+  --color-paper: #fbf8f2;
+  --color-cream: #eae4d7;
+  --color-sand: #e7dcc5;
+  --color-green: #3b5232;
+  --color-leaf: #527246;
+  --color-soil: #8d7250;
+
+  /* Neutral colors */
+  --color-ink: #4b5046;
+  --color-charcoal: #1c1f1a;
+  --color-shadow: #1f291a;
+  --color-white: #ffffff;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* Primary: headlines. Secondary: subtitles, body, UI & buttons. */
+  --font-primary: 'Lateef', Georgia, serif;
+  --font-secondary: 'DM Sans', system-ui, sans-serif;
+
+  --shadow-phone: 0 24px 48px 0 color-mix(in srgb, var(--color-shadow) 20%, transparent);
+  --shadow-card: 0 12px 32px 0 color-mix(in srgb, var(--color-shadow) 14%, transparent);
+
+  --container-page: 1440px;
 }
 
-html,
-body,
-#root {
-  height: 100%;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-cream font-secondary text-green antialiased;
+    font-variation-settings: 'opsz' 14;
+  }
 }
 
-.landing {
-  min-height: 100%;
-  background: #3b5232;
+@utility px-page {
+  padding-inline: 20px;
+
+  @variant sm {
+    padding-inline: 48px;
+  }
+
+  @variant lg {
+    padding-inline: 120px;
+  }
 }
