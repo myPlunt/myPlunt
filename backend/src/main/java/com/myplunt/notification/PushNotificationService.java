@@ -227,10 +227,10 @@ public class PushNotificationService {
     }
 
     // A friend's comment on the user's post; a tap opens the post. A comment on a question is an
-    // answer to it. Off with the user's "Friend alerts" (friend_post_notifications), like other news from friends.
+    // answer to it. Off with the user's "Likes & comments" setting (post_interactions), like the drops and replies.
     @Async
     public void sendPostComment(UUID commenterId, PostNotice post, String comment) {
-        if (!wantsFriendPostNotifications(post.ownerId())) {
+        if (!wantsPostInteractions(post.ownerId())) {
             return;
         }
         String who = username(commenterId);
@@ -254,7 +254,7 @@ public class PushNotificationService {
         String body = username(commenterId) + " replied on " + whose + (isQuestion ? "question" : post.plantName())
                 + ": " + quote(comment);
         for (UUID userId : earlierCommenters) {
-            if (!userId.equals(commenterId) && !userId.equals(post.ownerId()) && wantsFriendPostNotifications(userId)) {
+            if (!userId.equals(commenterId) && !userId.equals(post.ownerId()) && wantsPostInteractions(userId)) {
                 notify(userId, commenterId, "New reply 💬", body, POST_URL + post.postId());
             }
         }
@@ -264,7 +264,7 @@ public class PushNotificationService {
     // shortcut: watering, taking it back and watering again notifies twice; collapse repeats if friends complain.
     @Async
     public void sendPostWatered(UUID fromId, PostNotice post) {
-        if (!wantsFriendPostNotifications(post.ownerId())) {
+        if (!wantsPostInteractions(post.ownerId())) {
             return;
         }
         String what = switch (post.type()) {
@@ -328,8 +328,8 @@ public class PushNotificationService {
         return userSettingsRepository.findById(userId).map(UserSettings::isWeatherAlerts).orElse(true);
     }
 
-    private boolean wantsFriendPostNotifications(UUID userId) {
-        return userSettingsRepository.findById(userId).map(UserSettings::isFriendPostNotifications).orElse(true);
+    private boolean wantsPostInteractions(UUID userId) {
+        return userSettingsRepository.findById(userId).map(UserSettings::isPostInteractions).orElse(true);
     }
 
     // Only plants due on today's date: overdue ones already had their reminder on the day.

@@ -238,11 +238,11 @@ class PushNotificationServiceTest {
         assertThat(saved.getValue().getBody()).isEqualTo("jane liked your photo of Gus the Fern.");
     }
 
-    // "Friend alerts" off: nothing is pushed or listed.
+    // "Likes & comments" off: nothing is pushed or listed.
     @Test
-    void sendPostWatered_staysQuietWhenTheAuthorTurnedFriendAlertsOff() {
+    void sendPostWatered_staysQuietWhenTheAuthorTurnedLikesAndCommentsOff() {
         UserSettings settings = new UserSettings(USER_ID);
-        settings.setFriendPostNotifications(false);
+        settings.setPostInteractions(false);
         when(userSettingsRepository.findById(USER_ID)).thenReturn(Optional.of(settings));
 
         service().sendPostWatered(UUID.randomUUID(), new PostNotice(UUID.randomUUID(), USER_ID, Post.NEW_PLANT, "Gus", null));

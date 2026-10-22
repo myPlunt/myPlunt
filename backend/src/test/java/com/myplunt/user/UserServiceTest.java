@@ -210,7 +210,7 @@ class UserServiceTest {
     void updateNotificationSettings_createsTheRowForAUserWhoNeverSavedOne() {
         when(userSettingsRepository.findById(id)).thenReturn(Optional.empty());
         when(userSettingsRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        NotificationSettings request = new NotificationSettings(false, true, true, false, true);
+        NotificationSettings request = new NotificationSettings(false, true, true, false, false, true);
 
         NotificationSettings saved = userService().updateNotificationSettings(id, request);
 
@@ -223,7 +223,7 @@ class UserServiceTest {
     void notificationSettings_turnsEverythingOnForAUserWithoutARow() {
         when(userSettingsRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThat(userService().notificationSettings(id)).isEqualTo(new NotificationSettings(true, true, true, true, true));
+        assertThat(userService().notificationSettings(id)).isEqualTo(new NotificationSettings(true, true, true, true, true, true));
     }
 
     @Test
