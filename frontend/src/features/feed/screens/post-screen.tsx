@@ -24,6 +24,7 @@ import { noteColor, noteTilt } from '@/features/feed/note-colors';
 import { usePost } from '@/features/feed/use-post';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { ProfileMenu, ProfileMenuButton, type MenuItem } from '@/features/profile/components/profile-menu';
+import { useKeepFocusedInputVisible } from '@/hooks/use-keep-focused-input-visible';
 import { useTheme } from '@/hooks/use-theme';
 import { logAction } from '@/lib/logger';
 import type { Post } from '@/lib/post/types';
@@ -50,6 +51,7 @@ export function PostScreen({ postId }: { postId: string }) {
   const [headerTop, setHeaderTop] = useState(0);
   const [burgerBottom, setBurgerBottom] = useState(0);
   const post = edited ?? loaded;
+  const scrollRef = useKeepFocusedInputVisible();
   // Only the user and their friends can open a post; null friendship means it's the user's own.
   const isOwn = post?.author.friendship === null;
   const deleteItem: MenuItem = {
@@ -101,7 +103,10 @@ export function PostScreen({ postId }: { postId: string }) {
           </View>
 
           <ScrollView
+            ref={scrollRef}
             contentContainerClassName="w-full max-w-content grow gap-4 self-center p-6"
+            // Swiping the page or tapping blank space closes the keyboard.
+            keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
             refreshControl={
               <RefreshControl
