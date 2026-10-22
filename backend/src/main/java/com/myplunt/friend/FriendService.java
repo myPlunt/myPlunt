@@ -89,14 +89,12 @@ public class FriendService {
         auditLog.recorded(AuditEvent.FRIEND_REQUEST_CANCELLED, userId, userId, Map.of("other_user_id", receiverId));
     }
 
-    // Deleted like a declined request, so either of them can ask again later.
     @Transactional
     public void remove(UUID userId, UUID friendId) {
         friendshipRepository.delete(acceptedFriendship(userId, friendId));
         auditLog.recorded(AuditEvent.FRIEND_REMOVED, userId, userId, Map.of("other_user_id", friendId));
     }
 
-    // A friend's garden for their profile; zone is the viewer's, like GET /v1/garden.
     @Transactional(readOnly = true)
     public GardenResponse getFriendGarden(UUID userId, UUID friendId, ZoneId zone) {
         requireFriends(userId, friendId);
@@ -128,8 +126,7 @@ public class FriendService {
         return postService.getUserPosts(userId, friendId);
     }
 
-    // Only friends see each other's garden, plants, PluntDex and posts. Strangers and pending requests get the
-    // same 404 as an unknown user, so it doesn't tell them who exists.
+    // Strangers and pending requests get the same 404 as an unknown user, so it doesn't tell them who exists.
     private void requireFriends(UUID userId, UUID otherId) {
         acceptedFriendship(userId, otherId);
     }

@@ -7,7 +7,6 @@ import { useAuthStore } from '@/stores/auth-store';
 
 import * as friendsService from './friends-service';
 
-/** The signed-in user's friends and pending requests, for the Friends screen's tabs. */
 export function useFriends() {
   const { setUnauthenticated } = useAuthStore();
   const [friends, setFriends] = useState<UserSummary[] | null>(null);
@@ -15,7 +14,6 @@ export function useFriends() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) => {
       // Together, so accepting a request moves the person from one list to the other in one go.
@@ -28,7 +26,6 @@ export function useFriends() {
         })
         .catch((err) => {
           if (isCancelled()) return;
-          // apiFetch already tried a refresh; a 401 here means the session is gone.
           if (err instanceof ApiError && err.status === 401) {
             setUnauthenticated();
             return;
@@ -42,7 +39,6 @@ export function useFriends() {
     [setUnauthenticated],
   );
 
-  // Loads on focus, so answering a request on someone's profile shows here on the way back.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -63,7 +59,6 @@ export function useFriends() {
       setIsLoading(true);
       load(() => false);
     },
-    /** Loads again behind the current lists, without the spinner, e.g. after answering a request. */
     reload() {
       load(() => false);
     },

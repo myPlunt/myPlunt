@@ -5,7 +5,6 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-// city is null when the phone couldn't name the place the coordinates are in.
 public record UpdateLocationRequest(
         @NotNull(message = "Latitude must not be blank.")
                 @DecimalMin(value = "-90", message = "Latitude must be between -90 and 90.")

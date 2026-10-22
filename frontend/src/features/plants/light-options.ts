@@ -2,7 +2,6 @@ import type { SymbolViewProps } from 'expo-symbols';
 
 import type { Light } from '@/lib/plant/types';
 
-/** Every light level with its label and icon, in order from brightest to darkest. */
 export const lightOptions: { value: Light; label: string; icon: SymbolViewProps['name'] }[] = [
   { value: 'full_sun', label: 'Full sun', icon: { ios: 'sun.max.fill', android: 'wb_sunny', web: 'wb_sunny' } },
   {

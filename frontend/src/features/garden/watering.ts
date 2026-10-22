@@ -4,12 +4,10 @@ import type { Garden, GardenPlant, Room } from '@/lib/garden/types';
 export type WateringTone = 'later' | 'soon' | 'tomorrow' | 'due';
 
 export interface WateringStatus {
-  /** Short, for the status pill on a plant card: "In 5 days", "Tomorrow", "Overdue". */
   label: string;
   tone: WateringTone;
 }
 
-/** What the watering status needs: a garden plant or a plant's details. */
 type WateringSchedule = Pick<GardenPlant, 'nextWateringAt' | 'lastWateredAt'>;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -18,10 +16,7 @@ function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 }
 
-/**
- * Calendar days from today until the plant is due, in the device's time zone, so
- * "Today" flips at the user's own midnight. Negative when overdue.
- */
+/** Calendar days until it's due, in the device's time zone; negative when overdue. */
 export function daysUntilWatering(plant: WateringSchedule, now: Date): number {
   // Rounded because a day across a daylight-saving change is 23 or 25 hours long.
   return Math.round((startOfDay(new Date(plant.nextWateringAt)) - startOfDay(now)) / DAY_MS);
@@ -29,8 +24,7 @@ export function daysUntilWatering(plant: WateringSchedule, now: Date): number {
 
 export function wateringStatus(plant: WateringSchedule, now: Date): WateringStatus {
   const days = daysUntilWatering(plant, now);
-  // A plant watered today is cared for, so it stays calm even on a 1- or 2-day schedule,
-  // where the countdown would otherwise restart at an urgent "Tomorrow" or "In 2 days".
+  // Watered today stays calm, even on a 1- or 2-day schedule that would restart at an urgent "Tomorrow".
   const wateredToday = plant.lastWateredAt !== null && lastWateredLabel(plant.lastWateredAt, now) === 'Today';
   if (days < 0) return { label: 'Overdue', tone: 'due' };
   if (days === 0) return { label: 'Today', tone: 'due' };
@@ -39,23 +33,18 @@ export function wateringStatus(plant: WateringSchedule, now: Date): WateringStat
   return { label: `In ${days} days`, tone: 'later' };
 }
 
-/**
- * Soonest due first (the most overdue at the very start). Plants due on the same day go
- * by name, so the order never changes on reload.
- */
+/** Soonest due first; ties go by name, so the order never changes on reload. */
 export function sortByNextWatering(plants: GardenPlant[], now: Date): GardenPlant[] {
   const days = (plant: GardenPlant) => daysUntilWatering(plant, now);
   return [...plants].sort((a, b) => days(a) - days(b) || a.name.localeCompare(b.name));
 }
 
-/** Plants due today or overdue, in garden order. */
 export function plantsNeedingWater(garden: Garden, now: Date): GardenPlant[] {
   return garden.rooms
     .flatMap((room) => room.plants)
     .filter((plant) => daysUntilWatering(plant, now) <= 0);
 }
 
-/** "Today", "Yesterday", "3 days ago", in the device's time zone; "Not yet" when never watered. */
 export function lastWateredLabel(lastWateredAt: string | null, now: Date): string {
   if (!lastWateredAt) return 'Not yet';
   const days = Math.round((startOfDay(now) - startOfDay(new Date(lastWateredAt))) / DAY_MS);
@@ -68,14 +57,12 @@ function plural(count: number, word: string) {
   return `${count} ${count === 1 ? word : `${word}s`}`;
 }
 
-/** "3 plants · 1 needs water", or just "3 plants" when none are due. */
 export function roomSummary(room: Room, now: Date): string {
   const plants = plural(room.plants.length, 'plant');
   const due = plantsNeedingWater({ rooms: [room] }, now).length;
   return due === 0 ? plants : `${plants} · ${due} ${due === 1 ? 'needs' : 'need'} water`;
 }
 
-/** "Pinky", "Pinky and Basil", "Pinky, Basil and Minty", "Pinky, Basil and 2 more". */
 export function listPlantNames(plants: GardenPlant[]): string {
   const names = plants.map((plant) => plant.name);
   if (names.length <= 1) return names.join('');

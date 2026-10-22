@@ -12,9 +12,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
 
-// Access tokens for the admin dashboard. Signed with their own secret (not app.jwt.secret) and
-// checked for their own audience, so an app user's token can never pass as an admin's, even if
-// both secrets were set to the same value by mistake.
+// Own secret and audience, so an app user's token never passes as an admin's, even if both secrets match.
 @Service
 public class AdminJwtService {
 

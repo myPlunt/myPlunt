@@ -20,11 +20,6 @@ interface PhotoMenuProps {
   onPickRecent: (photo: LibraryPhoto) => void;
 }
 
-/**
- * Popup for adding a photo, like a camera roll: a dark camera tile first, then the
- * user's most recent photos, and the system picker for anything older. Without library
- * access (refused, or Expo Go on Android) it still offers the camera and the picker.
- */
 export function PhotoMenu({ visible, onClose, onDismiss, onTakePhoto, onSeeAllPhotos, onPickRecent }: PhotoMenuProps) {
   const theme = useTheme();
   const recent = useRecentPhotos(visible, RECENT_COUNT);
@@ -38,7 +33,6 @@ export function PhotoMenu({ visible, onClose, onDismiss, onTakePhoto, onSeeAllPh
           onPress={onClose}
           className="absolute inset-0 bg-text opacity-40"
         />
-        {/* Shadow tokens set both iOS shadow* and Android elevation. */}
         <View className="w-full max-w-[360px] gap-3 rounded-2xl bg-background-element p-4" style={Shadow.card}>
           <Text className="type-subtitle-small text-text">Add a photo</Text>
 
@@ -49,7 +43,6 @@ export function PhotoMenu({ visible, onClose, onDismiss, onTakePhoto, onSeeAllPh
                 accessibilityLabel="Take a photo"
                 onPress={onTakePhoto}
                 className="flex-1 items-center justify-center rounded-md bg-text active:opacity-70">
-                {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
                 <SymbolView
                   name={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }}
                   tintColor={theme.backgroundElement}
@@ -60,7 +53,6 @@ export function PhotoMenu({ visible, onClose, onDismiss, onTakePhoto, onSeeAllPh
             {recent.status === 'loading' && (
               <Tile>
                 <View className="flex-1 items-center justify-center">
-                  {/* A colour prop, so it reads the theme instead of a class. */}
                   <ActivityIndicator accessibilityLabel="Loading recent photos" color={theme.primary} />
                 </View>
               </Tile>
@@ -90,7 +82,6 @@ export function PhotoMenu({ visible, onClose, onDismiss, onTakePhoto, onSeeAllPh
             accessibilityLabel="See all photos"
             onPress={onSeeAllPhotos}
             className="flex-row items-center gap-3 py-1 active:opacity-70">
-            {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
             <SymbolView
               name={{ ios: 'photo.on.rectangle', android: 'photo_library', web: 'photo_library' }}
               tintColor={theme.primary}
@@ -111,7 +102,6 @@ export function PhotoMenu({ visible, onClose, onDismiss, onTakePhoto, onSeeAllPh
   );
 }
 
-/** One square cell of the 3-column grid. */
 function Tile({ children }: { children: ReactNode }) {
   return <View className="aspect-square w-1/3 p-0.5">{children}</View>;
 }

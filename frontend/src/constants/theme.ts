@@ -2,9 +2,8 @@ import { lightColors } from './tokens';
 
 export { brand, Fonts, MaxContentWidth, Typography } from './tokens';
 
-// Styling is done with NativeWind classes (see tailwind.config.ts). These runtime
-// values are for the few props that can't take a class: tintColor, color on
-// ActivityIndicator, placeholderTextColor, navigation options.
+// For the few props that can't take a NativeWind class: tintColor, placeholderTextColor,
+// ActivityIndicator's color and navigation options.
 export const Colors = {
   light: lightColors,
   dark: lightColors,
@@ -12,11 +11,8 @@ export const Colors = {
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
-// From the design study's "Shadow/Level 2" effect (two drop shadows layered;
-// RN only supports one per View, so this uses the subtler of the two layers —
-// the stronger one read as too heavy/distracting on screen.
-// Kept as a style object because it must set both iOS shadow* and Android
-// elevation; pass it through `style` next to className.
+// Style objects, not classes: they must set both iOS shadow* and Android elevation. RN draws one
+// shadow per View, so level2 uses the subtler of the design's two layers.
 export const Shadow = {
   level2: {
     shadowColor: '#1F2E1B',
@@ -25,8 +21,6 @@ export const Shadow = {
     shadowRadius: 2,
     elevation: 1,
   },
-  // For cards (e.g. the forms on Edit profile and Settings): softer and wider than
-  // level2 so a large surface lifts off the background without a hard edge.
   card: {
     shadowColor: '#1F2E1B',
     shadowOffset: { width: 0, height: 4 },

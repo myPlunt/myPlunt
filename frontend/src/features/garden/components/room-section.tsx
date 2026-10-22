@@ -12,21 +12,15 @@ import { PlantCard } from './plant-card';
 interface RoomSectionProps {
   room: Room;
   now: Date;
-  /** Set while the user picks plants to water; the cards then toggle instead of opening. */
   selection?: {
     selectedIds: ReadonlySet<string>;
     onToggle: (plantId: string) => void;
-    /** Selects (or, with false, deselects) all of the given plants at once. */
     onSelectMany: (plantIds: string[], selected: boolean) => void;
   };
-  /** Opens the rename/delete dialog. Left out for "Other plants", which isn't a planter. */
   onEdit?: () => void;
-  /** Set for a friend's room: the plant cards open their plants read-only. */
   ownerId?: string;
 }
 
-// One room of the garden: its name and a sideways-scrolling row of plant cards,
-// the one due soonest first.
 export function RoomSection({ room, now, selection, onEdit, ownerId }: RoomSectionProps) {
   const theme = useTheme();
   const { isOffline, explainOffline } = useNetworkStore();
@@ -51,7 +45,6 @@ export function RoomSection({ room, now, selection, onEdit, ownerId }: RoomSecti
                   onPress={isOffline ? () => explainOffline('Editing planters') : onEdit}
                   hitSlop={8}
                   className={`h-6 w-6 items-center justify-center active:opacity-70 ${isOffline ? 'opacity-40' : ''}`}>
-                  {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
                   <SymbolView
                     name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
                     tintColor={theme.textSecondary}
@@ -80,9 +73,7 @@ export function RoomSection({ room, now, selection, onEdit, ownerId }: RoomSecti
       {room.plants.length === 0 ? (
         <Text className="type-body-medium text-text-secondary">No plants in this room yet.</Text>
       ) : (
-        // Bleeds to the screen edges (the -mx-6 undoes the screen's px-6) so cards scroll
-        // off the side; the content padding keeps the first card in line with the title.
-        // py-3 leaves room for the cards' shadow, which a ScrollView would clip.
+        // -mx-6 bleeds to the screen edges; py-3 leaves room for the cards' shadow, which a ScrollView clips.
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -109,13 +100,8 @@ export function RoomSection({ room, now, selection, onEdit, ownerId }: RoomSecti
 }
 
 const styles = StyleSheet.create({
-  // Lateef has very tall ascent/descent metrics (room for Arabic marks). Any
-  // lineHeight shorter than the font's natural height (26px * 2961/2048 ≈ 38)
-  // gets clipped from the bottom on iOS, which shifts the glyphs up. Using the
-  // natural height keeps the capitals centred in the box, and dropping Android's
-  // extra font padding does the same there. This is a style, not classes: a
-  // leading-* class loses to type-h5's own line height (plugin utilities come
-  // later in the CSS), and the two Android props have no Tailwind class.
+  // Lateef's tall metrics get clipped on iOS by any lineHeight under its natural ~38px, and Android
+  // needs its font padding off. A style, because a leading-* class loses to type-h5's line height.
   title: {
     lineHeight: 38,
     includeFontPadding: false,

@@ -10,15 +10,11 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
-  /** Shows a spinner on the confirm button and stops the dialog from being dismissed. */
   loading?: boolean;
   error?: string | null;
 }
 
-/**
- * Asks before a destructive action. Our own popup rather than Alert.alert, so it looks
- * the same on iOS and Android and can show a spinner and an error while the action runs.
- */
+/** Our own popup, not Alert.alert, so it can show a spinner and an error while the action runs. */
 export function ConfirmDialog({
   visible,
   title,
@@ -34,7 +30,6 @@ export function ConfirmDialog({
   }
 
   return (
-    // onRequestClose is Android's back button.
     <Modal visible={visible} transparent animationType="fade" onRequestClose={cancel}>
       <View className="flex-1 items-center justify-center px-6">
         <Pressable
@@ -43,7 +38,6 @@ export function ConfirmDialog({
           onPress={cancel}
           className="absolute inset-0 bg-text opacity-40"
         />
-        {/* Shadow tokens set both iOS shadow* and Android elevation. */}
         <View className="w-full max-w-[360px] gap-3 rounded-2xl bg-background-element p-5" style={Shadow.card}>
           <Text accessibilityRole="header" className="type-subtitle-large text-text">
             {title}

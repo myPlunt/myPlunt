@@ -3,7 +3,6 @@ import { Pressable, Text, View } from 'react-native';
 export interface TabItem<T extends string> {
   value: T;
   label: string;
-  /** Shown as a count badge when above 0 (e.g. requests waiting for an answer). */
   badge?: number;
 }
 
@@ -13,7 +12,6 @@ interface TabsProps<T extends string> {
   onChange: (value: T) => void;
 }
 
-/** A row of equal-width tabs, the open one underlined in green. */
 export function Tabs<T extends string>({ tabs, value, onChange }: TabsProps<T>) {
   return (
     <View accessibilityRole="tablist" className="flex-row border-b border-border">

@@ -65,16 +65,13 @@ public class UserService {
         this.auditLog = auditLog;
     }
 
-    // Maps the principal JwtAuthFilter already loaded, so read-only endpoints like
-    // /me don't query the same row twice. Endpoints that modify the user load it
-    // fresh instead of reusing the principal (see updateProfile, changeEmail).
+    // Maps the already-loaded principal; endpoints that change the user load it fresh instead.
     public UserResponse toResponse(User user) {
         return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), user.getBio(), avatarUrl(user),
                 user.getOnboardingCompletedAt() != null);
     }
 
-    // Other users whose username contains the query, best matches first (see UserRepository.search),
-    // never the searcher themselves. Usernames are at most 30 characters, so a longer query can't match anyone.
+    // Usernames are at most 30 characters, so a longer query can't match anyone.
     @Transactional(readOnly = true)
     public List<UserSummaryResponse> search(UUID searcherId, String query) {
         String q = query.strip();
@@ -87,7 +84,6 @@ public class UserService {
         if (users.isEmpty()) {
             return List.of();
         }
-        // Keyed by the other user; the pair index allows at most one row per pair.
         Map<UUID, Friendship> friendships = friendshipRepository
                 .findBetween(searcherId, users.stream().map(User::getId).toList())
                 .stream()
@@ -110,7 +106,6 @@ public class UserService {
         return toSummary(user, friendship(friendship, viewerId));
     }
 
-    // friendship is one of UserSummaryResponse's values, already worked out by the caller.
     public UserSummaryResponse toSummary(User user, String friendship) {
         return new UserSummaryResponse(user.getId(), user.getUsername(), user.getBio(), avatarUrl(user), friendship);
     }
@@ -188,15 +183,12 @@ public class UserService {
         return toResponse(saved);
     }
 
-    // The photo is already in storage (uploaded straight from the app); this confirms it and
-    // makes it the profile picture. The previous picture's file is deleted.
     @Transactional
     public UserResponse updateAvatar(UUID userId, UpdateAvatarRequest request) {
         User user = loadUser(userId);
         if (!storageService.isCategory(request.key(), PhotoCategory.AVATAR)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "That photo can't be used as a profile picture.");
         }
-        // Checks the key is the user's own and within the size limit.
         storageService.confirmUpload(userId, request.key());
 
         String oldKey = user.getAvatarKey();
@@ -257,7 +249,6 @@ public class UserService {
         return saved;
     }
 
-    // Accounts that never saved a setting have no row yet; they get the defaults, and the first save creates it.
     private UserSettings loadSettings(UUID userId) {
         return userSettingsRepository.findById(userId).orElseGet(() -> new UserSettings(userId));
     }
@@ -282,11 +273,10 @@ public class UserService {
         deleteAvatarFile(userId, oldKey);
     }
 
-    // Flushed first so the user no longer points at the file before it's gone; a failed
-    // save then leaves the file in place. Same as PlantService.delete.
+    // Flushed so the user no longer points at the file before it's gone.
     private void deleteAvatarFile(UUID userId, String key) {
         userRepository.flush();
-        // The user already has their new picture (or none), so a leftover file only costs storage.
+        // A leftover file only costs storage.
         try {
             storageService.deleteObject(key);
         } catch (RuntimeException e) {

@@ -37,8 +37,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         this.userRepository = userRepository;
     }
 
-    // Admin requests carry admin tokens, checked by AdminJwtAuthFilter; this one would only
-    // report them as invalid.
+    // Admin routes carry admin tokens (AdminJwtAuthFilter); this filter would only reject them.
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return request.getRequestURI().startsWith(ApiPaths.Admin.BASE + "/");
@@ -56,10 +55,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 UUID userId = jwtService.parseAndValidate(header.substring(7));
                 userRepository.findById(userId).ifPresent(this::authenticate);
             } catch (ExpiredJwtException ignored) {
-                // Normal every 15 minutes: the app refreshes and retries. Spring Security's
-                // authorization rules decide what happens to this request.
+                // Normal every 15 minutes (the app refreshes), so not worth a warning.
             } catch (JwtException | IllegalArgumentException e) {
-                // A token we didn't sign, or a mangled one: worth knowing about, never logged itself.
+                // Not ours or mangled: worth a warning, but the token itself is never logged.
                 StructuredLog.warning(log, LogEvent.INVALID_TOKEN, Map.of(
                         "reason", e.getClass().getSimpleName(),
                         "method", request.getMethod(),

@@ -9,8 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface PlantPhotoRepository extends JpaRepository<PlantPhoto, UUID> {
-    // A plant's current photo is its newest one; older ones stay for the feed. One row per
-    // plant that has a photo (two if two share the newest time); plants without one are absent.
+    // A plant's newest photo; two rows if two share the newest time.
     @Query("""
             select new com.myplunt.plant.LatestPhoto(p.plant.id, p.photoKey)
             from PlantPhoto p
@@ -19,13 +18,10 @@ public interface PlantPhotoRepository extends JpaRepository<PlantPhoto, UUID> {
             """)
     List<LatestPhoto> findLatestPhotos(Collection<UUID> plantIds);
 
-    // A photo of this plant only, so a photo id from another plant answers "not found".
     Optional<PlantPhoto> findByIdAndPlantId(UUID id, UUID plantId);
 
-    // The growth timeline, oldest first.
     List<PlantPhoto> findByPlantIdOrderByTakenAtAsc(UUID plantId);
 
-    // Every photo the plant ever had, so they can be removed from storage along with it.
     @Query("select p.photoKey from PlantPhoto p where p.plant.id = :plantId")
     List<String> findPhotoKeysByPlantId(UUID plantId);
 }

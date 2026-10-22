@@ -8,8 +8,6 @@ import { useOnboardingActions } from '@/features/onboarding/use-onboarding-actio
 import { useTourBack } from '@/features/onboarding/use-tour-back';
 import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 
-// The tour's last page, shown in place of the tabs after its last step (a skipped tour ends
-// without it). Its button ends the tour and brings the tabs back on the feed.
 export function TourDoneScreen() {
   const router = useRouter();
   const { endTour } = useOnboardingActions();

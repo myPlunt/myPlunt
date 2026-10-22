@@ -9,12 +9,10 @@ import { useAuthStore } from '@/stores/auth-store';
 type Answer = 'accepted' | 'declined';
 
 interface FriendRequestActionsProps {
-  /** The person who sent the request. */
   userId: string;
   onAnswered: (answer: Answer) => void;
 }
 
-/** Accept / Decline for a received friend request, on the Requests tab and on the sender's profile. */
 export function FriendRequestActions({ userId, onAnswered }: FriendRequestActionsProps) {
   const { setUnauthenticated } = useAuthStore();
   const [answering, setAnswering] = useState<Answer | null>(null);
@@ -29,7 +27,6 @@ export function FriendRequestActions({ userId, onAnswered }: FriendRequestAction
       onAnswered(choice);
     } catch (err) {
       setAnswering(null);
-      // apiFetch already tried a refresh; a 401 here means the session is gone.
       if (err instanceof ApiError && err.status === 401) {
         setUnauthenticated();
         return;

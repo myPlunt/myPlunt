@@ -9,7 +9,6 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
-// The device the lines come from, once per batch, and the lines themselves.
 public record ClientLogBatch(
         @NotBlank(message = "Platform must not be blank.")
         @Pattern(regexp = "ios|android|web", message = "Platform must be ios, android or web.") String platform,

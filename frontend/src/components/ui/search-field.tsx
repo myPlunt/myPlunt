@@ -6,13 +6,11 @@ import { useTheme } from '@/hooks/use-theme';
 interface SearchFieldProps {
   value: string;
   onChangeText: (text: string) => void;
-  /** Read out for the field, e.g. "Search people". */
   accessibilityLabel: string;
   placeholder: string;
   autoCapitalize?: 'none' | 'words';
 }
 
-/** A rounded search box with a magnifier, and a ✕ that clears it once something is typed. */
 export function SearchField({
   value,
   onChangeText,
@@ -24,7 +22,6 @@ export function SearchField({
 
   return (
     <View className="h-11 flex-row items-center gap-2 rounded-full border-[1.5px] border-input-border bg-background-element px-4">
-      {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
       <SymbolView
         name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
         tintColor={theme.textSecondary}
@@ -35,7 +32,6 @@ export function SearchField({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        // A colour prop, not a style, so it can't take a class.
         placeholderTextColor={theme.placeholder}
         autoCorrect={false}
         autoCapitalize={autoCapitalize}

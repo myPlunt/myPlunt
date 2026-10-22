@@ -9,17 +9,12 @@ interface OnboardingCardProps {
   step: TourStep;
   title: string;
   body: string;
-  /** Left out when the user acts on the highlighted control itself (e.g. tapping the avatar). */
   actionLabel?: string;
   onAction?: () => void;
-  /** Runs after "Not now" moves the tour on, e.g. to open the next step's screen. */
   onSkip?: () => void;
-  /** Off for a step that only shows something, where the action ("Got it") already moves on. */
   showNotNow?: boolean;
 }
 
-// The tour's coach card. The screen places it (usually pinned to the bottom) and
-// highlights the control the card talks about.
 export function OnboardingCard({ step, title, body, actionLabel, onAction, onSkip, showNotNow = true }: OnboardingCardProps) {
   const { next, finish } = useOnboardingStore();
   const index = ONBOARDING_STEPS.indexOf(step);
@@ -53,7 +48,6 @@ export function OnboardingCard({ step, title, body, actionLabel, onAction, onSki
       </View>
 
       <View className="flex-row items-center gap-2">
-        {/* Back on the left, away from the buttons that move the tour on. */}
         {goBack && (
           <Pressable
             accessibilityRole="button"

@@ -1,9 +1,7 @@
 import type { Post } from '@/lib/post/types';
 
 export interface FeedDay {
-  /** "Today", "Yesterday", "This week", "2 weeks ago", "3 months ago", "1 year ago"... */
   label: string;
-  /** Newest first, the way they're read down the vine. */
   posts: Post[];
 }
 
@@ -13,7 +11,6 @@ function plural(count: number, unit: string) {
   return `${count} ${unit}${count === 1 ? '' : 's'} ago`;
 }
 
-/** How long ago a post was, in calendar days in the device's time zone, as the feed's mark. */
 export function ageLabel(date: Date, now: Date) {
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   // Rounded, so a daylight-saving change (a 23- or 25-hour day) still counts as one day.
@@ -27,10 +24,6 @@ export function ageLabel(date: Date, now: Date) {
   return plural(Math.floor(days / 365), 'year');
 }
 
-/**
- * Groups the feed (newest first, as the backend sends it) by how long ago each post was,
- * newest group first. Today is always there, even without posts, because it heads the vine.
- */
 export function groupByAge(posts: Post[], now: Date): FeedDay[] {
   const groups: FeedDay[] = [{ label: 'Today', posts: [] }];
   for (const post of posts) {

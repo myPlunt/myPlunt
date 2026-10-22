@@ -62,7 +62,6 @@ export function NotificationSettingsCard() {
         </View>
       )}
       {isLoading ? (
-        // Colour props (spinner) read the theme instead of a class.
         <ActivityIndicator accessibilityLabel="Loading notification settings" color={theme.primary} />
       ) : (
         settings &&
@@ -86,8 +85,7 @@ export function NotificationSettingsCard() {
   );
 }
 
-// Our own toggle instead of the native Switch, which looks different on each platform (Liquid Glass on
-// iOS). On is a light Fern track with a Hunter Green border and knob; the knob slides and the colours fade.
+// Our own toggle: the native Switch looks different on each platform (Liquid Glass on iOS).
 function Toggle({
   label,
   checked,
@@ -113,7 +111,6 @@ function Toggle({
       onPress={() => onChange(!checked)}
       hitSlop={8}
       className="active:opacity-70">
-      {/* Animated values go through style; colour props read the theme instead of a class. */}
       <Animated.View
         className="h-6 w-10 justify-center rounded-full border-[1.5px] px-1"
         style={{

@@ -81,7 +81,6 @@ function renderForm(props: Partial<ComponentProps<typeof PlantForm>> = {}) {
   );
 }
 
-/** Fills in step 1 with just a name and moves on to step 2. */
 async function nameAndContinue(name = 'Vera') {
   await user.type(screen.getByLabelText('Name'), name);
   await user.press(screen.getByRole('button', { name: 'Next' }));

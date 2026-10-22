@@ -11,8 +11,7 @@ import { useReloadOnReconnect } from '@/stores/network-store';
 
 import * as gardenService from './garden-service';
 
-// The backend always sends a date the watering pill can count down to. Without one the pill
-// reads "In NaN days", so it's a bug on one side or the other.
+// The backend always sends a date; without one the pill would read "In NaN days".
 function reportUnusableWateringDates(garden: Garden) {
   const plantIds = garden.rooms
     .flatMap((room) => room.plants)
@@ -25,24 +24,20 @@ function reportUnusableWateringDates(garden: Garden) {
   }
 }
 
-/** The signed-in user's garden, or with userId a friend's, for their profile. */
 export function useGarden(userId?: string) {
   const { setUnauthenticated } = useAuthStore();
   const [garden, setGarden] = useState<Garden | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) => {
-      // Only the user's own garden is kept for offline: a friend's page needs the connection
-      // for their profile before it ever shows their garden.
+      // Only the user's own garden is kept for offline: a friend's needs their profile, which needs the connection.
       const request: Promise<{ data: Garden; savedAt: string | null }> = userId
         ? gardenService.getGarden(userId).then((data) => ({ data, savedAt: null }))
         : cachedFetch('garden', () => gardenService.getGarden());
       return request
         .then((result) => {
-          // Fresh from the server, so its plants' pages are brought up to date for offline too.
           if (!userId && result.savedAt === null) savePlantPagesForOffline(result.data).catch(() => {});
           if (isCancelled()) return;
           // A saved copy was already checked when it was fresh.
@@ -52,7 +47,6 @@ export function useGarden(userId?: string) {
         })
         .catch((err) => {
           if (isCancelled()) return;
-          // apiFetch already tried a refresh; a 401 here means the session is gone.
           if (err instanceof ApiError && err.status === 401) {
             setUnauthenticated();
             return;
@@ -66,8 +60,6 @@ export function useGarden(userId?: string) {
     [userId, setUnauthenticated],
   );
 
-  // Loads on focus, not just on mount, so the watering status is fresh whenever
-  // the user comes back to the garden. useFocusEffect needs a memoized callback.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -77,7 +69,6 @@ export function useGarden(userId?: string) {
       };
     }, [load]),
   );
-  // And when the connection comes back, so the screen catches up by itself.
   useReloadOnReconnect(() => load(() => false));
 
   return {
@@ -89,7 +80,6 @@ export function useGarden(userId?: string) {
       setIsLoading(true);
       load(() => false);
     },
-    /** Reloads without the loading state, so the garden stays on screen (e.g. after watering). */
     refresh() {
       return load(() => false);
     },

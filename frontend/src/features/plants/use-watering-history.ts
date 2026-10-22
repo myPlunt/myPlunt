@@ -8,14 +8,12 @@ import { useReloadOnReconnect } from '@/stores/network-store';
 
 import { cachedWateringHistory } from './offline-pages';
 
-/** Every watering of one plant, for its watering history screen. */
 export function useWateringHistory(plantId: string) {
   const { setUnauthenticated } = useAuthStore();
   const [history, setHistory] = useState<WateringHistory | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) => {
       cachedWateringHistory(plantId)
@@ -26,7 +24,6 @@ export function useWateringHistory(plantId: string) {
         })
         .catch((err) => {
           if (isCancelled()) return;
-          // apiFetch already tried a refresh; a 401 here means the session is gone.
           if (err instanceof ApiError && err.status === 401) {
             setUnauthenticated();
             return;
@@ -40,8 +37,6 @@ export function useWateringHistory(plantId: string) {
     [plantId, setUnauthenticated],
   );
 
-  // Loads on focus, not just on mount, so a watering logged in the garden in the meantime
-  // shows up. useFocusEffect needs a memoized callback.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -51,7 +46,6 @@ export function useWateringHistory(plantId: string) {
       };
     }, [load]),
   );
-  // And when the connection comes back, so the screen catches up by itself.
   useReloadOnReconnect(() => load(() => false));
 
   return {

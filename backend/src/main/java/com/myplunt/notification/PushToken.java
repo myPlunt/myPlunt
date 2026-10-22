@@ -8,7 +8,6 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-// The Expo push token of one of the user's phones (ExponentPushToken[...]), with its time zone.
 @Entity
 @Table(name = "push_tokens")
 public class PushToken {

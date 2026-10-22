@@ -11,10 +11,6 @@ import { lateLabel } from '@/features/plants/watering-history';
 import { useTheme } from '@/hooks/use-theme';
 import type { Watering, WateringHistory } from '@/lib/plant/types';
 
-/**
- * Every watering of one plant, opened from its details: the current and best streak, how
- * often it was watered on time, and each watering marked on time or late.
- */
 export function WateringHistoryScreen({ plantId }: { plantId: string }) {
   const theme = useTheme();
   const { history, error, isLoading, retry } = useWateringHistory(plantId);
@@ -26,7 +22,6 @@ export function WateringHistoryScreen({ plantId }: { plantId: string }) {
 
         <ScrollView contentContainerClassName="w-full max-w-content grow gap-6 self-center px-6 pb-8 pt-2">
           {isLoading ? (
-            // A colour prop, so it reads the theme instead of a class.
             <ActivityIndicator accessibilityLabel="Loading waterings" color={theme.primary} className="mt-6" />
           ) : error ? (
             <View className="items-center gap-3">
@@ -43,7 +38,6 @@ export function WateringHistoryScreen({ plantId }: { plantId: string }) {
 }
 
 function WateringHistoryContent({ history }: { history: WateringHistory }) {
-  // Taken per render, so "Today" moves on past midnight.
   const now = new Date();
   const days = history.wateringFrequencyDays;
 
@@ -56,7 +50,6 @@ function WateringHistoryContent({ history }: { history: WateringHistory }) {
         <Text className="type-subtitle-large text-text-secondary">{history.plantName}</Text>
       </View>
 
-      {/* Shadow goes through style so it sets both iOS shadow* and Android elevation. */}
       <View
         className="gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4"
         style={Shadow.card}>
@@ -118,7 +111,6 @@ function WateringRow({ watering, now }: { watering: Watering; now: Date }) {
       accessible
       accessibilityLabel={`Watered ${when.toLowerCase()}, ${date}, ${lateLabel(watering.daysLate).toLowerCase()}`}
       className="flex-row items-center gap-3">
-      {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
       <SymbolView
         name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
         tintColor={theme.water}
@@ -128,7 +120,6 @@ function WateringRow({ watering, now }: { watering: Watering; now: Date }) {
         <Text className="type-body-large text-text">{when}</Text>
         <Text className="type-caption text-text-secondary">{date}</Text>
       </View>
-      {/* Tints are the tone colour at low opacity, like the watering pill, so no new palette colours. */}
       <View className={`rounded-full px-2.5 py-1 ${isLate ? 'bg-error/15' : 'bg-primary/15'}`}>
         <Text className={`type-body-medium ${isLate ? 'text-error' : 'text-primary'}`}>
           {lateLabel(watering.daysLate)}
@@ -139,9 +130,7 @@ function WateringRow({ watering, now }: { watering: Watering; now: Date }) {
 }
 
 const styles = StyleSheet.create({
-  // Lateef's natural line is ~1.45× its size; a shorter line height clips the bottom of
-  // the glyphs on iOS. Android's extra font padding is dropped so both platforms place it
-  // the same. Styles, because a leading-* class loses to type-*.
+  // Lateef needs a taller line or iOS clips its glyphs. Styles, as a leading-* class loses to type-*.
   title: {
     lineHeight: 58,
     includeFontPadding: false,

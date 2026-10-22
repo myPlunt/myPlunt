@@ -19,10 +19,8 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.UUID;
 
-// Admin sign-in. Every failure answers the same "Invalid credentials", whether the email is
-// unknown, the password wrong or the account locked, so the endpoint can't be used to find out
-// which admin emails exist. Not @Transactional: a failed attempt must stay counted when the
-// request ends in an error. Nothing the admin app does is logged (see CLAUDE.md).
+// Every failure answers "Invalid credentials", so the endpoint can't reveal which emails exist.
+// Not @Transactional: a failed attempt must stay counted when the request ends in an error.
 @Service
 public class AdminAuthService {
 

@@ -172,7 +172,6 @@ class PushNotificationServiceTest {
         verify(notificationRepository).save(any(Notification.class));
     }
 
-    // Without a phone there's nothing to push, but the request still shows up in their list.
     @Test
     void sendFriendRequest_listsTheRequestForAReceiverWithoutPush() {
         UUID janeId = UUID.randomUUID();
@@ -190,7 +189,6 @@ class PushNotificationServiceTest {
         verify(expoPushClient, never()).send(anyList());
     }
 
-    // A comment on a question is an answer to it.
     @Test
     void sendPostComment_tellsTheAuthorTheirQuestionWasAnsweredAndOpensIt() {
         UUID janeId = UUID.randomUUID();
@@ -209,7 +207,6 @@ class PushNotificationServiceTest {
         assertThat(saved.getValue().getFromUserId()).isEqualTo(janeId);
     }
 
-    // The author answering under their own post reaches the friend who commented, not themselves.
     @Test
     void sendCommentReply_tellsEarlierCommentersButNotTheCommenter() {
         UUID janeId = UUID.randomUUID();
@@ -238,7 +235,6 @@ class PushNotificationServiceTest {
         assertThat(saved.getValue().getBody()).isEqualTo("jane liked your photo of Gus the Fern.");
     }
 
-    // "Likes & comments" off: nothing is pushed or listed.
     @Test
     void sendPostWatered_staysQuietWhenTheAuthorTurnedLikesAndCommentsOff() {
         UserSettings settings = new UserSettings(USER_ID);
@@ -251,7 +247,6 @@ class PushNotificationServiceTest {
         verify(expoPushClient, never()).send(anyList());
     }
 
-    // A friend request shows who sent it; a reminder is from the app, so it has no sender.
     @Test
     void getInbox_addsTheSendersPictureToTheirNotifications() {
         User jane = new User("jane", "jane@example.com", "hashed");

@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-// A room or spot in the user's garden (Balcony, Kitchen windowsill...).
+// What the app calls a room (Balcony, Kitchen windowsill...).
 @Entity
 @Table(name = "planters")
 public class Planter {
@@ -24,7 +24,6 @@ public class Planter {
     @Column(nullable = false)
     private String name;
 
-    // Filled in by the database default.
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 

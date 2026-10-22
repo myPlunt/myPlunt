@@ -1,6 +1,5 @@
 import { Text, View } from 'react-native';
 
-/** A label and its value on one line of an information card, e.g. "Light · Full sun". */
 export function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row items-center justify-between gap-4">

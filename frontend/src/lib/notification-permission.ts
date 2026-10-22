@@ -3,7 +3,6 @@ import { Linking, Platform } from 'react-native';
 
 import { logWarning } from '@/lib/logger';
 
-/** Shows the system prompt (only the first time on iOS) and resolves whether notifications are allowed. */
 export async function requestNotificationPermission(): Promise<boolean> {
   // Android 13+ only shows the prompt once a channel exists; iOS has no channels.
   if (Platform.OS === 'android') {

@@ -7,14 +7,12 @@ import type { UserSummary } from '@/lib/user/types';
 
 interface PersonRowProps {
   user: UserSummary;
-  /** A small square label after the username, e.g. "Friend". */
   tag?: string;
   onPress: () => void;
-  /** Actions under the person. Outside the pressable, so screen readers reach them on their own. */
+  /** Outside the pressable, so screen readers reach them on their own. */
   children?: ReactNode;
 }
 
-/** A person card in the Friends screen's lists; pressing it opens their profile. */
 export function PersonRow({ user, tag, onPress, children }: PersonRowProps) {
   return (
     <View className="gap-3 rounded-2xl bg-background-element p-4" style={Shadow.card}>

@@ -14,7 +14,6 @@ interface TabConfig {
   route: string;
   label: string;
   icon: SymbolName;
-  /** Its screen still works offline, from what's saved on the phone. */
   worksOffline?: boolean;
 }
 
@@ -42,26 +41,17 @@ const rightTabs: TabConfig[] = [
   },
 ];
 
-// Our own tab bar instead of the default one, so both platforms get the same
-// look (the default renders as Liquid Glass on iOS 26) and the Add button can
-// open a screen instead of being a tab.
+// Our own tab bar: the default is Liquid Glass on iOS 26, and Add opens a screen instead of a tab.
 export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
   const theme = useTheme();
   const router = useRouter();
   const activeRoute = state.routes[state.index]?.name;
-  // The Add screen opens above the tabs (a sheet on iOS), so the bar can still be
-  // seen behind it; the button turns Hunter Green like an active tab meanwhile.
   const addOpen = usePathname() === '/add';
-  // During the tour the bar can't take the user away from the step on screen; the step's
-  // card moves the tour on, and the bar comes back when it ends.
   const { step } = useOnboardingStore();
   const locked = step !== null;
-  // Except + in the first-plant step: it's another way to add the plant the card asks for,
-  // so it stays on and gets a ring like the other controls the tour points at.
+  // Except Add in the first-plant step: it's another way to do what the card asks.
   const isPlantStep = step === 'plant';
   const addLocked = locked && !isPlantStep;
-  // Offline, what needs the connection is greyed out but still answers a press: the notice
-  // says it doesn't work offline, rather than nothing happening.
   const { isOffline, explainOffline } = useNetworkStore();
 
   function renderTab({ route, label, icon, worksOffline }: TabConfig) {
@@ -75,8 +65,7 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
         explainOffline(label);
         return;
       }
-      // Emitting tabPress keeps the navigator's own behaviour (e.g. a screen
-      // can listen for it) before we switch tabs.
+      // Emitting tabPress keeps the navigator's behaviour (screens can listen for it).
       const event = navigation.emit({ type: 'tabPress', target: target!.key, canPreventDefault: true });
       if (!focused && !event.defaultPrevented) {
         navigation.navigate(target!.name, target!.params);
@@ -93,10 +82,7 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
         accessibilityHint={offline ? "Doesn't work offline" : undefined}
         disabled={locked}
         onPress={onPress}
-        // In the tour the tab the user is on stays as it is; only the ones that would leave the
-        // step fade. Offline every tab that needs the connection fades, the open one too.
         className={`flex-1 items-center gap-1 py-2 active:opacity-70 ${(locked && !focused) || offline ? 'opacity-40' : ''}`}>
-        {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
         <SymbolView
           name={icon}
           tintColor={focused ? theme.tabActive : theme.tabInactive}
@@ -110,8 +96,6 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
   return (
     <View
       className="border-t border-border bg-background-element"
-      // The bottom inset (home indicator on iOS, gesture/nav bar on Android) is a
-      // runtime value, so it can't be a class.
       style={{ paddingBottom: insets.bottom }}>
       <View className="w-full max-w-content flex-row items-center self-center px-2">
         {renderTab(feedTab)}

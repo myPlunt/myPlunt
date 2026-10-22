@@ -10,7 +10,6 @@ import { useNetworkStore } from '@/stores/network-store';
 import { listPlantNames } from '../watering';
 
 interface WaterDueCardProps {
-  /** The plants due today or overdue; the card isn't shown when there are none. */
   plants: GardenPlant[];
   onWater: () => void;
   loading: boolean;
@@ -23,13 +22,11 @@ export function WaterDueCard({ plants, onWater, loading, error }: WaterDueCardPr
   const title = `${plants.length} ${plants.length === 1 ? 'needs' : 'need'} water today`;
 
   return (
-    // Shadow goes through style so it sets both iOS shadow* and Android elevation.
     <View
       className="gap-2 overflow-hidden rounded-2xl border-l-4 border-water bg-background-element p-4"
       style={Shadow.card}>
       <View className="flex-row items-center gap-3">
         <View className="h-12 w-12 items-center justify-center rounded-full bg-water/15">
-          {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
           <SymbolView
             name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
             tintColor={theme.water}

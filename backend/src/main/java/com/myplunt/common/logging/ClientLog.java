@@ -10,15 +10,12 @@ import org.springframework.stereotype.Component;
 import java.util.Locale;
 import java.util.UUID;
 
-// Writes the app's lines to the logs table (DatabaseLogging) with location "frontend"; they skip
-// the console. They describe what the user tried and saw, and the app can send anything,
-// so they're for debugging only: never proof that something happened (that's AuditLog).
+// The app can send anything, so these lines are for debugging only, never proof (that's AuditLog).
 @Component
 public class ClientLog {
 
     private static final Logger log = LoggerFactory.getLogger(LogLineFormatter.FRONTEND_LOGGER);
 
-    // userId is the signed-in user who sent the lines, which the backend checked itself.
     public void record(UUID userId, ClientLogBatch batch) {
         for (ClientLogEntry entry : batch.entries()) {
             LoggingEventBuilder line = switch (entry.type()) {

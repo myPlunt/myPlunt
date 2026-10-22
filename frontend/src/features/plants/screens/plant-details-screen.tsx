@@ -27,28 +27,18 @@ import type { PlantDetails } from '@/lib/plant/types';
 import { useNetworkStore } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
-/**
- * One of the user's plants, opened from its card in the garden. The pencil opens the edit
- * screen; "Delete plant" at the bottom removes it after asking. With ownerId it's a friend's
- * plant, opened from their profile: shown read-only, without anything that changes it.
- */
 export function PlantDetailsScreen({ plantId, ownerId }: { plantId: string; ownerId?: string }) {
   const theme = useTheme();
   const router = useRouter();
   const { plant, error, isLoading, retry } = usePlant(plantId, ownerId);
   const { isOffline, explainOffline } = useNetworkStore();
   const isOwn = ownerId === undefined;
-  // The tour's photo step, opened here right after its first plant was saved. It only shows
-  // where photos are added (most users add one with the plant anyway); "Got it" moves on to the
-  // watering step in the garden. Add under Growth still works; leaving otherwise would strand
-  // the card, so back, edit, history and delete are off.
+  // During the tour's photo step, leaving would strand the card, so back, edit, history and delete are off.
   const { step, next } = useOnboardingStore();
   const isPhotoStep = step === 'photo' && !!plant && isOwn;
   useTourBackLock(isPhotoStep);
   const scrollRef = useRef<ScrollView>(null);
 
-  // During the photo step the page starts at Growth, so its ringed Add is in view above the
-  // card without scrolling. Runs again if Growth moves (e.g. once the photos load).
   function showGrowth(y: number) {
     if (isPhotoStep) scrollRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
   }
@@ -56,7 +46,6 @@ export function PlantDetailsScreen({ plantId, ownerId }: { plantId: string; owne
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
-        {/* No swipe back during the photo step either, for the same reason. */}
         <Stack.Screen options={{ gestureEnabled: !isPhotoStep }} />
         <AppHeader
           showBack={!isPhotoStep}
@@ -74,7 +63,6 @@ export function PlantDetailsScreen({ plantId, ownerId }: { plantId: string; owne
                     : () => router.push({ pathname: '/plant/[id]/edit', params: { id: plant.id } })
                 }
                 className={`h-10 w-10 items-center justify-center active:opacity-70 ${isOffline ? 'opacity-40' : ''}`}>
-                {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
                 <SymbolView
                   name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
                   tintColor={theme.actionPrimary}
@@ -85,15 +73,13 @@ export function PlantDetailsScreen({ plantId, ownerId }: { plantId: string; owne
           }
         />
 
-        {/* The card is placed inside this view, not the SafeAreaView: an absolute child
-            ignores its parent's padding, so it would sit under the home indicator. */}
+        {/* Inside this view, not the SafeAreaView: an absolute child ignores its parent's padding. */}
         <View className="flex-1">
           <ScrollView
             ref={scrollRef}
             // Room to scroll the page out from under the tour card.
             contentContainerClassName={`w-full max-w-content grow gap-6 self-center px-6 pt-2 ${isPhotoStep ? 'pb-72' : 'pb-8'}`}>
             {isLoading ? (
-              // A colour prop, so it reads the theme instead of a class.
               <ActivityIndicator accessibilityLabel="Loading plant" color={theme.primary} className="mt-6" />
             ) : error ? (
               <View className="items-center gap-3">
@@ -142,30 +128,24 @@ export function PlantDetailsScreen({ plantId, ownerId }: { plantId: string; owne
 
 interface PlantDetailsContentProps {
   plant: PlantDetails;
-  /** Set for a friend's plant, which hides growth journal, adding photos and watering history. */
   ownerId?: string;
   isPhotoStep: boolean;
-  /** Where the Growth section starts in the page, so the photo step can scroll to it. */
   onGrowthLayout: (y: number) => void;
 }
 
 function PlantDetailsContent({ plant, ownerId, isPhotoStep, onGrowthLayout }: PlantDetailsContentProps) {
   const router = useRouter();
   const isOwn = ownerId === undefined;
-  // Empty while loading or on an error: the carousel then falls back to the plant's own photo.
   const photos = usePlantPhotos(plant.id, ownerId).photos ?? [];
   // null shows the newest photo, also after a new one was added.
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const shownIndex = Math.min(selectedIndex ?? photos.length - 1, photos.length - 1);
-  // Taken per render, so "Today" moves on if the screen stays open past midnight.
   const now = new Date();
   const light = lightOptions.find((option) => option.value === plant.light);
-  // Without the owner's own frequency it's the species' or the 7-day fallback.
   const watering = `Every ${plant.wateringFrequencyDays} days${plant.wateringEveryDays === null ? ' (default)' : ''}`;
 
   return (
     <>
-      {/* The name belongs to the photo, so it sits closer to it than the page's gap-6. */}
       <View className="gap-3">
         <PhotoCarousel
           plantName={plant.name}
@@ -183,7 +163,6 @@ function PlantDetailsContent({ plant, ownerId, isPhotoStep, onGrowthLayout }: Pl
         </View>
       </View>
 
-      {/* Shadow goes through style so it sets both iOS shadow* and Android elevation. */}
       <View className="gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4" style={Shadow.card}>
         <Text className="type-label text-accent" numberOfLines={1}>
           {`${plant.name} information`.toUpperCase()}
@@ -245,8 +224,6 @@ function DeletePlant({ plant }: { plant: PlantDetails }) {
     try {
       await deletePlant(plant.id);
       setIsConfirming(false);
-      // Back to the garden, which reloads on focus and no longer lists the plant. Nothing
-      // underneath when the app was opened straight onto this page, so go there directly.
       if (router.canGoBack()) {
         router.back();
       } else {
@@ -254,7 +231,6 @@ function DeletePlant({ plant }: { plant: PlantDetails }) {
       }
     } catch (err) {
       logFailedUi('plant_delete_failed_ui', err, { plant_id: plant.id });
-      // An expired session already signed the user out (usePlantActions).
       if (!(err instanceof ApiError && err.status === 401)) {
         setError(describeError(err));
       }
@@ -277,7 +253,6 @@ function DeletePlant({ plant }: { plant: PlantDetails }) {
           setIsConfirming(true);
         }}
         className={`flex-row items-center justify-center gap-2 py-2 active:opacity-70 ${isOffline ? 'opacity-40' : ''}`}>
-        {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
         <SymbolView name={{ ios: 'trash', android: 'delete', web: 'delete' }} tintColor={theme.error} size={18} />
         <Text className="type-button-medium text-error">Delete plant</Text>
       </Pressable>
@@ -300,11 +275,8 @@ function DeletePlant({ plant }: { plant: PlantDetails }) {
 }
 
 const styles = StyleSheet.create({
-  // Lateef's natural line is ~1.45× its size; a shorter line height (type-h4's 40) clips
-  // the bottom of the glyphs on iOS. Android's extra font padding is dropped so both
-  // platforms place it the same. The full-height line leaves empty space above the
-  // capitals, so the negative margin pulls them up towards the photo. A style, because
-  // a leading-* class loses to type-h4.
+  // Lateef needs a taller line than type-h4's or iOS clips its glyphs; the negative margin pulls the
+  // capitals back up to the photo. A style, as a leading-* class loses to type-h4.
   name: {
     lineHeight: 46,
     marginTop: -6,

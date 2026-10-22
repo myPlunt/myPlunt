@@ -14,9 +14,7 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-// Gives every log line of a request the same request_id, so the app's lines about a request
-// can be matched with the backend's. The app sends its own id in X-Request-ID; other clients
-// get one made up here. Runs before everything else, security included, so even a 401 has it.
+// First of all filters, security included, so even a 401's log line has the request_id.
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestIdFilter extends OncePerRequestFilter {

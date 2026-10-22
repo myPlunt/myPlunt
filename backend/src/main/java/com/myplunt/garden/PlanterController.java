@@ -27,7 +27,6 @@ public class PlanterController {
         this.planterService = planterService;
     }
 
-    // The new planter always belongs to the signed-in user (JwtAuthFilter's principal).
     @PostMapping(ApiPaths.Planters.BASE)
     @ResponseStatus(HttpStatus.CREATED)
     public PlanterResponse create(

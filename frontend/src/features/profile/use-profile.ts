@@ -13,7 +13,6 @@ export function useProfile() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) =>
       profileService
@@ -23,7 +22,6 @@ export function useProfile() {
         })
         .catch((err) => {
           if (isCancelled()) return;
-          // apiFetch already tried a refresh; a 401 here means the session is gone.
           if (err instanceof ApiError && err.status === 401) {
             setUnauthenticated();
             return;
@@ -36,8 +34,6 @@ export function useProfile() {
     [setUnauthenticated],
   );
 
-  // Loads on focus, not just on mount, so coming back from Settings shows the
-  // saved changes. useFocusEffect needs a memoized callback.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -57,7 +53,6 @@ export function useProfile() {
       setIsLoading(true);
       load(() => false);
     },
-    // Reloads without the loading state, so the profile stays on screen (pull-to-refresh).
     refresh() {
       return load(() => false);
     },

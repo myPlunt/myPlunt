@@ -9,9 +9,6 @@ import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.Map;
 
-// One line the app logged. timestamp is when it happened on the device (the app sends its lines
-// in batches). requestId links it to the backend's lines for the same request. context holds the
-// event's own fields (status, field names, ids); the app never puts personal data in it.
 public record ClientLogEntry(
         @NotNull(message = "Timestamp must not be null.") Instant timestamp,
         @NotNull(message = "Type must not be null.") ClientLogType type,

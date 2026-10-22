@@ -10,10 +10,7 @@ function roughly(degrees: number) {
   return Math.round(degrees * 100) / 100;
 }
 
-/**
- * Asks for the location once and saves the user's city. Resolves false when permission is
- * denied, and nothing is saved; the system won't ask again, so the tour just moves on.
- */
+/** Resolves false when permission is denied; the system won't ask again. */
 export async function shareLocation(): Promise<boolean> {
   const { granted } = await Location.requestForegroundPermissionsAsync();
   if (!granted) {

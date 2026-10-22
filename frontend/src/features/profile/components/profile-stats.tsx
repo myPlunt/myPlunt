@@ -6,15 +6,11 @@ import type { ProfileStats as Stats } from '@/features/profile/profile-stats';
 import { useTheme } from '@/hooks/use-theme';
 
 interface ProfileStatsProps {
-  /** null while the garden or PluntDex is loading, or couldn't be loaded: the numbers show a dash. */
   stats: Stats | null;
-  /** Pressing plants or top streak; left out, those numbers aren't buttons. */
   onOpenGarden?: () => void;
-  /** Pressing discovered. */
   onOpenPluntdex?: () => void;
 }
 
-/** Plants · discovered · top streak, in a row under a profile's name. */
 export function ProfileStats({ stats, onOpenGarden, onOpenPluntdex }: ProfileStatsProps) {
   const theme = useTheme();
 
@@ -40,7 +36,6 @@ export function ProfileStats({ stats, onOpenGarden, onOpenPluntdex }: ProfileSta
         accessibilityLabel={stats ? `Top watering streak ${stats.topStreak}` : 'Top streak loading'}
         onPress={onOpenGarden}
         icon={
-          // tintColor is a colour prop, so it reads the theme instead of a class.
           <SymbolView name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }} tintColor={theme.water} size={14} />
         }
       />
@@ -76,8 +71,7 @@ function Stat({ value, label, accessibilityLabel, onPress, icon }: StatProps) {
 }
 
 const styles = StyleSheet.create({
-  // Lateef's natural line is ~1.45× its size; type-h5's 32 clips the bottom of the glyphs on
-  // iOS, and Android's extra font padding is dropped so both platforms match (as in RoomSection).
+  // Lateef needs a taller line than type-h5's or iOS clips its glyphs (as in RoomSection).
   value: {
     lineHeight: 38,
     includeFontPadding: false,

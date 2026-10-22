@@ -8,7 +8,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface PlantRepository extends JpaRepository<Plant, UUID> {
-    // Fetches the species in the same query: the garden needs each plant's watering frequency.
     @EntityGraph(attributePaths = "species")
     List<Plant> findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(UUID ownerId);
 

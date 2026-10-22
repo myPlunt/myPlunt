@@ -41,14 +41,9 @@ export function ProfileScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { step } = useOnboardingStore();
   const isBioStep = step === 'bio' && !!user;
-  // The friends step starts here, with the menu open on the friends icon; its card follows
-  // the user onto the friends page.
   const isFriendsStep = step === 'friends' && !!user;
-  // During either step the profile stays usable, but only the step's way on leads elsewhere.
   const isTourStep = isBioStep || isFriendsStep;
   useTourBackLock(isTourStep);
-  // Where the header sits and where the burger ends inside it, so the menu's icons start
-  // right under the burger's box and continue the column at the same 40px step.
   const [headerTop, setHeaderTop] = useState(0);
   const [burgerBottom, setBurgerBottom] = useState(0);
 
@@ -62,6 +57,7 @@ export function ProfileScreen() {
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
+        {/* y counts the safe-area padding above the header; the menu is positioned from the same edge. */}
         <View onLayout={({ nativeEvent: { layout } }) => setHeaderTop(layout.y)}>
           <AppHeader
             right={
@@ -89,8 +85,6 @@ export function ProfileScreen() {
           <View className="items-center gap-1">
             <View>
               <UserAvatar size={96} url={user?.avatarUrl} accessibilityLabel="Your profile picture" />
-
-
             </View>
             {isLoading ? (
               <ActivityIndicator accessibilityLabel="Loading profile" color={theme.primary} className="mt-4" />
@@ -137,7 +131,8 @@ export function ProfileScreen() {
                 <>
                   <PostFilter value={filter} onChange={setFilter} />
                   {shown.length ? (
-                     <View className="-m-1.5 flex-row flex-wrap" pointerEvents={isTourStep ? 'none' : 'auto'}>
+                    // Padding, not gap, which would push the third cell onto the next row; -m-1.5 undoes the outer edge.
+                    <View className="-m-1.5 flex-row flex-wrap" pointerEvents={isTourStep ? 'none' : 'auto'}>
                       {shown.map((post) => (
                         <View key={post.id} className="w-1/3 p-1.5">
                           {post.type === 'question' ? <StickyNote post={post} hideAuthor /> : <FeedPlantCard post={post} hideAuthor />}
@@ -172,7 +167,8 @@ export function ProfileScreen() {
 
         {isFriendsStep && (
           <View className="absolute inset-x-3 bottom-3">
-             <OnboardingCard
+            {/* The card's own button opens the friends page: testers never spotted the menu icon. */}
+            <OnboardingCard
               step="friends"
               title="Find your friends"
               body="Search for people by their username and add them. Their plants show up in your feed. You can always find friends again in the menu up top."

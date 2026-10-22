@@ -9,7 +9,6 @@ interface ShareToFeedCheckboxProps {
   onChange: (checked: boolean) => void;
 }
 
-/** Asks whether a new plant or photo should show up in friends' feed, on one ruled line. */
 export function ShareToFeedCheckbox({ checked, onChange }: ShareToFeedCheckboxProps) {
   const theme = useTheme();
 
@@ -21,7 +20,6 @@ export function ShareToFeedCheckbox({ checked, onChange }: ShareToFeedCheckboxPr
       onPress={() => onChange(!checked)}
       className="flex-row items-center gap-2 active:opacity-70"
       style={oneLine}>
-      {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
       <SymbolView
         name={
           checked

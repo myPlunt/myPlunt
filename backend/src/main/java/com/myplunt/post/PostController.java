@@ -31,8 +31,7 @@ public class PostController {
         this.postService = postService;
     }
 
-    // Plant and photo posts are created where they happen (adding a plant or a photo); a
-    // question has nowhere else to come from, so it's asked here.
+    // Only questions are created here; plant and photo posts are created where those are added.
     @PostMapping(ApiPaths.Posts.QUESTIONS)
     @ResponseStatus(HttpStatus.CREATED)
     public PostResponse askQuestion(@AuthenticationPrincipal User principal, @Valid @RequestBody AskQuestionRequest request) {

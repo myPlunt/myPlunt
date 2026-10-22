@@ -8,7 +8,6 @@ import { useAuthStore } from '@/stores/auth-store';
 import { getInbox } from './inbox-service';
 import { markInboxSeen } from './use-unread-count';
 
-/** The user's notifications list, loaded on focus so new ones show when they come back. */
 export function useInbox() {
   const { setUnauthenticated } = useAuthStore();
   const [notifications, setNotifications] = useState<InboxNotification[] | null>(null);
@@ -16,7 +15,6 @@ export function useInbox() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
   const load = useCallback(
     (isCancelled: () => boolean) =>
       getInbox()
@@ -29,7 +27,6 @@ export function useInbox() {
         })
         .catch((err) => {
           if (isCancelled()) return;
-          // apiFetch already tried a refresh; a 401 here means the session is gone.
           if (err instanceof ApiError && err.status === 401) {
             setUnauthenticated();
             return;
@@ -42,7 +39,6 @@ export function useInbox() {
     [setUnauthenticated],
   );
 
-  // useFocusEffect needs a memoized callback.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -58,7 +54,6 @@ export function useInbox() {
     error,
     isLoading,
     isRefreshing,
-    // Pull-to-refresh: keeps the list on screen while the new one loads.
     refresh() {
       setIsRefreshing(true);
       return load(() => false).finally(() => setIsRefreshing(false));

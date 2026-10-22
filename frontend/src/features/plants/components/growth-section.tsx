@@ -13,20 +13,13 @@ interface GrowthSectionProps {
   plantName: string;
   /** Oldest first. */
   photos: PlantPhotoData[];
-  /** The photo shown in the carousel above, highlighted here. */
   selectedIndex: number;
   onSelect: (index: number) => void;
-  /** Left out on a friend's plant, along with onAdd: the growth journal and adding are the owner's. */
   onSeeAll?: () => void;
   onAdd?: () => void;
-  /** Rings the Add tile, for the tour's photo step. */
   highlightAdd?: boolean;
 }
 
-/**
- * The plant's growth photos as a strip of thumbnails under its details photo, with the time
- * between each two, "See all" for the growth journal and a tile to add a new photo.
- */
 export function GrowthSection({
   plantName,
   photos,
@@ -44,7 +37,6 @@ export function GrowthSection({
   const span = photos.length > 1 && first && last ? timeBetween(first, last) : null;
 
   return (
-    // Shadow goes through style so it sets both iOS shadow* and Android elevation.
     <View className="gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4" style={Shadow.card}>
       <View className="flex-row items-center justify-between gap-4">
         <Text className="type-label text-accent" numberOfLines={1}>
@@ -111,7 +103,6 @@ export function GrowthSection({
           onPress={isOffline ? () => explainOffline('Adding photos') : onAdd}
           className={`items-center gap-1 active:opacity-70 ${photos.length > 0 ? 'ml-2' : ''} ${isOffline ? 'opacity-40' : ''}`}>
           <View className="h-[53px] w-[53px] items-center justify-center rounded-xl border-2 border-dashed border-primary">
-            {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
             <SymbolView name={{ ios: 'plus', android: 'add', web: 'add' }} tintColor={theme.primary} size={20} />
             {/* Around the tile rather than its border, so the strip's layout doesn't move. */}
             {highlightAdd && (

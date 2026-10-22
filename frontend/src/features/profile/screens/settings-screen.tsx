@@ -14,7 +14,6 @@ import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
-// Account settings. Profile details (username, bio, picture) live on Edit profile.
 export function SettingsScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -24,8 +23,7 @@ export function SettingsScreen() {
 
   function retakeTour() {
     onboarding.start();
-    // Back to the tabs: they redirect to the welcome page once they're in front, and a
-    // redirect doesn't run while this page covers them.
+    // dismissTo the tabs: their redirect to the welcome page doesn't run while this page covers them.
     router.dismissTo('/');
   }
 
@@ -42,7 +40,6 @@ export function SettingsScreen() {
             style={Shadow.card}>
             <Text className="type-label text-accent">ACCOUNT</Text>
             {isLoading ? (
-              // Colour props (spinner, icons) read the theme instead of a class.
               <ActivityIndicator accessibilityLabel="Loading account" color={theme.primary} />
             ) : error ? (
               <View className="items-start gap-3">

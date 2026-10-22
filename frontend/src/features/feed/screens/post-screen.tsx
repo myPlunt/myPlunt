@@ -30,15 +30,8 @@ import { logAction } from '@/lib/logger';
 import type { Post } from '@/lib/post/types';
 
 const KINDS: Record<Post['type'], string> = { new_plant: 'New plant', new_photo: 'New photo', question: 'Question' };
-// Two taps on the photo (or a question's note) this close together water a friend's post, as a
-// double-tap likes elsewhere.
 const DOUBLE_TAP_MS = 300;
 
-/**
- * A post's own page, opened from it on the feed or the profile: who posted it, when, and the
- * post itself, big, with its comments below. On the user's own posts the burger opens the
- * profile's menu with a pencil (questions and new photos, the posts with words to edit) and a bin.
- */
 export function PostScreen({ postId }: { postId: string }) {
   const theme = useTheme();
   const router = useRouter();
@@ -47,12 +40,10 @@ export function PostScreen({ postId }: { postId: string }) {
   const [edited, setEdited] = useState<Post | null>(null);
   const [dialog, setDialog] = useState<'edit' | 'delete' | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  // Where the header sits and where the burger ends inside it, so the icons start right under the burger.
   const [headerTop, setHeaderTop] = useState(0);
   const [burgerBottom, setBurgerBottom] = useState(0);
   const post = edited ?? loaded;
   const scrollRef = useKeepFocusedInputVisible();
-  // Only the user and their friends can open a post; null friendship means it's the user's own.
   const isOwn = post?.author.friendship === null;
   const deleteItem: MenuItem = {
     label: 'Delete post',
@@ -70,7 +61,6 @@ export function PostScreen({ postId }: { postId: string }) {
       : [{ label: 'Edit post', icon: { ios: 'pencil', android: 'edit', web: 'edit' }, onPress: () => setDialog('edit') }, deleteItem];
 
   function leave() {
-    // Nothing underneath when the app was opened straight onto this page, so go to the feed.
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -82,8 +72,6 @@ export function PostScreen({ postId }: { postId: string }) {
     <View className="flex-1 bg-background">
       <KeyboardAvoidingView
         className="flex-1"
-        // iOS needs padding to lift the comment box above the keyboard; Android resizes the
-        // window itself, so shrinking the height is enough there.
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
           {/* y counts the safe-area padding above the header; the menu is positioned from the same edge. */}
@@ -116,14 +104,12 @@ export function PostScreen({ postId }: { postId: string }) {
                   setEdited(null);
                   refresh();
                 }}
-                // iOS colours the spinner with tintColor, Android with colors and progressBackgroundColor.
                 tintColor={theme.primary}
                 colors={[theme.primary]}
                 progressBackgroundColor={theme.backgroundElement}
               />
             }>
             {isLoading ? (
-              // A colour prop, so it reads the theme instead of a class.
               <ActivityIndicator accessibilityLabel="Loading post" color={theme.primary} className="mt-6" />
             ) : error ? (
               <View className="items-center gap-3">
@@ -189,7 +175,6 @@ function PostContent({ post, isOwn }: { post: Post; isOwn: boolean }) {
 
   return (
     <>
-      {/* A friend's picture and name open their profile; the user's own lead nowhere. */}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={isOwn ? 'You' : `Open ${post.author.username}'s profile`}
@@ -211,10 +196,8 @@ function PostContent({ post, isOwn }: { post: Post; isOwn: boolean }) {
 
       {post.type === 'question' ? (
         <>
-          {/* The question on its sticky note, tilted and taped as on the feed, but full size. The tilt
-              is per note, so it goes through style; the shadow sets both iOS shadow* and Android elevation.
-              The whole note takes the double-tap, since a question may have no photo. Not a button to
-              screen readers: the drop pill is the accessible way to water. */}
+          {/* The whole note takes the double-tap, as a question may have no photo. Not a button to screen
+              readers: the drop pill is the accessible way to water. */}
           <Pressable accessible={false} disabled={!drop.canWater} onPress={tapToWater}>
             <View
               className={`mt-2 gap-3 rounded-sm p-4 ${noteColor(post.id)}`}
@@ -223,7 +206,6 @@ function PostContent({ post, isOwn }: { post: Post; isOwn: boolean }) {
               <Text accessibilityRole="header" className="type-body-large text-text">
                 {post.body}
               </Text>
-              {/* On the photo's bottom-left like on other posts, or at the foot of the note without one. */}
               {post.photoUrl ? (
                 <View>
                   <PlantPhoto

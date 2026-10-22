@@ -8,7 +8,6 @@ public record AddCommentRequest(
                 @Size(max = 500, message = "Comment must be at most 500 characters.")
                 String body) {
 
-    // Strip before validation runs, so a comment of only spaces counts as blank.
     public AddCommentRequest {
         body = body == null ? null : body.strip();
     }

@@ -7,7 +7,6 @@ import { tokenStorage } from '@/lib/auth/token-storage';
 import { AuthStoreProvider, useAuthStore } from '@/stores/auth-store';
 
 jest.mock('@/features/garden/garden-service');
-// No navigator in this test: treat "focused" as "mounted".
 jest.mock('expo-router', () => {
   const { useEffect } = jest.requireActual('react');
   return { useFocusEffect: (effect: () => void | (() => void)) => useEffect(effect, [effect]) };

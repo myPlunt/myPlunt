@@ -1,27 +1,20 @@
 package com.myplunt.common.logging;
 
-// What happened to an account or its data, as the "event" field of its audit line (written in
-// snake_case: PLANT_CREATED -> "plant_created"). Outcomes only; the app logs what the user
-// tried to do under its own names. Renaming a value splits its history in two.
+// Logged in snake_case as the "event" field. Renaming a value splits its history in two.
 public enum AuditEvent {
     USER_REGISTERED,
-    // reason: email_in_use or username_taken.
     REGISTRATION_REJECTED,
     LOGIN_SUCCEEDED,
-    // reason: unknown_email or wrong_password.
     LOGIN_FAILED,
     LOGGED_OUT,
     SESSION_REFRESHED,
-    // reason: unknown_token or expired.
     SESSION_REFRESH_REJECTED,
     PROFILE_UPDATED,
     EMAIL_CHANGED,
-    // reason: wrong_password or email_in_use.
     EMAIL_CHANGE_REJECTED,
     AVATAR_UPDATED,
     AVATAR_REMOVED,
     LOCATION_UPDATED,
-    // skipped: true when the user left from the welcome page. Logged once per account.
     ONBOARDING_COMPLETED,
     NOTIFICATION_SETTINGS_UPDATED,
     FRIEND_REQUEST_SENT,
@@ -45,15 +38,11 @@ public enum AuditEvent {
     COMMENT_ADDED,
     POST_WATERED,
     POST_UNWATERED,
-    // Not something the user did: the late watering that ended a streak.
     WATERING_STREAK_BROKEN,
-    // reason: too_large. The upload was deleted from storage.
     PHOTO_UPLOAD_REJECTED,
-    // The only actions from the admin dashboard that are logged: changed_by is the admin's id
-    // (admin_users), user_id the account that submitted the species.
+    // changed_by is an admin_users id here, not a users id.
     SPECIES_APPROVED,
     SPECIES_REJECTED,
     DATABASE_RESET,
-    // reason: wrong_secret.
     DATABASE_RESET_REJECTED
 }

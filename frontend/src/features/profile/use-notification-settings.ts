@@ -10,7 +10,6 @@ import { useAuthStore } from '@/stores/auth-store';
 import * as profileService from './profile-service';
 import { useProfileActions } from './use-profile-actions';
 
-/** Loads the notification settings and saves each toggle straight away. */
 export function useNotificationSettings() {
   const { setUnauthenticated } = useAuthStore();
   const { updateNotificationSettings } = useProfileActions();
@@ -40,7 +39,6 @@ export function useNotificationSettings() {
       })
       .catch((err) => {
         if (cancelled) return;
-        // apiFetch already tried a refresh; a 401 here means the session is gone.
         if (err instanceof ApiError && err.status === 401) {
           setUnauthenticated();
           return;

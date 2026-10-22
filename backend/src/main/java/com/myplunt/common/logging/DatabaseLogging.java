@@ -11,10 +11,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-// Sends the structured log lines to the logs table (DatabaseLogAppender). Hooked up here rather
-// than in logback-spring.xml because it needs the database: it starts once every bean is ready
-// (so Flyway has created the table) but before the web server takes requests. Lines from earlier
-// in startup are only on the console.
+// Hooked up here, not in logback-spring.xml, because it needs the database: it starts after Flyway
+// but before the web server. Earlier startup lines are only on the console.
 @Component
 public class DatabaseLogging implements SmartLifecycle {
 
@@ -51,8 +49,7 @@ public class DatabaseLogging implements SmartLifecycle {
         LOGGERS.forEach(name -> context.getLogger(name).addAppender(async));
     }
 
-    // Runs after the web server has stopped taking requests and before the database closes,
-    // writing out what's still queued. Stopping the async appender also stops DatabaseLogAppender.
+    // Runs after the web server stops and before the database closes, writing out what's queued.
     @Override
     public void stop() {
         LOGGERS.forEach(name -> context.getLogger(name).detachAppender(async));

@@ -1,13 +1,8 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** A growth photo's note; same limit as the backend's UpdatePlantPhotoRequest. */
+/** Same as the backend's UpdatePlantPhotoRequest. */
 export const CAPTION_MAX_LENGTH = 280;
 
-/**
- * The time between two growth photos, in whole years once it's a year or more, whole calendar
- * months once it's a month or more, otherwise in days: "2 years", "5 months", "12 days",
- * "Same day". `short` is for the Growth strip, where there's only room for "2 yr", "5 mo" or "12 d".
- */
 export function timeBetween(from: string, to: string, short = false): string {
   const start = new Date(from);
   const end = new Date(to);
@@ -26,7 +21,6 @@ export function timeBetween(from: string, to: string, short = false): string {
   return short ? `${days} d` : `${days} ${days === 1 ? 'day' : 'days'}`;
 }
 
-/** "Aug 2026", for the date on a growth photo. */
 export function photoMonth(takenAt: string): string {
   return new Date(takenAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 }

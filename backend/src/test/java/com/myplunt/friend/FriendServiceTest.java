@@ -235,7 +235,6 @@ class FriendServiceTest {
         assertThat(friendService().getFriendPosts(janeId, tomId)).isEqualTo(posts);
     }
 
-    // A request either way isn't a friendship yet, so their garden stays private until it's accepted.
     @Test
     void getFriendGardenSpeciesAndPosts_failForStrangersAndPendingRequests() {
         List<List<Friendship>> notFriends =

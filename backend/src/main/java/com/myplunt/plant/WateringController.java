@@ -13,7 +13,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
 
-// The signed-in user's waterings across all their plants, for their profile.
 @RestController
 public class WateringController {
 
@@ -30,7 +29,6 @@ public class WateringController {
         return plantService.getWaterings(principal.getId(), from, to);
     }
 
-    // zone is the app's IANA time zone ("Europe/Amsterdam"); streaks count days in it.
     @GetMapping(ApiPaths.Waterings.STREAK)
     public WateringStreakResponse streak(
             @AuthenticationPrincipal User principal, @RequestParam(defaultValue = "UTC") ZoneId zone) {

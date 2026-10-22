@@ -28,16 +28,13 @@ public class User {
 
     private String bio;
 
-    // Storage key of the profile picture; null when there is none.
     @Column(name = "avatar_key")
     private String avatarKey;
 
-    // Where the user's plants are, for weather alerts; null until they share it.
     private String city;
     private Double latitude;
     private Double longitude;
 
-    // Null until the user finishes or skips the app tour.
     @Column(name = "onboarding_completed_at")
     private Instant onboardingCompletedAt;
 

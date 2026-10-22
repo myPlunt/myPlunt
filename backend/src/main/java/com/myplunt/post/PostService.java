@@ -76,15 +76,12 @@ public class PostService {
         this.pushNotificationService = pushNotificationService;
     }
 
-    // A sticky-note question for the user's friends, with an optional photo of its own.
     @Transactional
     public PostResponse askQuestion(UUID userId, AskQuestionRequest request) {
         if (request.photoKey() != null) {
-            // A plant photo or a profile picture can't be reused here (and later deleted with it).
             if (!storageService.isCategory(request.photoKey(), PhotoCategory.POST)) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "That photo can't be added to a question.");
             }
-            // Checks the key is the user's own and within the size limit.
             storageService.confirmUpload(userId, request.photoKey());
         }
         Post saved = postRepository.save(new Post(userId, request.body(), request.photoKey()));
@@ -94,8 +91,7 @@ public class PostService {
         return toResponse(saved, author, null, null, 0, 0, false);
     }
 
-    // Only the words are the post's own: a question's text or a new photo's comment. A new plant
-    // post is just the plant, which is edited on its own page.
+    // A new plant post has no words of its own: the plant is edited on its own page.
     @Transactional
     public PostResponse updatePost(UUID userId, UUID postId, UpdatePostRequest request) {
         Post post = findOwnPost(userId, postId);
@@ -119,8 +115,7 @@ public class PostService {
         return toResponses(userId, List.of(post)).getFirst();
     }
 
-    // Removes only the post: a shared plant or photo stays in the garden. A question's own
-    // photo has nowhere else to be, so its file goes too.
+    // The shared plant or photo stays; a question's own photo file goes with the post.
     @Transactional
     public void deletePost(UUID userId, UUID postId) {
         Post post = findOwnPost(userId, postId);
@@ -130,9 +125,9 @@ public class PostService {
         if (post.getPhotoKey() == null) {
             return;
         }
-        // Flushed first so the row is really gone before its file is, as in PlantService.deletePhoto.
+        // Flushed so the row is gone before the file is.
         postRepository.flush();
-        // The post is already gone for the user, so a leftover file only costs storage.
+        // A leftover file only costs storage.
         try {
             storageService.deleteObject(post.getPhotoKey());
         } catch (RuntimeException e) {
@@ -141,38 +136,32 @@ public class PostService {
         }
     }
 
-    // Someone else's post answers 404 too, so ids can't be probed.
     private Post findOwnPost(UUID userId, UUID postId) {
         return postRepository.findByIdAndUserId(postId, userId)
                 .orElseThrow(() -> new IllegalStateException("Post not found"));
     }
 
-    // The user's and their friends' posts, newest first.
     @Transactional(readOnly = true)
     public List<PostResponse> getFeed(UUID userId) {
         return toResponses(userId, postRepository.findFeed(userId, FEED_TYPES, Limit.of(FEED_SIZE)));
     }
 
-    // The user's own posts, newest first, for their profile.
     @Transactional(readOnly = true)
     public List<PostResponse> getOwnPosts(UUID userId) {
         return getUserPosts(userId, userId);
     }
 
-    // authorId's posts, newest first, as viewerId sees them. Doesn't check they're friends;
-    // FriendService does that before a friend's profile gets here.
+    // Doesn't check they're friends: FriendService does before calling this.
     @Transactional(readOnly = true)
     public List<PostResponse> getUserPosts(UUID viewerId, UUID authorId) {
         return toResponses(viewerId, postRepository.findOwn(authorId, FEED_TYPES));
     }
 
-    // The post's own page. Someone else's post that isn't a friend's answers 404, like one that doesn't exist.
     @Transactional(readOnly = true)
     public PostResponse getPost(UUID userId, UUID postId) {
         return toResponses(userId, List.of(findVisiblePost(userId, postId))).getFirst();
     }
 
-    // A post's comments, oldest first, for anyone who may see the post.
     @Transactional(readOnly = true)
     public List<CommentResponse> getComments(UUID userId, UUID postId) {
         findVisiblePost(userId, postId);
@@ -184,7 +173,6 @@ public class PostService {
         return comments.stream().map(comment -> toResponse(comment, authors.get(comment.getAuthorId()))).toList();
     }
 
-    // Anyone who may see a post may comment on it: its author and their friends.
     @Transactional
     public CommentResponse addComment(UUID userId, UUID postId, AddCommentRequest request) {
         Post post = findVisiblePost(userId, postId);
@@ -192,7 +180,6 @@ public class PostService {
         PostComment saved = postCommentRepository.save(new PostComment(postId, userId, request.body()));
         auditLog.recorded(AuditEvent.COMMENT_ADDED, userId, userId,
                 Map.of("post_id", postId, "comment_id", saved.getId()));
-        // Replying under their own post doesn't notify the author.
         if (!post.getUserId().equals(userId)) {
             pushNotificationService.sendPostComment(userId, notice(post), request.body());
         }
@@ -201,7 +188,6 @@ public class PostService {
         return toResponse(saved, author);
     }
 
-    // A drop of water on a friend's post: the app's like. Watering it again changes nothing.
     @Transactional
     public void water(UUID userId, UUID postId) {
         Post post = findVisiblePost(userId, postId);
@@ -216,7 +202,7 @@ public class PostService {
         pushNotificationService.sendPostWatered(userId, notice(post));
     }
 
-    // Takes the user's drop back. Only their own row is touched, so it needs no visibility check.
+    // Only touches the user's own row, so it needs no visibility check.
     @Transactional
     public void unwater(UUID userId, UUID postId) {
         if (postReactionRepository.deleteByPostIdAndUserId(postId, userId) > 0) {
@@ -240,8 +226,6 @@ public class PostService {
                 comment.getId(), userService.toSummary(author, null), comment.getBody(), comment.getCreatedAt());
     }
 
-    // Maps the posts in their given order, loading authors, plant photos, comment and water counts
-    // and the viewer's drops in one query each.
     private List<PostResponse> toResponses(UUID userId, List<Post> posts) {
         List<UUID> postIds = posts.stream().map(Post::getId).toList();
         Map<UUID, Long> commentCounts = postCommentRepository
@@ -256,7 +240,6 @@ public class PostService {
         Map<UUID, User> authors = userRepository.findAllById(posts.stream().map(Post::getUserId).distinct().toList())
                 .stream()
                 .collect(Collectors.toMap(User::getId, Function.identity()));
-        // Two photos can share the newest time; either one will do.
         Map<UUID, String> photoKeys = plantPhotoRepository
                 .findLatestPhotos(posts.stream()
                         .filter(post -> post.getPlant() != null)

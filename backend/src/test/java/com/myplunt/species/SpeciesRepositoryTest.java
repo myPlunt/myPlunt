@@ -23,8 +23,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-// Runs the discovered-species SQL and the pending-species query against the real Flyway schema; a
-// mock can't check "on conflict" or the database-set submission time.
 @DataJpaTest
 @Testcontainers
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)

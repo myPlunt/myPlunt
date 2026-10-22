@@ -11,7 +11,6 @@ import { calendarWeeks, dayKey, wateringsByDay } from '../watering-calendar';
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 interface WateringCalendarProps {
-  /** Midnight on the first of the month shown. */
   month: Date;
   waterings: WateringLog[];
   isLoading: boolean;
@@ -20,11 +19,6 @@ interface WateringCalendarProps {
   onNextMonth: () => void;
 }
 
-/**
- * A month of the user's waterings. Days with waterings are tinted water blue; pressing one
- * lists which plants were watered that day. Today has a ring. Opens on today when it's in
- * the month shown; the parent keys it by month so the picked day resets on paging.
- */
 export function WateringCalendar({
   month,
   waterings,
@@ -41,7 +35,6 @@ export function WateringCalendar({
   const monthLabel = month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
   return (
-    // Shadow goes through style so it sets both iOS shadow* and Android elevation.
     <View className="gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4" style={Shadow.card}>
       <View className="flex-row items-center justify-between">
         <MonthButton direction="previous" onPress={onPreviousMonth} />
@@ -60,7 +53,6 @@ export function WateringCalendar({
       </View>
 
       {isLoading ? (
-        // A colour prop, so it reads the theme instead of a class.
         <ActivityIndicator accessibilityLabel="Loading waterings" color={theme.primary} className="my-6" />
       ) : (
         calendarWeeks(month).map((week, index) => (
@@ -127,7 +119,6 @@ function MonthButton({
       disabled={disabled}
       onPress={onPress}
       className={`h-10 w-10 items-center justify-center active:opacity-70 ${disabled ? 'opacity-30' : ''}`}>
-      {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
       <SymbolView
         name={
           isNext
@@ -152,7 +143,6 @@ interface CalendarDayProps {
 function CalendarDay({ day, count, isToday, isSelected, onPress }: CalendarDayProps) {
   const watered = count > 0;
   const date = day.toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
-  // Watered days are tinted, the picked one filled; today keeps a ring either way.
   const circle = isSelected && watered ? 'bg-water' : watered ? 'bg-water/15' : '';
   const text = isSelected && watered ? 'text-background-element' : watered ? 'text-water' : 'text-text';
 
@@ -179,7 +169,6 @@ function WateringItem({ watering }: { watering: WateringLog }) {
 
   return (
     <View className="flex-row items-center gap-3">
-      {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
       <SymbolView name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }} tintColor={theme.water} size={14} />
       <Text className="type-body-large flex-1 text-text" numberOfLines={1}>
         {watering.plantName}

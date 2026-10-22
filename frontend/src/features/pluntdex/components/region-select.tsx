@@ -14,10 +14,6 @@ interface RegionSelectProps {
   onSelect: (region: string | null) => void;
 }
 
-/**
- * A chip-shaped dropdown next to the Pluntdex filter chips: shows the picked region and
- * opens a list of every region with how many of its species are discovered. Same modal as PlanterSelect, so both platforms match.
- */
 export function RegionSelect({ regions, selected, onSelect }: RegionSelectProps) {
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
@@ -37,7 +33,6 @@ export function RegionSelect({ regions, selected, onSelect }: RegionSelectProps)
         className={`h-8 shrink flex-row items-center gap-2 rounded-full border-[1.5px] px-3 active:opacity-70 ${
           selected ? 'border-primary bg-primary' : 'border-input-border bg-background-element'
         }`}>
-        {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
         <SymbolView
           name={{ ios: 'globe.europe.africa.fill', android: 'public', web: 'public' }}
           tintColor={selected ? theme.backgroundElement : theme.accent}
@@ -63,7 +58,6 @@ export function RegionSelect({ regions, selected, onSelect }: RegionSelectProps)
             onPress={() => setIsOpen(false)}
             className="absolute inset-0 bg-text opacity-40"
           />
-          {/* Shadow tokens set both iOS shadow* and Android elevation. */}
           <View
             className="max-h-[70%] w-full max-w-[360px] gap-2 rounded-2xl bg-background-element p-4"
             style={Shadow.card}>

@@ -9,11 +9,9 @@ const PREFIX = 'cache:';
 
 interface Saved<T> {
   data: T;
-  /** When it was fetched (ISO). */
   savedAt: string;
 }
 
-/** The copy saved under key, or null when there's none (or it can't be read). */
 export async function readCache<T>(key: string): Promise<Saved<T> | null> {
   try {
     const raw = await AsyncStorage.getItem(PREFIX + key);
@@ -24,7 +22,7 @@ export async function readCache<T>(key: string): Promise<Saved<T> | null> {
   }
 }
 
-/** Saves data under key, stamped with the time. Never rejects. */
+/** Never rejects. */
 export async function writeCache<T>(key: string, data: T): Promise<void> {
   const saved: Saved<T> = { data, savedAt: new Date().toISOString() };
   try {
@@ -35,11 +33,8 @@ export async function writeCache<T>(key: string, data: T): Promise<void> {
 }
 
 /**
- * request(), keeping a copy of the result on the device for next time. Only when there's no
- * answer (status 0: no connection, or none in time) does the promise resolve to the copy saved
- * last time, with when it was saved; without a copy, or for any other error, it rejects as
- * request() did. The server always goes first, so while it can be reached the screen never
- * shows an old copy, whose photo links may have expired.
+ * The server always goes first. Only with no answer (status 0) does this resolve to the copy saved
+ * last time, with its savedAt; without a copy, or on any other error, it rejects as request() did.
  */
 export async function cachedFetch<T>(key: string, request: () => Promise<T>): Promise<{ data: T; savedAt: string | null }> {
   try {
@@ -53,10 +48,7 @@ export async function cachedFetch<T>(key: string, request: () => Promise<T>): Pr
   }
 }
 
-/**
- * Forgets every saved copy, so the next account to sign in on this device never sees this
- * one's. Rejects if the device's storage fails, so signing in can stop instead of going ahead.
- */
+/** Rejects if the device's storage fails, so signing in can stop instead of showing another account's copies. */
 export async function clearCache(): Promise<void> {
   const keys = await AsyncStorage.getAllKeys();
   await AsyncStorage.multiRemove(keys.filter((key) => key.startsWith(PREFIX)));

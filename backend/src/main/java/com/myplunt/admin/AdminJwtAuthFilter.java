@@ -14,9 +14,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
-// Signs admins in from their access token, on /v1/admin/** only. Not a @Component: Spring Boot
-// would also run it on every app request. AdminSecurityConfig adds it to the admin chain.
-// A bad or expired token is not logged: nothing the admin app does is (see CLAUDE.md).
+// Not a @Component: Spring Boot would then run it on every request, not just the admin chain.
 public class AdminJwtAuthFilter extends OncePerRequestFilter {
 
     private final AdminJwtService jwtService;
@@ -41,7 +39,6 @@ public class AdminJwtAuthFilter extends OncePerRequestFilter {
                         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
                                 admin, null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")))));
             } catch (JwtException | IllegalArgumentException ignored) {
-                // Left unauthenticated: the dashboard refreshes and retries, anything else gets a 401.
             }
         }
 

@@ -12,7 +12,6 @@ public interface PostReactionRepository extends JpaRepository<PostReaction, UUID
 
     long deleteByPostIdAndUserId(UUID postId, UUID userId);
 
-    // One row per post that has drops; posts without any are absent.
     @Query("""
             select new com.myplunt.post.PostCount(r.postId, count(r))
             from PostReaction r
@@ -21,7 +20,6 @@ public interface PostReactionRepository extends JpaRepository<PostReaction, UUID
             """)
     List<PostCount> countByPostIds(Collection<UUID> postIds);
 
-    // Which of these posts the user has watered.
     @Query("select r.postId from PostReaction r where r.userId = :userId and r.postId in :postIds")
     List<UUID> findWateredPostIds(UUID userId, Collection<UUID> postIds);
 }

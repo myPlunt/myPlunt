@@ -1,6 +1,5 @@
 export type Side = 'left' | 'right';
 
-// Most cards in a row on one side of the stem before the next has to switch.
 const MAX_IN_A_ROW = 2;
 
 // A small string hash, so a post keeps its side (and its note colour) between loads.
@@ -12,10 +11,6 @@ export function hash(id: string) {
   return h;
 }
 
-/**
- * Which side of the stem each post hangs on, in the order given: picked at random per post,
- * but never more than two in a row on the same side.
- */
 export function feedSides(postIds: string[]): Side[] {
   const sides: Side[] = [];
   for (const id of postIds) {

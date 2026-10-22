@@ -19,10 +19,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-// The admin dashboard's own security chain, for /v1/admin/** only and checked before the app's
-// (SecurityConfig). Only admin access tokens are accepted here (AdminJwtAuthFilter), and admin
-// tokens are useless on the app's routes. CSRF protection isn't needed: the access token is sent
-// in a header, and the refresh cookie is SameSite=Strict (AdminRefreshCookie).
+// No CSRF protection needed: the access token goes in a header and the refresh cookie is SameSite=Strict.
 @Configuration
 public class AdminSecurityConfig {
 
@@ -40,7 +37,7 @@ public class AdminSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
-                // Unlike the app's chain, the 401 isn't logged: nothing the admin app does is (see CLAUDE.md).
+                // Unlike the app's chain, the 401 isn't logged: admin requests never are.
                 .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, e) ->
                         response.setStatus(HttpStatus.UNAUTHORIZED.value())))
                 .authorizeHttpRequests(auth -> auth
@@ -51,8 +48,7 @@ public class AdminSecurityConfig {
                 .build();
     }
 
-    // Only the dashboard's own origin may call the admin API from a browser, with credentials so
-    // the refresh cookie is sent. No origins configured means no browser can.
+    // With no allowed origins configured, no browser can call the admin API.
     private static UrlBasedCorsConfigurationSource corsConfiguration(List<String> allowedOrigins) {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(allowedOrigins.stream().map(String::strip).filter(origin -> !origin.isEmpty()).toList());

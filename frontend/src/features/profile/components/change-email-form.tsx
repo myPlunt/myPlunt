@@ -8,7 +8,6 @@ import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logFailedUi } from '@/lib/logger';
 import type { User } from '@/lib/user/types';
 
-/** Changes the email. The backend always asks for the current password. */
 export function ChangeEmailForm({ user }: { user: User }) {
   const { changeEmail } = useProfileActions();
   const [savedEmail, setSavedEmail] = useState(user.email);

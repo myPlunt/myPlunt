@@ -9,14 +9,12 @@ import type { PhotoCategory } from '@/lib/photo/types';
 import { uploadPhoto } from './photo-service';
 import type { LibraryPhoto } from './use-recent-photos';
 
-// Big enough for a full-width photo on any phone, small enough to stay far below the
-// backend's 5 MB limit. Resizing also turns iPhone HEIC photos into JPEG, which the backend accepts.
+// Far below the backend's 5 MB limit. Resizing also turns iPhone HEIC photos into JPEG.
 const MAX_WIDTH = 1600;
 const JPEG_QUALITY = 0.8;
 
 const PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
-  // Lets the user crop to a square, so every plant photo has the same shape.
   allowsEditing: true,
   aspect: [1, 1],
   // For the date the photo was taken, so an older one lands at the right place in a plant's growth timeline.
@@ -24,26 +22,18 @@ const PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
 };
 
 export interface PhotoUpload {
-  /** Local preview of the picked photo; null when there is none. */
   uri: string | null;
-  /** Storage key once the upload finished; null before that or without a photo. */
   key: string | null;
-  /** When the photo was taken (ISO), if its metadata says; null for "now" or unknown. */
   takenAt: string | null;
   isUploading: boolean;
   error: string | null;
   takePhoto: () => Promise<void>;
   chooseFromLibrary: () => Promise<void>;
-  /** Uploads a photo the user tapped in the recent-photos grid. */
   uploadLibraryPhoto: (photo: LibraryPhoto) => Promise<void>;
   remove: () => void;
 }
 
-/**
- * Picks a photo from the camera or the library, crops and shrinks it, and uploads it right away.
- * onUploaded runs with the new key before isUploading turns false (e.g. to save a profile picture
- * straight away); if it throws, the photo is dropped and its error shown like an upload error.
- */
+/** onUploaded runs before isUploading turns false; if it throws, the photo is dropped and the error shown. */
 export function usePhotoUpload(category: PhotoCategory, onUploaded?: (key: string) => Promise<void>): PhotoUpload {
   const [uri, setUri] = useState<string | null>(null);
   const [key, setKey] = useState<string | null>(null);
@@ -54,8 +44,7 @@ export function usePhotoUpload(category: PhotoCategory, onUploaded?: (key: strin
   const attempt = useRef(0);
 
   async function takePhoto() {
-    // The library picker needs no permission on either platform (it runs in the system's
-    // own process); the camera does, on both.
+    // Only the camera needs permission; the library picker runs in the system's own process.
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
       logWarning('camera_permission_denied');
@@ -118,10 +107,6 @@ export function usePhotoUpload(category: PhotoCategory, onUploaded?: (key: strin
   return { uri, key, takenAt, isUploading, error, takePhoto, chooseFromLibrary, uploadLibraryPhoto, remove };
 }
 
-/**
- * Centre-crops the photo to a square (the picker's own crop already is one; photos from
- * the recent grid aren't) and shrinks it to at most MAX_WIDTH, as a JPEG file.
- */
 async function squareJpeg({ uri, width, height }: { uri: string; width: number; height: number }) {
   const side = Math.min(width, height);
   const context = ImageManipulator.manipulate(uri);
@@ -133,10 +118,7 @@ async function squareJpeg({ uri, width, height }: { uri: string; width: number; 
   return image.uri;
 }
 
-/**
- * EXIF's DateTimeOriginal ("2026:08:20 14:22:01", the phone's local time) as an ISO string.
- * Null when it's missing or unreadable, and never later than now, which the backend refuses.
- */
+/** EXIF's "2026:08:20 14:22:01" (local time) as ISO; never later than now, which the backend refuses. */
 function exifDate(value: unknown): string | null {
   const match = typeof value === 'string' && /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(value);
   if (!match) return null;

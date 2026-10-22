@@ -16,7 +16,6 @@ interface PostCommentsProps {
   onAdded: (comment: PostComment) => void;
 }
 
-/** The conversation under a post, oldest first, with a box to add to it. */
 export function PostComments({ postId, comments, onAdded }: PostCommentsProps) {
   const { addComment } = useFeedActions();
   const [body, setBody] = useState('');
@@ -32,7 +31,6 @@ export function PostComments({ postId, comments, onAdded }: PostCommentsProps) {
       setBody('');
     } catch (err) {
       logFailedUi('comment_add_failed_ui', err, { post_id: postId });
-      // An expired session already signed the user out (useFeedActions), so there's nothing to show.
       if (!(err instanceof ApiError && err.status === 401)) {
         setError((err instanceof ApiError && err.fieldErrors?.body) || describeError(err));
       }

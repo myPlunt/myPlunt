@@ -10,11 +10,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-// The record of what happened to accounts and their data, stored in the logs table as "action"
-// lines (DatabaseLogging). It's the source of truth, so services call it whatever the request came
-// from. user_id is the account the change is about and changed_by who made it; they differ when
-// someone acts on another account. Old and new values (emails, usernames) are logged in full;
-// passwords and tokens never go in.
+// user_id is the account the change is about, changed_by who made it. Old and new values (emails,
+// usernames) are logged in full; passwords and tokens never.
 @Component
 public class AuditLog {
 
@@ -22,8 +19,7 @@ public class AuditLog {
 
     private static final Logger log = LoggerFactory.getLogger(AUDIT_LOGGER);
 
-    // Inside a transaction the line waits for the commit, so a rollback never leaves an action
-    // in the log that didn't happen.
+    // Inside a transaction it waits for the commit, so a rolled-back action is never logged.
     public void recorded(AuditEvent event, UUID userId, UUID changedBy, Map<String, ?> details) {
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("user_id", userId);
@@ -41,8 +37,6 @@ public class AuditLog {
         }
     }
 
-    // Turned away with the server-side reason. Nothing was saved, so it's written right away.
-    // userId is null when the request didn't get as far as an account (e.g. an unknown email).
     public void rejected(AuditEvent event, UUID userId, String reason, Map<String, ?> details) {
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("user_id", userId);

@@ -7,7 +7,6 @@ public record ChangeEmailRequest(
         @NotBlank(message = "Email must not be blank.") @Email(message = "Email must be a valid email address.") String email,
         @NotBlank(message = "Current password must not be blank.") String currentPassword) {
 
-    // Strip before validation runs, so a pasted address with stray spaces is accepted and stored clean.
     public ChangeEmailRequest {
         email = email == null ? null : email.strip();
     }

@@ -1,5 +1,4 @@
-// Seeded so the stem keeps the same shape between renders (e.g. when posts load),
-// while every bend along it still differs in length and depth.
+// Seeded, so the stem keeps its shape between renders.
 function seededRandom(seed: number) {
   let state = seed;
   return () => {
@@ -13,11 +12,6 @@ function seededRandom(seed: number) {
 const STRAIGHT_BASE = 70;
 const STRAIGHT_TOP = 40;
 
-/**
- * A wavy, irregular stem in a `width` x `height` box, as one SVG path per bend. It starts
- * at the bottom centre (in line with the tab bar's + button) and climbs to the top centre (`tip`);
- * each bend has its own length and sway so the curve never repeats.
- */
 export function vinePath(width: number, height: number, seed = 7) {
   const random = seededRandom(seed);
   const centre = width / 2;
@@ -29,16 +23,14 @@ export function vinePath(width: number, height: number, seed = 7) {
     { x: centre, y: height },
     { x: centre, y: height - base },
   ];
-  // The bends stop short of the top, which ends straight up in the centre so the leaf
-  // there always sits in the middle.
+  // Straight at the top too, so the leaf always sits in the middle.
   const top = Math.min(STRAIGHT_TOP, height - base);
   for (let y = height - base - (40 + random() * 90); y > top; y -= 40 + random() * 90) {
     points.push({ x: centre + (random() * 2 - 1) * maxSway * (0.3 + random() * 0.7), y });
   }
   points.push({ x: centre, y: top }, { x: centre, y: 0 });
 
-  // Catmull-Rom through the points, as cubic Béziers, so the bends join smoothly. One
-  // path per bend, so each can be drawn with its own stroke width.
+  // Catmull-Rom as cubic Béziers, one path per bend so each gets its own stroke width.
   const segments = [];
   for (let i = 0; i < points.length - 1; i++) {
     const p0 = points[i - 1] ?? points[i];

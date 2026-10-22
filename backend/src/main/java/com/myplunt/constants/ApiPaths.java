@@ -11,7 +11,6 @@ public final class ApiPaths {
         private Ops() {}
     }
 
-    // The admin dashboard's API. Its own security chain (AdminSecurityConfig): only admin tokens work here.
     public static final class Admin {
         public static final String BASE = "/v1/admin";
         public static final String AUTH = BASE + "/auth";
@@ -30,7 +29,6 @@ public final class ApiPaths {
         private Admin() {}
     }
 
-    // What the app logs (actions, warnings, errors), stored in the logs table.
     public static final class ClientLogs {
         public static final String BASE = "/v1/client-logs";
 
@@ -59,26 +57,18 @@ public final class ApiPaths {
         public static final String BASE = "/v1/users";
         public static final String ME = BASE + "/me";
         public static final String ME_EMAIL = ME + "/email";
-        // PUT sets the profile picture from an uploaded key, DELETE removes it.
         public static final String ME_AVATAR = ME + "/avatar";
-        // PUT saves the city the user shared during onboarding.
         public static final String ME_LOCATION = ME + "/location";
-        // PUT marks the app tour as finished or skipped.
         public static final String ME_ONBOARDING = ME + "/onboarding";
-        // GET returns, PUT replaces which kinds of notifications the user wants.
         public static final String ME_NOTIFICATIONS = ME + "/notifications";
-        // PUT saves this phone's Expo push token and time zone, DELETE removes it (logout).
         public static final String ME_PUSH_TOKEN = ME + "/push-token";
-        // GET lists the notifications the user was sent, newest first.
         public static final String ME_INBOX = ME + "/inbox";
         public static final String SEARCH = BASE + "/search";
         // Literal paths (/me, /search) win over this template.
         public static final String BY_ID = BASE + "/{userId}";
-        // A friend's garden, PluntDex and posts, for their profile; friends only.
         public static final String GARDEN = BY_ID + "/garden";
         public static final String DISCOVERED_SPECIES = BY_ID + "/species/discovered";
         public static final String POSTS = BY_ID + "/posts";
-        // One of a friend's plants and its growth photos, opened from their garden; read-only.
         public static final String PLANT = BY_ID + "/plants/{plantId}";
         public static final String PLANT_PHOTOS = PLANT + "/photos";
 
@@ -106,11 +96,8 @@ public final class ApiPaths {
     public static final class Plants {
         public static final String BASE = "/v1/plants";
         public static final String BY_ID = BASE + "/{plantId}";
-        // POST waters the plant, GET returns its watering history.
         public static final String WATERINGS = BASE + "/{plantId}/waterings";
-        // POST adds a growth photo, GET returns them all, oldest first.
         public static final String PHOTOS = BASE + "/{plantId}/photos";
-        // PUT changes a growth photo's date and note, DELETE removes it.
         public static final String PHOTO_BY_ID = PHOTOS + "/{photoId}";
 
         private Plants() {}
@@ -132,17 +119,11 @@ public final class ApiPaths {
 
     public static final class Posts {
         public static final String BASE = "/v1/posts";
-        // The signed-in user's and their friends' posts, newest first.
         public static final String FEED = BASE + "/feed";
-        // The signed-in user's own posts, newest first (for their profile).
         public static final String MINE = BASE + "/mine";
-        // GET opens a post of the user's or a friend's; PUT edits the user's own post's text, DELETE removes it.
         public static final String BY_ID = BASE + "/{postId}";
-        // POST asks the user's friends a question; it shows up in the feed as a sticky note.
         public static final String QUESTIONS = BASE + "/questions";
-        // GET lists a visible post's comments, oldest first; POST adds one.
         public static final String COMMENTS = BY_ID + "/comments";
-        // PUT waters a friend's post (the app's like), DELETE takes the drop back. Both are idempotent.
         public static final String WATER = BY_ID + "/water";
 
         private Posts() {}

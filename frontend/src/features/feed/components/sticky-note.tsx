@@ -9,14 +9,8 @@ import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { logAction } from '@/lib/logger';
 import type { QuestionPost } from '@/lib/post/types';
 
-/**
- * A question in the feed as a Post-it stuck beside the stem, slightly askew, with a strip of tape.
- * Tapping it opens the post's own page. `hideAuthor` is for the user's own profile, where every
- * post is theirs: the label is just the kind.
- */
 export function StickyNote({ post, hideAuthor = false }: { post: QuestionPost; hideAuthor?: boolean }) {
   const router = useRouter();
-  // The feed only has the user and their friends; null friendship means it's the user's own.
   const who = hideAuthor
     ? 'Question'
     : post.author.friendship === null
@@ -25,8 +19,6 @@ export function StickyNote({ post, hideAuthor = false }: { post: QuestionPost; h
   const tilt = noteTilt(post.id);
 
   return (
-    // Fills the slot it's given, like a plant card. Rotation and shadow are per-note values, so
-    // they go through style; the shadow sets both iOS shadow* and Android elevation.
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${who}: ${post.body}, ${countsLabel(post)}`}

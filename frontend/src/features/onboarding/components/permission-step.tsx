@@ -16,7 +16,6 @@ type Icon = SymbolViewProps['name'];
 
 interface PermissionStepProps {
   step: TourStep;
-  /** Shown after "Step x of N". */
   stepLabel: string;
   icon: Icon;
   title: string;
@@ -27,11 +26,9 @@ interface PermissionStepProps {
   /** Asks the system for the permission; a denial resolves too, and the tour moves on. */
   onAction: () => Promise<unknown>;
   failedEvent: FrontendEvent;
-  /** Leaves the page after the action or "Not now"; the tour has already moved to the next step. */
   onDone: () => void;
 }
 
-// A tour step that's a full page rather than a card, because it ends in the system's permission prompt.
 export function PermissionStep(props: PermissionStepProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -90,7 +87,6 @@ export function PermissionStep(props: PermissionStepProps) {
           </View>
 
           <View className="items-center self-center">
-            {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
             <SymbolView name={props.icon} tintColor={theme.actionPrimary} size={72} />
           </View>
 

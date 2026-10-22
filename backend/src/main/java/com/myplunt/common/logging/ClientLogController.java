@@ -11,8 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-// Takes the app's log lines (ClientLog). Signed-in only, so nobody can fill the disk
-// anonymously; the app keeps what it logs before login and sends it once the user signs in.
+// Signed-in only, so nobody can fill the logs table anonymously.
 @RestController
 public class ClientLogController {
 

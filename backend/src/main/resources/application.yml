@@ -1,13 +1,11 @@
 spring:
   application:
     name: backend
-  # We authenticate with JWT only; without this Spring creates a default user and
-  # logs its generated password on every start.
+  # JWT only: otherwise Spring creates a default user and logs its password on every start.
   autoconfigure:
     exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   mvc:
-    # Devtools turns this on, and its log line includes rejected request values such as
-    # passwords. GlobalExceptionHandler already logs failures without the values.
+    # Devtools turns this on, and its log line includes rejected values such as passwords.
     log-resolved-exception: false
   jpa:
     # Set explicitly (same as the default) to silence its startup warning in the log file.
@@ -17,15 +15,12 @@ spring:
     show-sql: false
   flyway:
     enabled: true
-    # Lets the db/seed SQL give its storage keys the same prefix real uploads get.
     placeholders:
       storagePrefix: ${app.storage.prefix}
 
 app:
-  # Filled in by Maven at build time; every backend log line carries it as backend_version.
   version: '@project.version@'
-  # The admin dashboard (admin_dashboard/). Its secret must differ from app.jwt.secret and be at
-  # least 32 bytes. allowed-origins: the dashboard's URL(s), comma-separated, for CORS.
+  # admin.jwt.secret must differ from app.jwt.secret and be at least 32 bytes. allowed-origins is comma-separated.
   admin:
     jwt:
       secret: ${ADMIN_JWT_SECRET}
@@ -37,9 +32,8 @@ app:
     bootstrap:
       email: ${ADMIN_BOOTSTRAP_EMAIL:}
       password: ${ADMIN_BOOTSTRAP_PASSWORD:}
-  # Server health for the dashboard's Overview, fetched over the Coolify Docker network (container
-  # name + port). kuma-status-page: the slug of a Kuma status page holding the monitors to show.
-  # Blank: that part of the Overview shows as not set up.
+  # Container name + port on the Coolify network; kuma-status-page is a Kuma status page slug.
+  # Left blank, that part of the Overview shows as not set up.
   monitoring:
     kuma-url: ${KUMA_URL:}
     kuma-status-page: ${KUMA_STATUS_PAGE:}
@@ -48,10 +42,9 @@ app:
     secret: ${JWT_SECRET}
     access-token-ttl-minutes: 15
     refresh-token-ttl-days: 30
-  # Expo's push service, which delivers to both APNs and FCM with one Expo push token.
   push:
     expo-url: https://exp.host/--/api/v2/push/send
-  # Forecasts for weather alerts. Without a key the alerts are off.
+  # Without an api-key, weather alerts are off.
   weather:
     openweather-url: https://api.openweathermap.org/data/2.5/forecast
     api-key: ${OPENWEATHER_API_KEY:}

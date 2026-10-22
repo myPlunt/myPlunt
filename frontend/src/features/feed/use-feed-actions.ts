@@ -11,7 +11,6 @@ export function useFeedActions() {
     try {
       return await action();
     } catch (err) {
-      // apiFetch already tried a refresh; a 401 here means the session is gone.
       if (err instanceof ApiError && err.status === 401) {
         setUnauthenticated();
       }

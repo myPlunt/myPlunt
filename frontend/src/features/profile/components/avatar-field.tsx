@@ -14,10 +14,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 const SIZE = 96;
 
-/**
- * The profile picture on Edit profile. Tapping it opens the photo menu; a picked photo is
- * uploaded and saved straight away, without the form's Save button. Remove deletes it.
- */
+/** A picked photo is uploaded and saved straight away, without the form's Save button. */
 export function AvatarField({
   user,
   onSaved,
@@ -25,7 +22,6 @@ export function AvatarField({
 }: {
   user: User;
   onSaved?: () => void;
-  /** Rings the picture, for the tour step that asks for one. */
   highlighted?: boolean;
 }) {
   const theme = useTheme();
@@ -39,7 +35,6 @@ export function AvatarField({
     setAvatarUrl(updated.avatarUrl);
     onSaved?.();
   });
-  // The picker chosen in the menu, started once the menu is gone (see choose()).
   const pendingPick = useRef<(() => Promise<void>) | null>(null);
 
   // The local file while it uploads and after, so the picture doesn't flicker to the remote copy.
@@ -92,7 +87,6 @@ export function AvatarField({
           <UserAvatar size={SIZE} url={shownUrl} accessibilityLabel="Your profile picture" />
           {isBusy && (
             <View className="absolute inset-0 items-center justify-center rounded-full bg-background-element opacity-70">
-              {/* A colour prop, so it reads the theme instead of a class. */}
               <ActivityIndicator
                 accessibilityLabel={isRemoving ? 'Removing profile picture' : 'Uploading profile picture'}
                 color={theme.primary}
@@ -100,7 +94,6 @@ export function AvatarField({
             </View>
           )}
           <View className="absolute bottom-0 right-0 h-8 w-8 items-center justify-center rounded-full bg-action-primary">
-            {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
             <SymbolView
               name={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }}
               tintColor={theme.backgroundElement}

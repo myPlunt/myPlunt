@@ -15,7 +15,6 @@ export async function renamePlanter(planterId: string, request: UpdatePlanterReq
   return apiFetch<Planter>(`/v1/planters/${planterId}`, { method: 'PUT', body: request, requestId });
 }
 
-/** The planter's plants aren't deleted: the backend moves them to "Other plants". */
 export async function deletePlanter(planterId: string): Promise<void> {
   const requestId = createRequestId();
   logAction('planter_delete_submitted', { requestId, context: { planter_id: planterId } });

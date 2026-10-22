@@ -1,8 +1,7 @@
 package com.myplunt.common.logging;
 
-// The "event" field of the backend's warnings, errors and bugs (snake_case, like AuditEvent).
 public enum LogEvent {
-    // Warnings: a request was turned away, or something went wrong that the backend recovered from.
+    // Warnings
     REQUEST_VALIDATION_FAILED,
     REQUEST_UNREADABLE,
     REQUEST_REJECTED,
@@ -12,10 +11,10 @@ public enum LogEvent {
     PHOTO_CLEANUP_FAILED,
     SEED_IMAGE_UNAVAILABLE,
     SEED_IMAGE_PLACEHOLDER_USED,
-    // Errors: the operation could not complete.
+    // Errors
     UNHANDLED_EXCEPTION,
     PUSH_SEND_FAILED,
     WEATHER_FETCH_FAILED,
-    // Bugs: states the code should make impossible.
+    // Bugs
     PLANT_IN_UNKNOWN_PLANTER
 }

@@ -58,7 +58,6 @@ public class PushNotificationService {
     // A comment or question is quoted only this far, so it fits the banner (and notifications.body).
     static final int QUOTE_LENGTH = 100;
 
-    // How many of the newest notifications the list shows.
     static final int INBOX_SIZE = 50;
 
     // Weather alert thresholds in °C over the next 24 hours.
@@ -96,7 +95,6 @@ public class PushNotificationService {
         this.openWeatherClient = openWeatherClient;
     }
 
-    // A token already saved for another account moves to this one: the phone switched accounts.
     public void registerToken(UUID userId, PushTokenRequest request) {
         try {
             ZoneId.of(request.timeZone());
@@ -112,7 +110,6 @@ public class PushNotificationService {
         pushTokenRepository.deleteByTokenAndUserId(token, userId);
     }
 
-    // Every hour, for the phones where it's now REMINDER_HOUR.
     // shortcut: loads every token each hour; query by zone once there are thousands of phones.
     @Scheduled(cron = "0 0 * * * *")
     public void sendWateringRemindersNow() {
@@ -143,14 +140,12 @@ public class PushNotificationService {
         send(messages);
     }
 
-    // Frost or heat in the next 24 hours where the user lives, sent with the morning reminders.
     // shortcut: no indoor/outdoor flag on plants, so every user with plants is warned; filter once plants have one.
     public void sendWeatherAlerts(Instant now) {
         sendWeatherAlerts(zone -> now.atZone(zone).getHour() == REMINDER_HOUR, false);
     }
 
-    // Staging's manual pipeline job: every user with a location, right now, even on a mild day,
-    // so the whole chain (OpenWeather, Expo, the list) can be tried on a phone.
+    // Staging's manual pipeline job: tries the whole chain on a phone, even on a mild day.
     public void sendWeatherAlertsToEveryone() {
         sendWeatherAlerts(zone -> true, true);
     }
@@ -204,7 +199,7 @@ public class PushNotificationService {
 
     record WeatherAlert(String title, String body) {}
 
-    // Empty when the weather is fine. Frost wins: a cold plant can die overnight.
+    // Frost wins over heat: a cold plant can die overnight.
     static Optional<WeatherAlert> weatherAlert(OpenWeatherClient.Forecast forecast) {
         if (forecast.minTemp() < FROST_BELOW) {
             return Optional.of(new WeatherAlert("Frost is coming 🥶",
@@ -217,17 +212,13 @@ public class PushNotificationService {
         return Optional.empty();
     }
 
-    // To every phone of the receiver. Async, so a slow Expo never holds up sending the request.
-    // There's no setting for it: a request is waiting on the user, and the phone's settings can still mute it.
-    // It's listed even when the receiver has no phone with push, so they still see the request there.
+    // No setting turns this off: a request waits on the user, and the phone can still mute it.
     @Async
     public void sendFriendRequest(UUID requesterId, UUID receiverId) {
         notify(receiverId, requesterId, "New friend request 🌱", username(requesterId) + " wants to be friends.",
                 FRIEND_REQUESTS_URL);
     }
 
-    // A friend's comment on the user's post; a tap opens the post. A comment on a question is an
-    // answer to it. Off with the user's "Likes & comments" setting (post_interactions), like the drops and replies.
     @Async
     public void sendPostComment(UUID commenterId, PostNotice post, String comment) {
         if (!wantsPostInteractions(post.ownerId())) {
@@ -242,9 +233,7 @@ public class PushNotificationService {
                 POST_URL + post.postId());
     }
 
-    // Everyone who commented on the post before, so a conversation under it reaches the people in it:
-    // "emma replied on their question", "jane replied on emma's Gus the Fern". Skips the commenter and
-    // the post's author (sendPostComment tells them), so nobody hears about one comment twice.
+    // Skips the post's author: sendPostComment tells them, so nobody hears about one comment twice.
     @Async
     public void sendCommentReply(UUID commenterId, PostNotice post, String comment, List<UUID> earlierCommenters) {
         boolean isQuestion = Post.QUESTION.equals(post.type());
@@ -260,7 +249,6 @@ public class PushNotificationService {
         }
     }
 
-    // A friend's drop of water (the app's like) on the user's post, saying which post it was.
     // shortcut: watering, taking it back and watering again notifies twice; collapse repeats if friends complain.
     @Async
     public void sendPostWatered(UUID fromId, PostNotice post) {
@@ -275,12 +263,10 @@ public class PushNotificationService {
         notify(post.ownerId(), fromId, "New like 💧", username(fromId) + " liked " + what, POST_URL + post.postId());
     }
 
-    // In quotes, cut short so it fits the banner (and notifications.body).
     static String quote(String text) {
         return "\"" + (text.length() > QUOTE_LENGTH ? text.substring(0, QUOTE_LENGTH).strip() + "…" : text) + "\"";
     }
 
-    // Listed for the user and pushed to every phone of theirs; listed even without one, so they still see it.
     private void notify(UUID userId, UUID fromUserId, String title, String body, String url) {
         notificationRepository.save(new Notification(userId, fromUserId, title, body, url));
         send(pushTokenRepository.findByUserId(userId).stream()
@@ -297,7 +283,6 @@ public class PushNotificationService {
     public List<NotificationResponse> getInbox(UUID userId) {
         List<Notification> notifications =
                 notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, Limit.of(INBOX_SIZE));
-        // The senders' pictures in one query, not one per notification. Links are made per read, as they expire.
         Map<UUID, String> avatarUrls = new HashMap<>();
         userRepository.findAllById(notifications.stream().map(Notification::getFromUserId).filter(Objects::nonNull).toList())
                 .forEach(user -> avatarUrls.put(user.getId(),
@@ -319,7 +304,6 @@ public class PushNotificationService {
         }
     }
 
-    // Accounts that never saved a setting get the defaults, which have reminders on.
     private boolean wantsWateringReminders(UUID userId) {
         return userSettingsRepository.findById(userId).map(UserSettings::isWateringReminders).orElse(true);
     }
@@ -355,7 +339,6 @@ public class PushNotificationService {
                 : names.size() + " plants are thirsty 💧";
     }
 
-    // Names up to three plants; past that the rest are counted, so the text fits the banner.
     static String reminderText(List<String> names) {
         return switch (names.size()) {
             case 1 -> "Give " + names.get(0) + " some water today.";

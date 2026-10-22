@@ -26,7 +26,6 @@ public class PlanterService {
 
     @Transactional
     public PlanterResponse create(UUID ownerId, CreatePlanterRequest request) {
-        // Two planters with the same name would look identical in the garden and the picker.
         if (planterRepository.existsByOwnerIdAndNameIgnoreCase(ownerId, request.name())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, "You already have a planter called " + request.name());
@@ -50,15 +49,13 @@ public class PlanterService {
         return new PlanterResponse(saved.getId(), saved.getName());
     }
 
-    // The plants in it stay: plants.planter_id is ON DELETE SET NULL, so the database moves
-    // them to the group without a planter.
+    // Its plants stay: plants.planter_id is ON DELETE SET NULL.
     @Transactional
     public void delete(UUID ownerId, UUID planterId) {
         planterRepository.delete(findOwnPlanter(ownerId, planterId));
         auditLog.recorded(AuditEvent.PLANTER_DELETED, ownerId, ownerId, Map.of("planter_id", planterId));
     }
 
-    // Someone else's planter answers "not found" too, so ids of other users' planters don't leak.
     private Planter findOwnPlanter(UUID ownerId, UUID planterId) {
         return planterRepository.findByIdAndOwnerId(planterId, ownerId)
                 .orElseThrow(() -> new IllegalStateException("Planter not found"));

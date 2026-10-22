@@ -7,18 +7,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
-// How consistently a plant has been watered. Each watering is due frequencyDays calendar days
-// after the one before it (the first after the day the plant was added), in the user's time
-// zone, the same rule that turns the app's watering pill to "Overdue". The streak only grows
-// with a watering on its due day: watering early isn't late, so it doesn't break the streak,
-// but the plant didn't need it yet, so it doesn't add to it either (it does restart the
-// schedule). A late watering breaks it. A second watering on the same day doesn't count again,
-// so tapping the drop twice can't grow a streak. Uses today's schedule for the whole history,
-// since older ones aren't kept.
-//
-// daysLate has one entry per watering, oldest first; 0 means not late. currentStreak is 0 once
-// the plant is overdue. onTimePercent is the share of watering days that weren't late, null
-// before the first watering.
+// Each watering is due frequencyDays calendar days (in the user's zone) after the previous one, or
+// after the plant was added. Only a watering on its due day grows the streak; an early one neither
+// grows nor breaks it but restarts the schedule, a late one breaks it, and a second one on the same
+// day doesn't count. Today's frequency is used for the whole history, since older ones aren't kept.
 public record WateringConsistency(
         List<Integer> daysLate,
         int currentStreak,

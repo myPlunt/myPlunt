@@ -11,14 +11,12 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
-// Reads the logs table (V10) for the dashboard. Plain SQL: the table has no entity, it's written
-// by DatabaseLogAppender. The admin app only logs species approvals and rejections (see CLAUDE.md).
+// Plain SQL: the logs table has no entity (DatabaseLogAppender writes it).
 @Service
 public class AdminLogService {
 
@@ -64,8 +62,6 @@ public class AdminLogService {
         return new LogOverviewResponse(range, total, byLevel, byLocation, perDay, topActions, topProblems);
     }
 
-    // Errors and bugs in the last hour, and how many an hour is usual (the 7 days before it), for
-    // the Overview's error spike alert.
     public ErrorRate errorRate() {
         return jdbc.queryForObject("""
                 SELECT count(*) FILTER (WHERE logged_at >= now() - interval '1 hour'),
@@ -76,7 +72,6 @@ public class AdminLogService {
 
     public record ErrorRate(long lastHour, double usualPerHour) {}
 
-    // Newest first. level and location are optional filters; both are bound, never concatenated.
     public LogPageResponse entries(String level, String location, int page, int size) {
         int pageSize = Math.clamp(size, 1, MAX_PAGE_SIZE);
         int pageIndex = Math.max(page, 0);

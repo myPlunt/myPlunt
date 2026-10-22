@@ -17,13 +17,10 @@ interface PlantSelection {
 interface PlantCardProps {
   plant: GardenPlant;
   now: Date;
-  /** Set while the user picks plants to water: pressing the card then toggles it instead of opening it. */
   selection?: PlantSelection;
-  /** Set for a friend's plant: its details page then loads it from them and is read-only. */
   ownerId?: string;
 }
 
-/** One plant in a room; pressing it opens the plant's details, or selects it while picking plants to water. */
 export function PlantCard({ plant, now, selection, ownerId }: PlantCardProps) {
   const router = useRouter();
   const theme = useTheme();
@@ -54,19 +51,15 @@ export function PlantCard({ plant, now, selection, ownerId }: PlantCardProps) {
       className={`w-[168px] rounded-3xl border-2 bg-background-element p-2 active:opacity-70 ${
         selected ? 'border-action-primary' : 'border-transparent'
       }`}
-      // Shadow goes through style so it sets both iOS shadow* and Android elevation.
       style={Shadow.card}>
-      {/* Square, like every plant photo (they're cropped to a square when picked), so none of it is cut off. */}
       <PlantPhoto
         photoUrl={plant.photoUrl}
         accessibilityLabel={`Photo of ${plant.name}`}
         className="aspect-square w-full rounded-2xl"
         iconSize={36}
       />
-      {/* Only once there's a streak; a 0 on every new plant would just be noise. */}
       {streak > 0 && (
         <View className="absolute left-4 top-4 flex-row items-center gap-1 rounded-full bg-background-element/90 px-2 py-0.5">
-          {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
           <SymbolView
             name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
             tintColor={theme.water}
@@ -80,7 +73,6 @@ export function PlantCard({ plant, now, selection, ownerId }: PlantCardProps) {
           className={`absolute right-4 top-4 h-7 w-7 items-center justify-center rounded-full border-2 border-background-element ${
             selected ? 'bg-action-primary' : 'bg-background-element/70'
           }`}>
-          {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
           {selected && (
             <SymbolView
               name={{ ios: 'checkmark', android: 'check', web: 'check' }}
@@ -96,8 +88,7 @@ export function PlantCard({ plant, now, selection, ownerId }: PlantCardProps) {
           <Text className="type-subtitle-large text-text" numberOfLines={1}>
             {plant.name}
           </Text>
-          {/* Always one line, left blank without a species, so the watering pill sits at the
-              same height on every card. The blank line is hidden from screen readers. */}
+          {/* Always one line, blank without a species, so the watering pill lines up across cards. */}
           <Text
             className="type-body-medium text-text-secondary"
             numberOfLines={1}

@@ -34,7 +34,6 @@ public class FriendController {
         this.friendService = friendService;
     }
 
-    // The signed-in user asks userId to be friends; it stays pending until they answer.
     @PostMapping(ApiPaths.Friends.REQUESTS)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void sendRequest(@AuthenticationPrincipal User principal, @Valid @RequestBody SendFriendRequest request) {
@@ -51,7 +50,6 @@ public class FriendController {
         return friendService.getRequests(principal.getId());
     }
 
-    // userId is the person who sent the request; the signed-in user is answering it.
     @PostMapping(ApiPaths.Friends.ACCEPT)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void accept(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
@@ -64,21 +62,19 @@ public class FriendController {
         friendService.decline(principal.getId(), userId);
     }
 
-    // userId is the person the signed-in user asked; takes the request back before they answer.
     @PostMapping(ApiPaths.Friends.CANCEL)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void cancel(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
         friendService.cancel(principal.getId(), userId);
     }
 
-    // userId is a friend of the signed-in user; either of them can end it.
     @PostMapping(ApiPaths.Friends.REMOVE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remove(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
         friendService.remove(principal.getId(), userId);
     }
 
-    // A friend's garden, for their profile. zone is the viewer's IANA time zone, like GET /v1/garden.
+    // zone is the viewer's, not the friend's.
     @GetMapping(ApiPaths.Users.GARDEN)
     public GardenResponse garden(
             @AuthenticationPrincipal User principal,
@@ -87,7 +83,6 @@ public class FriendController {
         return friendService.getFriendGarden(principal.getId(), userId, zone);
     }
 
-    // One of a friend's plants, opened from their garden.
     @GetMapping(ApiPaths.Users.PLANT)
     public PlantDetailsResponse plant(
             @AuthenticationPrincipal User principal, @PathVariable UUID userId, @PathVariable UUID plantId) {
@@ -100,14 +95,12 @@ public class FriendController {
         return friendService.getFriendPlantPhotos(principal.getId(), userId, plantId);
     }
 
-    // The species a friend has discovered, for their PluntDex on their profile.
     @GetMapping(ApiPaths.Users.DISCOVERED_SPECIES)
     public List<DiscoveredSpeciesResponse> discoveredSpecies(
             @AuthenticationPrincipal User principal, @PathVariable UUID userId) {
         return friendService.getFriendDiscoveredSpecies(principal.getId(), userId);
     }
 
-    // A friend's posts, newest first, for their profile.
     @GetMapping(ApiPaths.Users.POSTS)
     public List<PostResponse> posts(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
         return friendService.getFriendPosts(principal.getId(), userId);

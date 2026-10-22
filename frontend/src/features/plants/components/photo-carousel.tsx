@@ -9,21 +9,14 @@ import type { PlantPhoto as PlantPhotoData } from '@/lib/plant/types';
 
 interface PhotoCarouselProps {
   plantName: string;
-  /** The growth photos, oldest first; empty while they load or when there are none. */
   photos: PlantPhotoData[];
-  /** Shown when `photos` is empty: the plant's current photo from its details, or null. */
   fallbackUrl: string | null;
   index: number;
   onChange: (index: number) => void;
 }
 
-/**
- * The big photo on a plant's details. Swipe or use the arrows to step through its growth
- * photos; each shows the month it was taken and its note, with how far along the timeline it is.
- */
 export function PhotoCarousel({ plantName, photos, fallbackUrl, index, onChange }: PhotoCarouselProps) {
   const scrollRef = useRef<ScrollView>(null);
-  // Page width, known once laid out; each photo is one page.
   const [width, setWidth] = useState(0);
   const hasMany = photos.length > 1;
 
@@ -54,7 +47,6 @@ export function PhotoCarousel({ plantName, photos, fallbackUrl, index, onChange 
           if (page !== index) onChange(page);
         }}>
         {(photos.length > 0 ? photos : [null]).map((photo) => (
-          // Width comes from the measured layout, so it can't be a static class.
           <View key={photo?.id ?? 'fallback'} className="h-full" style={{ width }}>
             <PlantPhoto
               photoUrl={photo ? photo.url : fallbackUrl}
@@ -102,11 +94,9 @@ function Arrow({ direction, disabled, onPress }: { direction: 'previous' | 'next
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      // Vertically centred: top-1/2 puts the top edge in the middle, -mt-[22px] lifts it by half its height.
       className={`absolute top-1/2 -mt-[22px] h-11 w-11 items-center justify-center rounded-full bg-background-element active:opacity-70 ${
         isPrevious ? 'left-3' : 'right-3'
       } ${disabled ? 'opacity-40' : ''}`}>
-      {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
       <SymbolView
         name={
           isPrevious

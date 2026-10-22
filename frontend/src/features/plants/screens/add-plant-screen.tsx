@@ -13,8 +13,6 @@ import type { Plant } from '@/lib/plant/types';
 import type { Species } from '@/lib/species/types';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
-// Opened from the tab bar's + button, or from a species' Pluntdex page with that species
-// already picked; the whole page is a sheet of notebook paper.
 export function AddPlantScreen({ initialSpecies }: { initialSpecies?: Pick<Species, 'id' | 'commonName'> }) {
   const router = useRouter();
   // The garden's rooms are the user's planters; the group without an id is "Other plants".
@@ -23,12 +21,9 @@ export function AddPlantScreen({ initialSpecies }: { initialSpecies?: Pick<Speci
   const { discovered } = useDiscoveredSpecies();
   const [justDiscovered, setJustDiscovered] = useState<Species | null>(null);
   const { step, next } = useOnboardingStore();
-  // Set when the tour's first-plant step saved a plant: the next step, its first photo, is on
-  // the plant's page, which opens once this sheet closes (after the discovery, if any).
+  // Set when the tour's first-plant step saved a plant: its page opens once this sheet closes.
   const [tourPlantId, setTourPlantId] = useState<string | null>(null);
   function close(openPlantId: string | null = null) {
-    // Nothing underneath when the app was opened (or reloaded) straight onto this page,
-    // so go to the garden, where the new plant shows up.
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -38,7 +33,6 @@ export function AddPlantScreen({ initialSpecies }: { initialSpecies?: Pick<Speci
   }
 
   function saved(plant: Plant) {
-    // The plant is what the tour's first-plant step asked for, so it moves on.
     const openPlantId = step === 'plant' ? plant.id : null;
     if (openPlantId) next(openPlantId);
     // Only once the discovered list has loaded, so a slow or failed load never celebrates a
@@ -63,7 +57,6 @@ export function AddPlantScreen({ initialSpecies }: { initialSpecies?: Pick<Speci
           The more we know, the better we&apos;ll remind you.
         </Text>
       </RuledLine>
-      {/* Closing the sheet refocuses the screen below; the garden reloads and shows the new plant. */}
       <PlantForm
         initialSpecies={initialSpecies}
         species={species}

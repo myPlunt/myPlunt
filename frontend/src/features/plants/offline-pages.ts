@@ -3,17 +3,14 @@ import { cachedFetch, readCache, writeCache } from '@/lib/offline/cache';
 
 import * as plantService from './plant-service';
 
-/** The plant's details; with no connection, the copy saved last time (see cachedFetch). */
 export function cachedPlant(plantId: string) {
   return cachedFetch(`plant:${plantId}`, () => plantService.getPlant(plantId));
 }
 
-/** The plant's growth photos; with no connection, the copy saved last time. */
 export function cachedPlantPhotos(plantId: string) {
   return cachedFetch(`photos:${plantId}`, () => plantService.getPlantPhotos(plantId));
 }
 
-/** The plant's watering history; with no connection, the copy saved last time. */
 export function cachedWateringHistory(plantId: string) {
   return cachedFetch(`waterings:${plantId}`, () => plantService.getWateringHistory(plantId));
 }
@@ -21,11 +18,7 @@ export function cachedWateringHistory(plantId: string) {
 // Several screens load the garden, so a run that's still going is shared, like api-client's refresh.
 let running: Promise<void> | null = null;
 
-/**
- * Saves the pages of every plant in a freshly loaded garden for offline (details, photos and
- * watering history), so any plant opens without a connection, not only the ones visited. One
- * plant at a time, in the background.
- */
+/** One plant at a time, in the background, so any plant opens offline, not only the ones visited. */
 export function savePlantPagesForOffline(garden: Garden): Promise<void> {
   if (!running) {
     running = saveChangedPages(garden).finally(() => {
@@ -38,9 +31,8 @@ export function savePlantPagesForOffline(garden: Garden): Promise<void> {
 async function saveChangedPages(garden: Garden) {
   for (const room of garden.rooms) {
     for (const plant of room.plants) {
-      // How the plant shows in the garden; its pages are only fetched again once that changes
-      // (watered, renamed, moved, a new photo), so a normal visit to the garden costs nothing.
-      // The photo link changes on every load, the photo itself only when its path does.
+      // Pages are fetched again only when the plant's garden entry changes (the photo by its path, as
+      // the link changes on every load), so a normal visit to the garden costs nothing.
       // ponytail: changes the garden doesn't show (notes, light, an older photo's caption) reach
       // the offline copy only when the plant is opened online; a bulk endpoint would cover them.
       const version = JSON.stringify([room.id, room.name, { ...plant, photoUrl: plant.photoUrl?.split('?')[0] }]);
