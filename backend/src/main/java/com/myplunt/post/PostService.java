@@ -188,6 +188,7 @@ public class PostService {
     @Transactional
     public CommentResponse addComment(UUID userId, UUID postId, AddCommentRequest request) {
         Post post = findVisiblePost(userId, postId);
+        List<UUID> earlierCommenters = postCommentRepository.findAuthorIds(postId);
         PostComment saved = postCommentRepository.save(new PostComment(postId, userId, request.body()));
         auditLog.recorded(AuditEvent.COMMENT_ADDED, userId, userId,
                 Map.of("post_id", postId, "comment_id", saved.getId()));
@@ -195,6 +196,7 @@ public class PostService {
         if (!post.getUserId().equals(userId)) {
             pushNotificationService.sendPostComment(userId, notice(post), request.body());
         }
+        pushNotificationService.sendCommentReply(userId, notice(post), request.body(), earlierCommenters);
         User author = userRepository.findById(userId).orElseThrow(() -> new IllegalStateException("User not found"));
         return toResponse(saved, author);
     }

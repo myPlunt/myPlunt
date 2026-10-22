@@ -224,6 +224,8 @@ class PostServiceTest {
         Post question = withId(new Post(UUID.randomUUID(), "Why?", null), UUID.randomUUID());
         when(postRepository.findVisible(eq(question.getId()), eq(me.getId()), anyCollection()))
                 .thenReturn(Optional.of(question));
+        UUID earlierCommenter = UUID.randomUUID();
+        when(postCommentRepository.findAuthorIds(question.getId())).thenReturn(List.of(earlierCommenter));
         when(postCommentRepository.save(any())).thenAnswer(invocation -> withId(invocation.getArgument(0), UUID.randomUUID()));
         when(userRepository.findById(me.getId())).thenReturn(Optional.of(me));
         UserSummaryResponse self = new UserSummaryResponse(me.getId(), "me", null, null, null);
@@ -237,8 +239,9 @@ class PostServiceTest {
         assertThat(saved.getValue().getAuthorId()).isEqualTo(me.getId());
         assertThat(response.body()).isEqualTo("Too much sun");
         assertThat(response.author()).isEqualTo(self);
-        verify(pushNotificationService).sendPostComment(me.getId(),
-                new PostNotice(question.getId(), question.getUserId(), Post.QUESTION, null, "Why?"), "Too much sun");
+        PostNotice notice = new PostNotice(question.getId(), question.getUserId(), Post.QUESTION, null, "Why?");
+        verify(pushNotificationService).sendPostComment(me.getId(), notice, "Too much sun");
+        verify(pushNotificationService).sendCommentReply(me.getId(), notice, "Too much sun", List.of(earlierCommenter));
     }
 
     // Not a friend's post (or no post at all): 404, and nothing is saved.

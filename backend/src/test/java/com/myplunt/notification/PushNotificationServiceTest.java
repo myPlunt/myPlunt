@@ -209,6 +209,22 @@ class PushNotificationServiceTest {
         assertThat(saved.getValue().getFromUserId()).isEqualTo(janeId);
     }
 
+    // The author answering under their own post reaches the friend who commented, not themselves.
+    @Test
+    void sendCommentReply_tellsEarlierCommentersButNotTheCommenter() {
+        UUID janeId = UUID.randomUUID();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(new User("emma", "emma@example.com", "hashed")));
+
+        service().sendCommentReply(USER_ID, new PostNotice(UUID.randomUUID(), USER_ID, Post.NEW_PLANT, "Gus", null),
+                "Thanks!", List.of(janeId, USER_ID));
+
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(saved.capture());
+        assertThat(saved.getValue().getUserId()).isEqualTo(janeId);
+        assertThat(saved.getValue().getTitle()).isEqualTo("New reply 💬");
+        assertThat(saved.getValue().getBody()).isEqualTo("emma replied on Gus: \"Thanks!\"");
+    }
+
     @Test
     void sendPostWatered_saysWhichPhotoWasLiked() {
         UUID janeId = UUID.randomUUID();

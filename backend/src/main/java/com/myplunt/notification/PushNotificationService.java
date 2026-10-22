@@ -242,6 +242,24 @@ public class PushNotificationService {
                 POST_URL + post.postId());
     }
 
+    // Everyone who commented on the post before, so a conversation under it reaches the people in it:
+    // "emma replied on their question", "jane replied on emma's Gus the Fern". Skips the commenter and
+    // the post's author (sendPostComment tells them), so nobody hears about one comment twice.
+    @Async
+    public void sendCommentReply(UUID commenterId, PostNotice post, String comment, List<UUID> earlierCommenters) {
+        boolean isQuestion = Post.QUESTION.equals(post.type());
+        String whose = commenterId.equals(post.ownerId())
+                ? isQuestion ? "their " : ""
+                : username(post.ownerId()) + "'s ";
+        String body = username(commenterId) + " replied on " + whose + (isQuestion ? "question" : post.plantName())
+                + ": " + quote(comment);
+        for (UUID userId : earlierCommenters) {
+            if (!userId.equals(commenterId) && !userId.equals(post.ownerId()) && wantsFriendPostNotifications(userId)) {
+                notify(userId, commenterId, "New reply 💬", body, POST_URL + post.postId());
+            }
+        }
+    }
+
     // A friend's drop of water (the app's like) on the user's post, saying which post it was.
     // shortcut: watering, taking it back and watering again notifies twice; collapse repeats if friends complain.
     @Async
