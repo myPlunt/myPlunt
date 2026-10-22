@@ -2,6 +2,7 @@ import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { Shadow } from '@/constants/theme';
 import { useFeedActions } from '@/features/feed/use-feed-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { logFailedUi } from '@/lib/logger';
@@ -9,14 +10,15 @@ import type { Post } from '@/lib/post/types';
 
 /**
  * The app's like: a drop of water and how many a post got. On a friend's post it's a button that
- * gives or takes back the user's drop; on the user's own post it only shows the count.
+ * gives or takes back the user's drop; on the user's own post it only shows the count. `pill` is the
+ * bigger version on the post's own page, laid over its photo; the feed cards use the plain one.
  */
-export function WaterDrop({ post }: { post: Post }) {
+export function WaterDrop({ post, pill = false }: { post: Post; pill?: boolean }) {
   // Starts over from the post when a reload brings new numbers.
-  return <WaterDropToggle key={`${post.id}:${post.waterCount}:${post.wateredByMe}`} post={post} />;
+  return <WaterDropToggle key={`${post.id}:${post.waterCount}:${post.wateredByMe}`} post={post} pill={pill} />;
 }
 
-function WaterDropToggle({ post }: { post: Post }) {
+function WaterDropToggle({ post, pill }: { post: Post; pill: boolean }) {
   const theme = useTheme();
   const { waterPost, unwaterPost } = useFeedActions();
   const [watered, setWatered] = useState(post.wateredByMe);
@@ -25,21 +27,26 @@ function WaterDropToggle({ post }: { post: Post }) {
   // Null friendship means it's the user's own post, which they can't water.
   const canWater = post.author.friendship !== null;
 
+  // On a photo the pill needs its own background to stay readable; the shadow token sets both iOS
+  // shadow* and Android elevation.
+  const container = `flex-row items-center gap-1 ${pill ? 'rounded-full bg-background-element px-3 py-1.5' : ''}`;
+  const containerStyle = pill ? Shadow.level2 : undefined;
+
   const drop = (
     <>
       {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
       <SymbolView
-        name={{ ios: watered ? 'drop.fill' : 'drop', android: 'water_drop', web: 'water_drop' }}
-        tintColor={watered ? theme.water : theme.textSecondary}
-        size={14}
+        name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
+        tintColor={theme.water}
+        size={pill ? 18 : 14}
       />
-      <Text className="type-caption text-text-secondary">{count}</Text>
+      <Text className={pill ? 'type-body-medium text-text' : 'type-caption text-text-secondary'}>{count}</Text>
     </>
   );
 
   if (!canWater) {
     return (
-      <View accessible accessibilityLabel={dropsLabel(count)} className="flex-row items-center gap-1">
+      <View accessible accessibilityLabel={dropsLabel(count)} className={container} style={containerStyle}>
         {drop}
       </View>
     );
@@ -71,7 +78,8 @@ function WaterDropToggle({ post }: { post: Post }) {
       disabled={isBusy}
       onPress={toggle}
       hitSlop={8}
-      className="flex-row items-center gap-1 active:opacity-70">
+      className={`${container} active:opacity-70`}
+      style={containerStyle}>
       {drop}
     </Pressable>
   );

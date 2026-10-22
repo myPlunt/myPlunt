@@ -109,9 +109,6 @@ export function PostScreen({ postId }: { postId: string }) {
               post && (
                 <>
                   <PostContent post={post} isOwn={isOwn} />
-                  <View className="flex-row">
-                    <WaterDrop post={post} />
-                  </View>
                   <PostComments postId={post.id} comments={comments} onAdded={addLocalComment} />
                 </>
               )
@@ -162,32 +159,43 @@ function PostContent({ post, isOwn }: { post: Post; isOwn: boolean }) {
       </Pressable>
 
       {post.type === 'question' ? (
-        // The question on its sticky note, tilted and taped as on the feed, but full size. The tilt
-        // is per note, so it goes through style; the shadow sets both iOS shadow* and Android elevation.
-        <View
-          className={`mt-2 gap-3 rounded-sm p-4 ${noteColor(post.id)}`}
-          style={[Shadow.card, { transform: [{ rotate: `${noteTilt(post.id)}deg` }] }]}>
-          <View className="absolute -top-3 h-6 w-20 self-center bg-background-element opacity-70" />
-          <Text accessibilityRole="header" className="type-body-large text-text">
-            {post.body}
-          </Text>
-          {post.photoUrl && (
-            <PlantPhoto
-              photoUrl={post.photoUrl}
-              accessibilityLabel={`Photo with the question: ${post.body}`}
-              className="aspect-square w-full rounded-sm"
-              iconSize={32}
-            />
-          )}
-        </View>
+        <>
+          {/* The question on its sticky note, tilted and taped as on the feed, but full size. The tilt
+              is per note, so it goes through style; the shadow sets both iOS shadow* and Android elevation. */}
+          <View
+            className={`mt-2 gap-3 rounded-sm p-4 ${noteColor(post.id)}`}
+            style={[Shadow.card, { transform: [{ rotate: `${noteTilt(post.id)}deg` }] }]}>
+            <View className="absolute -top-3 h-6 w-20 self-center bg-background-element opacity-70" />
+            <Text accessibilityRole="header" className="type-body-large text-text">
+              {post.body}
+            </Text>
+            {post.photoUrl && (
+              <PlantPhoto
+                photoUrl={post.photoUrl}
+                accessibilityLabel={`Photo with the question: ${post.body}`}
+                className="aspect-square w-full rounded-sm"
+                iconSize={32}
+              />
+            )}
+          </View>
+          {/* A question's photo is optional, so its drop goes under the note instead. */}
+          <View className="mt-2 flex-row">
+            <WaterDrop post={post} pill />
+          </View>
+        </>
       ) : (
         <>
-          <PlantPhoto
-            photoUrl={post.photoUrl}
-            accessibilityLabel={`Photo of ${post.plantName}`}
-            className="aspect-square w-full rounded-2xl"
-            iconSize={48}
-          />
+          <View>
+            <PlantPhoto
+              photoUrl={post.photoUrl}
+              accessibilityLabel={`Photo of ${post.plantName}`}
+              className="aspect-square w-full rounded-2xl"
+              iconSize={48}
+            />
+            <View className="absolute bottom-3 left-3">
+              <WaterDrop post={post} pill />
+            </View>
+          </View>
           <Text accessibilityRole="header" className="type-h4 text-text">
             {post.plantName}
           </Text>
