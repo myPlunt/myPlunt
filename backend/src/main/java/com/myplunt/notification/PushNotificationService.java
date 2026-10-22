@@ -145,7 +145,7 @@ public class PushNotificationService {
         sendWeatherAlerts(zone -> now.atZone(zone).getHour() == REMINDER_HOUR, false);
     }
 
-    // Staging's manual pipeline job: tries the whole chain on a phone, even on a mild day.
+    // A staging dashboard job: tries the whole chain on a phone, even on a mild day.
     public void sendWeatherAlertsToEveryone() {
         sendWeatherAlerts(zone -> true, true);
     }

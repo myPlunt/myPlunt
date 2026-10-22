@@ -2,12 +2,14 @@ import { NavLink } from 'react-router'
 
 import logoMyPlunt from '../assets/logo-myplunt.svg'
 import type { Admin } from '../lib/api'
+import { isStaging } from '../lib/staging'
 import StagingPill from './StagingPill'
 
 const links = [
   { label: 'Overview', to: '/overview' },
   { label: 'Species', to: '/species' },
   { label: 'Logs', to: '/logs' },
+  ...(isStaging ? [{ label: 'Jobs', to: '/jobs' }] : []),
 ]
 
 type SidebarProps = {

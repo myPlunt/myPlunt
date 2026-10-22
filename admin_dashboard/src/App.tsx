@@ -4,6 +4,8 @@ import { Navigate, Route, Routes } from 'react-router'
 import { useAuth } from './auth/auth-context'
 import AppLayout from './components/AppLayout'
 import LoginPage from './components/LoginPage'
+import { isStaging } from './lib/staging'
+import JobsPage from './pages/JobsPage'
 import OverviewPage from './pages/OverviewPage'
 import SpeciesPage from './pages/SpeciesPage'
 
@@ -32,6 +34,7 @@ function App() {
             </Suspense>
           }
         />
+        {isStaging && <Route path="jobs" element={<JobsPage />} />}
         <Route path="*" element={<Navigate to="/overview" replace />} />
       </Route>
     </Routes>

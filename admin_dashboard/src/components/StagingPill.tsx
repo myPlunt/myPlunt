@@ -1,4 +1,4 @@
-const isStaging = import.meta.env.VITE_APP_VARIANT === 'staging'
+import { isStaging } from '../lib/staging'
 
 // Shown by the logo so admins can tell the staging dashboard from production.
 // Renders nothing outside the staging build.

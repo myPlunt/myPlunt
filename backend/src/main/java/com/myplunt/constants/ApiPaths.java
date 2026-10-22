@@ -4,13 +4,6 @@ public final class ApiPaths {
 
     private ApiPaths() {}
 
-    public static final class Ops {
-        public static final String RESET_DB = "/v1/ops/reset-db";
-        public static final String SEND_WEATHER_ALERTS = "/v1/ops/send-weather-alerts";
-
-        private Ops() {}
-    }
-
     public static final class Admin {
         public static final String BASE = "/v1/admin";
         public static final String AUTH = BASE + "/auth";
@@ -25,6 +18,9 @@ public final class ApiPaths {
         public static final String PENDING_SPECIES = SPECIES + "/pending";
         public static final String PENDING_SPECIES_BY_ID = PENDING_SPECIES + "/{id}";
         public static final String APPROVE_SPECIES = PENDING_SPECIES_BY_ID + "/approve";
+        public static final String JOBS = BASE + "/jobs";
+        public static final String RESET_DB = JOBS + "/reset-db";
+        public static final String SEND_WEATHER_ALERTS = JOBS + "/send-weather-alerts";
 
         private Admin() {}
     }
