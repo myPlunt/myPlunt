@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { getMyPosts } from '@/features/feed/feed-service';
 import { useFeed } from '@/features/feed/use-feed';
 import { useGarden } from '@/features/garden/use-garden';
+import { useUnreadCount } from '@/features/notifications/use-unread-count';
 import { useProfile } from '@/features/profile/use-profile';
 import type { Post } from '@/lib/post/types';
 import { useOnboardingStore } from '@/stores/onboarding-store';
@@ -22,6 +23,7 @@ jest.mock('@/stores/onboarding-store', () => ({
   useOnboardingStore: jest.fn(),
 }));
 jest.mock('@/features/garden/use-garden');
+jest.mock('@/features/notifications/use-unread-count');
 jest.mock('@/features/species/use-discovered-species');
 jest.mock('@/features/species/use-species');
 
@@ -54,6 +56,7 @@ beforeEach(() => {
   jest.mocked(useDiscoveredSpecies).mockReturnValue({ refresh: jest.fn(), discovered: [], error: null, isLoading: false, retry: jest.fn() });
   mockedUseFeed.mockReturnValue({ posts: [], error: null, isLoading: false, isRefreshing: false, refresh: jest.fn(), retry });
   mockedUseOnboardingStore.mockReturnValue(onboarding);
+  jest.mocked(useUnreadCount).mockReturnValue(0);
 });
 
 afterEach(() => {
@@ -125,6 +128,16 @@ describe('ProfileScreen', () => {
     expect(screen.getByRole('button', { name: 'Open friends' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Open watering calendar' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Open settings' })).toBeOnTheScreen();
+  });
+
+  it('shows the unread notification count on the burger and on the bell', async () => {
+    jest.mocked(useUnreadCount).mockReturnValue(3);
+    await render(<ProfileScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Open menu, 3 new notifications' }));
+    await user.press(screen.getByRole('button', { name: 'Open notifications, 3 new' }));
+
+    expect(push).toHaveBeenCalledWith('/inbox');
   });
 
   it('during the tour, "Add a bio" opens Edit profile and leaves the step for saving to finish', async () => {

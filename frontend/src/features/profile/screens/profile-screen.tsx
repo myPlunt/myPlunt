@@ -11,6 +11,7 @@ import { FeedPlantCard } from '@/features/feed/components/feed-plant-card';
 import { StickyNote } from '@/features/feed/components/sticky-note';
 import { getMyPosts } from '@/features/feed/feed-service';
 import { useFeed } from '@/features/feed/use-feed';
+import { useUnreadCount } from '@/features/notifications/use-unread-count';
 import { OnboardingCard } from '@/features/onboarding/components/onboarding-card';
 import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
 import { PostFilter, type PostFilterValue } from '@/features/profile/components/post-filter';
@@ -36,6 +37,7 @@ export function ProfileScreen() {
   const [filter, setFilter] = useState<PostFilterValue>('all');
   const shown = posts.posts?.filter((post) => filter === 'all' || post.type === filter) ?? [];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const unreadCount = useUnreadCount();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { step } = useOnboardingStore();
   const isBioStep = step === 'bio' && !!user;
@@ -69,6 +71,7 @@ export function ProfileScreen() {
             right={
               <ProfileMenuButton
                 open={isMenuOpen}
+                unreadCount={unreadCount}
                 onPress={() => setIsMenuOpen((open) => !open)}
                 onLayout={({ nativeEvent: { layout } }) => setBurgerBottom(layout.y + layout.height)}
               />
@@ -206,6 +209,7 @@ export function ProfileScreen() {
           top={headerTop + burgerBottom}
           onClose={() => setIsMenuOpen(false)}
           tourHref={isFriendsStep ? '/friends' : isBioStep ? null : undefined}
+          unreadCount={unreadCount}
         />
       </SafeAreaView>
     </View>
