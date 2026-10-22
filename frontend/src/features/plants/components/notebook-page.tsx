@@ -4,12 +4,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LogoBackButton } from '@/components/layout/app-header';
 import { NotebookMargin, NotebookRules, RULE_HEIGHT } from '@/features/plants/components/notebook-paper';
+import { useKeepFocusedInputVisible } from '@/hooks/use-keep-focused-input-visible';
 
 /**
  * A whole screen as a sheet of notebook paper: the logo (back button) in the margin, the
  * title on the first rule, and the children written on the ruled lines below.
  */
 export function NotebookPage({ title, children }: { title: string; children: ReactNode }) {
+  const scrollRef = useKeepFocusedInputVisible();
+
   return (
     <View className="flex-1 bg-background-element">
       <NotebookMargin />
@@ -20,7 +23,10 @@ export function NotebookPage({ title, children }: { title: string; children: Rea
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
           <ScrollView
+            ref={scrollRef}
             contentContainerClassName="w-full max-w-content grow self-center"
+            // Swiping the page or tapping blank paper closes the keyboard, uncovering Save.
+            keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled">
             {/* One top row instead of a header plus a title: the logo (back button) sits in
                 the margin (w-10 matches the margin line's left-10) and the title starts where
