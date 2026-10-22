@@ -140,6 +140,8 @@ public final class ApiPaths {
         public static final String BY_ID = BASE + "/{postId}";
         // POST asks the user's friends a question; it shows up in the feed as a sticky note.
         public static final String QUESTIONS = BASE + "/questions";
+        // GET lists a visible post's comments, oldest first; POST adds one.
+        public static final String COMMENTS = BY_ID + "/comments";
 
         private Posts() {}
     }
