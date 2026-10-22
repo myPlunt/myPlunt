@@ -10,6 +10,9 @@ function post(id: string, createdAt: Date): PlantPost {
     plantName: `Plant ${id}`,
     body: null,
     photoUrl: null,
+    commentCount: 0,
+    waterCount: 0,
+    wateredByMe: false,
     createdAt: createdAt.toISOString(),
   };
 }

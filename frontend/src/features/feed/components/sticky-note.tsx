@@ -2,6 +2,8 @@ import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { Shadow } from '@/constants/theme';
+import { CommentCount } from '@/features/feed/components/comment-count';
+import { WaterDrop, countsLabel } from '@/features/feed/components/water-drop';
 import { noteColor, noteTilt } from '@/features/feed/note-colors';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { logAction } from '@/lib/logger';
@@ -27,7 +29,7 @@ export function StickyNote({ post, hideAuthor = false }: { post: QuestionPost; h
     // they go through style; the shadow sets both iOS shadow* and Android elevation.
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${who}: ${post.body}`}
+      accessibilityLabel={`${who}: ${post.body}, ${countsLabel(post)}`}
       accessibilityHint="Opens the post"
       onPress={() => {
         logAction('post_opened', { context: { post_id: post.id, post_type: post.type } });
@@ -50,6 +52,10 @@ export function StickyNote({ post, hideAuthor = false }: { post: QuestionPost; h
           iconSize={20}
         />
       )}
+      <View className="flex-row gap-3">
+        <CommentCount count={post.commentCount} />
+        <WaterDrop post={post} />
+      </View>
     </Pressable>
   );
 }

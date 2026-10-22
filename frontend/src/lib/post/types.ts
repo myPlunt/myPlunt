@@ -6,6 +6,10 @@ interface BasePost {
   author: UserSummary;
   /** Short-lived link to the post's photo; null when there's none. */
   photoUrl: string | null;
+  commentCount: number;
+  /** Drops of water (the app's like) friends gave it, and whether the signed-in user gave one. */
+  waterCount: number;
+  wateredByMe: boolean;
   createdAt: string;
 }
 
@@ -39,4 +43,17 @@ export interface AskQuestionRequest {
   body: string;
   /** Key from uploading a photo with category POST; null for no photo. */
   photoKey: string | null;
+}
+
+/** Mirrors CommentResponse (GET /v1/posts/{id}/comments): `author.friendship` is always null. */
+export interface PostComment {
+  id: string;
+  author: UserSummary;
+  body: string;
+  createdAt: string;
+}
+
+/** Mirrors AddCommentRequest (POST /v1/posts/{id}/comments). */
+export interface AddCommentRequest {
+  body: string;
 }

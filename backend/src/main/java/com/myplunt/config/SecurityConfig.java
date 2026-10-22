@@ -44,6 +44,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 ApiPaths.Auth.BASE + "/**",
                                 ApiPaths.Ops.RESET_DB,
+                                ApiPaths.Ops.SEND_WEATHER_ALERTS,
                                 "/actuator/**")
                         .permitAll()
                         .anyRequest().authenticated())

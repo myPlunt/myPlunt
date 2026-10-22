@@ -15,6 +15,8 @@ import { ProfileScreen } from '../profile-screen';
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/profile/use-profile');
 jest.mock('@/features/feed/use-feed');
+// The cards' water drop needs the actions; these tests never press it.
+jest.mock('@/features/feed/use-feed-actions', () => ({ useFeedActions: () => ({}) }));
 jest.mock('@/stores/onboarding-store', () => ({
   ...jest.requireActual('@/stores/onboarding-store'),
   useOnboardingStore: jest.fn(),
@@ -34,8 +36,8 @@ const user = userEvent.setup();
 const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: 'Fern collector', avatarUrl: null, onboardingCompleted: true };
 const author = { id: 'u1', username: 'jane', bio: null, avatarUrl: null, friendship: null };
 const myPosts: Post[] = [
-  { id: 'p2', type: 'question', author, plantId: null, plantName: null, body: 'Why are my leaves red?', photoUrl: null, createdAt: '2026-10-19T10:00:00Z' },
-  { id: 'p1', type: 'new_plant', author, plantId: 'plant1', plantName: 'Gus the Fern', body: null, photoUrl: null, createdAt: '2026-10-18T10:00:00Z' },
+  { id: 'p2', type: 'question', author, plantId: null, plantName: null, body: 'Why are my leaves red?', photoUrl: null, commentCount: 0, waterCount: 0, wateredByMe: false, createdAt: '2026-10-19T10:00:00Z' },
+  { id: 'p1', type: 'new_plant', author, plantId: 'plant1', plantName: 'Gus the Fern', body: null, photoUrl: null, commentCount: 0, waterCount: 0, wateredByMe: false, createdAt: '2026-10-18T10:00:00Z' },
 ];
 
 beforeEach(() => {

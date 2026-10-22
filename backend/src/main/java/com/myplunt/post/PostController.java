@@ -1,7 +1,9 @@
 package com.myplunt.post;
 
 import com.myplunt.constants.ApiPaths;
+import com.myplunt.post.dto.AddCommentRequest;
 import com.myplunt.post.dto.AskQuestionRequest;
+import com.myplunt.post.dto.CommentResponse;
 import com.myplunt.post.dto.PostResponse;
 import com.myplunt.post.dto.UpdatePostRequest;
 import com.myplunt.user.User;
@@ -58,6 +60,32 @@ public class PostController {
             @PathVariable UUID postId,
             @Valid @RequestBody UpdatePostRequest request) {
         return postService.updatePost(principal.getId(), postId, request);
+    }
+
+    @GetMapping(ApiPaths.Posts.COMMENTS)
+    public List<CommentResponse> comments(@AuthenticationPrincipal User principal, @PathVariable UUID postId) {
+        return postService.getComments(principal.getId(), postId);
+    }
+
+    @PostMapping(ApiPaths.Posts.COMMENTS)
+    @ResponseStatus(HttpStatus.CREATED)
+    public CommentResponse addComment(
+            @AuthenticationPrincipal User principal,
+            @PathVariable UUID postId,
+            @Valid @RequestBody AddCommentRequest request) {
+        return postService.addComment(principal.getId(), postId, request);
+    }
+
+    @PutMapping(ApiPaths.Posts.WATER)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void water(@AuthenticationPrincipal User principal, @PathVariable UUID postId) {
+        postService.water(principal.getId(), postId);
+    }
+
+    @DeleteMapping(ApiPaths.Posts.WATER)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void unwater(@AuthenticationPrincipal User principal, @PathVariable UUID postId) {
+        postService.unwater(principal.getId(), postId);
     }
 
     @DeleteMapping(ApiPaths.Posts.BY_ID)

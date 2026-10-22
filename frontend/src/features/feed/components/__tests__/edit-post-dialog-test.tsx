@@ -24,6 +24,9 @@ const question: QuestionPost = {
   plantName: null,
   body: 'Why are my leaves red?',
   photoUrl: null,
+  commentCount: 0,
+  waterCount: 0,
+  wateredByMe: false,
   createdAt: '2026-10-19T10:00:00Z',
 };
 const photoPost: PlantPost = {
@@ -34,11 +37,21 @@ const photoPost: PlantPost = {
   plantName: 'Gus the Fern',
   body: 'A new flower is blooming!',
   photoUrl: null,
+  commentCount: 0,
+  waterCount: 0,
+  wateredByMe: false,
   createdAt: '2026-10-19T10:00:00Z',
 };
 
 beforeEach(() => {
-  jest.mocked(useFeedActions).mockReturnValue({ askQuestion: jest.fn(), updatePost, deletePost });
+  jest.mocked(useFeedActions).mockReturnValue({
+    askQuestion: jest.fn(),
+    updatePost,
+    deletePost,
+    addComment: jest.fn(),
+    waterPost: jest.fn(),
+    unwaterPost: jest.fn(),
+  });
 });
 
 afterEach(() => {

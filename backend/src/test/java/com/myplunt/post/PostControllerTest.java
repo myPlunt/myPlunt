@@ -2,7 +2,9 @@ package com.myplunt.post;
 
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
+import com.myplunt.post.dto.AddCommentRequest;
 import com.myplunt.post.dto.AskQuestionRequest;
+import com.myplunt.post.dto.CommentResponse;
 import com.myplunt.post.dto.PostResponse;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
@@ -12,10 +14,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.client.RestTestClient;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -66,7 +70,7 @@ class PostControllerTest {
         UUID janeId = authenticateAsJane();
         AskQuestionRequest request = new AskQuestionRequest("Why are my leaves red?", null);
         PostResponse question = new PostResponse(UUID.randomUUID(), Post.QUESTION,
-                new UserSummaryResponse(janeId, "jane", null, null, null), null, null, "Why are my leaves red?", null,
+                new UserSummaryResponse(janeId, "jane", null, null, null), null, null, "Why are my leaves red?", null, 0, 0, false,
                 Instant.parse("2026-10-19T10:00:00Z"));
         when(postService.askQuestion(janeId, request)).thenReturn(question);
 
@@ -79,6 +83,68 @@ class PostControllerTest {
 
         ask(new AskQuestionRequest("   ", null)).expectStatus().isBadRequest();
         verify(postService, never()).askQuestion(any(), any());
+    }
+
+    @Test
+    void addComment_createsItForTheSignedInUser() {
+        UUID janeId = authenticateAsJane();
+        UUID postId = UUID.randomUUID();
+        AddCommentRequest request = new AddCommentRequest("Looks great!");
+        CommentResponse comment = new CommentResponse(UUID.randomUUID(),
+                new UserSummaryResponse(janeId, "jane", null, null, null), "Looks great!",
+                Instant.parse("2026-10-19T10:00:00Z"));
+        when(postService.addComment(janeId, postId, request)).thenReturn(comment);
+
+        comment(postId, request).expectStatus().isCreated().expectBody(CommentResponse.class).isEqualTo(comment);
+    }
+
+    @Test
+    void addComment_rejectsABlankComment() {
+        authenticateAsJane();
+
+        comment(UUID.randomUUID(), new AddCommentRequest("  ")).expectStatus().isBadRequest();
+        verify(postService, never()).addComment(any(), any(), any());
+    }
+
+    @Test
+    void addComment_answers404ForAPostTheUserCantSee() {
+        authenticateAsJane();
+        when(postService.addComment(any(), any(), any())).thenThrow(new IllegalStateException("Post not found"));
+
+        comment(UUID.randomUUID(), new AddCommentRequest("Hi")).expectStatus().isNotFound();
+    }
+
+    private RestTestClient.ResponseSpec comment(UUID postId, Object body) {
+        return restTestClient.post().uri("/v1/posts/{postId}/comments", postId)
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .exchange();
+    }
+
+    @Test
+    void water_givesTheSignedInUsersDrop() {
+        UUID janeId = authenticateAsJane();
+        UUID postId = UUID.randomUUID();
+
+        restTestClient.put().uri("/v1/posts/{postId}/water", postId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isNoContent();
+        verify(postService).water(janeId, postId);
+    }
+
+    @Test
+    void water_answers400ForTheUsersOwnPost() {
+        UUID janeId = authenticateAsJane();
+        UUID postId = UUID.randomUUID();
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't water your own post."))
+                .when(postService).water(janeId, postId);
+
+        restTestClient.put().uri("/v1/posts/{postId}/water", postId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 
     @Test

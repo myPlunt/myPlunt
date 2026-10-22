@@ -1,6 +1,13 @@
 import { apiFetch } from '@/lib/auth/api-client';
 import { logAction } from '@/lib/logger';
-import type { AskQuestionRequest, Post, QuestionPost, UpdatePostRequest } from '@/lib/post/types';
+import type {
+  AddCommentRequest,
+  AskQuestionRequest,
+  Post,
+  PostComment,
+  QuestionPost,
+  UpdatePostRequest,
+} from '@/lib/post/types';
 import { createRequestId } from '@/lib/request-id';
 
 /** The user's and their friends' posts, newest first. */
@@ -40,4 +47,28 @@ export async function deletePost(postId: string): Promise<void> {
   const requestId = createRequestId();
   logAction('post_delete_submitted', { requestId, context: { post_id: postId } });
   return apiFetch<void>(`/v1/posts/${postId}`, { method: 'DELETE', requestId });
+}
+
+/** A post's comments, oldest first. */
+export async function getComments(postId: string): Promise<PostComment[]> {
+  return apiFetch<PostComment[]>(`/v1/posts/${postId}/comments`);
+}
+
+export async function addComment(postId: string, request: AddCommentRequest): Promise<PostComment> {
+  const requestId = createRequestId();
+  logAction('comment_add_submitted', { requestId, context: { post_id: postId } });
+  return apiFetch<PostComment>(`/v1/posts/${postId}/comments`, { method: 'POST', body: request, requestId });
+}
+
+/** Waters a friend's post (the app's like); doing it twice changes nothing. */
+export async function waterPost(postId: string): Promise<void> {
+  const requestId = createRequestId();
+  logAction('post_water_submitted', { requestId, context: { post_id: postId } });
+  return apiFetch<void>(`/v1/posts/${postId}/water`, { method: 'PUT', requestId });
+}
+
+export async function unwaterPost(postId: string): Promise<void> {
+  const requestId = createRequestId();
+  logAction('post_unwater_submitted', { requestId, context: { post_id: postId } });
+  return apiFetch<void>(`/v1/posts/${postId}/water`, { method: 'DELETE', requestId });
 }

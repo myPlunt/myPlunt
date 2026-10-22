@@ -2,11 +2,15 @@ package com.myplunt.post;
 
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
+import com.myplunt.notification.PostNotice;
+import com.myplunt.notification.PushNotificationService;
 import com.myplunt.plant.LatestPhoto;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantPhoto;
 import com.myplunt.plant.PlantPhotoRepository;
+import com.myplunt.post.dto.AddCommentRequest;
 import com.myplunt.post.dto.AskQuestionRequest;
+import com.myplunt.post.dto.CommentResponse;
 import com.myplunt.post.dto.PostResponse;
 import com.myplunt.post.dto.UpdatePostRequest;
 import com.myplunt.storage.StorageService;
@@ -45,6 +49,12 @@ class PostServiceTest {
     private PostRepository postRepository;
 
     @Mock
+    private PostCommentRepository postCommentRepository;
+
+    @Mock
+    private PostReactionRepository postReactionRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -59,8 +69,12 @@ class PostServiceTest {
     @Mock
     private AuditLog auditLog;
 
+    @Mock
+    private PushNotificationService pushNotificationService;
+
     private PostService postService() {
-        return new PostService(postRepository, userRepository, plantPhotoRepository, userService, storageService, auditLog);
+        return new PostService(postRepository, postCommentRepository, postReactionRepository, userRepository, plantPhotoRepository, userService, storageService, auditLog,
+                pushNotificationService);
     }
 
     private static <T> T withId(T entity, UUID id) {
@@ -69,7 +83,7 @@ class PostServiceTest {
     }
 
     @Test
-    void getFeed_mapsEachPostWithItsAuthorAndThePlantsCurrentPhoto() {
+    void getFeed_mapsEachPostWithItsAuthorThePlantsCurrentPhotoAndItsCounts() {
         User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
         User friend = withId(new User("emma", "emma@example.com", "hashed"), UUID.randomUUID());
         Plant gus = withId(new Plant(friend.getId(), "Gus the Fern"), UUID.randomUUID());
@@ -82,6 +96,12 @@ class PostServiceTest {
         when(plantPhotoRepository.findLatestPhotos(anyCollection()))
                 .thenReturn(List.of(new LatestPhoto(gus.getId(), "plants/gus.jpg")));
         when(storageService.createReadUrl("plants/gus.jpg")).thenReturn("https://storage.test/gus.jpg?signed");
+        when(postCommentRepository.countByPostIds(anyCollection()))
+                .thenReturn(List.of(new PostCount(friendsPost.getId(), 3)));
+        when(postReactionRepository.countByPostIds(anyCollection()))
+                .thenReturn(List.of(new PostCount(friendsPost.getId(), 2)));
+        when(postReactionRepository.findWateredPostIds(eq(me.getId()), anyCollection()))
+                .thenReturn(List.of(friendsPost.getId()));
         UserSummaryResponse emma = new UserSummaryResponse(friend.getId(), "emma", null, null, "friends");
         UserSummaryResponse self = new UserSummaryResponse(me.getId(), "me", null, null, null);
         when(userService.toSummary(friend, "friends")).thenReturn(emma);
@@ -91,8 +111,8 @@ class PostServiceTest {
 
         assertThat(feed).containsExactly(
                 new PostResponse(friendsPost.getId(), Post.NEW_PLANT, emma, gus.getId(), "Gus the Fern", null,
-                        "https://storage.test/gus.jpg?signed", friendsPost.getCreatedAt()),
-                new PostResponse(myPost.getId(), Post.NEW_PLANT, self, vera.getId(), "Vera", null, null, myPost.getCreatedAt()));
+                        "https://storage.test/gus.jpg?signed", 3, 2, true, friendsPost.getCreatedAt()),
+                new PostResponse(myPost.getId(), Post.NEW_PLANT, self, vera.getId(), "Vera", null, null, 0, 0, false, myPost.getCreatedAt()));
     }
 
     // Seen from the viewer's side, so the author is labelled a friend rather than the viewer themselves.
@@ -196,6 +216,78 @@ class PostServiceTest {
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(post.getBody()).isNull();
+    }
+
+    @Test
+    void addComment_savesItUnderAFriendsPost() {
+        User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
+        Post question = withId(new Post(UUID.randomUUID(), "Why?", null), UUID.randomUUID());
+        when(postRepository.findVisible(eq(question.getId()), eq(me.getId()), anyCollection()))
+                .thenReturn(Optional.of(question));
+        UUID earlierCommenter = UUID.randomUUID();
+        when(postCommentRepository.findAuthorIds(question.getId())).thenReturn(List.of(earlierCommenter));
+        when(postCommentRepository.save(any())).thenAnswer(invocation -> withId(invocation.getArgument(0), UUID.randomUUID()));
+        when(userRepository.findById(me.getId())).thenReturn(Optional.of(me));
+        UserSummaryResponse self = new UserSummaryResponse(me.getId(), "me", null, null, null);
+        when(userService.toSummary(me, null)).thenReturn(self);
+
+        CommentResponse response = postService().addComment(me.getId(), question.getId(), new AddCommentRequest("Too much sun"));
+
+        ArgumentCaptor<PostComment> saved = ArgumentCaptor.forClass(PostComment.class);
+        verify(postCommentRepository).save(saved.capture());
+        assertThat(saved.getValue().getPostId()).isEqualTo(question.getId());
+        assertThat(saved.getValue().getAuthorId()).isEqualTo(me.getId());
+        assertThat(response.body()).isEqualTo("Too much sun");
+        assertThat(response.author()).isEqualTo(self);
+        PostNotice notice = new PostNotice(question.getId(), question.getUserId(), Post.QUESTION, null, "Why?");
+        verify(pushNotificationService).sendPostComment(me.getId(), notice, "Too much sun");
+        verify(pushNotificationService).sendCommentReply(me.getId(), notice, "Too much sun", List.of(earlierCommenter));
+    }
+
+    // Not a friend's post (or no post at all): 404, and nothing is saved.
+    @Test
+    void addComment_throwsNotFoundForAPostTheUserCantSeeAndSavesNothing() {
+        UUID userId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        when(postRepository.findVisible(eq(postId), eq(userId), anyCollection())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> postService().addComment(userId, postId, new AddCommentRequest("Hi")))
+                .isInstanceOf(IllegalStateException.class);
+        verify(postCommentRepository, never()).save(any());
+    }
+
+    @Test
+    void water_savesADropOnAFriendsPostOnlyOnce() {
+        UUID userId = UUID.randomUUID();
+        Post question = withId(new Post(UUID.randomUUID(), "Why?", null), UUID.randomUUID());
+        when(postRepository.findVisible(eq(question.getId()), eq(userId), anyCollection()))
+                .thenReturn(Optional.of(question));
+        when(postReactionRepository.existsByPostIdAndUserId(question.getId(), userId)).thenReturn(false, true);
+
+        postService().water(userId, question.getId());
+        postService().water(userId, question.getId());
+
+        ArgumentCaptor<PostReaction> saved = ArgumentCaptor.forClass(PostReaction.class);
+        verify(postReactionRepository).save(saved.capture());
+        assertThat(saved.getValue().getPostId()).isEqualTo(question.getId());
+        assertThat(saved.getValue().getUserId()).isEqualTo(userId);
+        verify(auditLog).recorded(AuditEvent.POST_WATERED, userId, userId, Map.of("post_id", question.getId()));
+        verify(pushNotificationService).sendPostWatered(userId,
+                new PostNotice(question.getId(), question.getUserId(), Post.QUESTION, null, "Why?"));
+    }
+
+    @Test
+    void water_rejectsTheUsersOwnPostAndSavesNothing() {
+        UUID userId = UUID.randomUUID();
+        Post question = withId(new Post(userId, "Why?", null), UUID.randomUUID());
+        when(postRepository.findVisible(eq(question.getId()), eq(userId), anyCollection()))
+                .thenReturn(Optional.of(question));
+
+        assertThatThrownBy(() -> postService().water(userId, question.getId()))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(postReactionRepository, never()).save(any());
     }
 
     @Test

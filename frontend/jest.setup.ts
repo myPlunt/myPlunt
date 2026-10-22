@@ -61,14 +61,23 @@ Object.assign(Animated, { timing: instantTiming });
 
 // Reanimated needs the worklets native module, which doesn't exist in Jest (its own mock
 // still loads it). Screens only use Animated.View with layout animations (e.g. the profile
-// menu's FadeInUp and FadeOutUp, the offline notice's FadeOutDown), so those render as a plain View
-// and the animation builders are no-ops.
+// menu's FadeInUp and FadeOutUp, the post page's drop Keyframe), so those render as a plain View and
+// the animation builders are no-ops.
 // splash-overlay-test mocks it itself, with the pieces the overlay needs.
 jest.mock('react-native-worklets', () => ({ scheduleOnRN: (fn: () => void) => fn() }));
 jest.mock('react-native-reanimated', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-  const animation = { delay: () => animation, duration: () => animation };
-  return { __esModule: true, default: { View }, FadeInUp: animation, FadeOutUp: animation, FadeOutDown: animation };
+  const animation = { delay: () => animation, duration: () => animation, withCallback: () => animation };
+  return {
+    __esModule: true,
+    default: { View },
+    FadeInUp: animation,
+    FadeOutUp: animation,
+    FadeOutDown: animation,
+    Keyframe: function Keyframe() {
+      return animation;
+    },
+  };
 });
 
 // expo-notifications warns about Expo Go push support as soon as it's imported, and asks a native

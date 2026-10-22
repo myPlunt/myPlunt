@@ -7,6 +7,8 @@ import type { PlantPost } from '@/lib/post/types';
 import { FeedPlantCard } from '../feed-plant-card';
 
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
+// The cards' water drop needs the actions; these tests never press it.
+jest.mock('@/features/feed/use-feed-actions', () => ({ useFeedActions: () => ({}) }));
 
 const push = jest.fn();
 const user = userEvent.setup();
@@ -20,6 +22,9 @@ function post(friendship: PlantPost['author']['friendship']): PlantPost {
     plantName: 'Gus the Fern',
     body: null,
     photoUrl: null,
+    commentCount: 3,
+    waterCount: 0,
+    wateredByMe: false,
     createdAt: '2026-10-19T10:00:00Z',
   };
 }
@@ -36,7 +41,7 @@ describe('FeedPlantCard', () => {
   it("opens the post's own page, a friend's too", async () => {
     await render(<FeedPlantCard post={post('friends')} />);
 
-    await user.press(screen.getByRole('button', { name: 'Gus the Fern' }));
+    await user.press(screen.getByRole('button', { name: 'Gus the Fern, 3 comments, 0 drops' }));
 
     expect(push).toHaveBeenCalledWith({ pathname: '/post/[id]', params: { id: 'post1' } });
     expect(logAction).toHaveBeenCalledWith('post_opened', { context: { post_id: 'post1', post_type: 'new_plant' } });

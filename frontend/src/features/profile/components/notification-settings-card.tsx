@@ -28,6 +28,11 @@ const OPTIONS: {
     description: "News about your friends' plants.",
   },
   {
+    key: 'postInteractions',
+    label: 'Likes & comments',
+    description: 'When friends like or comment on your posts, or reply where you commented.',
+  },
+  {
     key: 'friendNudges',
     label: 'Friend nudges',
     description: 'When a friend reminds you to water your plants.',

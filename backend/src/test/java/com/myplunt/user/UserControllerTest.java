@@ -229,7 +229,7 @@ class UserControllerTest {
     @Test
     void updateNotificationSettings_returnsTheSavedSettings() {
         UUID id = authenticateAsJane();
-        NotificationSettings request = new NotificationSettings(false, true, true, false, true);
+        NotificationSettings request = new NotificationSettings(false, true, true, false, true, true);
         when(userService.updateNotificationSettings(id, request)).thenReturn(request);
 
         restTestClient.put().uri("/v1/users/me/notifications")
@@ -249,7 +249,7 @@ class UserControllerTest {
         restTestClient.put().uri("/v1/users/me/notifications")
                 .header("Authorization", "Bearer access-token")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new NotificationSettings(true, null, true, true, true))
+                .body(new NotificationSettings(true, null, true, true, true, true))
                 .exchange()
                 .expectStatus().isBadRequest();
     }

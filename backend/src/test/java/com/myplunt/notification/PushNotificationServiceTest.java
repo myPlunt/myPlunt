@@ -6,6 +6,7 @@ import com.myplunt.plant.LastWatering;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantRepository;
 import com.myplunt.plant.WateringLogRepository;
+import com.myplunt.post.Post;
 import com.myplunt.storage.StorageService;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
@@ -56,10 +57,12 @@ class PushNotificationServiceTest {
     private StorageService storageService;
     @Mock
     private ExpoPushClient expoPushClient;
+    @Mock
+    private OpenWeatherClient openWeatherClient;
 
     private PushNotificationService service() {
         return new PushNotificationService(
-                pushTokenRepository, userSettingsRepository, plantRepository, wateringLogRepository, userRepository, notificationRepository, storageService, expoPushClient);
+                pushTokenRepository, userSettingsRepository, plantRepository, wateringLogRepository, userRepository, notificationRepository, storageService, expoPushClient, openWeatherClient);
     }
 
     // On a 3-day schedule (the owner's own).
@@ -116,6 +119,43 @@ class PushNotificationServiceTest {
         verify(expoPushClient, never()).send(anyList());
     }
 
+    // Two neighbours a few metres apart round to the same spot, so their town is fetched once.
+    @Test
+    void sendWeatherAlerts_warnsAboutFrostWithOneForecastPerTown() {
+        UUID neighbour = UUID.randomUUID();
+        User user = new User("ana", "ana@example.com", "hashed");
+        user.setLatitude(52.2214);
+        user.setLongitude(6.8937);
+        User other = new User("bo", "bo@example.com", "hashed");
+        other.setLatitude(52.2186);
+        other.setLongitude(6.8949);
+        when(openWeatherClient.isEnabled()).thenReturn(true);
+        when(pushTokenRepository.findAll()).thenReturn(List.of(
+                new PushToken("ExponentPushToken[a]", USER_ID, "Europe/Amsterdam"),
+                new PushToken("ExponentPushToken[b]", neighbour, "Europe/Amsterdam")));
+        when(userSettingsRepository.findById(any())).thenReturn(Optional.empty());
+        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(any())).thenReturn(List.of(plant("Monty")));
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(userRepository.findById(neighbour)).thenReturn(Optional.of(other));
+        when(openWeatherClient.next24Hours(52.22, 6.89)).thenReturn(new OpenWeatherClient.Forecast(-1.4, 6));
+
+        service().sendWeatherAlerts(NINE_IN_AMSTERDAM);
+
+        verify(openWeatherClient).next24Hours(52.22, 6.89);
+        String body = "It'll drop to -1°C. Bring your outdoor plants inside.";
+        verify(expoPushClient).send(List.of(
+                new ExpoPushMessage("ExponentPushToken[a]", "Frost is coming 🥶", body, "/garden"),
+                new ExpoPushMessage("ExponentPushToken[b]", "Frost is coming 🥶", body, "/garden")));
+    }
+
+    @Test
+    void weatherAlert_staysQuietOnAMildDayAndWarnsAboutHeat() {
+        assertThat(PushNotificationService.weatherAlert(new OpenWeatherClient.Forecast(8, 22))).isEmpty();
+        assertThat(PushNotificationService.weatherAlert(new OpenWeatherClient.Forecast(18, 33)))
+                .contains(new PushNotificationService.WeatherAlert(
+                        "Hot day ahead ☀️", "It'll reach 33°C. Give your plants some extra water."));
+    }
+
     @Test
     void sendFriendRequest_tellsEveryPhoneOfTheReceiverWhoAskedAndOpensTheirRequests() {
         UUID janeId = UUID.randomUUID();
@@ -147,6 +187,67 @@ class PushNotificationServiceTest {
         assertThat(saved.getValue().getFromUserId()).isEqualTo(janeId);
         assertThat(saved.getValue().getBody()).isEqualTo("jane wants to be friends.");
         assertThat(saved.getValue().getUrl()).isEqualTo("/friends?tab=requests");
+        verify(expoPushClient, never()).send(anyList());
+    }
+
+    // A comment on a question is an answer to it.
+    @Test
+    void sendPostComment_tellsTheAuthorTheirQuestionWasAnsweredAndOpensIt() {
+        UUID janeId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        when(userRepository.findById(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
+        when(pushTokenRepository.findByUserId(USER_ID))
+                .thenReturn(List.of(new PushToken("ExponentPushToken[phone]", USER_ID, "Europe/Amsterdam")));
+
+        service().sendPostComment(janeId, new PostNotice(postId, USER_ID, Post.QUESTION, null, "Why?"), "Too much sun");
+
+        verify(expoPushClient).send(List.of(new ExpoPushMessage("ExponentPushToken[phone]", "New answer 💬",
+                "jane answered your question: \"Too much sun\"", "/post/" + postId)));
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(saved.capture());
+        assertThat(saved.getValue().getUserId()).isEqualTo(USER_ID);
+        assertThat(saved.getValue().getFromUserId()).isEqualTo(janeId);
+    }
+
+    // The author answering under their own post reaches the friend who commented, not themselves.
+    @Test
+    void sendCommentReply_tellsEarlierCommentersButNotTheCommenter() {
+        UUID janeId = UUID.randomUUID();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(new User("emma", "emma@example.com", "hashed")));
+
+        service().sendCommentReply(USER_ID, new PostNotice(UUID.randomUUID(), USER_ID, Post.NEW_PLANT, "Gus", null),
+                "Thanks!", List.of(janeId, USER_ID));
+
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(saved.capture());
+        assertThat(saved.getValue().getUserId()).isEqualTo(janeId);
+        assertThat(saved.getValue().getTitle()).isEqualTo("New reply 💬");
+        assertThat(saved.getValue().getBody()).isEqualTo("emma replied on Gus: \"Thanks!\"");
+    }
+
+    @Test
+    void sendPostWatered_saysWhichPhotoWasLiked() {
+        UUID janeId = UUID.randomUUID();
+        when(userRepository.findById(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
+
+        service().sendPostWatered(janeId, new PostNotice(UUID.randomUUID(), USER_ID, Post.NEW_PHOTO, "Gus the Fern", null));
+
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(saved.capture());
+        assertThat(saved.getValue().getTitle()).isEqualTo("New like 💧");
+        assertThat(saved.getValue().getBody()).isEqualTo("jane liked your photo of Gus the Fern.");
+    }
+
+    // "Likes & comments" off: nothing is pushed or listed.
+    @Test
+    void sendPostWatered_staysQuietWhenTheAuthorTurnedLikesAndCommentsOff() {
+        UserSettings settings = new UserSettings(USER_ID);
+        settings.setPostInteractions(false);
+        when(userSettingsRepository.findById(USER_ID)).thenReturn(Optional.of(settings));
+
+        service().sendPostWatered(UUID.randomUUID(), new PostNotice(UUID.randomUUID(), USER_ID, Post.NEW_PLANT, "Gus", null));
+
+        verify(notificationRepository, never()).save(any());
         verify(expoPushClient, never()).send(anyList());
     }
 
