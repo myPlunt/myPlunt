@@ -1,4 +1,4 @@
-import { render, screen, userEvent } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, userEvent } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 
 import { useFeedActions } from '@/features/feed/use-feed-actions';
@@ -122,15 +122,18 @@ describe('PostScreen', () => {
     expect(screen.getByLabelText('Add a comment')).toHaveDisplayValue('Me too');
   });
 
-  it("waters a friend's post and takes the drop back when it fails", async () => {
+  it("waters a friend's post straight away and takes the drop back when it fails", async () => {
     jest.mocked(usePost).mockReturnValue(loaded(question('friends')));
-    waterPost.mockRejectedValue(new ApiError(404, 'Not Found', { detail: 'Post not found' }));
+    let fail: (err: unknown) => void = () => {};
+    waterPost.mockReturnValue(new Promise((_, reject) => (fail = reject)));
     await render(<PostScreen postId="q1" />);
 
     await user.press(screen.getByRole('button', { name: 'Water this post' }));
 
     expect(waterPost).toHaveBeenCalledWith('q1');
-    expect(await screen.findByRole('button', { name: 'Water this post' })).toHaveAccessibilityValue({ text: '0 drops' });
+    expect(screen.getByRole('button', { name: 'Take your water back' })).toHaveAccessibilityValue({ text: '1 drop' });
+    await act(async () => fail(new ApiError(404, 'Not Found', { detail: 'Post not found' })));
+    expect(screen.getByRole('button', { name: 'Water this post' })).toHaveAccessibilityValue({ text: '0 drops' });
   });
 
   it("only shows the drops on the user's own post", async () => {
@@ -139,5 +142,18 @@ describe('PostScreen', () => {
 
     expect(screen.getByLabelText('0 drops')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Water this post' })).toBeNull();
+  });
+
+  it("waters a friend's question when its note is tapped twice, even without a photo", async () => {
+    jest.mocked(usePost).mockReturnValue(loaded(question('friends')));
+    waterPost.mockResolvedValue(undefined);
+    await render(<PostScreen postId="q1" />);
+
+    const note = screen.getByText('Why are my leaves red?');
+    await fireEvent.press(note);
+    await fireEvent.press(note);
+
+    expect(waterPost).toHaveBeenCalledWith('q1');
+    expect(screen.getByRole('button', { name: 'Take your water back' })).toHaveAccessibilityValue({ text: '1 drop' });
   });
 });

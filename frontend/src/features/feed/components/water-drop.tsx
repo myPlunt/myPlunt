@@ -9,30 +9,65 @@ import { logFailedUi } from '@/lib/logger';
 import type { Post } from '@/lib/post/types';
 
 /**
- * The app's like: a drop of water and how many a post got. On a friend's post it's a button that
- * gives or takes back the user's drop; on the user's own post it only shows the count. `pill` is the
- * bigger version on the post's own page, laid over its photo; the feed cards use the plain one.
+ * The user's drop on a post (the app's like) and the post's count, shown straight away and put back
+ * if it didn't go through. Shared by the drop button and the post page's double-tap on the photo.
  */
-export function WaterDrop({ post, pill = false }: { post: Post; pill?: boolean }) {
-  // Starts over from the post when a reload brings new numbers.
-  return <WaterDropToggle key={`${post.id}:${post.waterCount}:${post.wateredByMe}`} post={post} pill={pill} />;
+export function useWaterDrop(post: Post) {
+  const { waterPost, unwaterPost } = useFeedActions();
+  const [state, setState] = useState({ post, watered: post.wateredByMe, count: post.waterCount });
+  const [isBusy, setIsBusy] = useState(false);
+  // A reload brings a new post with fresh numbers; start over from those.
+  if (state.post !== post) {
+    setState({ post, watered: post.wateredByMe, count: post.waterCount });
+  }
+
+  async function setWatered(next: boolean) {
+    if (isBusy || next === state.watered) return;
+    const change = next ? 1 : -1;
+    setState((current) => ({ ...current, watered: next, count: current.count + change }));
+    setIsBusy(true);
+    try {
+      await (next ? waterPost(post.id) : unwaterPost(post.id));
+    } catch (err) {
+      logFailedUi('post_water_failed_ui', err, { post_id: post.id });
+      setState((current) => ({ ...current, watered: !next, count: current.count - change }));
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  return {
+    watered: state.watered,
+    count: state.count,
+    isBusy,
+    // Null friendship means it's the user's own post, which they can't water.
+    canWater: post.author.friendship !== null,
+    toggle: () => setWatered(!state.watered),
+    // A double-tap only ever waters; taking the drop back is the pill's job.
+    water: () => setWatered(true),
+  };
 }
 
-function WaterDropToggle({ post, pill }: { post: Post; pill: boolean }) {
-  const theme = useTheme();
-  const { waterPost, unwaterPost } = useFeedActions();
-  const [watered, setWatered] = useState(post.wateredByMe);
-  const [count, setCount] = useState(post.waterCount);
-  const [isBusy, setIsBusy] = useState(false);
-  // Null friendship means it's the user's own post, which they can't water.
-  const canWater = post.author.friendship !== null;
+export type WaterDropState = ReturnType<typeof useWaterDrop>;
 
+/** The drop on a feed card, with its own state. */
+export function WaterDrop({ post }: { post: Post }) {
+  return <WaterDropView drop={useWaterDrop(post)} />;
+}
+
+/**
+ * A drop of water and the post's count. On a friend's post it's a button that gives or takes back
+ * the user's drop; on the user's own post it only shows the count. `pill` is the bigger version on
+ * the post's own page, laid over its photo; the feed cards use the plain one.
+ */
+export function WaterDropView({ drop, pill = false }: { drop: WaterDropState; pill?: boolean }) {
+  const theme = useTheme();
   // On a photo the pill needs its own background to stay readable; the shadow token sets both iOS
   // shadow* and Android elevation.
   const container = `flex-row items-center gap-1 ${pill ? 'rounded-full bg-background-element px-3 py-1.5' : ''}`;
   const containerStyle = pill ? Shadow.level2 : undefined;
 
-  const drop = (
+  const content = (
     <>
       {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
       <SymbolView
@@ -40,47 +75,30 @@ function WaterDropToggle({ post, pill }: { post: Post; pill: boolean }) {
         tintColor={theme.water}
         size={pill ? 18 : 14}
       />
-      <Text className={pill ? 'type-body-medium text-text' : 'type-caption text-text-secondary'}>{count}</Text>
+      <Text className={pill ? 'type-body-medium text-text' : 'type-caption text-text-secondary'}>{drop.count}</Text>
     </>
   );
 
-  if (!canWater) {
+  if (!drop.canWater) {
     return (
-      <View accessible accessibilityLabel={dropsLabel(count)} className={container} style={containerStyle}>
-        {drop}
+      <View accessible accessibilityLabel={dropsLabel(drop.count)} className={container} style={containerStyle}>
+        {content}
       </View>
     );
-  }
-
-  async function toggle() {
-    const next = !watered;
-    // Shown straight away, and put back if it didn't go through.
-    setWatered(next);
-    setCount((current) => current + (next ? 1 : -1));
-    setIsBusy(true);
-    try {
-      await (next ? waterPost(post.id) : unwaterPost(post.id));
-    } catch (err) {
-      logFailedUi('post_water_failed_ui', err, { post_id: post.id });
-      setWatered(!next);
-      setCount((current) => current - (next ? 1 : -1));
-    } finally {
-      setIsBusy(false);
-    }
   }
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={watered ? 'Take your water back' : 'Water this post'}
-      accessibilityValue={{ text: dropsLabel(count) }}
-      accessibilityState={{ selected: watered }}
-      disabled={isBusy}
-      onPress={toggle}
+      accessibilityLabel={drop.watered ? 'Take your water back' : 'Water this post'}
+      accessibilityValue={{ text: dropsLabel(drop.count) }}
+      accessibilityState={{ selected: drop.watered }}
+      disabled={drop.isBusy}
+      onPress={drop.toggle}
       hitSlop={8}
       className={`${container} active:opacity-70`}
       style={containerStyle}>
-      {drop}
+      {content}
     </Pressable>
   );
 }
