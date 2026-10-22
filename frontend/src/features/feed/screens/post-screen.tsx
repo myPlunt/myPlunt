@@ -191,21 +191,27 @@ function PostContent({ post, isOwn }: { post: Post; isOwn: boolean }) {
               <Text accessibilityRole="header" className="type-body-large text-text">
                 {post.body}
               </Text>
-              {post.photoUrl && (
-                <PlantPhoto
-                  photoUrl={post.photoUrl}
-                  accessibilityLabel={`Photo with the question: ${post.body}`}
-                  className="aspect-square w-full rounded-sm"
-                  iconSize={32}
-                />
+              {/* On the photo's bottom-left like on other posts, or at the foot of the note without one. */}
+              {post.photoUrl ? (
+                <View>
+                  <PlantPhoto
+                    photoUrl={post.photoUrl}
+                    accessibilityLabel={`Photo with the question: ${post.body}`}
+                    className="aspect-square w-full rounded-sm"
+                    iconSize={32}
+                  />
+                  <View className="absolute bottom-3 left-3">
+                    <WaterDropView drop={drop} pill />
+                  </View>
+                </View>
+              ) : (
+                <View className="flex-row">
+                  <WaterDropView drop={drop} pill />
+                </View>
               )}
               {burst > 0 && <DropBurst key={burst} onDone={() => setBurst(0)} />}
             </View>
           </Pressable>
-          {/* A question's photo is optional, so its pill goes under the note instead. */}
-          <View className="mt-2 flex-row">
-            <WaterDropView drop={drop} pill />
-          </View>
         </>
       ) : (
         <>
