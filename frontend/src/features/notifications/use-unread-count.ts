@@ -24,23 +24,34 @@ export function markInboxSeen(notifications: InboxNotification[]) {
 export function useUnreadCount() {
   const [count, setCount] = useState(0);
 
-  // useFocusEffect needs a memoized callback.
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-      // shortcut: loads the whole inbox (capped by the backend) to count it; add a count endpoint if it gets slow.
+  // isCancelled lets a focus effect ignore a response that arrives after blur/unmount.
+  // shortcut: loads the whole inbox (capped by the backend) to count it; add a count endpoint if it gets slow.
+  const load = useCallback(
+    (isCancelled: () => boolean) =>
       Promise.all([getInbox(), readCache<string>(SEEN_KEY)])
         .then(([notifications, seen]) => {
           // Compared as dates: the backend's ISO strings don't always have the same number of decimals.
           const seenAt = seen ? Date.parse(seen.data) : -Infinity;
-          if (!cancelled) setCount(notifications.filter((n) => Date.parse(n.createdAt) > seenAt).length);
+          if (!isCancelled()) setCount(notifications.filter((n) => Date.parse(n.createdAt) > seenAt).length);
         })
-        .catch(() => {});
+        .catch(() => {}),
+    [],
+  );
+
+  // useFocusEffect needs a memoized callback.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      load(() => cancelled);
       return () => {
         cancelled = true;
       };
-    }, []),
+    }, [load]),
   );
 
-  return count;
+  return {
+    count,
+    // Pull-to-refresh; never rejects, so it can't hold up the rest of the page's refresh.
+    refresh: () => load(() => false),
+  };
 }

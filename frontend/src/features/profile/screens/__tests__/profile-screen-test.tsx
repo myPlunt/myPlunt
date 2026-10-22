@@ -56,7 +56,7 @@ beforeEach(() => {
   jest.mocked(useDiscoveredSpecies).mockReturnValue({ refresh: jest.fn(), discovered: [], error: null, isLoading: false, retry: jest.fn() });
   mockedUseFeed.mockReturnValue({ posts: [], error: null, isLoading: false, isRefreshing: false, refresh: jest.fn(), retry });
   mockedUseOnboardingStore.mockReturnValue(onboarding);
-  jest.mocked(useUnreadCount).mockReturnValue(0);
+  jest.mocked(useUnreadCount).mockReturnValue({ count: 0, refresh: jest.fn() });
 });
 
 afterEach(() => {
@@ -131,7 +131,7 @@ describe('ProfileScreen', () => {
   });
 
   it('shows the unread notification count on the burger and on the bell', async () => {
-    jest.mocked(useUnreadCount).mockReturnValue(3);
+    jest.mocked(useUnreadCount).mockReturnValue({ count: 3, refresh: jest.fn() });
     await render(<ProfileScreen />);
 
     await user.press(screen.getByRole('button', { name: 'Open menu, 3 new notifications' }));

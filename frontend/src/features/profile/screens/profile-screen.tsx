@@ -37,7 +37,7 @@ export function ProfileScreen() {
   const [filter, setFilter] = useState<PostFilterValue>('all');
   const shown = posts.posts?.filter((post) => filter === 'all' || post.type === filter) ?? [];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const unreadCount = useUnreadCount();
+  const { count: unreadCount, refresh: refreshUnread } = useUnreadCount();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { step } = useOnboardingStore();
   const isBioStep = step === 'bio' && !!user;
@@ -52,10 +52,11 @@ export function ProfileScreen() {
   const [headerTop, setHeaderTop] = useState(0);
   const [burgerBottom, setBurgerBottom] = useState(0);
 
-  // Pull-to-refresh reloads everything on screen; the stats come from the garden and species.
+  // Pull-to-refresh reloads everything on screen; the stats come from the garden and species,
+  // the burger's badge from the notifications.
   function refresh() {
     setIsRefreshing(true);
-    Promise.all([refreshProfile(), posts.refresh(), refreshGarden(), refreshDiscovered()]).finally(() =>
+    Promise.all([refreshProfile(), posts.refresh(), refreshGarden(), refreshDiscovered(), refreshUnread()]).finally(() =>
       setIsRefreshing(false),
     );
   }

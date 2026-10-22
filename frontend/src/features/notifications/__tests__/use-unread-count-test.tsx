@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { getInbox } from '@/features/notifications/inbox-service';
 import { markInboxSeen, useUnreadCount } from '@/features/notifications/use-unread-count';
@@ -39,7 +39,18 @@ describe('useUnreadCount', () => {
 
     const { result } = await renderHook(() => useUnreadCount());
 
-    await waitFor(() => expect(result.current).toBe(2));
+    await waitFor(() => expect(result.current.count).toBe(2));
+  });
+
+  it('picks up new notifications on refresh', async () => {
+    jest.mocked(getInbox).mockResolvedValue([]);
+    const { result } = await renderHook(() => useUnreadCount());
+    await waitFor(() => expect(getInbox).toHaveBeenCalled());
+
+    jest.mocked(getInbox).mockResolvedValue([notification('n1', '2026-10-21T10:00:00Z')]);
+    await act(() => result.current.refresh());
+
+    expect(result.current.count).toBe(1);
   });
 
   it('stays at zero when the inbox fails to load', async () => {
@@ -48,6 +59,6 @@ describe('useUnreadCount', () => {
     const { result } = await renderHook(() => useUnreadCount());
 
     await waitFor(() => expect(getInbox).toHaveBeenCalled());
-    expect(result.current).toBe(0);
+    expect(result.current.count).toBe(0);
   });
 });
