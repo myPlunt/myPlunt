@@ -7,6 +7,7 @@ import type { Garden } from '@/lib/garden/types';
 import { logBug } from '@/lib/logger';
 import { cachedFetch } from '@/lib/offline/cache';
 import { useAuthStore } from '@/stores/auth-store';
+import { useReloadOnReconnect } from '@/stores/network-store';
 
 import * as gardenService from './garden-service';
 
@@ -76,6 +77,8 @@ export function useGarden(userId?: string) {
       };
     }, [load]),
   );
+  // And when the connection comes back, so the screen catches up by itself.
+  useReloadOnReconnect(() => load(() => false));
 
   return {
     garden,

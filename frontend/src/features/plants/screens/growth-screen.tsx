@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logAction, logFailedUi } from '@/lib/logger';
 import type { PlantPhoto as PlantPhotoData } from '@/lib/plant/types';
+import { useNetworkStore } from '@/stores/network-store';
 
 /**
  * Every growth photo of one plant, newest first, opened from "See all" in its Growth section:
@@ -26,6 +27,7 @@ export function GrowthScreen({ plantId }: { plantId: string }) {
   const theme = useTheme();
   const router = useRouter();
   const { photos, error, isLoading, retry } = usePlantPhotos(plantId);
+  const { isOffline, explainOffline } = useNetworkStore();
 
   return (
     <View className="flex-1 bg-background">
@@ -36,8 +38,15 @@ export function GrowthScreen({ plantId }: { plantId: string }) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Add a new photo"
-              onPress={() => router.push({ pathname: '/plant/[id]/add-photo', params: { id: plantId } })}
-              className="h-10 w-10 items-center justify-center rounded-full bg-action-primary active:opacity-70">
+              accessibilityHint={isOffline ? "Doesn't work offline" : undefined}
+              onPress={
+                isOffline
+                  ? () => explainOffline('Adding photos')
+                  : () => router.push({ pathname: '/plant/[id]/add-photo', params: { id: plantId } })
+              }
+              className={`h-10 w-10 items-center justify-center rounded-full bg-action-primary active:opacity-70 ${
+                isOffline ? 'opacity-40' : ''
+              }`}>
               {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
               <SymbolView name={{ ios: 'plus', android: 'add', web: 'add' }} tintColor={theme.backgroundElement} size={20} />
             </Pressable>
@@ -157,6 +166,7 @@ interface GrowthEntryProps {
 
 function GrowthEntry({ photo, onEdit, onDelete }: GrowthEntryProps) {
   const theme = useTheme();
+  const { isOffline, explainOffline } = useNetworkStore();
   const date = photo.takenAt
     ? new Date(photo.takenAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
     : null;
@@ -178,16 +188,18 @@ function GrowthEntry({ photo, onEdit, onDelete }: GrowthEntryProps) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={date ? `Edit photo from ${date}` : 'Edit photo'}
-          onPress={onEdit}
-          className="h-10 w-10 items-center justify-center active:opacity-70">
+          accessibilityHint={isOffline ? "Doesn't work offline" : undefined}
+          onPress={isOffline ? () => explainOffline('Editing photos') : onEdit}
+          className={`h-10 w-10 items-center justify-center active:opacity-70 ${isOffline ? 'opacity-40' : ''}`}>
           {/* tintColor is a colour prop, so it reads the theme instead of a class. */}
           <SymbolView name={{ ios: 'pencil', android: 'edit', web: 'edit' }} tintColor={theme.actionPrimary} size={18} />
         </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={date ? `Delete photo from ${date}` : 'Delete photo'}
-          onPress={onDelete}
-          className="h-10 w-10 items-center justify-center active:opacity-70">
+          accessibilityHint={isOffline ? "Doesn't work offline" : undefined}
+          onPress={isOffline ? () => explainOffline('Deleting photos') : onDelete}
+          className={`h-10 w-10 items-center justify-center active:opacity-70 ${isOffline ? 'opacity-40' : ''}`}>
           <SymbolView name={{ ios: 'trash', android: 'delete', web: 'delete' }} tintColor={theme.error} size={18} />
         </Pressable>
       </View>

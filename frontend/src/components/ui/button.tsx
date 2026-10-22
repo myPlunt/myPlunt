@@ -11,6 +11,8 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  /** Looks disabled but still takes the press, e.g. to say it doesn't work offline. */
+  dimmed?: boolean;
   /** Layout overrides a class can't express, e.g. a computed height. Applied after the shadow. */
   style?: StyleProp<ViewStyle>;
 }
@@ -30,7 +32,7 @@ const sizeClasses: Record<ButtonSize, { container: string; text: string }> = {
   large: { container: 'h-12 px-6 rounded-xl', text: 'type-button-large' },
 };
 
-export function Button({ label, variant = 'primary', size = 'medium', loading, disabled, style, ...rest }: ButtonProps) {
+export function Button({ label, variant = 'primary', size = 'medium', loading, disabled, dimmed, style, ...rest }: ButtonProps) {
   const theme = useTheme();
   const colors = variantClasses[variant];
   const dimensions = sizeClasses[size];
@@ -41,7 +43,7 @@ export function Button({ label, variant = 'primary', size = 'medium', loading, d
       accessibilityRole="button"
       disabled={isDisabled}
       className={`items-center justify-center active:opacity-80 ${colors.container} ${dimensions.container} ${
-        isDisabled ? 'opacity-50' : ''
+        isDisabled || dimmed ? 'opacity-50' : ''
       }`}
       style={[variant !== 'ghost' && Shadow.level2, style]}
       {...rest}>

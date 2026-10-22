@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { GardenPlant } from '@/lib/garden/types';
+import { useNetworkStore } from '@/stores/network-store';
 
 import { listPlantNames } from '../watering';
 
@@ -18,6 +19,7 @@ interface WaterDueCardProps {
 
 export function WaterDueCard({ plants, onWater, loading, error }: WaterDueCardProps) {
   const theme = useTheme();
+  const { isOffline, explainOffline } = useNetworkStore();
   const title = `${plants.length} ${plants.length === 1 ? 'needs' : 'need'} water today`;
 
   return (
@@ -44,7 +46,8 @@ export function WaterDueCard({ plants, onWater, loading, error }: WaterDueCardPr
           label="Water"
           accessibilityLabel={`Water ${listPlantNames(plants)}`}
           loading={loading}
-          onPress={onWater}
+          dimmed={isOffline}
+          onPress={isOffline ? () => explainOffline('Watering') : onWater}
         />
       </View>
       {error && <Text className="type-caption text-error">{error}</Text>}
