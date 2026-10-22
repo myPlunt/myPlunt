@@ -1,0 +1,179 @@
+import { render, screen, userEvent } from '@testing-library/react-native';
+import { useRouter } from 'expo-router';
+
+import { getMyPosts } from '@/features/feed/feed-service';
+import { useFeed } from '@/features/feed/use-feed';
+import { useGarden } from '@/features/garden/use-garden';
+import { useUnreadCount } from '@/features/notifications/use-unread-count';
+import { useProfile } from '@/features/profile/use-profile';
+import type { Post } from '@/lib/post/types';
+import { useOnboardingStore } from '@/stores/onboarding-store';
+import { useDiscoveredSpecies } from '@/features/species/use-discovered-species';
+import { useSpecies } from '@/features/species/use-species';
+
+import { ProfileScreen } from '../profile-screen';
+
+jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
+jest.mock('@/features/profile/use-profile');
+jest.mock('@/features/feed/use-feed');
+// The cards' water drop needs the actions; these tests never press it.
+jest.mock('@/features/feed/use-feed-actions', () => ({ useFeedActions: () => ({}) }));
+jest.mock('@/stores/onboarding-store', () => ({
+  ...jest.requireActual('@/stores/onboarding-store'),
+  useOnboardingStore: jest.fn(),
+}));
+jest.mock('@/features/garden/use-garden');
+jest.mock('@/features/notifications/use-unread-count');
+jest.mock('@/features/species/use-discovered-species');
+jest.mock('@/features/species/use-species');
+
+const mockedUseRouter = jest.mocked(useRouter);
+const mockedUseProfile = jest.mocked(useProfile);
+const mockedUseFeed = jest.mocked(useFeed);
+const mockedUseOnboardingStore = jest.mocked(useOnboardingStore);
+const onboarding = { step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null };
+const push = jest.fn();
+const retry = jest.fn();
+const user = userEvent.setup();
+const jane = { id: 'u1', username: 'jane', email: 'jane@example.com', bio: 'Fern collector', avatarUrl: null, onboardingCompleted: true };
+const author = { id: 'u1', username: 'jane', bio: null, avatarUrl: null, friendship: null };
+const myPosts: Post[] = [
+  { id: 'p2', type: 'question', author, plantId: null, plantName: null, body: 'Why are my leaves red?', photoUrl: null, commentCount: 0, waterCount: 0, wateredByMe: false, createdAt: '2026-10-19T10:00:00Z' },
+  { id: 'p1', type: 'new_plant', author, plantId: 'plant1', plantName: 'Gus the Fern', body: null, photoUrl: null, commentCount: 0, waterCount: 0, wateredByMe: false, createdAt: '2026-10-18T10:00:00Z' },
+];
+
+beforeEach(() => {
+  mockedUseRouter.mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
+  mockedUseProfile.mockReturnValue({ refresh: jest.fn(), user: jane, error: null, isLoading: false, retry });
+  jest.mocked(useGarden).mockReturnValue({
+    garden: { rooms: [{ id: 'r1', name: 'Balcony', plants: [] }] },
+    error: null,
+    isLoading: false,
+    retry: jest.fn(),
+    refresh: jest.fn(),
+  });
+  jest.mocked(useSpecies).mockReturnValue({ species: [], error: null, retry: jest.fn() });
+  jest.mocked(useDiscoveredSpecies).mockReturnValue({ refresh: jest.fn(), discovered: [], error: null, isLoading: false, retry: jest.fn() });
+  mockedUseFeed.mockReturnValue({ posts: [], error: null, isLoading: false, isRefreshing: false, refresh: jest.fn(), retry });
+  mockedUseOnboardingStore.mockReturnValue(onboarding);
+  jest.mocked(useUnreadCount).mockReturnValue({ count: 0, refresh: jest.fn() });
+});
+
+afterEach(() => {
+  jest.resetAllMocks();
+});
+
+describe('ProfileScreen', () => {
+  it("shows the signed-in user's username, email and bio", async () => {
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('jane')).toBeOnTheScreen();
+    expect(screen.getByText('jane@example.com')).toBeOnTheScreen();
+    expect(screen.getByText('Fern collector')).toBeOnTheScreen();
+  });
+
+  it('shows your stats, each opening its tab', async () => {
+    await render(<ProfileScreen />);
+
+    await user.press(screen.getByRole('button', { name: '0 plants' }));
+    expect(push).toHaveBeenCalledWith('/garden');
+    await user.press(screen.getByRole('button', { name: '0 of 0 species discovered' }));
+    expect(push).toHaveBeenCalledWith('/pluntdex');
+  });
+
+  it('shows a dash while the stats load', async () => {
+    jest.mocked(useGarden).mockReturnValue({ garden: null, error: null, isLoading: true, retry: jest.fn(), refresh: jest.fn() });
+    await render(<ProfileScreen />);
+
+    expect(screen.getByRole('button', { name: 'Plants loading' })).toBeOnTheScreen();
+  });
+
+  it("lists the user's own posts in the order they come, newest first", async () => {
+    mockedUseFeed.mockReturnValue({ posts: myPosts, error: null, isLoading: false, isRefreshing: false, refresh: jest.fn(), retry });
+    await render(<ProfileScreen />);
+
+    expect(mockedUseFeed).toHaveBeenCalledWith(getMyPosts);
+    const titles = screen.getAllByText(/Why are my leaves red\?|Gus the Fern/).map((node) => node.props.children);
+    expect(titles).toEqual(['Why are my leaves red?', 'Gus the Fern']);
+  });
+
+  it('shows only the kind of post picked in the filter', async () => {
+    mockedUseFeed.mockReturnValue({ posts: myPosts, error: null, isLoading: false, isRefreshing: false, refresh: jest.fn(), retry });
+    await render(<ProfileScreen />);
+
+    await user.press(screen.getByRole('tab', { name: 'Questions' }));
+    expect(screen.getByText('Why are my leaves red?')).toBeOnTheScreen();
+    expect(screen.queryByText('Gus the Fern')).toBeNull();
+
+    await user.press(screen.getByRole('tab', { name: 'New photos' }));
+    expect(screen.getByText('Nothing of this kind yet.')).toBeOnTheScreen();
+  });
+
+  it('shows the error and retries when asked', async () => {
+    mockedUseProfile.mockReturnValue({ refresh: jest.fn(), user: null, error: 'User not found', isLoading: false, retry });
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('User not found')).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Try again' }));
+    expect(retry).toHaveBeenCalled();
+  });
+
+  it('keeps friends, the watering calendar and settings in the burger menu', async () => {
+    await render(<ProfileScreen />);
+    expect(screen.queryByRole('button', { name: 'Open settings' })).toBeNull();
+
+    await user.press(screen.getByRole('button', { name: 'Open menu' }));
+
+    expect(screen.getByRole('button', { name: 'Close menu' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Open friends' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Open watering calendar' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Open settings' })).toBeOnTheScreen();
+  });
+
+  it('shows the unread notification count on the burger and on the bell', async () => {
+    jest.mocked(useUnreadCount).mockReturnValue({ count: 3, refresh: jest.fn() });
+    await render(<ProfileScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Open menu, 3 new notifications' }));
+    await user.press(screen.getByRole('button', { name: 'Open notifications, 3 new' }));
+
+    expect(push).toHaveBeenCalledWith('/inbox');
+  });
+
+  it('during the tour, "Add a bio" opens Edit profile and leaves the step for saving to finish', async () => {
+    mockedUseOnboardingStore.mockReturnValue({ ...onboarding, step: 'bio' });
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('Tell people about you')).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Add a bio' }));
+
+    expect(push).toHaveBeenCalledWith('/edit-profile');
+    expect(onboarding.next).not.toHaveBeenCalled();
+  });
+
+  it('during the friends step, the menu is open and only the friends icon leads on', async () => {
+    mockedUseOnboardingStore.mockReturnValue({ ...onboarding, step: 'friends' });
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('Find your friends')).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Open settings' }));
+    expect(push).not.toHaveBeenCalled();
+    await user.press(screen.getByRole('button', { name: 'Open friends' }));
+
+    expect(push).toHaveBeenCalledWith('/friends');
+    push.mockClear();
+    await user.press(screen.getByRole('button', { name: 'Find friends' }));
+    expect(push).toHaveBeenCalledWith('/friends');
+  });
+
+  it("during the bio step, the menu still opens but can't lead to another page", async () => {
+    mockedUseOnboardingStore.mockReturnValue({ ...onboarding, step: 'bio' });
+    await render(<ProfileScreen />);
+
+    await user.press(screen.getByRole('button', { name: 'Open menu' }));
+    await user.press(screen.getByRole('button', { name: 'Open settings' }));
+    await user.press(screen.getByRole('button', { name: 'My garden' }));
+
+    expect(push).not.toHaveBeenCalled();
+  });
+});

@@ -1,0 +1,54 @@
+import { ActivityIndicator, Pressable, Text, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+
+import { Shadow, type ThemeColor } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+
+type ButtonVariant = 'primary' | 'secondary' | 'subtle' | 'destructive' | 'ghost';
+type ButtonSize = 'medium' | 'large';
+
+interface ButtonProps extends Omit<PressableProps, 'style'> {
+  label: string;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  loading?: boolean;
+  /** Looks disabled but still takes the press, e.g. to say it doesn't work offline. */
+  dimmed?: boolean;
+  style?: StyleProp<ViewStyle>;
+}
+
+const variantClasses: Record<ButtonVariant, { container: string; text: string; spinner: ThemeColor }> = {
+  primary: { container: 'bg-action-primary', text: 'text-background-element', spinner: 'backgroundElement' },
+  secondary: { container: 'bg-background border border-border', text: 'text-text', spinner: 'text' },
+  subtle: { container: 'bg-background-element', text: 'text-text', spinner: 'text' },
+  destructive: { container: 'bg-error', text: 'text-background-element', spinner: 'backgroundElement' },
+  ghost: { container: 'bg-transparent', text: 'text-primary', spinner: 'primary' },
+};
+
+const sizeClasses: Record<ButtonSize, { container: string; text: string }> = {
+  medium: { container: 'h-10 px-5 rounded-[10px]', text: 'type-button-medium' },
+  large: { container: 'h-12 px-6 rounded-xl', text: 'type-button-large' },
+};
+
+export function Button({ label, variant = 'primary', size = 'medium', loading, disabled, dimmed, style, ...rest }: ButtonProps) {
+  const theme = useTheme();
+  const colors = variantClasses[variant];
+  const dimensions = sizeClasses[size];
+  const isDisabled = disabled || loading;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={isDisabled}
+      className={`items-center justify-center active:opacity-80 ${colors.container} ${dimensions.container} ${
+        isDisabled || dimmed ? 'opacity-50' : ''
+      }`}
+      style={[variant !== 'ghost' && Shadow.level2, style]}
+      {...rest}>
+      {loading ? (
+        <ActivityIndicator color={theme[colors.spinner]} />
+      ) : (
+        <Text className={`${dimensions.text} ${colors.text}`}>{label}</Text>
+      )}
+    </Pressable>
+  );
+}

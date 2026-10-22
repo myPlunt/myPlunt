@@ -9,3 +9,22 @@ spring:
     show-sql: true
   flyway:
     locations: classpath:db/migration,classpath:db/seed
+
+app:
+  admin:
+    jwt:
+      secret: ${ADMIN_JWT_SECRET:dev-only-admin-secret-dev-only-admin-secret}
+    # The dashboard's dev server is plain http.
+    cookie-secure: false
+    allowed-origins: ${ADMIN_ALLOWED_ORIGINS:http://localhost:5174}
+    bootstrap:
+      email: ${ADMIN_BOOTSTRAP_EMAIL:admin@myplunt.dev}
+      password: ${ADMIN_BOOTSTRAP_PASSWORD:dev-admin-password}
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-dev-only-secret-dev-only-secret}
+  storage:
+    endpoint: ${STORAGE_ENDPOINT:http://localhost:4566}
+    bucket: ${STORAGE_BUCKET:myplunt-dev}
+    access-key: ${STORAGE_ACCESS_KEY:myplunt}
+    secret-key: ${STORAGE_SECRET_KEY:myplunt-dev-secret}
+    prefix: ${STORAGE_PREFIX:}

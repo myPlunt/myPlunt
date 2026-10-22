@@ -1,9 +1,59 @@
 spring:
   application:
     name: backend
+  # JWT only: otherwise Spring creates a default user and logs its password on every start.
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  mvc:
+    # Devtools turns this on, and its log line includes rejected values such as passwords.
+    log-resolved-exception: false
   jpa:
+    # Set explicitly (same as the default) to silence its startup warning in the log file.
+    open-in-view: true
     hibernate:
       ddl-auto: validate
     show-sql: false
   flyway:
     enabled: true
+    placeholders:
+      storagePrefix: ${app.storage.prefix}
+
+app:
+  version: '@project.version@'
+  # admin.jwt.secret must differ from app.jwt.secret and be at least 32 bytes. allowed-origins is comma-separated.
+  admin:
+    jwt:
+      secret: ${ADMIN_JWT_SECRET}
+      access-token-ttl-minutes: 15
+    # A login lasts this long, however active the admin is.
+    session-ttl-hours: 12
+    cookie-secure: true
+    allowed-origins: ${ADMIN_ALLOWED_ORIGINS:}
+    bootstrap:
+      email: ${ADMIN_BOOTSTRAP_EMAIL:}
+      password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+  # Container name + port on the Coolify network; kuma-status-page is a Kuma status page slug.
+  # Left blank, that part of the Overview shows as not set up.
+  monitoring:
+    kuma-url: ${KUMA_URL:}
+    kuma-status-page: ${KUMA_STATUS_PAGE:}
+    glances-url: ${GLANCES_URL:}
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-ttl-minutes: 15
+    refresh-token-ttl-days: 30
+  push:
+    expo-url: https://exp.host/--/api/v2/push/send
+  # Without an api-key, weather alerts are off.
+  weather:
+    openweather-url: https://api.openweathermap.org/data/2.5/forecast
+    api-key: ${OPENWEATHER_API_KEY:}
+  storage:
+    endpoint: ${STORAGE_ENDPOINT}
+    bucket: ${STORAGE_BUCKET}
+    access-key: ${STORAGE_ACCESS_KEY}
+    secret-key: ${STORAGE_SECRET_KEY}
+    prefix: ${STORAGE_PREFIX:}
+    upload-url-ttl-minutes: 5
+    read-url-ttl-minutes: 15
+    max-upload-size-bytes: 5242880 # 5MB
