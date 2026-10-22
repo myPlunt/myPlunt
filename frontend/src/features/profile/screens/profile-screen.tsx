@@ -186,11 +186,14 @@ export function ProfileScreen() {
 
         {isFriendsStep && (
           <View className="absolute inset-x-3 bottom-3">
-            {/* "Not now" skips the friends page too: the next step, the first plant, is in the garden. */}
+            {/* "Not now" skips the friends page too: the next step, the first plant, is in the garden.
+                The card's own button opens the friends page: testers never spotted the menu icon. */}
             <OnboardingCard
               step="friends"
               title="Find your friends"
-              body="Tap the friends icon in the menu to search for people by their username and add them. Their plants show up in your feed."
+              body="Search for people by their username and add them. Their plants show up in your feed. You can always find friends again in the menu up top."
+              actionLabel="Find friends"
+              onAction={() => router.push('/friends')}
               onSkip={() => router.navigate('/garden')}
             />
           </View>
