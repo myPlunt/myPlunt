@@ -244,6 +244,7 @@ public class UserService {
         settings.setWeatherAlerts(request.weatherAlerts());
         settings.setFriendPostNotifications(request.friendActivity());
         settings.setFriendNudges(request.friendNudges());
+        settings.setPostInteractions(request.postInteractions());
         settings.setDelegationRequests(request.plantSitting());
         NotificationSettings saved = toNotificationSettings(userSettingsRepository.save(settings));
         auditLog.recorded(AuditEvent.NOTIFICATION_SETTINGS_UPDATED, userId, userId, Map.of(
@@ -251,6 +252,7 @@ public class UserService {
                 "weather_alerts", saved.weatherAlerts(),
                 "friend_activity", saved.friendActivity(),
                 "friend_nudges", saved.friendNudges(),
+                "post_interactions", saved.postInteractions(),
                 "plant_sitting", saved.plantSitting()));
         return saved;
     }
@@ -262,7 +264,8 @@ public class UserService {
 
     private static NotificationSettings toNotificationSettings(UserSettings settings) {
         return new NotificationSettings(settings.isWateringReminders(), settings.isWeatherAlerts(),
-                settings.isFriendPostNotifications(), settings.isFriendNudges(), settings.isDelegationRequests());
+                settings.isFriendPostNotifications(), settings.isFriendNudges(), settings.isPostInteractions(),
+                settings.isDelegationRequests());
     }
 
     // Removing a picture the user doesn't have is a no-op, so a retried request still succeeds.

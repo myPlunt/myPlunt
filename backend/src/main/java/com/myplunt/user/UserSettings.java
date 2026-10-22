@@ -30,6 +30,10 @@ public class UserSettings {
     @Column(name = "friend_nudges", nullable = false)
     private boolean friendNudges = true;
 
+    // Friends liking or commenting on the user's posts, and replies where the user commented.
+    @Column(name = "post_interactions", nullable = false)
+    private boolean postInteractions = true;
+
     // A friend handing over, or taking back, care of plants (care_delegation).
     @Column(name = "delegation_requests", nullable = false)
     private boolean delegationRequests = true;
@@ -66,6 +70,14 @@ public class UserSettings {
 
     public void setFriendPostNotifications(boolean friendPostNotifications) {
         this.friendPostNotifications = friendPostNotifications;
+    }
+
+    public boolean isPostInteractions() {
+        return postInteractions;
+    }
+
+    public void setPostInteractions(boolean postInteractions) {
+        this.postInteractions = postInteractions;
     }
 
     public boolean isFriendNudges() {

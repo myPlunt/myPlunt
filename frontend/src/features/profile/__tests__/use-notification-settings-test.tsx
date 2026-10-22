@@ -16,7 +16,7 @@ jest.mock('@/lib/auth/token-storage', () => ({
 
 const mockedProfileService = jest.mocked(profileService);
 const mockedTokenStorage = jest.mocked(tokenStorage);
-const allOn = { waterReminders: true, weatherAlerts: true, friendActivity: true, friendNudges: true, plantSitting: true };
+const allOn = { waterReminders: true, weatherAlerts: true, friendActivity: true, friendNudges: true, postInteractions: true, plantSitting: true };
 
 beforeEach(() => {
   mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });

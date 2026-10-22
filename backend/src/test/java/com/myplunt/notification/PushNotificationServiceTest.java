@@ -6,6 +6,7 @@ import com.myplunt.plant.LastWatering;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantRepository;
 import com.myplunt.plant.WateringLogRepository;
+import com.myplunt.post.Post;
 import com.myplunt.storage.StorageService;
 import com.myplunt.user.User;
 import com.myplunt.user.UserRepository;
@@ -186,6 +187,67 @@ class PushNotificationServiceTest {
         assertThat(saved.getValue().getFromUserId()).isEqualTo(janeId);
         assertThat(saved.getValue().getBody()).isEqualTo("jane wants to be friends.");
         assertThat(saved.getValue().getUrl()).isEqualTo("/friends?tab=requests");
+        verify(expoPushClient, never()).send(anyList());
+    }
+
+    // A comment on a question is an answer to it.
+    @Test
+    void sendPostComment_tellsTheAuthorTheirQuestionWasAnsweredAndOpensIt() {
+        UUID janeId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        when(userRepository.findById(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
+        when(pushTokenRepository.findByUserId(USER_ID))
+                .thenReturn(List.of(new PushToken("ExponentPushToken[phone]", USER_ID, "Europe/Amsterdam")));
+
+        service().sendPostComment(janeId, new PostNotice(postId, USER_ID, Post.QUESTION, null, "Why?"), "Too much sun");
+
+        verify(expoPushClient).send(List.of(new ExpoPushMessage("ExponentPushToken[phone]", "New answer 💬",
+                "jane answered your question: \"Too much sun\"", "/post/" + postId)));
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(saved.capture());
+        assertThat(saved.getValue().getUserId()).isEqualTo(USER_ID);
+        assertThat(saved.getValue().getFromUserId()).isEqualTo(janeId);
+    }
+
+    // The author answering under their own post reaches the friend who commented, not themselves.
+    @Test
+    void sendCommentReply_tellsEarlierCommentersButNotTheCommenter() {
+        UUID janeId = UUID.randomUUID();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(new User("emma", "emma@example.com", "hashed")));
+
+        service().sendCommentReply(USER_ID, new PostNotice(UUID.randomUUID(), USER_ID, Post.NEW_PLANT, "Gus", null),
+                "Thanks!", List.of(janeId, USER_ID));
+
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(saved.capture());
+        assertThat(saved.getValue().getUserId()).isEqualTo(janeId);
+        assertThat(saved.getValue().getTitle()).isEqualTo("New reply 💬");
+        assertThat(saved.getValue().getBody()).isEqualTo("emma replied on Gus: \"Thanks!\"");
+    }
+
+    @Test
+    void sendPostWatered_saysWhichPhotoWasLiked() {
+        UUID janeId = UUID.randomUUID();
+        when(userRepository.findById(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
+
+        service().sendPostWatered(janeId, new PostNotice(UUID.randomUUID(), USER_ID, Post.NEW_PHOTO, "Gus the Fern", null));
+
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(saved.capture());
+        assertThat(saved.getValue().getTitle()).isEqualTo("New like 💧");
+        assertThat(saved.getValue().getBody()).isEqualTo("jane liked your photo of Gus the Fern.");
+    }
+
+    // "Likes & comments" off: nothing is pushed or listed.
+    @Test
+    void sendPostWatered_staysQuietWhenTheAuthorTurnedLikesAndCommentsOff() {
+        UserSettings settings = new UserSettings(USER_ID);
+        settings.setPostInteractions(false);
+        when(userSettingsRepository.findById(USER_ID)).thenReturn(Optional.of(settings));
+
+        service().sendPostWatered(UUID.randomUUID(), new PostNotice(UUID.randomUUID(), USER_ID, Post.NEW_PLANT, "Gus", null));
+
+        verify(notificationRepository, never()).save(any());
         verify(expoPushClient, never()).send(anyList());
     }
 
