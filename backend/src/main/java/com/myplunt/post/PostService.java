@@ -4,6 +4,8 @@ import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.common.logging.LogEvent;
 import com.myplunt.common.logging.StructuredLog;
+import com.myplunt.notification.PostNotice;
+import com.myplunt.notification.PushNotificationService;
 import com.myplunt.plant.LatestPhoto;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantPhotoRepository;
@@ -51,6 +53,7 @@ public class PostService {
     private final UserService userService;
     private final StorageService storageService;
     private final AuditLog auditLog;
+    private final PushNotificationService pushNotificationService;
 
     public PostService(
             PostRepository postRepository,
@@ -60,7 +63,8 @@ public class PostService {
             PlantPhotoRepository plantPhotoRepository,
             UserService userService,
             StorageService storageService,
-            AuditLog auditLog) {
+            AuditLog auditLog,
+            PushNotificationService pushNotificationService) {
         this.postRepository = postRepository;
         this.postCommentRepository = postCommentRepository;
         this.postReactionRepository = postReactionRepository;
@@ -69,6 +73,7 @@ public class PostService {
         this.userService = userService;
         this.storageService = storageService;
         this.auditLog = auditLog;
+        this.pushNotificationService = pushNotificationService;
     }
 
     // A sticky-note question for the user's friends, with an optional photo of its own.
@@ -182,10 +187,16 @@ public class PostService {
     // Anyone who may see a post may comment on it: its author and their friends.
     @Transactional
     public CommentResponse addComment(UUID userId, UUID postId, AddCommentRequest request) {
-        findVisiblePost(userId, postId);
+        Post post = findVisiblePost(userId, postId);
+        List<UUID> earlierCommenters = postCommentRepository.findAuthorIds(postId);
         PostComment saved = postCommentRepository.save(new PostComment(postId, userId, request.body()));
         auditLog.recorded(AuditEvent.COMMENT_ADDED, userId, userId,
                 Map.of("post_id", postId, "comment_id", saved.getId()));
+        // Replying under their own post doesn't notify the author.
+        if (!post.getUserId().equals(userId)) {
+            pushNotificationService.sendPostComment(userId, notice(post), request.body());
+        }
+        pushNotificationService.sendCommentReply(userId, notice(post), request.body(), earlierCommenters);
         User author = userRepository.findById(userId).orElseThrow(() -> new IllegalStateException("User not found"));
         return toResponse(saved, author);
     }
@@ -202,6 +213,7 @@ public class PostService {
         }
         postReactionRepository.save(new PostReaction(postId, userId));
         auditLog.recorded(AuditEvent.POST_WATERED, userId, userId, Map.of("post_id", postId));
+        pushNotificationService.sendPostWatered(userId, notice(post));
     }
 
     // Takes the user's drop back. Only their own row is touched, so it needs no visibility check.
@@ -210,6 +222,12 @@ public class PostService {
         if (postReactionRepository.deleteByPostIdAndUserId(postId, userId) > 0) {
             auditLog.recorded(AuditEvent.POST_UNWATERED, userId, userId, Map.of("post_id", postId));
         }
+    }
+
+    private static PostNotice notice(Post post) {
+        return new PostNotice(post.getId(), post.getUserId(), post.getPostType(),
+                post.getPlant() == null ? null : post.getPlant().getName(),
+                Post.QUESTION.equals(post.getPostType()) ? post.getBody() : null);
     }
 
     private Post findVisiblePost(UUID userId, UUID postId) {

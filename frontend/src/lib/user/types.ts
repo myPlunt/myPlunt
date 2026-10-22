@@ -36,6 +36,7 @@ export interface CompleteOnboardingRequest {
 /**
  * Mirrors NotificationSettings (GET/PUT /v1/users/me/notifications): which kinds of notifications the user wants.
  * friendActivity: stories about friends' plants. friendNudges: a friend reminding them to water.
+ * postInteractions: friends liking or commenting on their posts, and replies where they commented.
  * plantSitting: a friend handing over, or taking back, care of plants.
  */
 export interface NotificationSettings {
@@ -43,6 +44,7 @@ export interface NotificationSettings {
   weatherAlerts: boolean;
   friendActivity: boolean;
   friendNudges: boolean;
+  postInteractions: boolean;
   plantSitting: boolean;
 }
 
