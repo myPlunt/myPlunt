@@ -152,8 +152,12 @@ async function refreshTokens(refreshToken: string): Promise<TokenPair> {
         return tokens;
       })
       .catch(async (error) => {
-        await tokenStorage.clearTokens();
-        logWarning('session_expired');
+        // Only the backend turning the token away ends the session. No connection or a server
+        // error (e.g. mid-deploy) keeps the tokens, so the next try can still refresh.
+        if (error instanceof ApiError && error.status === 401) {
+          await tokenStorage.clearTokens();
+          logWarning('session_expired');
+        }
         throw error;
       })
       .finally(() => {
@@ -190,7 +194,11 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   let response = await send(path, { ...sendOptions, accessToken: tokens.accessToken });
 
   if (response.status === 401) {
-    const refreshed = await refreshTokens(tokens.refreshToken);
+    // A request sent before another one finished refreshing holds the old pair, whose refresh
+    // token the backend has already deleted. Retry with the new pair instead of refreshing again.
+    const current = await tokenStorage.getTokens();
+    const refreshed =
+      current && current.refreshToken !== tokens.refreshToken ? current : await refreshTokens(tokens.refreshToken);
     if (!sendOptions.silent) {
       logWarning('request_retried_after_refresh', {
         requestId: sendOptions.requestId,

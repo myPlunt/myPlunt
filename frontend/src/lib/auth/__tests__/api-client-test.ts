@@ -159,6 +159,43 @@ describe('apiFetch', () => {
     await expect(apiFetch('/v1/plants')).rejects.toMatchObject({ status: 401 });
     expect(mockedTokenStorage.clearTokens).toHaveBeenCalled();
   });
+
+  it('retries with the stored pair when another request refreshed after this one was sent', async () => {
+    // Sent with the old pair; by the time its 401 comes back, another request has refreshed
+    // and the backend has deleted refresh-1. Refreshing with it again would log the user out.
+    mockedTokenStorage.getTokens
+      .mockResolvedValueOnce({ accessToken: 'stale-access', refreshToken: 'refresh-1' })
+      .mockResolvedValueOnce({ accessToken: 'fresh-access', refreshToken: 'fresh-refresh' });
+
+    (globalThis.fetch as jest.Mock)
+      .mockResolvedValueOnce(jsonResponse(401)) // original request
+      .mockResolvedValueOnce(jsonResponse(200, { ok: true })); // retried request
+
+    const result = await apiFetch('/v1/users/me/push-token');
+
+    expect(result).toEqual({ ok: true });
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    expect(globalThis.fetch).not.toHaveBeenCalledWith(expect.stringContaining('/v1/auth/refresh'), expect.anything());
+    expect(globalThis.fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining('/v1/users/me/push-token'),
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer fresh-access' }) }),
+    );
+    expect(mockedTokenStorage.clearTokens).not.toHaveBeenCalled();
+  });
+
+  it('keeps the tokens when the refresh fails without a 401', async () => {
+    mockedTokenStorage.getTokens.mockResolvedValue({
+      accessToken: 'stale-access',
+      refreshToken: 'refresh-1',
+    });
+
+    (globalThis.fetch as jest.Mock)
+      .mockResolvedValueOnce(jsonResponse(401)) // original request
+      .mockResolvedValueOnce(jsonResponse(502)); // refresh hits the backend mid-deploy
+
+    await expect(apiFetch('/v1/plants')).rejects.toMatchObject({ status: 502 });
+    expect(mockedTokenStorage.clearTokens).not.toHaveBeenCalled();
+  });
 });
 
 describe('failed requests', () => {
