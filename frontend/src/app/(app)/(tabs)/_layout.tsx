@@ -2,8 +2,10 @@ import { getNetworkStateAsync } from 'expo-network';
 import { Redirect, useRouter } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
 import { useEffect, useRef } from 'react';
+import { View } from 'react-native';
 
 import { BottomTabBar } from '@/components/layout/bottom-tab-bar';
+import { RainOverlay } from '@/components/weather/rain-overlay';
 import { useTheme } from '@/hooks/use-theme';
 import { isOfflineState } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
@@ -35,13 +37,16 @@ export default function TabsLayout() {
   if (step === 'done') return <Redirect href="/tour-done" />;
 
   return (
-    <Tabs
-      tabBar={(props) => <BottomTabBar {...props} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: theme.background } }}>
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="pluntdex" />
-      <Tabs.Screen name="garden" />
-      <Tabs.Screen name="profile" />
-    </Tabs>
+    <View className="flex-1">
+      <Tabs
+        tabBar={(props) => <BottomTabBar {...props} />}
+        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: theme.background } }}>
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="pluntdex" />
+        <Tabs.Screen name="garden" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
+      <RainOverlay />
+    </View>
   );
 }

@@ -63,6 +63,7 @@ jest.mock('react-native-reanimated', () => {
     Keyframe: function Keyframe() {
       return animation;
     },
+    useReducedMotion: () => false,
   };
 });
 
