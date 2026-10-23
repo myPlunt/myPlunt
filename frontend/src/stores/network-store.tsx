@@ -40,6 +40,8 @@ export function NetworkStoreProvider({ children }: { children: ReactNode }) {
     if (wasOffline.current && !isOffline) {
       setReconnects((count) => count + 1);
       showNotice('Back online');
+    } else if (!wasOffline.current && isOffline) {
+      showNotice("You're offline");
     }
     wasOffline.current = isOffline;
   }, [isOffline, showNotice]);

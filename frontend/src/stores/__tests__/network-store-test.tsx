@@ -55,6 +55,17 @@ it('says "Back online" and reloads once the connection comes back, not before', 
   expect(reload).toHaveBeenCalledTimes(1);
 });
 
+it('says "You\'re offline" when the connection drops', async () => {
+  const { result, rerender } = await renderStore();
+  expect(result.current.notice).toBeNull();
+
+  mockedUseNetworkState.mockReturnValue(offline);
+  await rerender({});
+
+  expect(result.current.isOffline).toBe(true);
+  expect(result.current.notice).toBe("You're offline");
+});
+
 it('says for a moment what does not work offline', async () => {
   jest.useFakeTimers();
   mockedUseNetworkState.mockReturnValue(offline);
