@@ -5,7 +5,8 @@ import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 
 import { BottomTabBar } from '@/components/layout/bottom-tab-bar';
-import { WindOverlay } from '@/components/weather/wind-overlay';
+import { WeatherOverlay } from '@/components/weather/weather-overlay';
+import { useWeather } from '@/features/weather/use-weather';
 import { useTheme } from '@/hooks/use-theme';
 import { isOfflineState } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
@@ -14,6 +15,7 @@ export default function TabsLayout() {
   const theme = useTheme();
   const router = useRouter();
   const { step } = useOnboardingStore();
+  const weather = useWeather();
 
   // navigate, not push, so a tab can't stack up if the tabs mount again.
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="garden" />
         <Tabs.Screen name="profile" />
       </Tabs>
-      <WindOverlay />
+      <WeatherOverlay condition={weather} />
     </View>
   );
 }
