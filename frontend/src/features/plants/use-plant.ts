@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
+import { queuedWaterings, sendWaterings, withQueuedWaterings } from '@/features/garden/watering-outbox';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { PlantDetails } from '@/lib/plant/types';
 import { useAuthStore } from '@/stores/auth-store';
@@ -17,13 +18,16 @@ export function usePlant(plantId: string, ownerId?: string) {
 
   const load = useCallback(
     (isCancelled: () => boolean) => {
-      const request: Promise<{ data: PlantDetails }> = ownerId
-        ? plantService.getPlant(plantId, ownerId).then((data) => ({ data }))
-        : cachedPlant(plantId);
+      // An own plant sends the queued waterings first; any still queued show as done.
+      const request: Promise<PlantDetails> = ownerId
+        ? plantService.getPlant(plantId, ownerId)
+        : sendWaterings()
+            .then(() => Promise.all([cachedPlant(plantId), queuedWaterings()]))
+            .then(([result, queued]) => withQueuedWaterings(result.data, queued));
       request
-        .then((result) => {
+        .then((data) => {
           if (isCancelled()) return;
-          setPlant(result.data);
+          setPlant(data);
           setError(null);
         })
         .catch((err) => {

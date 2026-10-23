@@ -233,4 +233,26 @@ describe('failed requests', () => {
       jest.useRealTimers();
     }
   });
+
+  it('gives up on a write the backend ignores a repeat of, like a GET, but waits on any other', async () => {
+    jest.useFakeTimers();
+    (globalThis.fetch as jest.Mock).mockImplementation(
+      (_url: string, { signal }: RequestInit) =>
+        new Promise((_resolve, reject) => signal?.addEventListener('abort', () => reject(new Error('Aborted')))),
+    );
+
+    try {
+      let otherSettled = false;
+      apiFetch('/v1/plants', { method: 'POST', body: {} }).finally(() => {
+        otherSettled = true;
+      });
+      const watering = apiFetch('/v1/plants/p1/waterings', { method: 'POST', idempotent: true }).catch((err) => err);
+      await jest.advanceTimersByTimeAsync(10_000);
+
+      expect(await watering).toMatchObject({ status: 0 });
+      expect(otherSettled).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

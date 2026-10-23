@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
+import { queuedWaterings, sendWaterings, withQueuedHistory } from '@/features/garden/watering-outbox';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { WateringHistory } from '@/lib/plant/types';
 import { useAuthStore } from '@/stores/auth-store';
@@ -16,10 +17,11 @@ export function useWateringHistory(plantId: string) {
 
   const load = useCallback(
     (isCancelled: () => boolean) => {
-      cachedWateringHistory(plantId)
-        .then((result) => {
+      sendWaterings()
+        .then(() => Promise.all([cachedWateringHistory(plantId), queuedWaterings()]))
+        .then(([result, queued]) => {
           if (isCancelled()) return;
-          setHistory(result.data);
+          setHistory(withQueuedHistory(result.data, plantId, queued));
           setError(null);
         })
         .catch((err) => {

@@ -35,3 +35,18 @@ export function WateringPill({ plant, now }: WateringPillProps) {
     </View>
   );
 }
+
+/** Under the pill or the last watering, while a watering made offline hasn't been sent. */
+export function NotSyncedNote() {
+  const theme = useTheme();
+  return (
+    <View className="flex-row items-center gap-1">
+      <SymbolView
+        name={{ ios: 'icloud.and.arrow.up', android: 'cloud_upload', web: 'cloud_upload' }}
+        tintColor={theme.textSecondary}
+        size={12}
+      />
+      <Text className="type-caption text-text-secondary">Not synced yet</Text>
+    </View>
+  );
+}

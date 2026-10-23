@@ -46,8 +46,8 @@ const NETWORK_ERROR_DETAIL = "Can't reach myPlunt right now. Check your connecti
 const SLOW_RESPONSE_MS = 3000;
 
 // A GET with no answer by then counts as offline (status 0): React Native's fetch has no time limit
-// on Android. Writes wait as long as it takes, since retrying a slow one could save it twice.
-const GET_TIMEOUT_MS = 10_000;
+// on Android. Other writes wait as long as it takes, since retrying a slow one could save it twice.
+const TIMEOUT_MS = 10_000;
 
 interface SendOptions {
   method: string;
@@ -55,6 +55,7 @@ interface SendOptions {
   accessToken?: string;
   requestId: string;
   silent: boolean;
+  idempotent: boolean;
 }
 
 // The query string is left out: a search query can be a person's name.
@@ -62,12 +63,12 @@ function requestContext(method: string, path: string) {
   return { method, path: path.split('?')[0] };
 }
 
-async function send(path: string, { method, body, accessToken, requestId, silent }: SendOptions): Promise<Response> {
+async function send(path: string, { method, body, accessToken, requestId, silent, idempotent }: SendOptions): Promise<Response> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json', 'X-Request-ID': requestId };
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   const startedAt = Date.now();
   const controller = new AbortController();
-  const timeout = method === 'GET' ? setTimeout(() => controller.abort(), GET_TIMEOUT_MS) : undefined;
+  const timeout = idempotent ? setTimeout(() => controller.abort(), TIMEOUT_MS) : undefined;
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       method,
@@ -126,6 +127,7 @@ export async function publicFetch<T>(path: string, body?: unknown, options: Publ
     body,
     requestId: options.requestId ?? createRequestId(),
     silent: false,
+    idempotent: false,
   };
   return parseJsonOrThrow<T>(await send(path, sendOptions), sendOptions, path);
 }
@@ -163,6 +165,8 @@ interface ApiFetchOptions {
   requestId?: string;
   /** Don't log anything about this request (for the logger's own reports). */
   silent?: boolean;
+  /** The backend ignores a repeat, so a slow answer is given up on like a GET's. */
+  idempotent?: boolean;
 }
 
 /** For everything else: attaches the access token, retries once after a refresh on 401. */
@@ -173,11 +177,13 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   }
 
   // The retry keeps the same id: it's the same thing the user asked for.
+  const method = options.method ?? 'GET';
   const sendOptions: SendOptions = {
-    method: options.method ?? 'GET',
+    method,
     body: options.body,
     requestId: options.requestId ?? createRequestId(),
     silent: options.silent ?? false,
+    idempotent: options.idempotent ?? method === 'GET',
   };
 
   let response = await send(path, { ...sendOptions, accessToken: tokens.accessToken });

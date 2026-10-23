@@ -30,6 +30,8 @@ export interface PlantDetails extends Plant {
   wateringFrequencyDays: number;
   lastWateredAt: string | null;
   nextWateringAt: string;
+  /** Set by the app, never the server: watered offline and not sent yet. */
+  waitingToSync?: boolean;
 }
 
 /** null clears a field, except photoKey, where null keeps the current photo. */
@@ -39,6 +41,8 @@ export interface Watering {
   id: string;
   wateredAt: string;
   daysLate: number;
+  /** Set by the app, never the server: watered offline and not sent yet. */
+  waitingToSync?: boolean;
 }
 
 export interface WateringHistory {

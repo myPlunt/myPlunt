@@ -19,4 +19,6 @@ export interface GardenPlant {
   nextWateringAt: string;
   wateringStreak: number;
   photoUrl: string | null;
+  /** Set by the app, never the server: watered offline and not sent yet. */
+  waitingToSync?: boolean;
 }

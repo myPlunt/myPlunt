@@ -78,7 +78,7 @@ function OfflineButton() {
           pointerEvents="none"
           className="absolute left-6 top-11 w-60 rounded-xl border border-primary/40 bg-info px-3 py-2"
           style={Shadow.card}>
-          <Text className="type-caption text-action-primary">You&apos;re offline. Your garden and plants still work.</Text>
+          <Text className="type-caption text-action-primary">You&apos;re offline. Your garden and plants still work, and watering syncs later.</Text>
         </View>
       )}
     </View>
