@@ -2,16 +2,22 @@ import { getNetworkStateAsync } from 'expo-network';
 import { Redirect, useRouter } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
 import { useEffect, useRef } from 'react';
+import { View } from 'react-native';
 
 import { BottomTabBar } from '@/components/layout/bottom-tab-bar';
+import { WeatherOverlay } from '@/components/weather/weather-overlay';
+import { useWeather } from '@/features/weather/use-weather';
 import { useTheme } from '@/hooks/use-theme';
 import { isOfflineState } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { useWeatherVisualsStore } from '@/stores/weather-visuals-store';
 
 export default function TabsLayout() {
   const theme = useTheme();
   const router = useRouter();
   const { step } = useOnboardingStore();
+  const weather = useWeather();
+  const weatherVisuals = useWeatherVisualsStore();
 
   // navigate, not push, so a tab can't stack up if the tabs mount again.
   useEffect(() => {
@@ -35,13 +41,16 @@ export default function TabsLayout() {
   if (step === 'done') return <Redirect href="/tour-done" />;
 
   return (
-    <Tabs
-      tabBar={(props) => <BottomTabBar {...props} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: theme.background } }}>
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="pluntdex" />
-      <Tabs.Screen name="garden" />
-      <Tabs.Screen name="profile" />
-    </Tabs>
+    <View className="flex-1">
+      <Tabs
+        tabBar={(props) => <BottomTabBar {...props} />}
+        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: theme.background } }}>
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="pluntdex" />
+        <Tabs.Screen name="garden" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
+      {weatherVisuals.enabled && <WeatherOverlay condition={weather} />}
+    </View>
   );
 }
