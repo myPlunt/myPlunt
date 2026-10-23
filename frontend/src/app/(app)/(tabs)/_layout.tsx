@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 
 import { BottomTabBar } from '@/components/layout/bottom-tab-bar';
-import { SnowOverlay } from '@/components/weather/snow-overlay';
+import { WindOverlay } from '@/components/weather/wind-overlay';
 import { useTheme } from '@/hooks/use-theme';
 import { isOfflineState } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
@@ -46,7 +46,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="garden" />
         <Tabs.Screen name="profile" />
       </Tabs>
-      <SnowOverlay />
+      <WindOverlay />
     </View>
   );
 }
