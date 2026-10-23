@@ -49,6 +49,68 @@ const SLOW_RESPONSE_MS = 3000;
 // on Android. Other writes wait as long as it takes, since retrying a slow one could save it twice.
 const TIMEOUT_MS = 10_000;
 
+// Going offline takes this many failed tries to reach the server, this far apart. Tune them here.
+const CHECKS_BEFORE_OFFLINE = 3;
+const CHECK_EVERY_MS = 2000;
+// Once offline, a waiting request keeps its spinner this much longer, while the app moves to the
+// garden, so the screen being left doesn't flash its error first.
+const LEAVE_SCREEN_MS = 1000;
+
+/** Any answer at all, even an error status, means the connection works. */
+export async function canReachServer(): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    await fetch(`${API_BASE_URL}/actuator/health`, { signal: controller.signal });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+let reachable = true;
+let checking: Promise<boolean> | null = null;
+const reachabilityListeners = new Set<(reachable: boolean) => void>();
+
+function setReachable(value: boolean) {
+  if (value === reachable) return;
+  reachable = value;
+  reachabilityListeners.forEach((listener) => listener(value));
+}
+
+/** Calls back each time the server stops or starts answering; returns the unsubscribe. */
+export function onReachabilityChange(listener: (reachable: boolean) => void): () => void {
+  reachabilityListeners.add(listener);
+  return () => {
+    reachabilityListeners.delete(listener);
+  };
+}
+
+/**
+ * Tries the server a few times, a moment apart, and resolves to whether it answered. Shared, so every
+ * request that lost its answer waits for the same verdict. Never rejects.
+ */
+export function checkServer(): Promise<boolean> {
+  checking ??= (async () => {
+    for (let tries = 1; ; tries++) {
+      if (await canReachServer()) {
+        setReachable(true);
+        return true;
+      }
+      if (tries >= CHECKS_BEFORE_OFFLINE) {
+        setReachable(false);
+        return false;
+      }
+      await new Promise((resolve) => setTimeout(resolve, CHECK_EVERY_MS));
+    }
+  })().finally(() => {
+    checking = null;
+  });
+  return checking;
+}
+
 interface SendOptions {
   method: string;
   body?: unknown;
@@ -76,6 +138,7 @@ async function send(path: string, { method, body, accessToken, requestId, silent
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
+    setReachable(true);
     const durationMs = Date.now() - startedAt;
     if (!silent && durationMs >= SLOW_RESPONSE_MS) {
       logWarning('slow_api_response', { requestId, context: { ...requestContext(method, path), duration_ms: durationMs } });
@@ -88,6 +151,22 @@ async function send(path: string, { method, body, accessToken, requestId, silent
     throw new ApiError(0, 'Network request failed', { detail: NETWORK_ERROR_DETAIL, requestId });
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+// Without an answer the screen keeps loading while the server is tried a few more times, and a request
+// that's safe to repeat goes once more if it answers. Once offline, requests fail straight away.
+async function sendChecked(path: string, options: SendOptions): Promise<Response> {
+  try {
+    return await send(path, options);
+  } catch (err) {
+    if (!reachable) throw err;
+    if (await checkServer()) {
+      if (options.idempotent) return send(path, options);
+      throw err;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LEAVE_SCREEN_MS));
+    throw err;
   }
 }
 
@@ -186,7 +265,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     idempotent: options.idempotent ?? method === 'GET',
   };
 
-  let response = await send(path, { ...sendOptions, accessToken: tokens.accessToken });
+  let response = await sendChecked(path, { ...sendOptions, accessToken: tokens.accessToken });
 
   if (response.status === 401) {
     // A request sent before another one finished refreshing holds the old pair, whose refresh

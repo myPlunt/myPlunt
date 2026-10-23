@@ -7,7 +7,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { StagingPill } from '@/components/ui/staging-pill';
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useNetworkStore } from '@/stores/network-store';
+import { offlineMessages, useNetworkStore } from '@/stores/network-store';
+
+import { offlineIcons } from './offline-notice';
 
 interface AppHeaderProps {
   showBack?: boolean;
@@ -51,7 +53,7 @@ const EXPLANATION_MS = 4000;
 
 function OfflineButton() {
   const theme = useTheme();
-  const { isOffline } = useNetworkStore();
+  const { offlineReason } = useNetworkStore();
   const [isExplaining, setIsExplaining] = useState(false);
 
   useEffect(() => {
@@ -60,25 +62,27 @@ function OfflineButton() {
     return () => clearTimeout(timer);
   }, [isExplaining]);
 
-  if (!isOffline) return null;
+  if (!offlineReason) return null;
 
   return (
     <View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="You're offline"
+        accessibilityLabel={offlineMessages[offlineReason]}
         accessibilityHint="Says what still works"
         accessibilityState={{ expanded: isExplaining }}
         onPress={() => setIsExplaining((open) => !open)}
         className="h-8 w-8 items-center justify-center rounded-full border border-input-border bg-background-element active:opacity-70">
-        <SymbolView name={{ ios: 'wifi.slash', android: 'wifi_off', web: 'wifi_off' }} tintColor={theme.accent} size={16} />
+        <SymbolView name={offlineIcons[offlineReason]} tintColor={theme.accent} size={16} />
       </Pressable>
       {isExplaining && (
         <View
           pointerEvents="none"
           className="absolute left-6 top-11 w-60 rounded-xl border border-primary/40 bg-info px-3 py-2"
           style={Shadow.card}>
-          <Text className="type-caption text-action-primary">You&apos;re offline. Your garden and plants still work, and watering syncs later.</Text>
+          <Text className="type-caption text-action-primary">
+            {offlineMessages[offlineReason]}. Your garden and plants still work, and watering syncs later.
+          </Text>
         </View>
       )}
     </View>

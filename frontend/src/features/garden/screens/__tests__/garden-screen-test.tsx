@@ -70,7 +70,7 @@ const garden: Garden = {
 };
 
 function mockNetwork(isOffline: boolean) {
-  jest.mocked(useNetworkStore).mockReturnValue({ isOffline, reconnects: 0, notice: null, explainOffline });
+  jest.mocked(useNetworkStore).mockReturnValue({ isOffline, offlineReason: isOffline ? 'internet' : null, reconnects: 0, notice: null, explainOffline });
 }
 
 function queuedPlantIds() {

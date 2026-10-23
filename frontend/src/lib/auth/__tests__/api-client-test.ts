@@ -1,4 +1,12 @@
-import { apiFetch, ApiError, describeError, publicFetch } from '@/lib/auth/api-client';
+import {
+  apiFetch,
+  ApiError,
+  canReachServer,
+  checkServer,
+  describeError,
+  onReachabilityChange,
+  publicFetch,
+} from '@/lib/auth/api-client';
 import { tokenStorage } from '@/lib/auth/token-storage';
 
 jest.mock('@/lib/auth/token-storage', () => ({
@@ -199,11 +207,24 @@ describe('apiFetch', () => {
 });
 
 describe('failed requests', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     globalThis.fetch = jest.fn();
     mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'access-1', refreshToken: 'refresh-1' });
+    // Whatever an earlier test left, the server starts out reachable.
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(jsonResponse(200));
+    await checkServer();
+    (globalThis.fetch as jest.Mock).mockClear();
   });
+
+  // Nothing comes back until a request is called off, and the server check fails straight away.
+  function noAnswer() {
+    (globalThis.fetch as jest.Mock).mockImplementation((url: string, { signal }: RequestInit) =>
+      url.endsWith('/actuator/health')
+        ? Promise.reject(new TypeError('Network request failed'))
+        : new Promise((_resolve, reject) => signal?.addEventListener('abort', () => reject(new Error('Aborted')))),
+    );
+  }
 
   it('turns "no response" into an ApiError with status 0 and a user-safe message, and logs it as an error', async () => {
     const networkError = new TypeError('Network request failed');
@@ -216,30 +237,81 @@ describe('failed requests', () => {
     expect(describeError(error)).toBe("Can't reach myPlunt right now. Check your connection and try again.");
   });
 
-  it('gives up on a GET without a response in 10 seconds, as if there were no connection', async () => {
+  it('keeps a GET without an answer waiting while the server is tried, and sends it again once it answers', async () => {
+    (globalThis.fetch as jest.Mock)
+      .mockRejectedValueOnce(new TypeError('Network request failed'))
+      .mockResolvedValueOnce(jsonResponse(200))
+      .mockResolvedValueOnce(jsonResponse(200, { rooms: [] }));
+
+    expect(await apiFetch('/v1/garden')).toEqual({ rooms: [] });
+    const urls = (globalThis.fetch as jest.Mock).mock.calls.map(([url]: [string]) => url.endsWith('/actuator/health'));
+    expect(urls).toEqual([false, true, false]);
+  });
+
+  it('goes offline after three failed tries, tells whoever listens, and from then on fails straight away', async () => {
     jest.useFakeTimers();
-    // A weak connection: nothing comes back until the request is called off.
-    (globalThis.fetch as jest.Mock).mockImplementation(
-      (_url: string, { signal }: RequestInit) =>
-        new Promise((_resolve, reject) => signal?.addEventListener('abort', () => reject(new Error('Aborted')))),
-    );
+    (globalThis.fetch as jest.Mock).mockRejectedValue(new TypeError('Network request failed'));
+    const listener = jest.fn();
+    const unsubscribe = onReachabilityChange(listener);
 
     try {
-      const request = apiFetch('/v1/garden').catch((err) => err);
-      await jest.advanceTimersByTimeAsync(10_000);
+      let settled = false;
+      const request = apiFetch('/v1/garden')
+        .catch((err) => err)
+        .finally(() => {
+          settled = true;
+        });
+      await jest.advanceTimersByTimeAsync(4000);
+      expect(listener).toHaveBeenCalledWith(false);
+      // Still loading while the app moves to the garden.
+      expect(settled).toBe(false);
 
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(await request).toMatchObject({ status: 0 });
+      // The request, then three tries.
+      expect(globalThis.fetch).toHaveBeenCalledTimes(4);
+
+      (globalThis.fetch as jest.Mock).mockClear();
+      expect(await apiFetch('/v1/garden').catch((err) => err)).toMatchObject({ status: 0 });
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      unsubscribe();
+      jest.useRealTimers();
+    }
+  });
+
+  it('gives up on a GET without a response in 10 seconds, then waits while the server is tried', async () => {
+    jest.useFakeTimers();
+    noAnswer();
+
+    try {
+      let settled = false;
+      const request = apiFetch('/v1/garden')
+        .catch((err) => err)
+        .finally(() => {
+          settled = true;
+        });
+      await jest.advanceTimersByTimeAsync(10_000);
+      expect(settled).toBe(false);
+
+      await jest.advanceTimersByTimeAsync(5000);
       expect(await request).toMatchObject({ status: 0 });
     } finally {
       jest.useRealTimers();
     }
   });
 
+  it('can reach the server when any answer comes back, even an error, and not without one', async () => {
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 503 });
+    expect(await canReachServer()).toBe(true);
+
+    (globalThis.fetch as jest.Mock).mockRejectedValueOnce(new TypeError('Network request failed'));
+    expect(await canReachServer()).toBe(false);
+  });
+
   it('gives up on a write the backend ignores a repeat of, like a GET, but waits on any other', async () => {
     jest.useFakeTimers();
-    (globalThis.fetch as jest.Mock).mockImplementation(
-      (_url: string, { signal }: RequestInit) =>
-        new Promise((_resolve, reject) => signal?.addEventListener('abort', () => reject(new Error('Aborted')))),
-    );
+    noAnswer();
 
     try {
       let otherSettled = false;
@@ -247,7 +319,7 @@ describe('failed requests', () => {
         otherSettled = true;
       });
       const watering = apiFetch('/v1/plants/p1/waterings', { method: 'POST', idempotent: true }).catch((err) => err);
-      await jest.advanceTimersByTimeAsync(10_000);
+      await jest.advanceTimersByTimeAsync(15_000);
 
       expect(await watering).toMatchObject({ status: 0 });
       expect(otherSettled).toBe(false);
