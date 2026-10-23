@@ -1,11 +1,12 @@
 import myGardenScreen from '../assets/screens/MyGarden.jpg'
 import pluntDexScreen from '../assets/screens/PluntDex.jpg'
+import rainScreen from '../assets/screens/Rain.jpg'
 import PhoneMockup from './PhoneMockup'
 import SectionHeader from './SectionHeader'
 
 const screens = [
   { title: 'My garden', body: 'Every plant at a glance, with what needs care today.', screen: myGardenScreen },
-  { title: 'Rainy day', body: 'Your garden changes with the real weather where you are.' },
+  { title: 'Rainy day', body: 'Your garden changes with the real weather where you are.', screen: rainScreen },
   { title: 'PluntDex', body: 'Discover regional plants that grow well where you live.', screen: pluntDexScreen },
 ]
 
