@@ -7,7 +7,7 @@ import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { useTheme } from '@/hooks/use-theme';
 import type { GardenPlant } from '@/lib/garden/types';
 
-import { WateringPill } from './watering-pill';
+import { NotSyncedNote, WateringPill } from './watering-pill';
 
 interface PlantSelection {
   selected: boolean;
@@ -26,6 +26,11 @@ export function PlantCard({ plant, now, selection, ownerId }: PlantCardProps) {
   const theme = useTheme();
   const selected = selection?.selected ?? false;
   const streak = plant.wateringStreak;
+  // The card reads as one element, so what's drawn inside it is announced here.
+  const announced = [
+    streak > 0 && `Watered on its day ${streak} ${streak === 1 ? 'time' : 'times'} in a row`,
+    plant.waitingToSync && 'Last watering not synced yet',
+  ].filter(Boolean);
 
   return (
     <Pressable
@@ -43,10 +48,7 @@ export function PlantCard({ plant, now, selection, ownerId }: PlantCardProps) {
               router.push({ pathname: '/plant/[id]', params: { id: plant.id, ...(ownerId && { ownerId }) } }),
           })}
       accessibilityLabel={plant.name}
-      // The streak badge sits inside the card, which reads as one element, so it's announced here.
-      accessibilityValue={
-        streak > 0 ? { text: `Watered on its day ${streak} ${streak === 1 ? 'time' : 'times'} in a row` } : undefined
-      }
+      accessibilityValue={announced.length > 0 ? { text: announced.join('. ') } : undefined}
       // The border is always there (transparent when unselected) so selecting doesn't shift the card.
       className={`w-[168px] rounded-3xl border-2 bg-background-element p-2 active:opacity-70 ${
         selected ? 'border-action-primary' : 'border-transparent'
@@ -100,6 +102,7 @@ export function PlantCard({ plant, now, selection, ownerId }: PlantCardProps) {
         <View className="mt-1">
           <WateringPill plant={plant} now={now} />
         </View>
+        {plant.waitingToSync && <NotSyncedNote />}
       </View>
     </Pressable>
   );

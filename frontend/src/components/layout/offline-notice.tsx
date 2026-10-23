@@ -1,4 +1,4 @@
-import { SymbolView } from 'expo-symbols';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useEffect } from 'react';
 import { AccessibilityInfo, Text, View } from 'react-native';
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated';
@@ -6,7 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useNetworkStore } from '@/stores/network-store';
+import { useNetworkStore, type OfflineReason } from '@/stores/network-store';
+
+export const offlineIcons: Record<OfflineReason, SymbolViewProps['name']> = {
+  internet: { ios: 'wifi.slash', android: 'wifi_off', web: 'wifi_off' },
+  server: { ios: 'icloud.slash', android: 'cloud_off', web: 'cloud_off' },
+};
 
 // Clears the tab bar and its raised Add button, so the chip never covers a tab.
 const ABOVE_TAB_BAR = 100;
@@ -14,7 +19,7 @@ const ABOVE_TAB_BAR = 100;
 export function OfflineNotice() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { isOffline, notice } = useNetworkStore();
+  const { offlineReason, notice } = useNetworkStore();
 
   // The chip can't be focused, so screen readers are told directly.
   useEffect(() => {
@@ -32,11 +37,7 @@ export function OfflineNotice() {
           className="flex-row items-center gap-2 rounded-full border border-primary/40 bg-info px-4 py-2.5"
           style={Shadow.card}>
           <SymbolView
-            name={
-              isOffline
-                ? { ios: 'wifi.slash', android: 'wifi_off', web: 'wifi_off' }
-                : { ios: 'checkmark', android: 'check', web: 'check' }
-            }
+            name={offlineReason ? offlineIcons[offlineReason] : { ios: 'checkmark', android: 'check', web: 'check' }}
             tintColor={theme.actionPrimary}
             size={16}
           />

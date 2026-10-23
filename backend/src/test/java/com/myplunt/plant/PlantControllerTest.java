@@ -193,14 +193,26 @@ class PlantControllerTest {
                 .exchange()
                 .expectStatus().isNoContent();
 
-        verify(plantService).water(userId, plantId, ZoneId.of("UTC"));
+        verify(plantService).water(userId, plantId, null, ZoneId.of("UTC"));
+    }
+
+    @Test
+    void water_passesOnTheTimeOfAWateringSavedOffline() {
+        UUID userId = authenticateAsJane();
+
+        restTestClient.post().uri("/v1/plants/{plantId}/waterings?wateredAt=2026-10-22T08:00:00.123Z", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(plantService).water(userId, plantId, Instant.parse("2026-10-22T08:00:00.123Z"), ZoneId.of("UTC"));
     }
 
     @Test
     void water_propagatesConflictFromService() {
         UUID userId = authenticateAsJane();
         doThrow(new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be watered"))
-                .when(plantService).water(userId, plantId, ZoneId.of("UTC"));
+                .when(plantService).water(userId, plantId, null, ZoneId.of("UTC"));
 
         restTestClient.post().uri("/v1/plants/{plantId}/waterings", plantId)
                 .header("Authorization", "Bearer access-token")

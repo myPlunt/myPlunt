@@ -35,3 +35,17 @@ export function WateringPill({ plant, now }: WateringPillProps) {
     </View>
   );
 }
+
+export function NotSyncedNote() {
+  const theme = useTheme();
+  return (
+    <View className="flex-row items-center gap-1">
+      <SymbolView
+        name={{ ios: 'icloud.and.arrow.up', android: 'cloud_upload', web: 'cloud_upload' }}
+        tintColor={theme.textSecondary}
+        size={12}
+      />
+      <Text className="type-caption text-text-secondary">Not synced yet</Text>
+    </View>
+  );
+}

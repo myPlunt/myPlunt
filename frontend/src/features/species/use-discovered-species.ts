@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { DiscoveredSpecies } from '@/lib/species/types';
 import { useAuthStore } from '@/stores/auth-store';
+import { useReloadOnReconnect } from '@/stores/network-store';
 
 import * as speciesService from './species-service';
 
@@ -45,6 +46,7 @@ export function useDiscoveredSpecies(userId?: string) {
       };
     }, [load]),
   );
+  useReloadOnReconnect(() => load(() => false));
 
   return {
     discovered,

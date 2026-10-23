@@ -2,8 +2,7 @@ import { render, screen, userEvent, waitFor } from '@testing-library/react-nativ
 import { useRouter } from 'expo-router';
 
 import { useGarden } from '@/features/garden/use-garden';
-import { useGardenActions } from '@/features/garden/use-garden-actions';
-import { ApiError } from '@/lib/auth/api-client';
+import { queueWaterings } from '@/features/garden/watering-outbox';
 import type { Garden, GardenPlant } from '@/lib/garden/types';
 import { useNetworkStore } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
@@ -12,7 +11,7 @@ import { GardenScreen } from '../garden-screen';
 
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/garden/use-garden');
-jest.mock('@/features/garden/use-garden-actions');
+jest.mock('@/features/garden/watering-outbox');
 jest.mock('@/stores/onboarding-store', () => ({
   ...jest.requireActual('@/stores/onboarding-store'),
   useOnboardingStore: jest.fn(),
@@ -23,10 +22,9 @@ jest.mock('@/stores/network-store', () => ({
 }));
 
 const mockedUseGarden = jest.mocked(useGarden);
-const mockedUseGardenActions = jest.mocked(useGardenActions);
+const mockedQueueWaterings = jest.mocked(queueWaterings);
 const retry = jest.fn();
 const refresh = jest.fn();
-const waterPlants = jest.fn();
 const push = jest.fn();
 const explainOffline = jest.fn();
 const user = userEvent.setup();
@@ -72,7 +70,11 @@ const garden: Garden = {
 };
 
 function mockNetwork(isOffline: boolean) {
-  jest.mocked(useNetworkStore).mockReturnValue({ isOffline, reconnects: 0, notice: null, explainOffline });
+  jest.mocked(useNetworkStore).mockReturnValue({ isOffline, offlineReason: isOffline ? 'internet' : null, reconnects: 0, notice: null, explainOffline });
+}
+
+function queuedPlantIds() {
+  return mockedQueueWaterings.mock.calls.map(([plants]) => plants.map((queued) => queued.id));
 }
 
 function mockGarden(state: Partial<ReturnType<typeof useGarden>>) {
@@ -84,8 +86,7 @@ beforeEach(() => {
   jest.mocked(useOnboardingStore).mockReturnValue({ step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null });
   mockGarden({});
   mockNetwork(false);
-  mockedUseGardenActions.mockReturnValue({ waterPlants });
-  waterPlants.mockResolvedValue(undefined);
+  mockedQueueWaterings.mockResolvedValue(undefined);
   refresh.mockResolvedValue(undefined);
 });
 
@@ -123,6 +124,15 @@ describe('GardenScreen', () => {
     expect(balcony).toEqual(['Pinky', 'George']);
   });
 
+  it('marks only a plant whose watering made offline is still waiting to sync', async () => {
+    mockGarden({ garden: { rooms: [{ id: 'balcony', name: 'Balcony', plants: [{ ...plant('pinky', 'Pinky', 4), waitingToSync: true }, plant('george', 'George', 2)] }] } });
+    await render(<GardenScreen />);
+
+    expect(screen.getAllByText('Not synced yet')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Pinky' })).toHaveAccessibilityValue({ text: 'Last watering not synced yet' });
+    expect(screen.getByRole('button', { name: 'George' })).not.toHaveAccessibilityValue({ text: 'Last watering not synced yet' });
+  });
+
   it('lists the plants due today or overdue in the water card', async () => {
     await render(<GardenScreen />);
 
@@ -130,24 +140,13 @@ describe('GardenScreen', () => {
     expect(screen.getByText('Pinky and Basil')).toBeOnTheScreen();
   });
 
-  it('waters the due plants and then refreshes the garden', async () => {
+  it('queues the due plants and then refreshes the garden', async () => {
     await render(<GardenScreen />);
 
     await user.press(screen.getByRole('button', { name: 'Water Pinky and Basil' }));
 
-    expect(waterPlants).toHaveBeenCalledWith(['pinky', 'basil']);
+    expect(queuedPlantIds()).toEqual([['pinky', 'basil']]);
     await waitFor(() => expect(refresh).toHaveBeenCalled());
-  });
-
-  it('shows the backend message when watering fails', async () => {
-    const error = new ApiError(404, 'irrelevant', { detail: 'Plant not found' });
-    waterPlants.mockRejectedValue(error);
-    await render(<GardenScreen />);
-
-    await user.press(screen.getByRole('button', { name: 'Water Pinky and Basil' }));
-
-    expect(await screen.findByText('Plant not found')).toBeOnTheScreen();
-    expect(refresh).not.toHaveBeenCalled();
   });
 
   describe('picking plants to water', () => {
@@ -171,7 +170,7 @@ describe('GardenScreen', () => {
 
       await user.press(screen.getByRole('button', { name: 'Water 2 plants' }));
 
-      expect(waterPlants).toHaveBeenCalledWith(['george', 'minty']);
+      expect(queuedPlantIds()).toEqual([['george', 'minty']]);
       await waitFor(() => expect(refresh).toHaveBeenCalled());
       expect(await screen.findByRole('button', { name: 'George' })).toBeOnTheScreen();
     });
@@ -185,21 +184,20 @@ describe('GardenScreen', () => {
       expect(screen.getByRole('button', { name: 'Deselect all plants in Balcony' })).toBeOnTheScreen();
 
       await user.press(screen.getByRole('button', { name: 'Water 4 plants' }));
-      expect(waterPlants).toHaveBeenCalledWith(expect.arrayContaining(['george', 'pinky', 'basil', 'minty']));
+      expect(queuedPlantIds()[0]).toEqual(expect.arrayContaining(['george', 'pinky', 'basil', 'minty']));
     });
   });
 
-  it('offline, says watering needs a connection instead of starting it', async () => {
+  it('offline, watering still works', async () => {
     mockNetwork(true);
     await render(<GardenScreen />);
 
-    await user.press(screen.getByRole('button', { name: 'Water plants' }));
     await user.press(screen.getByRole('button', { name: 'Water Pinky and Basil' }));
+    expect(queuedPlantIds()).toEqual([['pinky', 'basil']]);
 
-    expect(explainOffline.mock.calls).toEqual([['Watering'], ['Watering']]);
-    expect(waterPlants).not.toHaveBeenCalled();
-    // Pressing the drop didn't start picking plants either.
-    expect(screen.queryByText('Tap to select the plants you watered.')).not.toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Water plants' }));
+    expect(screen.getByText('Tap to select the plants you watered.')).toBeOnTheScreen();
+    expect(explainOffline).not.toHaveBeenCalled();
   });
 
   it('shows the error and retries when asked', async () => {
