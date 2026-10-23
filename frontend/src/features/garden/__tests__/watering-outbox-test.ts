@@ -47,7 +47,6 @@ describe('sendWaterings', () => {
 
     waterPlant.mockRejectedValueOnce(new ApiError(0, 'Network request failed'));
     await sendWaterings();
-    // Stops at the first: the rest would fail the same way.
     expect(waterPlant).toHaveBeenCalledTimes(1);
     expect(await queuedPlantIds()).toEqual(['basil', 'minty']);
 

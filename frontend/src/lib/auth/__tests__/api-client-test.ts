@@ -211,13 +211,11 @@ describe('failed requests', () => {
     jest.resetAllMocks();
     globalThis.fetch = jest.fn();
     mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'access-1', refreshToken: 'refresh-1' });
-    // Whatever an earlier test left, the server starts out reachable.
     (globalThis.fetch as jest.Mock).mockResolvedValueOnce(jsonResponse(200));
     await checkServer();
     (globalThis.fetch as jest.Mock).mockClear();
   });
 
-  // Nothing comes back until a request is called off, and the server check fails straight away.
   function noAnswer() {
     (globalThis.fetch as jest.Mock).mockImplementation((url: string, { signal }: RequestInit) =>
       url.endsWith('/actuator/health')
@@ -263,12 +261,10 @@ describe('failed requests', () => {
         });
       await jest.advanceTimersByTimeAsync(4000);
       expect(listener).toHaveBeenCalledWith(false);
-      // Still loading while the app moves to the garden.
       expect(settled).toBe(false);
 
       await jest.advanceTimersByTimeAsync(1000);
       expect(await request).toMatchObject({ status: 0 });
-      // The request, then three tries.
       expect(globalThis.fetch).toHaveBeenCalledTimes(4);
 
       (globalThis.fetch as jest.Mock).mockClear();

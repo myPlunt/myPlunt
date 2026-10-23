@@ -12,7 +12,6 @@ export default function AppLayout() {
   useResumeTour();
   usePushTokenRegistration();
   useNotificationLinks();
-  // Waterings left from an offline session, even when the garden isn't opened.
   useEffect(() => {
     sendWaterings();
   }, []);

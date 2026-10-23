@@ -49,11 +49,9 @@ const SLOW_RESPONSE_MS = 3000;
 // on Android. Other writes wait as long as it takes, since retrying a slow one could save it twice.
 const TIMEOUT_MS = 10_000;
 
-// Going offline takes this many failed tries to reach the server, this far apart. Tune them here.
 const CHECKS_BEFORE_OFFLINE = 3;
 const CHECK_EVERY_MS = 2000;
-// Once offline, a waiting request keeps its spinner this much longer, while the app moves to the
-// garden, so the screen being left doesn't flash its error first.
+// Lets the app reach the garden before the screen being left shows its error.
 const LEAVE_SCREEN_MS = 1000;
 
 /** Any answer at all, even an error status, means the connection works. */
@@ -80,7 +78,6 @@ function setReachable(value: boolean) {
   reachabilityListeners.forEach((listener) => listener(value));
 }
 
-/** Calls back each time the server stops or starts answering; returns the unsubscribe. */
 export function onReachabilityChange(listener: (reachable: boolean) => void): () => void {
   reachabilityListeners.add(listener);
   return () => {
@@ -88,10 +85,7 @@ export function onReachabilityChange(listener: (reachable: boolean) => void): ()
   };
 }
 
-/**
- * Tries the server a few times, a moment apart, and resolves to whether it answered. Shared, so every
- * request that lost its answer waits for the same verdict. Never rejects.
- */
+/** Shared by every request waiting on it. Never rejects. */
 export function checkServer(): Promise<boolean> {
   checking ??= (async () => {
     for (let tries = 1; ; tries++) {
@@ -154,8 +148,6 @@ async function send(path: string, { method, body, accessToken, requestId, silent
   }
 }
 
-// Without an answer the screen keeps loading while the server is tried a few more times, and a request
-// that's safe to repeat goes once more if it answers. Once offline, requests fail straight away.
 async function sendChecked(path: string, options: SendOptions): Promise<Response> {
   try {
     return await send(path, options);
@@ -244,7 +236,6 @@ interface ApiFetchOptions {
   requestId?: string;
   /** Don't log anything about this request (for the logger's own reports). */
   silent?: boolean;
-  /** The backend ignores a repeat, so a slow answer is given up on like a GET's. */
   idempotent?: boolean;
 }
 

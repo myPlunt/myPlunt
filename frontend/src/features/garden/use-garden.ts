@@ -34,7 +34,6 @@ export function useGarden(userId?: string) {
   const load = useCallback(
     (isCancelled: () => boolean) => {
       // Only the user's own garden is kept for offline: a friend's needs their profile, which needs the connection.
-      // Queued waterings go out first, so the garden that comes back already has them.
       const request: Promise<{ data: Garden; savedAt: string | null; queued: QueuedWatering[] }> = userId
         ? gardenService.getGarden(userId).then((data) => ({ data, savedAt: null, queued: [] }))
         : sendWaterings()

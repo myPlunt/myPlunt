@@ -27,8 +27,6 @@ export async function register(details: RegisterRequest): Promise<void> {
 export async function logout(): Promise<void> {
   logAction('logout_submitted');
   // Sent while the session exists; otherwise the lines would go out under the next user's id.
-  // ponytail: waterings that still can't be sent are cleared with the cache below; tag them with
-  // the user's id if people sign out with unsynced waterings.
   await sendWaterings();
   await flushLogs();
   await removePushToken().catch(() => {});

@@ -223,8 +223,8 @@ public class PlantService {
         int streak = WateringConsistency.of(plant, all, zone, all.getLast()).currentStreak();
 
         auditLog.recorded(AuditEvent.PLANT_WATERED, userId, userId, Map.of("plant_id", plant.getId(), "streak", streak));
-        // No changed_by: the streak broke as a consequence of the watering, not by the user's choice. Only
-        // the newest watering can break it; an older one synced late lands in the past.
+        // No changed_by: the streak broke as a consequence of the watering, not by the user's choice.
+        // Only the newest watering can break it.
         if (wateredAt.equals(all.getLast()) && streakBefore > 0 && streak == 0) {
             auditLog.recorded(AuditEvent.WATERING_STREAK_BROKEN, userId, null,
                     Map.of("plant_id", plant.getId(), "lost_streak", streakBefore));

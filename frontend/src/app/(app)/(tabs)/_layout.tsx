@@ -7,7 +7,6 @@ import { useTheme } from '@/hooks/use-theme';
 import { useNetworkStore } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
-// The garden and a plant's own pages; its edit forms need the connection.
 const WORKS_OFFLINE = /^\/(garden|plant\/[^/]+(\/(waterings|growth))?)$/;
 
 export default function TabsLayout() {
@@ -24,11 +23,9 @@ export default function TabsLayout() {
     if (step === 'pluntdex') router.navigate('/pluntdex');
   }, [step, router]);
 
-  // Offline, any other screen sends you to the garden: when the connection drops, at an offline
-  // launch, or when a notification opens one.
   useEffect(() => {
     if (!isOffline || step !== null || WORKS_OFFLINE.test(pathname)) return;
-    // From a page over the tabs, navigate would open the tabs a second time; dismissTo does nothing on a tab.
+    // navigate from a page over the tabs would open them twice; dismissTo does nothing on a tab.
     if (onTab) {
       router.navigate('/garden');
     } else {

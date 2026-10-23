@@ -40,7 +40,6 @@ export function GardenScreen() {
   const hasPlants = allPlantIds.length > 0;
   const allSelected = selectedIds !== null && hasPlants && allPlantIds.every((id) => selectedIds.has(id));
 
-  // Queued first, so it works offline too; the refresh sends it and shows it.
   async function water(plants: GardenPlant[]) {
     setIsWatering(true);
     await queueWaterings(plants);

@@ -3,12 +3,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { checkServer, onReachabilityChange } from '@/lib/auth/api-client';
 
-/** The phone's own view. Still checking (undefined) counts as online, so nothing greys out at startup. */
+/** Still checking (undefined) counts as online. */
 export function isOfflineState({ isConnected, isInternetReachable }: NetworkState): boolean {
   return isConnected === false || isInternetReachable === false;
 }
 
-/** Why the server can't be reached: the phone has no internet, or the server itself doesn't answer. */
 export type OfflineReason = 'internet' | 'server';
 
 export const offlineMessages: Record<OfflineReason, string> = {
@@ -36,8 +35,7 @@ const NetworkStoreContext = createContext<NetworkStore>({
 const NOTICE_MS = 2000;
 const RETRY_OFFLINE_MS = 2000;
 
-// Offline means the server doesn't answer, which api-client decides after a few tries. The phone's
-// own signal only says why, and gets the server tried right away instead of at the next request.
+// Offline means the server doesn't answer; the phone's own signal only says why.
 export function NetworkStoreProvider({ children }: { children: ReactNode }) {
   const phoneOffline = isOfflineState(useNetworkState());
   const [isOffline, setIsOffline] = useState(false);
@@ -59,7 +57,6 @@ export function NetworkStoreProvider({ children }: { children: ReactNode }) {
     if (phoneOffline) checkServer();
   }, [phoneOffline]);
 
-  // Offline, the server is tried every few seconds until it answers.
   useEffect(() => {
     if (!isOffline) return;
     const timer = setInterval(checkServer, RETRY_OFFLINE_MS);

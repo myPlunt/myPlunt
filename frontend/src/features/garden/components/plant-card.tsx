@@ -102,7 +102,6 @@ export function PlantCard({ plant, now, selection, ownerId }: PlantCardProps) {
         <View className="mt-1">
           <WateringPill plant={plant} now={now} />
         </View>
-        {/* Only on this card; the room's row stretches the others to the same height. */}
         {plant.waitingToSync && <NotSyncedNote />}
       </View>
     </Pressable>

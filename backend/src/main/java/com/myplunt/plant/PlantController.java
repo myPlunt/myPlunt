@@ -91,7 +91,6 @@ public class PlantController {
         plantService.deletePhoto(principal.getId(), plantId, photoId);
     }
 
-    // wateredAt comes with a watering the app saved offline; without it, it's now.
     @PostMapping(ApiPaths.Plants.WATERINGS)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void water(

@@ -38,7 +38,6 @@ function renderStore(reload: () => void = jest.fn()) {
   );
 }
 
-// What api-client reports after its tries.
 function serverAnswers(reachable: boolean) {
   return act(() => reachabilityListener(reachable));
 }

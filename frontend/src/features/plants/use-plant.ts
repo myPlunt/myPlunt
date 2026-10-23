@@ -18,7 +18,6 @@ export function usePlant(plantId: string, ownerId?: string) {
 
   const load = useCallback(
     (isCancelled: () => boolean) => {
-      // An own plant sends the queued waterings first; any still queued show as done.
       const request: Promise<PlantDetails> = ownerId
         ? plantService.getPlant(plantId, ownerId)
         : sendWaterings()

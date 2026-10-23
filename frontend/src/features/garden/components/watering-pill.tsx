@@ -36,7 +36,6 @@ export function WateringPill({ plant, now }: WateringPillProps) {
   );
 }
 
-/** Under the pill or the last watering, while a watering made offline hasn't been sent. */
 export function NotSyncedNote() {
   const theme = useTheme();
   return (

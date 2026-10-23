@@ -337,7 +337,6 @@ class PlantServiceTest {
         assertThat(saved.getValue().getWateredAt()).isBetween(before, Instant.now());
     }
 
-    // George was added on 1 Sep and is watered every 3 days, so 4 Sep was on its day.
     @Test
     void water_reportsTheStreakBrokenByALateWatering() {
         Plant george = ownPlant("George");
@@ -357,7 +356,6 @@ class PlantServiceTest {
         when(wateringLogRepository.findByPlantIdOrderByWateredAtAsc(plantId))
                 .thenReturn(List.of(watering(george, Instant.parse("2026-09-04T10:00:00Z"))));
 
-        // Makes 4 Sep early, which zeroes the streak, but nobody watered late.
         plantService().water(userId, plantId, Instant.parse("2026-09-02T10:00:00Z"), ZoneOffset.UTC);
 
         verify(auditLog).recorded(eq(AuditEvent.PLANT_WATERED), eq(userId), eq(userId), any());
