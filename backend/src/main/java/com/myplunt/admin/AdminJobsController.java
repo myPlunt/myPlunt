@@ -4,6 +4,8 @@ import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.constants.ApiPaths;
 import com.myplunt.notification.PushNotificationService;
+import com.myplunt.weather.WeatherCondition;
+import com.myplunt.weather.WeatherService;
 import org.flywaydb.core.Flyway;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -22,16 +24,19 @@ public class AdminJobsController {
     private final AdminBootstrap adminBootstrap;
     private final PushNotificationService pushNotificationService;
     private final AuditLog auditLog;
+    private final WeatherService weatherService;
 
     public AdminJobsController(
             Flyway flyway,
             AdminBootstrap adminBootstrap,
             PushNotificationService pushNotificationService,
-            AuditLog auditLog) {
+            AuditLog auditLog,
+            WeatherService weatherService) {
         this.flyway = flyway;
         this.adminBootstrap = adminBootstrap;
         this.pushNotificationService = pushNotificationService;
         this.auditLog = auditLog;
+        this.weatherService = weatherService;
     }
 
     // clean() drops admin_users too, so the bootstrap admin is recreated and every session ends.
@@ -48,5 +53,23 @@ public class AdminJobsController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void sendWeatherAlerts() {
         pushNotificationService.sendWeatherAlertsToEveryone();
+    }
+
+    @PostMapping(ApiPaths.Admin.PREVIEW_RAIN)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void previewRain() {
+        weatherService.preview(WeatherCondition.RAIN);
+    }
+
+    @PostMapping(ApiPaths.Admin.PREVIEW_WIND)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void previewWind() {
+        weatherService.preview(WeatherCondition.WIND);
+    }
+
+    @PostMapping(ApiPaths.Admin.PREVIEW_SNOW)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void previewSnow() {
+        weatherService.preview(WeatherCondition.SNOW);
     }
 }

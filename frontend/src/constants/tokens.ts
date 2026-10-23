@@ -54,6 +54,7 @@ export const lightColors = {
   placeholder: brand.grey500,
   error: brand.error500,
   water: brand.waterBlue500,
+  snow: brand.white,
   wateringSoon: brand.mustard500,
   wateringTomorrow: brand.orange500,
   tabActive: brand.hunterGreen500,

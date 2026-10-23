@@ -21,6 +21,9 @@ public final class ApiPaths {
         public static final String JOBS = BASE + "/jobs";
         public static final String RESET_DB = JOBS + "/reset-db";
         public static final String SEND_WEATHER_ALERTS = JOBS + "/send-weather-alerts";
+        public static final String PREVIEW_RAIN = JOBS + "/preview-rain";
+        public static final String PREVIEW_WIND = JOBS + "/preview-wind";
+        public static final String PREVIEW_SNOW = JOBS + "/preview-snow";
 
         private Admin() {}
     }
@@ -130,5 +133,12 @@ public final class ApiPaths {
         public static final String DISCOVERED = BASE + "/discovered";
 
         private Species() {}
+    }
+
+    public static final class Weather {
+        public static final String BASE = "/v1/weather";
+        public static final String CURRENT = BASE + "/current";
+
+        private Weather() {}
     }
 }

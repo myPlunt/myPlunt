@@ -10,3 +10,7 @@ export function resetDatabase(): Promise<void> {
 export function sendWeatherAlerts(): Promise<void> {
   return apiAction('/v1/admin/jobs/send-weather-alerts', 'POST')
 }
+
+export function previewWeather(condition: 'rain' | 'wind' | 'snow'): Promise<void> {
+  return apiAction(`/v1/admin/jobs/preview-${condition}`, 'POST')
+}
