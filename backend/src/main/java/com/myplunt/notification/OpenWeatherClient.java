@@ -1,5 +1,6 @@
 package com.myplunt.notification;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -40,7 +41,8 @@ public class OpenWeatherClient {
                 .body(Response.class);
         return new Forecast(
                 response.list().stream().mapToDouble(step -> step.main().temp_min()).min().orElseThrow(),
-                response.list().stream().mapToDouble(step -> step.main().temp_max()).max().orElseThrow());
+                response.list().stream().mapToDouble(step -> step.main().temp_max()).max().orElseThrow(),
+                response.list().stream().mapToDouble(step -> step.rain() == null ? 0 : step.rain().threeHours()).sum());
     }
 
     public Current now(double latitude, double longitude) {
@@ -62,14 +64,17 @@ public class OpenWeatherClient {
         return Math.round(coordinate * 100) / 100.0;
     }
 
-    public record Forecast(double minTemp, double maxTemp) {}
+    public record Forecast(double minTemp, double maxTemp, double rainMm) {}
 
     // conditionId is OpenWeather's weather code (2xx storm, 3xx drizzle, 5xx rain, 6xx snow...); wind in m/s.
     public record Current(int conditionId, double windSpeed) {}
 
     record Response(List<Step> list) {}
 
-    record Step(Main main) {}
+    // rain is left out of a step when it stays dry.
+    record Step(Main main, Rain rain) {}
+
+    record Rain(@JsonProperty("3h") double threeHours) {}
 
     record CurrentResponse(List<Condition> weather, Wind wind) {}
 

@@ -137,7 +137,7 @@ class PushNotificationServiceTest {
         when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(any())).thenReturn(List.of(plant("Monty")));
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         when(userRepository.findById(neighbour)).thenReturn(Optional.of(other));
-        when(openWeatherClient.next24Hours(52.22, 6.89)).thenReturn(new OpenWeatherClient.Forecast(-1.4, 6));
+        when(openWeatherClient.next24Hours(52.22, 6.89)).thenReturn(new OpenWeatherClient.Forecast(-1.4, 6, 12));
 
         service().sendWeatherAlerts(NINE_IN_AMSTERDAM);
 
@@ -149,11 +149,14 @@ class PushNotificationServiceTest {
     }
 
     @Test
-    void weatherAlert_staysQuietOnAMildDayAndWarnsAboutHeat() {
-        assertThat(PushNotificationService.weatherAlert(new OpenWeatherClient.Forecast(8, 22))).isEmpty();
-        assertThat(PushNotificationService.weatherAlert(new OpenWeatherClient.Forecast(18, 33)))
+    void weatherAlert_staysQuietOnAMildDayAndWarnsAboutHeatAndRain() {
+        assertThat(PushNotificationService.weatherAlert(new OpenWeatherClient.Forecast(8, 22, 1))).isEmpty();
+        assertThat(PushNotificationService.weatherAlert(new OpenWeatherClient.Forecast(18, 33, 0)))
                 .contains(new PushNotificationService.WeatherAlert(
                         "Hot day ahead ☀️", "It'll reach 33°C. Give your plants some extra water."));
+        assertThat(PushNotificationService.weatherAlert(new OpenWeatherClient.Forecast(10, 16, 7.6)))
+                .contains(new PushNotificationService.WeatherAlert(
+                        "Rain today 🌧️", "About 8 mm of rain is coming. Your outdoor plants can skip watering."));
     }
 
     @Test
