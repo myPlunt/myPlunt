@@ -1,18 +1,12 @@
-import BellIcon from '../assets/icons/bell.svg?react'
-import KeyIcon from '../assets/icons/key.svg?react'
-import LeafIcon from '../assets/icons/leaf.svg?react'
-import SproutIcon from '../assets/icons/sprout.svg?react'
+import commentNotification from '../assets/notifications/comentnoti.jpg'
+import likeNotification from '../assets/notifications/likenoti.jpg'
+import newPlantNotification from '../assets/notifications/newplantnoti.jpg'
+import answerNotification from '../assets/notifications/questioncomentnoti.jpg'
 import feedScreen from '../assets/screens/Feed.jpg'
 import LeafShape from './LeafShape'
+import NotificationShot from './NotificationShot'
 import PhoneMockup from './PhoneMockup'
 import SectionHeader from './SectionHeader'
-
-const stories = [
-  { text: "Laura just watered your Basil while you're away this weekend.", Icon: KeyIcon, bubble: 'bg-soil' },
-  { text: "Your Fern's watering streak broke. Lisa sent you a nudge.", Icon: BellIcon, bubble: 'bg-green' },
-  { text: 'Your Monstera just sprouted a new leaf.', Icon: LeafIcon, bubble: 'bg-leaf' },
-  { text: "Alisa's Orchid finally bloomed.", Icon: SproutIcon, bubble: 'bg-soil' },
-]
 
 function CareTogetherVisual() {
   return (
@@ -39,17 +33,42 @@ function CareTogether() {
           />
 
           <ul className="flex w-full flex-col gap-3">
-            {stories.map(({ text, Icon, bubble }) => (
-              <li
-                key={text}
-                className="flex items-center gap-3.5 rounded-2xl border-[1.5px] border-sand bg-cream py-3.5 pr-5 pl-4"
-              >
-                <span className={`flex size-[38px] shrink-0 items-center justify-center rounded-full text-white ${bubble}`}>
-                  <Icon width={20} height={20} />
-                </span>
-                <p className="text-base leading-[1.4]">{text}</p>
-              </li>
-            ))}
+            <li>
+              <NotificationShot
+                src={newPlantNotification}
+                alt="A new plant: Laura just showed her new plant"
+                cropTop={32}
+                cropHeight={183}
+                className="w-[380px] max-w-full rounded-3xl"
+              />
+            </li>
+            <li>
+              <NotificationShot
+                src={likeNotification}
+                alt="New like: egidijus liked your photo of Vera."
+                cropTop={24}
+                cropHeight={183}
+                className="w-[380px] max-w-full rounded-3xl"
+              />
+            </li>
+            <li>
+              <NotificationShot
+                src={commentNotification}
+                alt='New comment: egidijus commented on Vera: "Nice plant"'
+                cropTop={27}
+                cropHeight={223}
+                className="w-[380px] max-w-full rounded-3xl"
+              />
+            </li>
+            <li>
+              <NotificationShot
+                src={answerNotification}
+                alt="New answer: Rafael just answered your question"
+                cropTop={37}
+                cropHeight={185}
+                className="w-[380px] max-w-full rounded-3xl"
+              />
+            </li>
           </ul>
 
           <p className="max-w-[520px] text-base leading-[1.55] font-medium text-soil">
