@@ -247,7 +247,7 @@ build-admin-prod:
     - job: check-admin
       optional: true
 
-build-mobile-staging:
+build-ios-staging:
   extends: [.build-mobile, .rules-frontend-dev]
   variables:
     EAS_PROFILE: staging
@@ -272,7 +272,7 @@ build-android-staging:
     - job: typecheck-frontend
       optional: true
 
-build-mobile-prod:
+build-ios-prod:
   extends: [.build-mobile, .rules-frontend-main]
   variables:
     EAS_PROFILE: production
@@ -325,20 +325,20 @@ deploy-admin-prod:
     name: production
   needs: ["build-admin-prod"]
 
-submit-mobile-staging:
+submit-ios-staging:
   extends: [.submit-mobile, .rules-frontend-dev]
   variables:
     EAS_PROFILE: staging
   environment:
     name: staging
-  needs: ["build-mobile-staging"]
+  needs: ["build-ios-staging"]
   when: manual
 
-submit-mobile-prod:
+submit-ios-prod:
   extends: [.submit-mobile, .rules-frontend-main]
   variables:
     EAS_PROFILE: production
   environment:
     name: production
-  needs: ["build-mobile-prod"]
+  needs: ["build-ios-prod"]
   when: manual
