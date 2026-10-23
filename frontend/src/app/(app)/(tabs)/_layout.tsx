@@ -10,12 +10,14 @@ import { useWeather } from '@/features/weather/use-weather';
 import { useTheme } from '@/hooks/use-theme';
 import { isOfflineState } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { useWeatherVisualsStore } from '@/stores/weather-visuals-store';
 
 export default function TabsLayout() {
   const theme = useTheme();
   const router = useRouter();
   const { step } = useOnboardingStore();
   const weather = useWeather();
+  const weatherVisuals = useWeatherVisualsStore();
 
   // navigate, not push, so a tab can't stack up if the tabs mount again.
   useEffect(() => {
@@ -48,7 +50,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="garden" />
         <Tabs.Screen name="profile" />
       </Tabs>
-      <WeatherOverlay condition={weather} />
+      {weatherVisuals.enabled && <WeatherOverlay condition={weather} />}
     </View>
   );
 }

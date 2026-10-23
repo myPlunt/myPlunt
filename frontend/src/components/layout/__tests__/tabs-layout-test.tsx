@@ -20,6 +20,7 @@ jest.mock('expo-router/js-tabs', () => {
 });
 jest.mock('@/stores/onboarding-store', () => ({ useOnboardingStore: jest.fn() }));
 jest.mock('@/features/weather/use-weather', () => ({ useWeather: () => 'NONE' }));
+jest.mock('@/stores/weather-visuals-store', () => ({ useWeatherVisualsStore: () => ({ enabled: true }) }));
 
 const navigate = jest.fn();
 
