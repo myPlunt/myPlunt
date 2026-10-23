@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { Species } from '@/lib/species/types';
 import { useAuthStore } from '@/stores/auth-store';
+import { useReloadOnReconnect } from '@/stores/network-store';
 
 import * as speciesService from './species-service';
 
-/** Loaded once, not on focus: the list doesn't change while a screen is open. */
+/** Loaded once, not on focus, as the list doesn't change while a screen is open; again after a reconnect. */
 export function useSpecies() {
   const { setUnauthenticated } = useAuthStore();
   const [species, setSpecies] = useState<Species[] | null>(null);
@@ -33,12 +34,11 @@ export function useSpecies() {
     };
   }, [setUnauthenticated, attempt]);
 
-  return {
-    species,
-    error,
-    retry() {
-      setError(null);
-      setAttempt((n) => n + 1);
-    },
-  };
+  function retry() {
+    setError(null);
+    setAttempt((n) => n + 1);
+  }
+  useReloadOnReconnect(retry);
+
+  return { species, error, retry };
 }
