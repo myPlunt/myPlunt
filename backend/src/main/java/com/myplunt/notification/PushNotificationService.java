@@ -63,6 +63,8 @@ public class PushNotificationService {
     // Weather alert thresholds in °C over the next 24 hours.
     static final double FROST_BELOW = 3;
     static final double HEAT_ABOVE = 30;
+    // Enough rain in 24 hours to stand in for a watering.
+    static final double RAIN_FROM_MM = 5;
 
     private final PushTokenRepository pushTokenRepository;
     private final UserSettingsRepository userSettingsRepository;
@@ -199,7 +201,7 @@ public class PushNotificationService {
 
     record WeatherAlert(String title, String body) {}
 
-    // Frost wins over heat: a cold plant can die overnight.
+    // Frost wins over heat, and both over rain: a cold or scorched plant can die, a missed watering can't.
     static Optional<WeatherAlert> weatherAlert(OpenWeatherClient.Forecast forecast) {
         if (forecast.minTemp() < FROST_BELOW) {
             return Optional.of(new WeatherAlert("Frost is coming 🥶",
@@ -208,6 +210,10 @@ public class PushNotificationService {
         if (forecast.maxTemp() > HEAT_ABOVE) {
             return Optional.of(new WeatherAlert("Hot day ahead ☀️",
                     "It'll reach " + Math.round(forecast.maxTemp()) + "°C. Give your plants some extra water."));
+        }
+        if (forecast.rainMm() >= RAIN_FROM_MM) {
+            return Optional.of(new WeatherAlert("Rain today 🌧️",
+                    "About " + Math.round(forecast.rainMm()) + " mm of rain is coming. Your outdoor plants can skip watering."));
         }
         return Optional.empty();
     }
