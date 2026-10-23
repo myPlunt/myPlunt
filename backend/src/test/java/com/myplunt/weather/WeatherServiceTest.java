@@ -65,4 +65,14 @@ class WeatherServiceTest {
         assertThat(new WeatherService(openWeatherClient).current(userAt(52.22, 6.89)).condition())
                 .isEqualTo(WeatherCondition.NONE);
     }
+
+    @Test
+    void current_showsAPreviewToEveryoneOverTheRealWeather() {
+        WeatherService service = new WeatherService(openWeatherClient);
+
+        service.preview(WeatherCondition.WIND);
+
+        assertThat(service.current(userAt(null, null)).condition()).isEqualTo(WeatherCondition.WIND);
+        verify(openWeatherClient, never()).now(anyDouble(), anyDouble());
+    }
 }

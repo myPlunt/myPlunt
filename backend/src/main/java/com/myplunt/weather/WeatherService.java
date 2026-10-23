@@ -20,14 +20,15 @@ public class WeatherService {
 
     private static final Logger log = LoggerFactory.getLogger(WeatherService.class);
 
-    // Beaufort 5, "fresh breeze": small trees start to sway.
     static final double WINDY_METRES_PER_SECOND = 8.0;
 
-    // One OpenWeather call per town per quarter hour, however many users open the app.
     private static final Duration CACHE_FOR = Duration.ofMinutes(15);
 
+    // How long a staging preview job overrides the real weather.
+    static final Duration PREVIEW_FOR = Duration.ofMinutes(2);
+
     private final OpenWeatherClient openWeatherClient;
-    // shortcut: entries are never evicted, one per town ever asked for; move to a bounded cache if that grows.
+    private volatile Preview preview;
     private final Map<String, Cached> cache = new ConcurrentHashMap<>();
 
     public WeatherService(OpenWeatherClient openWeatherClient) {
@@ -35,6 +36,10 @@ public class WeatherService {
     }
 
     public CurrentWeatherResponse current(User user) {
+        Preview active = preview;
+        if (active != null && Instant.now().isBefore(active.until())) {
+            return new CurrentWeatherResponse(active.condition());
+        }
         if (!openWeatherClient.isEnabled() || user.getLatitude() == null || user.getLongitude() == null) {
             return new CurrentWeatherResponse(WeatherCondition.NONE);
         }
@@ -50,7 +55,10 @@ public class WeatherService {
         return new CurrentWeatherResponse(cached.condition());
     }
 
-    // The visuals are decoration: a failed call shows none instead of failing the request.
+    public void preview(WeatherCondition condition) {
+        preview = new Preview(condition, Instant.now().plus(PREVIEW_FOR));
+    }
+
     private WeatherCondition fetch(double lat, double lon) {
         try {
             return condition(openWeatherClient.now(lat, lon));
@@ -60,7 +68,7 @@ public class WeatherService {
         }
     }
 
-    // Snow and rain win over wind: a windy shower still shows rain.
+    // Snow and rain win over wind
     static WeatherCondition condition(OpenWeatherClient.Current current) {
         int group = current.conditionId() / 100;
         if (group == 6) {
@@ -76,4 +84,6 @@ public class WeatherService {
     }
 
     private record Cached(WeatherCondition condition, Instant fetchedAt) {}
+
+    private record Preview(WeatherCondition condition, Instant until) {}
 }
