@@ -1,21 +1,25 @@
-import { getNetworkStateAsync } from 'expo-network';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect, usePathname, useRouter, useSegments } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { View } from 'react-native';
 
 import { BottomTabBar } from '@/components/layout/bottom-tab-bar';
 import { WeatherOverlay } from '@/components/weather/weather-overlay';
 import { useWeather } from '@/features/weather/use-weather';
 import { useTheme } from '@/hooks/use-theme';
-import { isOfflineState } from '@/stores/network-store';
+import { useNetworkStore } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { useWeatherVisualsStore } from '@/stores/weather-visuals-store';
+
+const WORKS_OFFLINE = /^\/(garden|plant\/[^/]+(\/(waterings|growth))?)$/;
 
 export default function TabsLayout() {
   const theme = useTheme();
   const router = useRouter();
+  const pathname = usePathname();
+  const onTab = useSegments().at(1) === '(tabs)';
   const { step } = useOnboardingStore();
+  const { isOffline } = useNetworkStore();
   const weather = useWeather();
   const weatherVisuals = useWeatherVisualsStore();
 
@@ -25,16 +29,15 @@ export default function TabsLayout() {
     if (step === 'pluntdex') router.navigate('/pluntdex');
   }, [step, router]);
 
-  // The feed can't load offline, so an offline launch opens the garden. Only at launch.
-  const checkedLaunch = useRef(false);
   useEffect(() => {
-    if (checkedLaunch.current) return;
-    checkedLaunch.current = true;
-    if (step !== null) return;
-    getNetworkStateAsync().then((network) => {
-      if (isOfflineState(network)) router.navigate('/garden');
-    });
-  }, [step, router]);
+    if (!isOffline || step !== null || WORKS_OFFLINE.test(pathname)) return;
+    // navigate from a page over the tabs would open them twice; dismissTo does nothing on a tab.
+    if (onTab) {
+      router.navigate('/garden');
+    } else {
+      router.dismissTo('/garden');
+    }
+  }, [isOffline, step, pathname, onTab, router]);
 
   // A redirect replaces instead of pushing, so the page is there once however often the tabs mount.
   if (step === 'welcome') return <Redirect href="/welcome" />;

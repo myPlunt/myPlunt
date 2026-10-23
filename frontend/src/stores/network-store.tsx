@@ -1,13 +1,23 @@
 import { useNetworkState, type NetworkState } from 'expo-network';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
-/** Still checking (undefined) counts as online, so nothing greys out at startup. A server that's down isn't offline. */
+import { checkServer, onReachabilityChange } from '@/lib/auth/api-client';
+
+/** Still checking (undefined) counts as online. */
 export function isOfflineState({ isConnected, isInternetReachable }: NetworkState): boolean {
   return isConnected === false || isInternetReachable === false;
 }
 
+export type OfflineReason = 'internet' | 'server';
+
+export const offlineMessages: Record<OfflineReason, string> = {
+  internet: 'No internet connection',
+  server: "Can't reach the server",
+};
+
 interface NetworkStore {
   isOffline: boolean;
+  offlineReason: OfflineReason | null;
   reconnects: number;
   notice: string | null;
   explainOffline: (what: string) => void;
@@ -16,19 +26,24 @@ interface NetworkStore {
 // Online until told otherwise, so screens and hooks work without the provider (e.g. in tests).
 const NetworkStoreContext = createContext<NetworkStore>({
   isOffline: false,
+  offlineReason: null,
   reconnects: 0,
   notice: null,
   explainOffline: () => {},
 });
 
 const NOTICE_MS = 2000;
+const RETRY_OFFLINE_MS = 2000;
 
+// Offline means the server doesn't answer; the phone's own signal only says why.
 export function NetworkStoreProvider({ children }: { children: ReactNode }) {
-  const isOffline = isOfflineState(useNetworkState());
+  const phoneOffline = isOfflineState(useNetworkState());
+  const [isOffline, setIsOffline] = useState(false);
   const [reconnects, setReconnects] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const wasOffline = useRef(isOffline);
   const noticeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const offlineReason: OfflineReason | null = isOffline ? (phoneOffline ? 'internet' : 'server') : null;
 
   const showNotice = useCallback((text: string) => {
     clearTimeout(noticeTimer.current);
@@ -36,21 +51,35 @@ export function NetworkStoreProvider({ children }: { children: ReactNode }) {
     noticeTimer.current = setTimeout(() => setNotice(null), NOTICE_MS);
   }, []);
 
+  useEffect(() => onReachabilityChange((reachable) => setIsOffline(!reachable)), []);
+
+  useEffect(() => {
+    if (phoneOffline) checkServer();
+  }, [phoneOffline]);
+
+  useEffect(() => {
+    if (!isOffline) return;
+    const timer = setInterval(checkServer, RETRY_OFFLINE_MS);
+    return () => clearInterval(timer);
+  }, [isOffline]);
+
   useEffect(() => {
     if (wasOffline.current && !isOffline) {
       setReconnects((count) => count + 1);
       showNotice('Back online');
+    } else if (!wasOffline.current && isOffline) {
+      showNotice(offlineMessages[phoneOffline ? 'internet' : 'server']);
     }
     wasOffline.current = isOffline;
-  }, [isOffline, showNotice]);
+  }, [isOffline, phoneOffline, showNotice]);
 
   useEffect(() => () => clearTimeout(noticeTimer.current), []);
 
   const explainOffline = useCallback((what: string) => showNotice(`${what} doesn't work offline`), [showNotice]);
 
   const value = useMemo<NetworkStore>(
-    () => ({ isOffline, reconnects, notice, explainOffline }),
-    [isOffline, reconnects, notice, explainOffline],
+    () => ({ isOffline, offlineReason, reconnects, notice, explainOffline }),
+    [isOffline, offlineReason, reconnects, notice, explainOffline],
   );
 
   return <NetworkStoreContext.Provider value={value}>{children}</NetworkStoreContext.Provider>;

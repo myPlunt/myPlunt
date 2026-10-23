@@ -76,6 +76,16 @@ describe('WateringHistoryScreen', () => {
     expect(rows[2]).toHaveAccessibleName(/^Watered 10 days ago, .*, on time$/);
   });
 
+  it('marks a watering made offline as not synced yet instead of on time or late', async () => {
+    mockHistory({
+      history: { ...vera, waterings: [{ id: 'queued-1', wateredAt: daysFromNow(0), daysLate: 0, waitingToSync: true }, ...vera.waterings] },
+    });
+    await render(<WateringHistoryScreen plantId="p1" />);
+
+    expect(screen.getAllByLabelText(/^Watered /)[0]).toHaveAccessibleName(/^Watered today, .*, not synced yet$/);
+    expect(screen.getAllByText('Not synced yet')).toHaveLength(1);
+  });
+
   it('shows the error and retries when asked', async () => {
     mockHistory({ history: null, error: 'Plant not found' });
     await render(<WateringHistoryScreen plantId="p1" />);
