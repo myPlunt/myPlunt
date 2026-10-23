@@ -111,8 +111,10 @@ workflow:
 .build-mobile:
   extends: .node
   stage: build
+  variables:
+    EAS_PLATFORM: ios
   script:
-    - npx --yes eas-cli@latest build --platform ios --profile "$EAS_PROFILE" --non-interactive
+    - npx --yes eas-cli@latest build --platform "$EAS_PLATFORM" --profile "$EAS_PROFILE" --non-interactive
 
 .submit-mobile:
   extends: .node
@@ -249,6 +251,19 @@ build-mobile-staging:
   extends: [.build-mobile, .rules-frontend-dev]
   variables:
     EAS_PROFILE: staging
+  needs:
+    - job: test-frontend
+      optional: true
+    - job: lint-frontend
+      optional: true
+    - job: typecheck-frontend
+      optional: true
+
+build-android-staging:
+  extends: [.build-mobile, .rules-frontend-dev]
+  variables:
+    EAS_PROFILE: staging
+    EAS_PLATFORM: android
   needs:
     - job: test-frontend
       optional: true
