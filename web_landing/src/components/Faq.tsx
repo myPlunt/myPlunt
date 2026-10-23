@@ -13,7 +13,7 @@ const questions = [
   },
   {
     question: 'How do the weather alerts work?',
-    answer: 'Each plant has its own location, so alerts are based on the weather where that plant actually lives.',
+    answer: 'Each user has its own location, so alerts are based on the weather where they live.',
   },
   {
     question: 'What is the PluntDex?',
