@@ -1,5 +1,6 @@
 package com.myplunt.plant;
 
+import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.garden.Planter;
 import com.myplunt.garden.PlanterRepository;
@@ -38,6 +39,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -289,7 +292,7 @@ class PlantServiceTest {
         Plant george = ownPlant("George");
         Instant before = Instant.now();
 
-        plantService().water(userId, plantId, ZoneOffset.UTC);
+        plantService().water(userId, plantId, null, ZoneOffset.UTC);
 
         ArgumentCaptor<WateringLog> saved = ArgumentCaptor.forClass(WateringLog.class);
         verify(wateringLogRepository).save(saved.capture());
@@ -299,10 +302,73 @@ class PlantServiceTest {
     }
 
     @Test
+    void water_keepsTheTimeOfAWateringSavedOffline() {
+        ownPlant("George");
+        Instant wateredAt = Instant.now().minus(Duration.ofHours(5));
+
+        plantService().water(userId, plantId, wateredAt, ZoneOffset.UTC);
+
+        ArgumentCaptor<WateringLog> saved = ArgumentCaptor.forClass(WateringLog.class);
+        verify(wateringLogRepository).save(saved.capture());
+        assertThat(saved.getValue().getWateredAt()).isEqualTo(wateredAt);
+    }
+
+    @Test
+    void water_savesNothingWhenTheSameWateringIsSentAgain() {
+        Plant george = ownPlant("George");
+        Instant wateredAt = Instant.parse("2026-10-20T08:00:00.123Z");
+        when(wateringLogRepository.findByPlantIdOrderByWateredAtAsc(plantId)).thenReturn(List.of(watering(george, wateredAt)));
+
+        plantService().water(userId, plantId, wateredAt, ZoneOffset.UTC);
+
+        verify(wateringLogRepository, never()).save(any());
+        verify(auditLog, never()).recorded(any(), any(), any(), any());
+    }
+
+    @Test
+    void water_usesTheServerTimeForAWateringInTheFuture() {
+        ownPlant("George");
+        Instant before = Instant.now();
+
+        plantService().water(userId, plantId, before.plus(Duration.ofHours(2)), ZoneOffset.UTC);
+
+        ArgumentCaptor<WateringLog> saved = ArgumentCaptor.forClass(WateringLog.class);
+        verify(wateringLogRepository).save(saved.capture());
+        assertThat(saved.getValue().getWateredAt()).isBetween(before, Instant.now());
+    }
+
+    // George was added on 1 Sep and is watered every 3 days, so 4 Sep was on its day.
+    @Test
+    void water_reportsTheStreakBrokenByALateWatering() {
+        Plant george = ownPlant("George");
+        george.setWateringEveryDays(3);
+        when(wateringLogRepository.findByPlantIdOrderByWateredAtAsc(plantId))
+                .thenReturn(List.of(watering(george, Instant.parse("2026-09-04T10:00:00Z"))));
+
+        plantService().water(userId, plantId, Instant.parse("2026-09-09T10:00:00Z"), ZoneOffset.UTC);
+
+        verify(auditLog).recorded(eq(AuditEvent.WATERING_STREAK_BROKEN), eq(userId), isNull(), any());
+    }
+
+    @Test
+    void water_doesNotReportABrokenStreakForAnOlderWateringSyncedLate() {
+        Plant george = ownPlant("George");
+        george.setWateringEveryDays(3);
+        when(wateringLogRepository.findByPlantIdOrderByWateredAtAsc(plantId))
+                .thenReturn(List.of(watering(george, Instant.parse("2026-09-04T10:00:00Z"))));
+
+        // Makes 4 Sep early, which zeroes the streak, but nobody watered late.
+        plantService().water(userId, plantId, Instant.parse("2026-09-02T10:00:00Z"), ZoneOffset.UTC);
+
+        verify(auditLog).recorded(eq(AuditEvent.PLANT_WATERED), eq(userId), eq(userId), any());
+        verify(auditLog, never()).recorded(eq(AuditEvent.WATERING_STREAK_BROKEN), any(), any(), any());
+    }
+
+    @Test
     void water_throwsNotFoundForAPlantTheUserDoesNotOwn() {
         when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> plantService().water(userId, plantId, ZoneOffset.UTC))
+        assertThatThrownBy(() -> plantService().water(userId, plantId, null, ZoneOffset.UTC))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Plant not found");
         verify(wateringLogRepository, never()).save(any());

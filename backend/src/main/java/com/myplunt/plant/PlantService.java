@@ -194,33 +194,38 @@ public class PlantService {
                         (first, second) -> first));
     }
 
-    // zone is only used to count the streak days for the action log.
     @Transactional
-    public void water(UUID userId, UUID plantId, ZoneId zone) {
+    public void water(UUID userId, UUID plantId, Instant wateredAt, ZoneId zone) {
         Plant plant = findOwnPlant(userId, plantId);
         if (!plant.isAlive()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be watered");
         }
+        Instant now = Instant.now();
+        Instant at = wateredAt == null || wateredAt.isAfter(now) ? now : wateredAt;
         List<Instant> earlier = wateringLogRepository.findByPlantIdOrderByWateredAtAsc(plantId).stream()
                 .map(WateringLog::getWateredAt)
                 .toList();
-        Instant now = Instant.now();
-        wateringLogRepository.save(new WateringLog(plant, userId, now));
-        recordWatering(userId, plant, earlier, now, zone);
+        if (earlier.contains(at)) {
+            return;
+        }
+        wateringLogRepository.save(new WateringLog(plant, userId, at));
+        recordWatering(userId, plant, earlier, at, zone);
     }
 
-    private void recordWatering(UUID userId, Plant plant, List<Instant> earlier, Instant now, ZoneId zone) {
+    private void recordWatering(UUID userId, Plant plant, List<Instant> earlier, Instant wateredAt, ZoneId zone) {
         // The streak as it stood at the previous watering, before any overdue days zeroed it.
         int streakBefore = earlier.isEmpty()
                 ? 0
                 : WateringConsistency.of(plant, earlier, zone, earlier.getLast()).currentStreak();
         List<Instant> all = new ArrayList<>(earlier);
-        all.add(now);
-        int streak = WateringConsistency.of(plant, all, zone, now).currentStreak();
+        all.add(wateredAt);
+        all.sort(null);
+        int streak = WateringConsistency.of(plant, all, zone, all.getLast()).currentStreak();
 
         auditLog.recorded(AuditEvent.PLANT_WATERED, userId, userId, Map.of("plant_id", plant.getId(), "streak", streak));
-        // No changed_by: the streak broke as a consequence of the watering, not by the user's choice.
-        if (streakBefore > 0 && streak == 0) {
+        // No changed_by: the streak broke as a consequence of the watering, not by the user's choice. Only
+        // the newest watering can break it; an older one synced late lands in the past.
+        if (wateredAt.equals(all.getLast()) && streakBefore > 0 && streak == 0) {
             auditLog.recorded(AuditEvent.WATERING_STREAK_BROKEN, userId, null,
                     Map.of("plant_id", plant.getId(), "lost_streak", streakBefore));
         }
