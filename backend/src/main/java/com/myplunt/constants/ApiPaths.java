@@ -131,4 +131,11 @@ public final class ApiPaths {
 
         private Species() {}
     }
+
+    public static final class Weather {
+        public static final String BASE = "/v1/weather";
+        public static final String CURRENT = BASE + "/current";
+
+        private Weather() {}
+    }
 }

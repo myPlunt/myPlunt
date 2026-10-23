@@ -1,0 +1,79 @@
+package com.myplunt.weather;
+
+import com.myplunt.common.logging.LogEvent;
+import com.myplunt.common.logging.StructuredLog;
+import com.myplunt.notification.OpenWeatherClient;
+import com.myplunt.user.User;
+import com.myplunt.weather.dto.CurrentWeatherResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Service
+public class WeatherService {
+
+    private static final Logger log = LoggerFactory.getLogger(WeatherService.class);
+
+    // Beaufort 5, "fresh breeze": small trees start to sway.
+    static final double WINDY_METRES_PER_SECOND = 8.0;
+
+    // One OpenWeather call per town per quarter hour, however many users open the app.
+    private static final Duration CACHE_FOR = Duration.ofMinutes(15);
+
+    private final OpenWeatherClient openWeatherClient;
+    // shortcut: entries are never evicted, one per town ever asked for; move to a bounded cache if that grows.
+    private final Map<String, Cached> cache = new ConcurrentHashMap<>();
+
+    public WeatherService(OpenWeatherClient openWeatherClient) {
+        this.openWeatherClient = openWeatherClient;
+    }
+
+    public CurrentWeatherResponse current(User user) {
+        if (!openWeatherClient.isEnabled() || user.getLatitude() == null || user.getLongitude() == null) {
+            return new CurrentWeatherResponse(WeatherCondition.NONE);
+        }
+        double lat = OpenWeatherClient.round(user.getLatitude());
+        double lon = OpenWeatherClient.round(user.getLongitude());
+        String town = lat + "," + lon;
+        Instant now = Instant.now();
+        Cached cached = cache.get(town);
+        if (cached == null || cached.fetchedAt().plus(CACHE_FOR).isBefore(now)) {
+            cached = new Cached(fetch(lat, lon), now);
+            cache.put(town, cached);
+        }
+        return new CurrentWeatherResponse(cached.condition());
+    }
+
+    // The visuals are decoration: a failed call shows none instead of failing the request.
+    private WeatherCondition fetch(double lat, double lon) {
+        try {
+            return condition(openWeatherClient.now(lat, lon));
+        } catch (RestClientException e) {
+            StructuredLog.error(log, LogEvent.WEATHER_FETCH_FAILED, e, Map.of());
+            return WeatherCondition.NONE;
+        }
+    }
+
+    // Snow and rain win over wind: a windy shower still shows rain.
+    static WeatherCondition condition(OpenWeatherClient.Current current) {
+        int group = current.conditionId() / 100;
+        if (group == 6) {
+            return WeatherCondition.SNOW;
+        }
+        if (group == 2 || group == 3 || group == 5) {
+            return WeatherCondition.RAIN;
+        }
+        if (current.windSpeed() >= WINDY_METRES_PER_SECOND) {
+            return WeatherCondition.WIND;
+        }
+        return WeatherCondition.NONE;
+    }
+
+    private record Cached(WeatherCondition condition, Instant fetchedAt) {}
+}
