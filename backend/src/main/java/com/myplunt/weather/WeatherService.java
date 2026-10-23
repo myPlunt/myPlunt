@@ -5,6 +5,8 @@ import com.myplunt.common.logging.StructuredLog;
 import com.myplunt.notification.OpenWeatherClient;
 import com.myplunt.user.User;
 import com.myplunt.weather.dto.CurrentWeatherResponse;
+import io.getunleash.Unleash;
+import io.getunleash.UnleashContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,12 +29,16 @@ public class WeatherService {
     // How long a staging preview job overrides the real weather.
     static final Duration PREVIEW_FOR = Duration.ofMinutes(2);
 
+    static final String FLAG = "weather_visuals";
+
     private final OpenWeatherClient openWeatherClient;
+    private final Unleash unleash;
     private volatile Preview preview;
     private final Map<String, Cached> cache = new ConcurrentHashMap<>();
 
-    public WeatherService(OpenWeatherClient openWeatherClient) {
+    public WeatherService(OpenWeatherClient openWeatherClient, Unleash unleash) {
         this.openWeatherClient = openWeatherClient;
+        this.unleash = unleash;
     }
 
     public CurrentWeatherResponse current(User user) {
@@ -40,7 +46,10 @@ public class WeatherService {
         if (active != null && Instant.now().isBefore(active.until())) {
             return new CurrentWeatherResponse(active.condition());
         }
-        if (!openWeatherClient.isEnabled() || user.getLatitude() == null || user.getLongitude() == null) {
+        // After the preview check, so the staging jobs work whatever the flag says. The user id lets
+        // GitLab's percentage and user-list rollouts pick users.
+        if (!unleash.isEnabled(FLAG, UnleashContext.builder().userId(String.valueOf(user.getId())).build())
+                || !openWeatherClient.isEnabled() || user.getLatitude() == null || user.getLongitude() == null) {
             return new CurrentWeatherResponse(WeatherCondition.NONE);
         }
         double lat = OpenWeatherClient.round(user.getLatitude());
