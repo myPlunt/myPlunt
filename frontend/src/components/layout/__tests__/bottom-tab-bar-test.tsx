@@ -16,7 +16,7 @@ const push = jest.fn();
 const user = userEvent.setup();
 
 function renderBar(isOffline: boolean) {
-  jest.mocked(useNetworkStore).mockReturnValue({ isOffline, reconnects: 0, notice: null, explainOffline });
+  jest.mocked(useNetworkStore).mockReturnValue({ isOffline, offlineReason: isOffline ? 'internet' : null, reconnects: 0, notice: null, explainOffline });
   const routes = ['index', 'pluntdex', 'garden', 'profile'].map((name) => ({ key: name, name, params: undefined }));
   const props = {
     state: { index: 2, routes },

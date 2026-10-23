@@ -46,8 +46,64 @@ const NETWORK_ERROR_DETAIL = "Can't reach myPlunt right now. Check your connecti
 const SLOW_RESPONSE_MS = 3000;
 
 // A GET with no answer by then counts as offline (status 0): React Native's fetch has no time limit
-// on Android. Writes wait as long as it takes, since retrying a slow one could save it twice.
-const GET_TIMEOUT_MS = 10_000;
+// on Android. Other writes wait as long as it takes, since retrying a slow one could save it twice.
+const TIMEOUT_MS = 10_000;
+
+const CHECKS_BEFORE_OFFLINE = 3;
+const CHECK_EVERY_MS = 2000;
+// Lets the app reach the garden before the screen being left shows its error.
+const LEAVE_SCREEN_MS = 1000;
+
+/** Any answer at all, even an error status, means the connection works. */
+export async function canReachServer(): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    await fetch(`${API_BASE_URL}/actuator/health`, { signal: controller.signal });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+let reachable = true;
+let checking: Promise<boolean> | null = null;
+const reachabilityListeners = new Set<(reachable: boolean) => void>();
+
+function setReachable(value: boolean) {
+  if (value === reachable) return;
+  reachable = value;
+  reachabilityListeners.forEach((listener) => listener(value));
+}
+
+export function onReachabilityChange(listener: (reachable: boolean) => void): () => void {
+  reachabilityListeners.add(listener);
+  return () => {
+    reachabilityListeners.delete(listener);
+  };
+}
+
+/** Shared by every request waiting on it. Never rejects. */
+export function checkServer(): Promise<boolean> {
+  checking ??= (async () => {
+    for (let tries = 1; ; tries++) {
+      if (await canReachServer()) {
+        setReachable(true);
+        return true;
+      }
+      if (tries >= CHECKS_BEFORE_OFFLINE) {
+        setReachable(false);
+        return false;
+      }
+      await new Promise((resolve) => setTimeout(resolve, CHECK_EVERY_MS));
+    }
+  })().finally(() => {
+    checking = null;
+  });
+  return checking;
+}
 
 interface SendOptions {
   method: string;
@@ -55,6 +111,7 @@ interface SendOptions {
   accessToken?: string;
   requestId: string;
   silent: boolean;
+  idempotent: boolean;
 }
 
 // The query string is left out: a search query can be a person's name.
@@ -62,12 +119,12 @@ function requestContext(method: string, path: string) {
   return { method, path: path.split('?')[0] };
 }
 
-async function send(path: string, { method, body, accessToken, requestId, silent }: SendOptions): Promise<Response> {
+async function send(path: string, { method, body, accessToken, requestId, silent, idempotent }: SendOptions): Promise<Response> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json', 'X-Request-ID': requestId };
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   const startedAt = Date.now();
   const controller = new AbortController();
-  const timeout = method === 'GET' ? setTimeout(() => controller.abort(), GET_TIMEOUT_MS) : undefined;
+  const timeout = idempotent ? setTimeout(() => controller.abort(), TIMEOUT_MS) : undefined;
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       method,
@@ -75,6 +132,7 @@ async function send(path: string, { method, body, accessToken, requestId, silent
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
+    setReachable(true);
     const durationMs = Date.now() - startedAt;
     if (!silent && durationMs >= SLOW_RESPONSE_MS) {
       logWarning('slow_api_response', { requestId, context: { ...requestContext(method, path), duration_ms: durationMs } });
@@ -87,6 +145,20 @@ async function send(path: string, { method, body, accessToken, requestId, silent
     throw new ApiError(0, 'Network request failed', { detail: NETWORK_ERROR_DETAIL, requestId });
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+async function sendChecked(path: string, options: SendOptions): Promise<Response> {
+  try {
+    return await send(path, options);
+  } catch (err) {
+    if (!reachable) throw err;
+    if (await checkServer()) {
+      if (options.idempotent) return send(path, options);
+      throw err;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LEAVE_SCREEN_MS));
+    throw err;
   }
 }
 
@@ -126,6 +198,7 @@ export async function publicFetch<T>(path: string, body?: unknown, options: Publ
     body,
     requestId: options.requestId ?? createRequestId(),
     silent: false,
+    idempotent: false,
   };
   return parseJsonOrThrow<T>(await send(path, sendOptions), sendOptions, path);
 }
@@ -163,6 +236,7 @@ interface ApiFetchOptions {
   requestId?: string;
   /** Don't log anything about this request (for the logger's own reports). */
   silent?: boolean;
+  idempotent?: boolean;
 }
 
 /** For everything else: attaches the access token, retries once after a refresh on 401. */
@@ -173,14 +247,16 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   }
 
   // The retry keeps the same id: it's the same thing the user asked for.
+  const method = options.method ?? 'GET';
   const sendOptions: SendOptions = {
-    method: options.method ?? 'GET',
+    method,
     body: options.body,
     requestId: options.requestId ?? createRequestId(),
     silent: options.silent ?? false,
+    idempotent: options.idempotent ?? method === 'GET',
   };
 
-  let response = await send(path, { ...sendOptions, accessToken: tokens.accessToken });
+  let response = await sendChecked(path, { ...sendOptions, accessToken: tokens.accessToken });
 
   if (response.status === 401) {
     // A request sent before another one finished refreshing holds the old pair, whose refresh

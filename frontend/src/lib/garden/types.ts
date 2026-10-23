@@ -19,4 +19,5 @@ export interface GardenPlant {
   nextWateringAt: string;
   wateringStreak: number;
   photoUrl: string | null;
+  waitingToSync?: boolean;
 }

@@ -2,8 +2,10 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import * as gardenService from '@/features/garden/garden-service';
 import { useGarden } from '@/features/garden/use-garden';
+import { queueWaterings } from '@/features/garden/watering-outbox';
 import { ApiError } from '@/lib/auth/api-client';
 import { tokenStorage } from '@/lib/auth/token-storage';
+import type { GardenPlant } from '@/lib/garden/types';
 import { AuthStoreProvider, useAuthStore } from '@/stores/auth-store';
 
 jest.mock('@/features/garden/garden-service');
@@ -58,6 +60,22 @@ it("loads a friend's garden when given their id", async () => {
   expect(mockedGardenService.getGarden).toHaveBeenCalledWith('u2');
 });
 
+it('sends queued waterings before loading the garden, so it comes back with them', async () => {
+  await queueWaterings([{ id: 'p1', name: 'Pinky' }]);
+  const calls: string[] = [];
+  mockedGardenService.waterPlant.mockImplementation(async () => {
+    calls.push('water');
+  });
+  mockedGardenService.getGarden.mockImplementation(async () => {
+    calls.push('garden');
+    return garden;
+  });
+  const { result } = await renderWithStore();
+
+  await waitFor(() => expect(result.current.garden.isLoading).toBe(false));
+  expect(calls).toEqual(['water', 'garden']);
+});
+
 it('signs the user out when the session has expired', async () => {
   mockedGardenService.getGarden.mockRejectedValue(new ApiError(401, 'Not authenticated'));
   const { result } = await renderWithStore();
@@ -79,6 +97,34 @@ describe('without a connection', () => {
     await waitFor(() => expect(result.current.garden.isLoading).toBe(false));
     expect(result.current.garden.garden).toEqual(garden);
     expect(result.current.garden.error).toBeNull();
+  });
+
+  it('shows a plant watered offline as watered, waiting to sync', async () => {
+    const pinky: GardenPlant = {
+      id: 'p1',
+      name: 'Pinky',
+      speciesId: null,
+      speciesName: null,
+      wateringFrequencyDays: 3,
+      lastWateredAt: null,
+      nextWateringAt: '2026-10-01T08:00:00.000Z',
+      wateringStreak: 0,
+      photoUrl: null,
+    };
+    mockedGardenService.getGarden.mockResolvedValue({ rooms: [{ id: 'r1', name: 'Balcony', plants: [pinky] }] });
+    const visit = await renderWithStore();
+    await waitFor(() => expect(visit.result.current.garden.isLoading).toBe(false));
+    await visit.unmount();
+    mockedGardenService.getGarden.mockRejectedValue(offline);
+    mockedGardenService.waterPlant.mockRejectedValue(offline);
+    await queueWaterings([pinky]);
+
+    const { result } = await renderWithStore();
+
+    await waitFor(() => expect(result.current.garden.isLoading).toBe(false));
+    expect(result.current.garden.garden?.rooms[0].plants[0]).toEqual(
+      expect.objectContaining({ lastWateredAt: expect.any(String), waitingToSync: true }),
+    );
   });
 
   it('shows the error when no garden was saved yet', async () => {
