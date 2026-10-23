@@ -31,7 +31,7 @@ const features = [
     Icon: CameraIcon,
   },
   {
-    title: 'Plantdex',
+    title: 'PluntDex',
     body: 'Discover regional plants that grow well where you live, before you bring them home.',
     Icon: BookIcon,
   },
@@ -126,7 +126,7 @@ function Features() {
                   onClick={isActive ? undefined : () => goTo(index)}
                   className={`flex w-[300px] flex-col items-start gap-4 rounded-3xl border-[1.5px] border-sand px-8 pt-8 pb-9 [grid-area:stack] sm:w-[376px] ${positions[offset]} ${
                     wrapped ? 'transition-none' : 'transition-all duration-500 ease-out motion-reduce:transition-none'
-                  } ${isActive ? 'bg-white shadow-card' : 'cursor-pointer bg-paper'}`}
+                  } ${isActive ? 'bg-cream shadow-card' : 'cursor-pointer bg-sand'}`}
                 >
                   <div className="flex size-14 items-center justify-center rounded-2xl bg-sand text-green">
                     <Icon width={28} height={28} />

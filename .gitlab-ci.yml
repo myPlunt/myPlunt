@@ -45,6 +45,11 @@ workflow:
       changes:
         - "backend/**/*"
 
+.rules-landing:
+  rules:
+    - changes:
+        - "web_landing/**/*"
+
 .rules-landing-main:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
@@ -171,6 +176,22 @@ check-admin:
     - npm run lint
     - npm run build
 
+check-landing:
+  extends: .rules-landing
+  stage: test
+  image: node:22-alpine
+  cache:
+    key:
+      files:
+        - web_landing/package-lock.json
+    paths:
+      - web_landing/.npm/
+  script:
+    - cd web_landing
+    - npm ci --cache .npm --prefer-offline
+    - npm run lint
+    - npm run build
+
 # BUILD STAGE
 build-backend-staging:
   extends: [.docker-build, .rules-backend-dev]
@@ -198,7 +219,9 @@ build-landing:
     BUILD_DIR: web_landing
     IMAGE_NAME: web-landing
     IMAGE_TAG: latest
-  needs: []
+  needs:
+    - job: check-landing
+      optional: true
 
 build-admin-staging:
   extends: [.docker-build, .rules-admin-dev]

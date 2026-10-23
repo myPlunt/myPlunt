@@ -14,7 +14,7 @@ function Footer() {
         <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col items-start gap-3">
             <a href="#top" className="flex items-center gap-3" aria-label="myPlunt home">
-              <span className="rounded-xl bg-cream p-1.5">
+              <span className="rounded-xl bg-sand p-1.5">
                 <img src={logoMyPlunt} alt="" width={34.531} height={36} className="h-9 w-[34.531px]" />
               </span>
               <span className="font-primary text-[36px] leading-none font-semibold">myPlunt</span>
