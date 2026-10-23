@@ -2,6 +2,8 @@ import type { ComponentType, SVGProps } from 'react'
 import DropIcon from '../assets/icons/drop.svg?react'
 import KeyIcon from '../assets/icons/key.svg?react'
 import RainIcon from '../assets/icons/rain.svg?react'
+import feedScreen from '../assets/screens/Feed.jpg'
+import pluntDexScreen from '../assets/screens/PluntDex.jpg'
 import LeafShape from './LeafShape'
 import PhoneMockup from './PhoneMockup'
 import StoreBadges from './StoreBadges'
@@ -17,7 +19,7 @@ type NotificationCardProps = {
 function NotificationCard({ Icon, iconBg, title, body, className }: NotificationCardProps) {
   return (
     <div
-      className={`absolute flex items-center gap-3 rounded-[18px] bg-white py-3.5 pr-5 pl-4 shadow-card ${className}`}
+      className={`absolute flex items-center gap-3 rounded-[18px] bg-cream py-3.5 pr-5 pl-4 shadow-card ${className}`}
     >
       <div className={`flex size-10 shrink-0 items-center justify-center rounded-full text-white ${iconBg}`}>
         <Icon width={22} height={22} />
@@ -37,8 +39,8 @@ function HeroVisual() {
         <LeafShape direction="right" tone="leaf" className="absolute top-[150px] left-[-50px] size-[350px] rotate-15" />
         <LeafShape direction="left" tone="leaf" className="absolute top-15 left-[320px] size-[400px] rotate-350" />
 
-        <PhoneMockup size={250} className="absolute top-[122px] left-[302px] rotate-6" />
-        <PhoneMockup size={290} className="absolute top-[30px] left-[120px]" />
+        <PhoneMockup size={250} screen={pluntDexScreen} className="absolute top-[122px] left-[302px] rotate-6" />
+        <PhoneMockup size={290} screen={feedScreen} className="absolute top-[30px] left-[120px]" />
 
         <NotificationCard
           Icon={DropIcon}

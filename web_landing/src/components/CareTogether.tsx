@@ -2,6 +2,7 @@ import BellIcon from '../assets/icons/bell.svg?react'
 import KeyIcon from '../assets/icons/key.svg?react'
 import LeafIcon from '../assets/icons/leaf.svg?react'
 import SproutIcon from '../assets/icons/sprout.svg?react'
+import feedScreen from '../assets/screens/Feed.jpg'
 import LeafShape from './LeafShape'
 import PhoneMockup from './PhoneMockup'
 import SectionHeader from './SectionHeader'
@@ -19,7 +20,7 @@ function CareTogetherVisual() {
       <div className="absolute top-0 left-0 h-[660px] w-[520px] origin-top-left scale-[0.65] sm:scale-100">
         <LeafShape direction="right" tone="leaf" className="absolute top-[150px] left-[-70px] size-[380px] rotate-15" />
         <LeafShape direction="left" tone="leaf" className="absolute top-15 left-[200px] size-[360px] rotate-350" />
-        <PhoneMockup size={300} className="absolute top-5 left-[110px]" />
+        <PhoneMockup size={300} screen={feedScreen} className="absolute top-5 left-[110px]" />
       </div>
     </div>
   )
@@ -41,7 +42,7 @@ function CareTogether() {
             {stories.map(({ text, Icon, bubble }) => (
               <li
                 key={text}
-                className="flex items-center gap-3.5 rounded-2xl border-[1.5px] border-sand bg-white py-3.5 pr-5 pl-4"
+                className="flex items-center gap-3.5 rounded-2xl border-[1.5px] border-sand bg-cream py-3.5 pr-5 pl-4"
               >
                 <span className={`flex size-[38px] shrink-0 items-center justify-center rounded-full text-white ${bubble}`}>
                   <Icon width={20} height={20} />
