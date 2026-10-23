@@ -17,7 +17,7 @@ const steps = [
 
 function HowItWorks() {
   return (
-    <section id="how-it-works" className="scroll-mt-4 bg-paper">
+    <section id="how-it-works" className="scroll-mt-4 bg-sand">
       <div className="mx-auto flex max-w-page flex-col items-center gap-16 py-20 px-page lg:py-[120px]">
         <SectionHeader eyebrow="How it works" title="Three steps to plants that stay alive." />
 
