@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { StagingPill } from '@/components/ui/staging-pill';
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { offlineMessages, useNetworkStore } from '@/stores/network-store';
+import { offlineMessages, useNetworkStore, type OfflineReason } from '@/stores/network-store';
 
 import { offlineIcons } from './offline-notice';
 
@@ -51,6 +51,11 @@ export function LogoBackButton() {
 
 const EXPLANATION_MS = 4000;
 
+const explanations: Record<OfflineReason, string> = {
+  internet: "Your phone isn't connected to the internet. Your garden and plants still work, and waterings sync once you're back online.",
+  server: "The myPlunt server isn't answering right now. Your garden and plants still work, and waterings sync once it's back.",
+};
+
 function OfflineButton() {
   const theme = useTheme();
   const { offlineReason } = useNetworkStore();
@@ -78,11 +83,10 @@ function OfflineButton() {
       {isExplaining && (
         <View
           pointerEvents="none"
-          className="absolute left-6 top-11 w-60 rounded-xl border border-primary/40 bg-info px-3 py-2"
+          className="absolute left-6 top-11 w-60 gap-1 rounded-xl border border-primary/40 bg-info px-3 py-2"
           style={Shadow.card}>
-          <Text className="type-caption text-action-primary">
-            {offlineMessages[offlineReason]}. Your garden and plants still work, and watering syncs later.
-          </Text>
+          <Text className="type-label text-action-primary">{offlineMessages[offlineReason]}</Text>
+          <Text className="type-caption text-action-primary">{explanations[offlineReason]}</Text>
         </View>
       )}
     </View>
