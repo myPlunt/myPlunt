@@ -6,6 +6,7 @@ import { useProfile } from '@/features/profile/use-profile';
 import { useNotificationSettings } from '@/features/profile/use-notification-settings';
 import { useProfileActions } from '@/features/profile/use-profile-actions';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { useWeatherVisualsStore } from '@/stores/weather-visuals-store';
 
 import { SettingsScreen } from '../settings-screen';
 
@@ -15,6 +16,7 @@ jest.mock('@/features/profile/use-profile');
 jest.mock('@/features/profile/use-profile-actions');
 jest.mock('@/features/profile/use-notification-settings');
 jest.mock('@/stores/onboarding-store', () => ({ useOnboardingStore: jest.fn() }));
+jest.mock('@/stores/weather-visuals-store', () => ({ useWeatherVisualsStore: jest.fn() }));
 
 const mockedUseRouter = jest.mocked(useRouter);
 const mockedUseAuthActions = jest.mocked(useAuthActions);
@@ -22,6 +24,8 @@ const mockedUseProfile = jest.mocked(useProfile);
 const mockedUseProfileActions = jest.mocked(useProfileActions);
 const mockedUseNotificationSettings = jest.mocked(useNotificationSettings);
 const mockedUseOnboardingStore = jest.mocked(useOnboardingStore);
+const mockedUseWeatherVisualsStore = jest.mocked(useWeatherVisualsStore);
+const setWeatherVisuals = jest.fn();
 const onboarding = { step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null };
 const toggle = jest.fn();
 const notifications = { waterReminders: true, weatherAlerts: true, friendActivity: true, friendNudges: true, postInteractions: true, plantSitting: false };
@@ -37,6 +41,7 @@ beforeEach(() => {
   mockedUseAuthActions.mockReturnValue({ login: jest.fn(), register: jest.fn(), logout });
   mockedUseProfile.mockReturnValue({ refresh: jest.fn(), user: jane, error: null, isLoading: false, retry });
   mockedUseOnboardingStore.mockReturnValue(onboarding);
+  mockedUseWeatherVisualsStore.mockReturnValue({ enabled: true, setEnabled: setWeatherVisuals });
   mockedUseProfileActions.mockReturnValue({ updateProfile: jest.fn(), changeEmail: jest.fn(), updateAvatar: jest.fn(), removeAvatar: jest.fn(), updateNotificationSettings: jest.fn() });
   mockedUseNotificationSettings.mockReturnValue({ settings: notifications, allowed: true, turnOn: jest.fn(), error: null, isLoading: false, retry: jest.fn(), toggle });
 });

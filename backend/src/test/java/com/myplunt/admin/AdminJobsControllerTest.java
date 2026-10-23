@@ -6,6 +6,8 @@ import com.myplunt.config.AdminSecurityConfig;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.notification.PushNotificationService;
 import com.myplunt.user.UserRepository;
+import com.myplunt.weather.WeatherCondition;
+import com.myplunt.weather.WeatherService;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -48,6 +50,9 @@ class AdminJobsControllerTest {
 
     @MockitoBean
     private AuditLog auditLog;
+
+    @MockitoBean
+    private WeatherService weatherService;
 
     @MockitoBean
     private AdminJwtService adminJwtService;
@@ -104,6 +109,18 @@ class AdminJobsControllerTest {
                 .expectStatus().isUnauthorized();
 
         verify(pushNotificationService, never()).sendWeatherAlertsToEveryone();
+    }
+
+    @Test
+    void previewSnow_showsSnowToEveryone() {
+        signedInAdmin();
+
+        restTestClient.post().uri("/v1/admin/jobs/preview-snow")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer admin-token")
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(weatherService).preview(WeatherCondition.SNOW);
     }
 
     private void signedInAdmin() {

@@ -44,9 +44,14 @@ app:
     refresh-token-ttl-days: 30
   push:
     expo-url: https://exp.host/--/api/v2/push/send
-  # Without an api-key, weather alerts are off.
+  # GitLab feature flags (Deploy > Feature flags > Configure). Without a url, every flag is on.
+  feature-flags:
+    url: ${FEATURE_FLAGS_URL:}
+    instance-id: ${FEATURE_FLAGS_INSTANCE_ID:}
+    environment: ${FEATURE_FLAGS_ENVIRONMENT:dev}
+  # Without an api-key, weather alerts and the app's weather visuals are off.
   weather:
-    openweather-url: https://api.openweathermap.org/data/2.5/forecast
+    openweather-url: https://api.openweathermap.org/data/2.5
     api-key: ${OPENWEATHER_API_KEY:}
   storage:
     endpoint: ${STORAGE_ENDPOINT}

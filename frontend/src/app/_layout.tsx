@@ -15,6 +15,7 @@ import { startLogging } from '@/lib/logger';
 import { AuthStoreProvider, useAuthStore } from '@/stores/auth-store';
 import { NetworkStoreProvider } from '@/stores/network-store';
 import { OnboardingStoreProvider } from '@/stores/onboarding-store';
+import { WeatherVisualsStoreProvider } from '@/stores/weather-visuals-store';
 
 SplashScreen.preventAutoHideAsync();
 startLogging();
@@ -54,9 +55,11 @@ export default function RootLayout() {
       <AuthStoreProvider>
         <OnboardingStoreProvider>
           <NetworkStoreProvider>
-            <SplashOverlay />
-            <RootNavigator />
-            <OfflineNotice />
+            <WeatherVisualsStoreProvider>
+              <SplashOverlay />
+              <RootNavigator />
+              <OfflineNotice />
+            </WeatherVisualsStoreProvider>
           </NetworkStoreProvider>
         </OnboardingStoreProvider>
       </AuthStoreProvider>
