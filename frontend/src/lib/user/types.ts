@@ -49,6 +49,14 @@ export interface UserSummary {
   friendship: 'friends' | 'request_sent' | 'request_received' | null;
 }
 
+// distanceKm is null when either of you hasn't set a location.
+export interface Sitter {
+  user: UserSummary;
+  city: string | null;
+  distanceKm: number | null;
+  sameCity: boolean;
+}
+
 export interface FriendRequests {
   received: UserSummary[];
   sent: UserSummary[];
