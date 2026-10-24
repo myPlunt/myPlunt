@@ -1,5 +1,6 @@
 package com.myplunt.garden;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.garden.dto.CreatePlanterRequest;
@@ -125,7 +126,7 @@ class PlanterControllerTest {
     @Test
     void delete_returnsNotFoundForAnUnknownPlanter() {
         authenticateAsJane();
-        doThrow(new IllegalStateException("Planter not found")).when(planterService).delete(any(), any());
+        doThrow(new NotFoundException("Planter not found")).when(planterService).delete(any(), any());
 
         restTestClient.delete().uri("/v1/planters/{planterId}", UUID.randomUUID())
                 .header("Authorization", "Bearer access-token")

@@ -1,5 +1,6 @@
 package com.myplunt.garden;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.garden.dto.CreatePlanterRequest;
 import com.myplunt.garden.dto.PlanterResponse;
@@ -108,7 +109,7 @@ class PlanterServiceTest {
         when(planterRepository.findByIdAndOwnerId(planterId, userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> planterService().delete(userId, planterId))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(NotFoundException.class);
         verify(planterRepository, never()).delete(any());
     }
 }

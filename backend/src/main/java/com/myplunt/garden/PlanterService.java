@@ -1,5 +1,6 @@
 package com.myplunt.garden;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.garden.dto.CreatePlanterRequest;
@@ -58,6 +59,6 @@ public class PlanterService {
 
     private Planter findOwnPlanter(UUID ownerId, UUID planterId) {
         return planterRepository.findByIdAndOwnerId(planterId, ownerId)
-                .orElseThrow(() -> new IllegalStateException("Planter not found"));
+                .orElseThrow(() -> new NotFoundException("Planter not found"));
     }
 }

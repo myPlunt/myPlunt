@@ -1,5 +1,6 @@
 package com.myplunt.post;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.notification.PostNotice;
@@ -250,7 +251,7 @@ class PostServiceTest {
         when(postRepository.findVisible(eq(postId), eq(userId), anyCollection())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> postService().addComment(userId, postId, new AddCommentRequest("Hi")))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(NotFoundException.class);
         verify(postCommentRepository, never()).save(any());
     }
 
@@ -294,7 +295,7 @@ class PostServiceTest {
         UUID postId = UUID.randomUUID();
         when(postRepository.findByIdAndUserId(postId, userId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> postService().deletePost(userId, postId)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> postService().deletePost(userId, postId)).isInstanceOf(NotFoundException.class);
         verify(postRepository, never()).delete(any());
         verify(storageService, never()).deleteObject(any());
     }
