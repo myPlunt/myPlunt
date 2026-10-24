@@ -75,8 +75,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return super.handleExceptionInternal(ex, body, headers, statusCode, request);
     }
 
-    @ExceptionHandler(IllegalStateException.class)
-    public ProblemDetail handleIllegalState(IllegalStateException ex, HttpServletRequest request) {
+    @ExceptionHandler(NotFoundException.class)
+    public ProblemDetail handleNotFound(NotFoundException ex, HttpServletRequest request) {
         if (!fromAdmin(request)) {
             Map<String, Object> fields = requestFields(request);
             fields.put("reason", ex.getMessage());

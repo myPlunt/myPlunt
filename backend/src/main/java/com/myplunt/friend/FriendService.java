@@ -1,5 +1,6 @@
 package com.myplunt.friend;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.dto.FriendRequestsResponse;
@@ -164,14 +165,14 @@ public class FriendService {
         return friendshipRepository.findBetween(userId, List.of(otherId)).stream()
                 .filter(f -> Friendship.ACCEPTED.equals(f.getStatus()))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("You're not friends with this user"));
+                .orElseThrow(() -> new NotFoundException("You're not friends with this user"));
     }
 
     // Looked up by direction, so accept/decline can't touch the user's own request and cancel can't touch one they received.
     private Friendship pendingRequest(UUID requesterId, UUID receiverId) {
         return friendshipRepository
                 .findByRequesterIdAndReceiverIdAndStatus(requesterId, receiverId, Friendship.PENDING)
-                .orElseThrow(() -> new IllegalStateException("No pending friend request with this user"));
+                .orElseThrow(() -> new NotFoundException("No pending friend request with this user"));
     }
 
     private List<UserSummaryResponse> summaries(List<User> users, String friendship) {
