@@ -13,6 +13,7 @@ import { addDays, startOfDay, stayLabel } from '../away-trip';
 import { AskSitterButton } from '../components/ask-sitter-button';
 import { AwayCard } from '../components/away-card';
 import { CareRequestActions } from '../components/care-request-actions';
+import { StopSittingButton } from '../components/stop-sitting-button';
 import { groupSitters } from '../group-sitters';
 import { useSitters } from '../use-sitters';
 
@@ -62,7 +63,11 @@ export function PlantSitterScreen() {
                     {request.status === 'active' ? "You're looking after" : 'Wants you to look after'} {request.plantCount}{' '}
                     {request.plantCount === 1 ? 'plant' : 'plants'} · {stayLabel(request.from, request.until)}
                   </Text>
-                  {request.status === 'pending' && <CareRequestActions userId={request.user.id} onAnswered={reload} />}
+                  {request.status === 'pending' ? (
+                    <CareRequestActions userId={request.user.id} onAnswered={reload} />
+                  ) : (
+                    <StopSittingButton userId={request.user.id} username={request.user.username} onStopped={reload} />
+                  )}
                 </PersonRow>
               ))}
             </View>

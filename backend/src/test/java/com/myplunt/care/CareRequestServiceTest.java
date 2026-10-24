@@ -149,8 +149,22 @@ class CareRequestServiceTest {
     }
 
     @Test
-    void decline_throwsWhenNothingIsPending() {
-        when(careDelegationRepository.findByDelegatedByAndDelegatedToAndStatusIn(rafaelId, saraId, List.of(CareDelegation.PENDING)))
+    void decline_endsAnAcceptedStayAndTellsWhoAsked() {
+        CareDelegation row = new CareDelegation(UUID.randomUUID(), rafaelId, saraId, from, until);
+        row.setStatus(CareDelegation.ACTIVE);
+        when(careDelegationRepository.findByDelegatedByAndDelegatedToAndStatusIn(
+                rafaelId, saraId, List.of(CareDelegation.PENDING, CareDelegation.ACTIVE)))
+                .thenReturn(List.of(row));
+
+        service().decline(saraId, rafaelId);
+
+        assertThat(row.getStatus()).isEqualTo(CareDelegation.ENDED);
+        verify(pushNotificationService).sendCareWithdrawn(saraId, rafaelId);
+    }
+
+    @Test
+    void decline_throwsWhenThereIsNoRequest() {
+        when(careDelegationRepository.findByDelegatedByAndDelegatedToAndStatusIn(any(), any(), any()))
                 .thenReturn(List.of());
 
         assertThatThrownBy(() -> service().decline(saraId, rafaelId)).isInstanceOf(IllegalStateException.class);

@@ -248,6 +248,15 @@ public class PushNotificationService {
     }
 
     @Async
+    public void sendCareWithdrawn(UUID sitterId, UUID requesterId) {
+        if (!wantsPlantSitting(requesterId)) {
+            return;
+        }
+        notify(requesterId, sitterId, "Plant sitter cancelled",
+                username(sitterId) + " can't look after your plants anymore.", PLANT_SITTER_URL);
+    }
+
+    @Async
     public void sendCareCancelled(UUID requesterId, UUID sitterId) {
         if (!wantsPlantSitting(sitterId)) {
             return;

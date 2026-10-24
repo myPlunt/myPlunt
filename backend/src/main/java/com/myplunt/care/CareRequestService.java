@@ -105,10 +105,20 @@ public class CareRequestService {
         pushNotificationService.sendCareAnswer(userId, requesterId, true);
     }
 
+    // Also how a sitter backs out after saying yes.
     @Transactional
     public void decline(UUID userId, UUID requesterId) {
-        pendingRequest(requesterId, userId).forEach(d -> d.setStatus(CareDelegation.DECLINED));
-        pushNotificationService.sendCareAnswer(userId, requesterId, false);
+        List<CareDelegation> rows = careDelegationRepository.findByDelegatedByAndDelegatedToAndStatusIn(requesterId, userId, LIVE);
+        if (rows.isEmpty()) {
+            throw new IllegalStateException("No plant sitter request from this user");
+        }
+        boolean wasAccepted = CareDelegation.ACTIVE.equals(rows.getFirst().getStatus());
+        rows.forEach(d -> d.setStatus(wasAccepted ? CareDelegation.ENDED : CareDelegation.DECLINED));
+        if (wasAccepted) {
+            pushNotificationService.sendCareWithdrawn(userId, requesterId);
+        } else {
+            pushNotificationService.sendCareAnswer(userId, requesterId, false);
+        }
     }
 
     // Works while it waits for an answer and after it was accepted.
