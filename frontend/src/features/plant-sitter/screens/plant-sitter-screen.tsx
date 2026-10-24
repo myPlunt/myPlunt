@@ -9,17 +9,18 @@ import { PersonRow } from '@/features/friends/components/person-row';
 import { useGarden } from '@/features/garden/use-garden';
 import { useTheme } from '@/hooks/use-theme';
 
-import { addDays, startOfDay } from '../away-trip';
+import { addDays, startOfDay, stayLabel } from '../away-trip';
+import { AskSitterButton } from '../components/ask-sitter-button';
 import { AwayCard } from '../components/away-card';
+import { CareRequestActions } from '../components/care-request-actions';
 import { groupSitters } from '../group-sitters';
 import { useSitters } from '../use-sitters';
 
 export function PlantSitterScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { sitters, error, retry } = useSitters();
+  const { sitters, careRequests, error, retry, reload } = useSitters();
   const { garden } = useGarden();
-  // Kept here, not in the card, so the plant-sitting request can send them.
   const [trip, setTrip] = useState(() => {
     const tomorrow = addDays(startOfDay(new Date()), 1);
     return { from: tomorrow, until: addDays(tomorrow, 6) };
@@ -34,6 +35,24 @@ export function PlantSitterScreen() {
           <Text accessibilityRole="header" className="type-h3 text-action-primary" style={styles.title}>
             Plant sitter
           </Text>
+
+          {careRequests && careRequests.received.length > 0 && (
+            <View className="gap-3">
+              <Text className="type-label uppercase text-accent">Asked of you</Text>
+              {careRequests.received.map((request) => (
+                <PersonRow
+                  key={request.user.id}
+                  user={request.user}
+                  onPress={() => router.push({ pathname: '/user/[id]', params: { id: request.user.id } })}>
+                  <Text className="type-body-medium text-text-secondary">
+                    {request.status === 'active' ? "You're looking after" : 'Wants you to look after'} {request.plantCount}{' '}
+                    {request.plantCount === 1 ? 'plant' : 'plants'} · {stayLabel(request.from, request.until)}
+                  </Text>
+                  {request.status === 'pending' && <CareRequestActions userId={request.user.id} onAnswered={reload} />}
+                </PersonRow>
+              ))}
+            </View>
+          )}
 
           <AwayCard
             from={trip.from}
@@ -66,11 +85,13 @@ export function PlantSitterScreen() {
                     user={sitter.user}
                     tag={sitter.distanceKm !== null ? `${sitter.distanceKm} km` : undefined}
                     onPress={() => router.push({ pathname: '/user/[id]', params: { id: sitter.user.id } })}>
-                    {/* Placeholder until the plant-sitting request endpoint exists (next ticket). */}
-                    <Button
-                      label="Ask to plant-sit"
-                      accessibilityLabel={`Ask ${sitter.user.username} to plant-sit`}
-                      onPress={() => {}}
+                    <AskSitterButton
+                      sitterId={sitter.user.id}
+                      username={sitter.user.username}
+                      from={trip.from}
+                      until={trip.until}
+                      sent={careRequests?.sent.find((request) => request.user.id === sitter.user.id)}
+                      onSent={reload}
                     />
                   </PersonRow>
                 ))}
