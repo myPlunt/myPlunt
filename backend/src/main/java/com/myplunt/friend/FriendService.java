@@ -3,6 +3,7 @@ package com.myplunt.friend;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.dto.FriendRequestsResponse;
+import com.myplunt.friend.dto.SitterResponse;
 import com.myplunt.garden.GardenService;
 import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.notification.PushNotificationService;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,6 +63,33 @@ public class FriendService {
     @Transactional(readOnly = true)
     public List<UserSummaryResponse> getFriends(UUID userId) {
         return summaries(friendshipRepository.findFriends(userId), "friends");
+    }
+
+    // Same city first, then closest; friends without a location last.
+    @Transactional(readOnly = true)
+    public List<SitterResponse> getSitters(UUID userId) {
+        User me = userService.loadUser(userId);
+        return friendshipRepository.findFriends(userId).stream()
+                .map(friend -> new SitterResponse(
+                        userService.toSummary(friend, "friends"),
+                        friend.getCity(),
+                        distanceKm(me, friend),
+                        me.getCity() != null && me.getCity().equalsIgnoreCase(friend.getCity())))
+                .sorted(Comparator.comparing(SitterResponse::sameCity).reversed()
+                        .thenComparing(SitterResponse::distanceKm, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+    }
+
+    // Haversine, rounded to 0.1 km.
+    private static Double distanceKm(User a, User b) {
+        if (a.getLatitude() == null || a.getLongitude() == null || b.getLatitude() == null || b.getLongitude() == null) {
+            return null;
+        }
+        double dLat = Math.toRadians(b.getLatitude() - a.getLatitude());
+        double dLon = Math.toRadians(b.getLongitude() - a.getLongitude());
+        double h = Math.pow(Math.sin(dLat / 2), 2)
+                + Math.cos(Math.toRadians(a.getLatitude())) * Math.cos(Math.toRadians(b.getLatitude())) * Math.pow(Math.sin(dLon / 2), 2);
+        return Math.round(2 * 6371 * Math.asin(Math.sqrt(h)) * 10) / 10.0;
     }
 
     @Transactional(readOnly = true)

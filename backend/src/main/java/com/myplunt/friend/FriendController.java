@@ -3,6 +3,7 @@ package com.myplunt.friend;
 import com.myplunt.constants.ApiPaths;
 import com.myplunt.friend.dto.FriendRequestsResponse;
 import com.myplunt.friend.dto.SendFriendRequest;
+import com.myplunt.friend.dto.SitterResponse;
 import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.plant.dto.PlantDetailsResponse;
 import com.myplunt.plant.dto.PlantPhotoResponse;
@@ -43,6 +44,11 @@ public class FriendController {
     @GetMapping(ApiPaths.Friends.BASE)
     public List<UserSummaryResponse> friends(@AuthenticationPrincipal User principal) {
         return friendService.getFriends(principal.getId());
+    }
+
+    @GetMapping(ApiPaths.Friends.SITTERS)
+    public List<SitterResponse> sitters(@AuthenticationPrincipal User principal) {
+        return friendService.getSitters(principal.getId());
     }
 
     @GetMapping(ApiPaths.Friends.REQUESTS)

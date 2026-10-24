@@ -3,6 +3,7 @@ package com.myplunt.friend;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.dto.FriendRequestsResponse;
+import com.myplunt.friend.dto.SitterResponse;
 import com.myplunt.garden.GardenService;
 import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.notification.PushNotificationService;
@@ -87,6 +88,36 @@ class FriendServiceTest {
                     assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
                     assertThat(e.getReason()).isEqualTo(message);
                 });
+    }
+
+    private User userAt(String username, String city, Double latitude, Double longitude) {
+        User user = new User(username, username + "@example.com", "hashed");
+        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+        user.setCity(city);
+        user.setLatitude(latitude);
+        user.setLongitude(longitude);
+        return user;
+    }
+
+    @Test
+    void getSitters_putsSameCityFirstThenClosestAndNoLocationLast() {
+        User jane = userAt("jane", "Enschede", 52.2215, 6.8937);
+        User anna = userAt("anna", null, null, null);
+        User lotte = userAt("lotte", "Hengelo", 52.2658, 6.7931);
+        User sara = userAt("sara", "enschede", 52.2390, 6.8500);
+        when(userService.loadUser(janeId)).thenReturn(jane);
+        when(friendshipRepository.findFriends(janeId)).thenReturn(List.of(anna, lotte, sara));
+        when(userService.toSummary(any(), any())).thenAnswer(call -> {
+            User user = call.getArgument(0);
+            return new UserSummaryResponse(user.getId(), user.getUsername(), null, null, "friends");
+        });
+
+        List<SitterResponse> sitters = friendService().getSitters(janeId);
+
+        assertThat(sitters).extracting(s -> s.user().username()).containsExactly("sara", "lotte", "anna");
+        assertThat(sitters).extracting(SitterResponse::sameCity).containsExactly(true, false, false);
+        assertThat(sitters.get(1).distanceKm()).isEqualTo(8.4);
+        assertThat(sitters.get(2).distanceKm()).isNull();
     }
 
     @Test
