@@ -23,3 +23,7 @@ export async function acceptCareRequest(userId: string): Promise<void> {
 export async function declineCareRequest(userId: string): Promise<void> {
   return apiFetch<void>(`/v1/care-requests/${userId}/decline`, { method: 'POST' });
 }
+
+export async function cancelCareRequest(sitterId: string): Promise<void> {
+  return apiFetch<void>(`/v1/care-requests/${sitterId}/cancel`, { method: 'POST' });
+}

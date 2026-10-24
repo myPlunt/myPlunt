@@ -21,6 +21,7 @@ export function PlantSitterScreen() {
   const theme = useTheme();
   const { sitters, careRequests, error, retry, reload } = useSitters();
   const { garden } = useGarden();
+  const liveRequest = careRequests?.sent[0];
   const [trip, setTrip] = useState(() => {
     const tomorrow = addDays(startOfDay(new Date()), 1);
     return { from: tomorrow, until: addDays(tomorrow, 6) };
@@ -90,8 +91,11 @@ export function PlantSitterScreen() {
                       username={sitter.user.username}
                       from={trip.from}
                       until={trip.until}
-                      sent={careRequests?.sent.find((request) => request.user.id === sitter.user.id)}
-                      onSent={reload}
+                      sent={liveRequest?.user.id === sitter.user.id ? liveRequest : undefined}
+                      askedSomeoneElse={
+                        liveRequest && liveRequest.user.id !== sitter.user.id ? liveRequest.user.username : undefined
+                      }
+                      onChanged={reload}
                     />
                   </PersonRow>
                 ))}

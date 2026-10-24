@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import type { CareRequest } from '@/lib/user/types';
 import { useAuthStore } from '@/stores/auth-store';
 
 import { addDays, stayLabel } from '../away-trip';
-import { sendCareRequest } from '../plant-sitter-service';
+import { cancelCareRequest, sendCareRequest } from '../plant-sitter-service';
 
 interface AskSitterButtonProps {
   sitterId: string;
@@ -15,28 +16,24 @@ interface AskSitterButtonProps {
   from: Date;
   until: Date;
   sent?: CareRequest;
-  onSent: () => void;
+  /** Who the user's one live request went to, when it's someone else. */
+  askedSomeoneElse?: string;
+  onChanged: () => void;
 }
 
-export function AskSitterButton({ sitterId, username, from, until, sent, onSent }: AskSitterButtonProps) {
+export function AskSitterButton({ sitterId, username, from, until, sent, askedSomeoneElse, onChanged }: AskSitterButtonProps) {
   const { setUnauthenticated } = useAuthStore();
-  const [isSending, setIsSending] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (sent) {
-    return (
-      <Text className="type-body-medium text-text-secondary">
-        {sent.status === 'active' ? 'Looking after your plants' : 'Waiting for an answer'} · {stayLabel(sent.from, sent.until)}
-      </Text>
-    );
-  }
-
-  async function ask() {
-    setIsSending(true);
+  async function run(action: () => Promise<void>) {
+    setIsBusy(true);
     setError(null);
     try {
-      await sendCareRequest(sitterId, from, addDays(until, 1));
-      onSent();
+      await action();
+      setIsConfirming(false);
+      onChanged();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setUnauthenticated();
@@ -44,8 +41,42 @@ export function AskSitterButton({ sitterId, username, from, until, sent, onSent 
       }
       setError(describeError(err));
     } finally {
-      setIsSending(false);
+      setIsBusy(false);
     }
+  }
+
+  if (sent) {
+    const isActive = sent.status === 'active';
+    return (
+      <View className="gap-2">
+        <Text className="type-body-medium text-text-secondary">
+          {isActive ? 'Looking after your plants' : 'Waiting for an answer'} · {stayLabel(sent.from, sent.until)}
+        </Text>
+        <View className="flex-row">
+          <Button
+            label="Cancel request"
+            accessibilityLabel={`Cancel your request to ${username}`}
+            variant="secondary"
+            onPress={() => setIsConfirming(true)}
+          />
+        </View>
+        {error && !isConfirming && <Text className="type-body-medium text-error">{error}</Text>}
+        <ConfirmDialog
+          visible={isConfirming}
+          title="Cancel request?"
+          message={
+            isActive
+              ? `${username} already said yes. We'll let them know you don't need a plant sitter anymore.`
+              : `We'll let ${username} know you don't need a plant sitter anymore.`
+          }
+          confirmLabel="Cancel request"
+          onConfirm={() => run(() => cancelCareRequest(sitterId))}
+          onCancel={() => setIsConfirming(false)}
+          loading={isBusy}
+          error={error}
+        />
+      </View>
+    );
   }
 
   return (
@@ -53,9 +84,15 @@ export function AskSitterButton({ sitterId, username, from, until, sent, onSent 
       <Button
         label="Ask to plant-sit"
         accessibilityLabel={`Ask ${username} to plant-sit`}
-        loading={isSending}
-        onPress={ask}
+        loading={isBusy}
+        disabled={askedSomeoneElse !== undefined}
+        onPress={() => run(() => sendCareRequest(sitterId, from, addDays(until, 1)))}
       />
+      {askedSomeoneElse && (
+        <Text className="type-caption text-text-secondary">
+          You already asked {askedSomeoneElse}. Cancel that request to ask someone else.
+        </Text>
+      )}
       {error && <Text className="type-body-medium text-error">{error}</Text>}
     </View>
   );

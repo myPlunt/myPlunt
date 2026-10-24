@@ -2,7 +2,7 @@ import { render, screen, userEvent } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 
 import { useGarden } from '@/features/garden/use-garden';
-import { acceptCareRequest, sendCareRequest } from '@/features/plant-sitter/plant-sitter-service';
+import { acceptCareRequest, cancelCareRequest, sendCareRequest } from '@/features/plant-sitter/plant-sitter-service';
 import { useSitters } from '@/features/plant-sitter/use-sitters';
 import { ApiError } from '@/lib/auth/api-client';
 import { AuthStoreProvider } from '@/stores/auth-store';
@@ -78,6 +78,30 @@ describe('PlantSitterScreen', () => {
     await user.press(screen.getByRole('button', { name: 'Accept' }));
 
     expect(acceptCareRequest).toHaveBeenCalledWith('u3');
+    expect(reload).toHaveBeenCalled();
+  });
+
+  it('lets you cancel an accepted request and blocks asking anyone else until then', async () => {
+    jest.mocked(cancelCareRequest).mockResolvedValue();
+    sittersState({
+      sitters: [
+        { user: sara, city: 'Enschede', distanceKm: 1.2, sameCity: true },
+        { user: tom, city: 'Enschede', distanceKm: 2.5, sameCity: true },
+      ],
+      careRequests: {
+        received: [],
+        sent: [{ user: sara, from: '2026-11-07T00:00:00Z', until: '2026-11-16T00:00:00Z', plantCount: 11, status: 'active' }],
+      },
+    });
+    await render(<PlantSitterScreen />, { wrapper: AuthStoreProvider });
+
+    expect(screen.getByRole('button', { name: 'Ask tom to plant-sit' })).toBeDisabled();
+    expect(screen.getByText('You already asked sara. Cancel that request to ask someone else.')).toBeOnTheScreen();
+
+    await user.press(screen.getByRole('button', { name: 'Cancel your request to sara' }));
+    await user.press(await screen.findByRole('button', { name: 'Cancel request' }));
+
+    expect(cancelCareRequest).toHaveBeenCalledWith('u2');
     expect(reload).toHaveBeenCalled();
   });
 });
