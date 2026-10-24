@@ -1,3 +1,11 @@
+include:
+  - component: $CI_SERVER_FQDN/dependabot-gitlab/dependabot-standalone/template@7
+    inputs:
+      gitlab_access_token: $DBOT_GITLAB_TOKEN
+      github_access_token: $DBOT_GITHUB_TOKEN
+    rules:
+      - if: $PACKAGE_MANAGER_SET
+
 stages:
   - test
   - build
@@ -9,18 +17,28 @@ workflow:
     - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "dev"'
 
 # Rule templates
+# Dependabot's pipelines (PACKAGE_MANAGER_SET from its schedules) run only the update jobs, and
+# changes: is always true in a scheduled pipeline, so every template skips them first.
+.skip-dependabot:
+  rules:
+    - if: $PACKAGE_MANAGER_SET
+      when: never
+
 .rules-frontend:
   rules:
+    - !reference [.skip-dependabot, rules]
     - changes:
         - "frontend/**/*"
 
 .rules-backend:
   rules:
+    - !reference [.skip-dependabot, rules]
     - changes:
         - "backend/**/*"
 
 .rules-frontend-dev:
   rules:
+    - !reference [.skip-dependabot, rules]
     - if: '$CI_COMMIT_BRANCH == "dev"'
       changes:
         - "frontend/**/*"
@@ -28,6 +46,7 @@ workflow:
 
 .rules-frontend-main:
   rules:
+    - !reference [.skip-dependabot, rules]
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - "frontend/**/*"
@@ -35,40 +54,47 @@ workflow:
 
 .rules-backend-dev:
   rules:
+    - !reference [.skip-dependabot, rules]
     - if: '$CI_COMMIT_BRANCH == "dev"'
       changes:
         - "backend/**/*"
 
 .rules-backend-main:
   rules:
+    - !reference [.skip-dependabot, rules]
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - "backend/**/*"
 
 .rules-landing:
   rules:
+    - !reference [.skip-dependabot, rules]
     - changes:
         - "web_landing/**/*"
 
 .rules-landing-main:
   rules:
+    - !reference [.skip-dependabot, rules]
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - "web_landing/**/*"
 
 .rules-admin:
   rules:
+    - !reference [.skip-dependabot, rules]
     - changes:
         - "admin_dashboard/**/*"
 
 .rules-admin-dev:
   rules:
+    - !reference [.skip-dependabot, rules]
     - if: '$CI_COMMIT_BRANCH == "dev"'
       changes:
         - "admin_dashboard/**/*"
 
 .rules-admin-main:
   rules:
+    - !reference [.skip-dependabot, rules]
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - "admin_dashboard/**/*"
@@ -161,6 +187,15 @@ test-backend:
   script:
     - cd backend
     - ./mvnw -B test
+
+audit-frontend:
+  extends: .rules-frontend
+  stage: test
+  image: node:22-alpine
+  # Fails only on critical advisories.
+  script:
+    - cd frontend
+    - npm audit --audit-level=critical
 
 check-admin:
   extends: .rules-admin

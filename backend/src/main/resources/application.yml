@@ -18,6 +18,11 @@ spring:
     placeholders:
       storagePrefix: ${app.storage.prefix}
 
+server:
+  # Behind Coolify's proxy: take the client IP from X-Forwarded-For (trusted from private proxy IPs only),
+  # so the auth rate limit counts per client instead of per proxy.
+  forward-headers-strategy: native
+
 app:
   version: '@project.version@'
   # admin.jwt.secret must differ from app.jwt.secret and be at least 32 bytes. allowed-origins is comma-separated.

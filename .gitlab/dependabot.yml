@@ -1,0 +1,40 @@
+# Each entry runs from its own pipeline schedule, which sets CONFIG_ENTRY_NAME to the entry's name and PACKAGE_MANAGER_SET to its ecosystem.
+version: 2
+updates:
+  - name: backend
+    package-ecosystem: maven
+    directory: /backend
+    target-branch: dev
+    schedule:
+      interval: weekly
+    groups:
+      spring-boot:
+        patterns: ["org.springframework.boot*"]
+
+  - name: frontend
+    package-ecosystem: npm
+    directory: /frontend
+    target-branch: dev
+    schedule:
+      interval: weekly
+    groups:
+      expo:
+        patterns: ["expo", "expo-*", "@expo/*", "jest-expo"]
+    ignore:
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+      - dependency-name: "react-native"
+
+  - name: web-landing
+    package-ecosystem: npm
+    directory: /web_landing
+    target-branch: dev
+    schedule:
+      interval: weekly
+
+  - name: admin-dashboard
+    package-ecosystem: npm
+    directory: /admin_dashboard
+    target-branch: dev
+    schedule:
+      interval: weekly

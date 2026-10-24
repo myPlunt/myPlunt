@@ -1,5 +1,6 @@
 package com.myplunt.admin;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.admin.dto.PendingSpeciesResponse;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
@@ -108,7 +109,7 @@ class AdminSpeciesServiceTest {
         when(speciesRepository.findByIdAndApprovedFalse(approvedId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service().reject(approvedId, adminId))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(NotFoundException.class);
         verify(speciesRepository, never()).delete(any());
         verify(auditLog, never()).recorded(any(), any(), any(), anyMap());
     }

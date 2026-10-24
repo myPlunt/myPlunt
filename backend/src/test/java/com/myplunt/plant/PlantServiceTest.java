@@ -1,5 +1,6 @@
 package com.myplunt.plant;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.garden.Planter;
@@ -131,7 +132,7 @@ class PlantServiceTest {
         when(planterRepository.existsByIdAndOwnerId(planterId, userId)).thenReturn(false);
 
         assertThatThrownBy(() -> plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, planterId, null, null, false)))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("Planter not found");
         verify(plantRepository, never()).save(any());
     }
@@ -243,7 +244,7 @@ class PlantServiceTest {
         when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> plantService().getDetails(userId, plantId))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("Plant not found");
     }
 
@@ -367,7 +368,7 @@ class PlantServiceTest {
         when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> plantService().water(userId, plantId, null, ZoneOffset.UTC))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("Plant not found");
         verify(wateringLogRepository, never()).save(any());
     }
@@ -538,7 +539,7 @@ class PlantServiceTest {
 
         assertThatThrownBy(() -> plantService().updatePhoto(
                         userId, plantId, photoId, new UpdatePlantPhotoRequest(Instant.parse("2026-01-01T12:00:00Z"), null)))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(NotFoundException.class);
         verify(plantPhotoRepository, never()).save(any());
     }
 
@@ -559,7 +560,7 @@ class PlantServiceTest {
     void getPhotos_throwsNotFoundForAPlantTheUserDoesNotOwn() {
         when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> plantService().getPhotos(userId, plantId)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> plantService().getPhotos(userId, plantId)).isInstanceOf(NotFoundException.class);
         verify(plantPhotoRepository, never()).findByPlantIdOrderByTakenAtAsc(any());
     }
 
