@@ -1,5 +1,7 @@
 package com.myplunt.notification;
 
+import com.myplunt.care.CareDelegation;
+import com.myplunt.care.CareDelegationRepository;
 import com.myplunt.common.logging.LogEvent;
 import com.myplunt.common.logging.StructuredLog;
 import com.myplunt.notification.dto.NotificationResponse;
@@ -27,6 +29,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.DateTimeException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -61,6 +64,10 @@ public class PushNotificationService {
 
     static final int INBOX_SIZE = 50;
 
+    // A sitter waters plant by plant; one message per round is enough for the owner.
+    static final Duration SITTER_WATERED_QUIET = Duration.ofMinutes(15);
+    static final String SITTER_WATERED_TITLE = "Your plants got water 💧";
+
     // Weather alert thresholds in °C over the next 24 hours.
     static final double FROST_BELOW = 3;
     static final double HEAT_ABOVE = 30;
@@ -76,6 +83,7 @@ public class PushNotificationService {
     private final StorageService storageService;
     private final ExpoPushClient expoPushClient;
     private final OpenWeatherClient openWeatherClient;
+    private final CareDelegationRepository careDelegationRepository;
 
     public PushNotificationService(
             PushTokenRepository pushTokenRepository,
@@ -86,7 +94,8 @@ public class PushNotificationService {
             NotificationRepository notificationRepository,
             StorageService storageService,
             ExpoPushClient expoPushClient,
-            OpenWeatherClient openWeatherClient) {
+            OpenWeatherClient openWeatherClient,
+            CareDelegationRepository careDelegationRepository) {
         this.pushTokenRepository = pushTokenRepository;
         this.userSettingsRepository = userSettingsRepository;
         this.plantRepository = plantRepository;
@@ -96,6 +105,7 @@ public class PushNotificationService {
         this.storageService = storageService;
         this.expoPushClient = expoPushClient;
         this.openWeatherClient = openWeatherClient;
+        this.careDelegationRepository = careDelegationRepository;
     }
 
     public void registerToken(UUID userId, PushTokenRequest request) {
@@ -125,6 +135,7 @@ public class PushNotificationService {
         List<ExpoPushMessage> messages = new ArrayList<>();
         // A user with two phones gets the reminder on both, but it's in their list once.
         Set<UUID> listed = new HashSet<>();
+        Set<String> listedSitting = new HashSet<>();
         for (PushToken pushToken : pushTokenRepository.findAll()) {
             ZoneId zone = ZoneId.of(pushToken.getTimeZone());
             if (now.atZone(zone).getHour() != REMINDER_HOUR || !wantsWateringReminders(pushToken.getUserId())) {
@@ -139,8 +150,28 @@ public class PushNotificationService {
                             pushToken.getUserId(), null, reminderTitle(names), reminderText(names), GARDEN_URL));
                 }
             }
+            for (UUID ownerId : sittingFor(pushToken.getUserId(), now)) {
+                List<String> due = plantsDueToday(ownerId, zone, now);
+                if (due.isEmpty()) {
+                    continue;
+                }
+                String title = username(ownerId) + "'s plants are thirsty 💧";
+                messages.add(new ExpoPushMessage(pushToken.getToken(), title, reminderText(due), GARDEN_URL));
+                if (listedSitting.add(pushToken.getUserId() + ":" + ownerId)) {
+                    notificationRepository.save(new Notification(pushToken.getUserId(), ownerId, title, reminderText(due), GARDEN_URL));
+                }
+            }
         }
         send(messages);
+    }
+
+    private List<UUID> sittingFor(UUID sitterId, Instant now) {
+        return careDelegationRepository.findByDelegatedToAndStatusInOrderByActiveFromAsc(sitterId, List.of(CareDelegation.ACTIVE))
+                .stream()
+                .filter(d -> d.getActiveUntil().isAfter(now))
+                .map(CareDelegation::getDelegatedBy)
+                .distinct()
+                .toList();
     }
 
     // shortcut: no indoor/outdoor flag on plants, so every user with plants is warned; filter once plants have one.
@@ -245,6 +276,15 @@ public class PushNotificationService {
         notify(requesterId, sitterId, accepted ? "Plant sitter found 🪴" : "Plant sitter request declined",
                 accepted ? who + " will look after your plants while you're away." : who + " can't look after your plants this time.",
                 PLANT_SITTER_URL);
+    }
+
+    @Async
+    public void sendSitterWatered(UUID sitterId, UUID ownerId) {
+        if (!wantsPlantSitting(ownerId) || notificationRepository.existsByUserIdAndFromUserIdAndTitleAndCreatedAtAfter(
+                ownerId, sitterId, SITTER_WATERED_TITLE, Instant.now().minus(SITTER_WATERED_QUIET))) {
+            return;
+        }
+        notify(ownerId, sitterId, SITTER_WATERED_TITLE, username(sitterId) + " watered your plants.", GARDEN_URL);
     }
 
     @Async
