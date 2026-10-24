@@ -1,5 +1,6 @@
 package com.myplunt.post;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.common.logging.LogEvent;
@@ -87,7 +88,7 @@ public class PostService {
         Post saved = postRepository.save(new Post(userId, request.body(), request.photoKey()));
         auditLog.recorded(AuditEvent.QUESTION_ASKED, userId, userId,
                 Map.of("post_id", saved.getId(), "has_photo", request.photoKey() != null));
-        User author = userRepository.findById(userId).orElseThrow(() -> new IllegalStateException("User not found"));
+        User author = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
         return toResponse(saved, author, null, null, 0, 0, false);
     }
 
@@ -138,7 +139,7 @@ public class PostService {
 
     private Post findOwnPost(UUID userId, UUID postId) {
         return postRepository.findByIdAndUserId(postId, userId)
-                .orElseThrow(() -> new IllegalStateException("Post not found"));
+                .orElseThrow(() -> new NotFoundException("Post not found"));
     }
 
     @Transactional(readOnly = true)
@@ -184,7 +185,7 @@ public class PostService {
             pushNotificationService.sendPostComment(userId, notice(post), request.body());
         }
         pushNotificationService.sendCommentReply(userId, notice(post), request.body(), earlierCommenters);
-        User author = userRepository.findById(userId).orElseThrow(() -> new IllegalStateException("User not found"));
+        User author = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
         return toResponse(saved, author);
     }
 
@@ -218,7 +219,7 @@ public class PostService {
 
     private Post findVisiblePost(UUID userId, UUID postId) {
         return postRepository.findVisible(postId, userId, FEED_TYPES)
-                .orElseThrow(() -> new IllegalStateException("Post not found"));
+                .orElseThrow(() -> new NotFoundException("Post not found"));
     }
 
     private CommentResponse toResponse(PostComment comment, User author) {

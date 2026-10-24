@@ -1,5 +1,6 @@
 package com.myplunt.friend;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.friend.dto.FriendRequestsResponse;
@@ -156,7 +157,7 @@ class FriendControllerTest {
     @Test
     void accept_returnsNotFoundWithoutARequest() {
         authenticateAsJane();
-        doThrow(new IllegalStateException("No pending friend request with this user"))
+        doThrow(new NotFoundException("No pending friend request with this user"))
                 .when(friendService).accept(any(), any());
 
         postAnswer("/v1/friends/requests/" + UUID.randomUUID() + "/accept").expectStatus().isNotFound();
@@ -225,7 +226,7 @@ class FriendControllerTest {
     void friendData_returnsNotFoundWhenNotFriends() {
         authenticateAsJane();
         UUID tomId = UUID.randomUUID();
-        IllegalStateException notFriends = new IllegalStateException("You're not friends with this user");
+        NotFoundException notFriends = new NotFoundException("You're not friends with this user");
         when(friendService.getFriendGarden(any(), any(), any())).thenThrow(notFriends);
         when(friendService.getFriendDiscoveredSpecies(any(), any())).thenThrow(notFriends);
         when(friendService.getFriendPosts(any(), any())).thenThrow(notFriends);

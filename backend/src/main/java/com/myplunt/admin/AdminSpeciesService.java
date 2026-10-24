@@ -1,5 +1,6 @@
 package com.myplunt.admin;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.admin.dto.PendingSpeciesResponse;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
@@ -71,6 +72,6 @@ public class AdminSpeciesService {
 
     private Species findPending(UUID id) {
         return speciesRepository.findByIdAndApprovedFalse(id)
-                .orElseThrow(() -> new IllegalStateException("Species not found"));
+                .orElseThrow(() -> new NotFoundException("Species not found"));
     }
 }

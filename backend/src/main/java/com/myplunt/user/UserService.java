@@ -1,5 +1,6 @@
 package com.myplunt.user;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.common.logging.LogEvent;
@@ -288,6 +289,6 @@ public class UserService {
     // Public so other features look users up through here, not through UserRepository.
     public User loadUser(UUID userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 }
