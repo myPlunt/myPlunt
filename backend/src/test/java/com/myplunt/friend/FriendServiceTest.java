@@ -1,5 +1,6 @@
 package com.myplunt.friend;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.dto.FriendRequestsResponse;
@@ -193,9 +194,9 @@ class FriendServiceTest {
     @Test
     void acceptAndDecline_failWithoutAPendingRequestFromThem() {
         assertThatThrownBy(() -> friendService().accept(janeId, tomId))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("No pending friend request with this user");
-        assertThatThrownBy(() -> friendService().decline(janeId, tomId)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> friendService().decline(janeId, tomId)).isInstanceOf(NotFoundException.class);
         verify(friendshipRepository, never()).delete(any());
     }
 
@@ -214,7 +215,7 @@ class FriendServiceTest {
     // A request tom sent jane is looked up with jane as the requester, so she can't cancel it, only decline.
     @Test
     void cancel_failsWithoutAPendingRequestToThem() {
-        assertThatThrownBy(() -> friendService().cancel(janeId, tomId)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> friendService().cancel(janeId, tomId)).isInstanceOf(NotFoundException.class);
         verify(friendshipRepository, never()).delete(any());
     }
 
@@ -236,7 +237,7 @@ class FriendServiceTest {
         when(friendshipRepository.findBetween(janeId, List.of(tomId))).thenReturn(List.of(new Friendship(janeId, tomId)));
 
         assertThatThrownBy(() -> friendService().remove(janeId, tomId))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("You're not friends with this user");
         verify(friendshipRepository, never()).delete(any());
     }
@@ -274,19 +275,19 @@ class FriendServiceTest {
         for (List<Friendship> between : notFriends) {
             when(friendshipRepository.findBetween(janeId, List.of(tomId))).thenReturn(between);
             assertThatThrownBy(() -> friendService().getFriendGarden(janeId, tomId, ZoneId.of("UTC")))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(NotFoundException.class)
                     .hasMessage("You're not friends with this user");
             assertThatThrownBy(() -> friendService().getFriendDiscoveredSpecies(janeId, tomId))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(NotFoundException.class)
                     .hasMessage("You're not friends with this user");
             assertThatThrownBy(() -> friendService().getFriendPosts(janeId, tomId))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(NotFoundException.class)
                     .hasMessage("You're not friends with this user");
             assertThatThrownBy(() -> friendService().getFriendPlant(janeId, tomId, UUID.randomUUID()))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(NotFoundException.class)
                     .hasMessage("You're not friends with this user");
             assertThatThrownBy(() -> friendService().getFriendPlantPhotos(janeId, tomId, UUID.randomUUID()))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(NotFoundException.class)
                     .hasMessage("You're not friends with this user");
         }
         verifyNoInteractions(gardenService, plantService, speciesService, postService);

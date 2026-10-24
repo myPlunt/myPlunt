@@ -1,5 +1,6 @@
 package com.myplunt.post;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.post.dto.AddCommentRequest;
@@ -109,7 +110,7 @@ class PostControllerTest {
     @Test
     void addComment_answers404ForAPostTheUserCantSee() {
         authenticateAsJane();
-        when(postService.addComment(any(), any(), any())).thenThrow(new IllegalStateException("Post not found"));
+        when(postService.addComment(any(), any(), any())).thenThrow(new NotFoundException("Post not found"));
 
         comment(UUID.randomUUID(), new AddCommentRequest("Hi")).expectStatus().isNotFound();
     }
@@ -163,7 +164,7 @@ class PostControllerTest {
     void delete_answers404ForAPostThatIsntTheUsers() {
         UUID janeId = authenticateAsJane();
         UUID postId = UUID.randomUUID();
-        doThrow(new IllegalStateException("Post not found")).when(postService).deletePost(janeId, postId);
+        doThrow(new NotFoundException("Post not found")).when(postService).deletePost(janeId, postId);
 
         restTestClient.delete().uri("/v1/posts/{postId}", postId)
                 .header("Authorization", "Bearer access-token")

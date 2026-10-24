@@ -2,6 +2,7 @@ package com.myplunt.plant;
 
 import com.myplunt.care.CareDelegation;
 import com.myplunt.care.CareDelegationRepository;
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.common.logging.LogEvent;
@@ -337,7 +338,7 @@ public class PlantService {
 
     private PlantPhoto findPhoto(UUID plantId, UUID photoId) {
         return plantPhotoRepository.findByIdAndPlantId(photoId, plantId)
-                .orElseThrow(() -> new IllegalStateException("Photo not found"));
+                .orElseThrow(() -> new NotFoundException("Photo not found"));
     }
 
     private PlantPhotoResponse toPhotoResponse(PlantPhoto photo) {
@@ -418,12 +419,12 @@ public class PlantService {
 
     private Plant findOwnPlant(UUID ownerId, UUID plantId) {
         return plantRepository.findByIdAndOwnerId(plantId, ownerId)
-                .orElseThrow(() -> new IllegalStateException("Plant not found"));
+                .orElseThrow(() -> new NotFoundException("Plant not found"));
     }
 
     private void requireOwnPlanter(UUID ownerId, UUID planterId) {
         if (planterId != null && !planterRepository.existsByIdAndOwnerId(planterId, ownerId)) {
-            throw new IllegalStateException("Planter not found");
+            throw new NotFoundException("Planter not found");
         }
     }
 
@@ -431,7 +432,7 @@ public class PlantService {
         return speciesId == null
                 ? null
                 : speciesRepository.findByIdAndApprovedTrue(speciesId)
-                        .orElseThrow(() -> new IllegalStateException("Species not found"));
+                        .orElseThrow(() -> new NotFoundException("Species not found"));
     }
 
     private void markDiscovered(UUID ownerId, Species species) {
