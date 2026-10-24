@@ -15,6 +15,9 @@ import { plantsNeedingWater } from '@/features/garden/watering';
 import { queueWaterings } from '@/features/garden/watering-outbox';
 import { OnboardingCard } from '@/features/onboarding/components/onboarding-card';
 import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
+import { FriendGarden } from '@/features/plant-sitter/components/friend-garden';
+import { GardenSwitch } from '@/features/plant-sitter/components/garden-switch';
+import { useSitting } from '@/features/plant-sitter/use-sitting';
 import { EditPlanterDialog } from '@/features/planters/components/edit-planter-dialog';
 import { useTheme } from '@/hooks/use-theme';
 import type { GardenPlant, Room } from '@/lib/garden/types';
@@ -33,6 +36,8 @@ export function GardenScreen() {
   // The plants picked to water; null when the user isn't picking.
   const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const stay = useSitting();
+  const [showFriend, setShowFriend] = useState(false);
 
   const now = new Date();
   const due = garden ? plantsNeedingWater(garden, now) : [];
@@ -87,7 +92,8 @@ export function GardenScreen() {
                 onPress={() => selectMany(allPlantIds, !allSelected)}
               />
             ) : (
-              hasPlants && (
+              hasPlants &&
+              !(showFriend && stay) && (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Water plants"
@@ -110,7 +116,12 @@ export function GardenScreen() {
         <ScrollView
           // Room to scroll the garden out from under the tour card.
           contentContainerClassName={`w-full max-w-content grow gap-8 self-center px-6 pt-2 ${isTourStep ? 'pb-72' : 'pb-8'}`}>
-          {isLoading ? (
+          {stay && !selectedIds && (
+            <GardenSwitch friendName={stay.user.username} showFriend={showFriend} onChange={setShowFriend} />
+          )}
+          {showFriend && stay ? (
+            <FriendGarden stay={stay} />
+          ) : isLoading ? (
             <ActivityIndicator accessibilityLabel="Loading garden" color={theme.primary} className="mt-6" />
           ) : error ? (
             <View className="items-center gap-3">

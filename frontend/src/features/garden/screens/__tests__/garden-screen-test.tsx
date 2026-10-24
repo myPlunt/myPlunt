@@ -2,7 +2,8 @@ import { render, screen, userEvent, waitFor } from '@testing-library/react-nativ
 import { useRouter } from 'expo-router';
 
 import { useGarden } from '@/features/garden/use-garden';
-import { queueWaterings } from '@/features/garden/watering-outbox';
+import { queueWaterings, sendWaterings } from '@/features/garden/watering-outbox';
+import { useSitting } from '@/features/plant-sitter/use-sitting';
 import type { Garden, GardenPlant } from '@/lib/garden/types';
 import { useNetworkStore } from '@/stores/network-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
@@ -12,6 +13,7 @@ import { GardenScreen } from '../garden-screen';
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
 jest.mock('@/features/garden/use-garden');
 jest.mock('@/features/garden/watering-outbox');
+jest.mock('@/features/plant-sitter/use-sitting');
 jest.mock('@/stores/onboarding-store', () => ({
   ...jest.requireActual('@/stores/onboarding-store'),
   useOnboardingStore: jest.fn(),
@@ -85,6 +87,7 @@ beforeEach(() => {
   jest.mocked(useRouter).mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
   jest.mocked(useOnboardingStore).mockReturnValue({ step: null, start: jest.fn(), next: jest.fn(), skipPast: jest.fn(), back: jest.fn(), finish: jest.fn(), previous: null, plantId: null });
   mockGarden({});
+  jest.mocked(useSitting).mockReturnValue(null);
   mockNetwork(false);
   mockedQueueWaterings.mockResolvedValue(undefined);
   refresh.mockResolvedValue(undefined);
@@ -228,5 +231,26 @@ describe('GardenScreen', () => {
     await user.press(screen.getByRole('button', { name: 'Water Pinky and Basil' }));
 
     await waitFor(() => expect(next).toHaveBeenCalled());
+  });
+
+  it("switches to the garden you're plant-sitting and waters the plants due there", async () => {
+    jest.mocked(useSitting).mockReturnValue({
+      user: { id: 'u2', username: 'sara', bio: null, avatarUrl: null, friendship: 'friends' },
+      from: '2026-11-07T00:00:00Z',
+      until: '2026-11-16T00:00:00Z',
+      plantCount: 3,
+      status: 'active',
+    });
+    await render(<GardenScreen />);
+
+    await user.press(screen.getByRole('tab', { name: "sara's garden" }));
+
+    expect(mockedUseGarden).toHaveBeenCalledWith('u2');
+    expect(screen.getByText(/You're looking after sara's plants until/)).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Water plants' })).not.toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Water Pinky and Basil' }));
+
+    await waitFor(() => expect(sendWaterings).toHaveBeenCalled());
+    expect(mockedQueueWaterings).toHaveBeenCalledWith([expect.objectContaining({ name: 'Pinky' }), expect.objectContaining({ name: 'Basil' })]);
   });
 });
