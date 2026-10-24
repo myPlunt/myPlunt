@@ -1,14 +1,16 @@
 import { useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
-import { Shadow } from '@/constants/theme';
 import { PersonRow } from '@/features/friends/components/person-row';
+import { useGarden } from '@/features/garden/use-garden';
 import { useTheme } from '@/hooks/use-theme';
 
+import { addDays, startOfDay } from '../away-trip';
+import { AwayCard } from '../components/away-card';
 import { groupSitters } from '../group-sitters';
 import { useSitters } from '../use-sitters';
 
@@ -16,6 +18,12 @@ export function PlantSitterScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { sitters, error, retry } = useSitters();
+  const { garden } = useGarden();
+  // Kept here, not in the card, so the plant-sitting request can send them.
+  const [trip, setTrip] = useState(() => {
+    const tomorrow = addDays(startOfDay(new Date()), 1);
+    return { from: tomorrow, until: addDays(tomorrow, 6) };
+  });
 
   return (
     <View className="flex-1 bg-background">
@@ -27,15 +35,12 @@ export function PlantSitterScreen() {
             Plant sitter
           </Text>
 
-          <View className="flex-row items-center gap-4 rounded-3xl bg-action-primary p-5" style={Shadow.card}>
-            <SymbolView name={{ ios: 'key.fill', android: 'key', web: 'key' }} tintColor={theme.snow} size={28} />
-            <View className="flex-1 gap-1">
-              <Text className="type-subtitle-large text-snow">Going away?</Text>
-              <Text className="type-body-medium text-snow">
-                Friends who live close by can look after your plants while you&apos;re gone.
-              </Text>
-            </View>
-          </View>
+          <AwayCard
+            from={trip.from}
+            until={trip.until}
+            plants={garden ? garden.rooms.flatMap((room) => room.plants) : null}
+            onChange={(from, until) => setTrip({ from, until })}
+          />
 
           {error ? (
             <View className="items-center gap-3">
