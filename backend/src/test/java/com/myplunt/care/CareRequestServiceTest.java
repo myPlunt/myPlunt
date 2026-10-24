@@ -6,6 +6,7 @@ import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.notification.PushNotificationService;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantRepository;
+import com.myplunt.user.User;
 import com.myplunt.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -94,13 +96,19 @@ class CareRequestServiceTest {
     }
 
     @Test
-    void send_conflictsWhileARequestToThatFriendIsStillLive() {
+    void send_conflictsWhileARequestToAnotherFriendIsStillLive() {
         friends();
-        when(careDelegationRepository.findByDelegatedByAndDelegatedToAndStatusIn(any(), any(), any()))
-                .thenReturn(List.of(new CareDelegation(UUID.randomUUID(), rafaelId, saraId, from, until)));
+        UUID tomId = UUID.randomUUID();
+        User tom = new User("tom", "tom@example.com", "hashed");
+        when(userService.loadUser(tomId)).thenReturn(tom);
+        when(careDelegationRepository.findByDelegatedByAndStatusInOrderByActiveFromAsc(any(), any()))
+                .thenReturn(List.of(new CareDelegation(UUID.randomUUID(), rafaelId, tomId, from, until)));
 
         assertThatThrownBy(() -> service().send(rafaelId, new SendCareRequest(saraId, from, until)))
-                .extracting("statusCode").isEqualTo(HttpStatus.CONFLICT);
+                .isInstanceOfSatisfying(ResponseStatusException.class, e -> {
+                    assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(e.getReason()).isEqualTo("You already asked tom. Cancel that request first");
+                });
         verify(careDelegationRepository, never()).saveAllAndFlush(argThat((List<CareDelegation> rows) -> !rows.isEmpty()));
         verifyNoInteractions(pushNotificationService);
     }
@@ -124,6 +132,20 @@ class CareRequestServiceTest {
 
         assertThat(row.getStatus()).isEqualTo(CareDelegation.ACTIVE);
         verify(pushNotificationService).sendCareAnswer(saraId, rafaelId, true);
+    }
+
+    @Test
+    void cancel_endsAnAcceptedStayAndTellsTheSitter() {
+        CareDelegation row = new CareDelegation(UUID.randomUUID(), rafaelId, saraId, from, until);
+        row.setStatus(CareDelegation.ACTIVE);
+        when(careDelegationRepository.findByDelegatedByAndDelegatedToAndStatusIn(
+                rafaelId, saraId, List.of(CareDelegation.PENDING, CareDelegation.ACTIVE)))
+                .thenReturn(List.of(row));
+
+        service().cancel(rafaelId, saraId);
+
+        assertThat(row.getStatus()).isEqualTo(CareDelegation.ENDED);
+        verify(pushNotificationService).sendCareCancelled(rafaelId, saraId);
     }
 
     @Test

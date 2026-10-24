@@ -66,13 +66,14 @@ public class CareRequestService {
             throw new IllegalStateException("You're not friends with this user");
         }
 
-        List<CareDelegation> live = careDelegationRepository.findByDelegatedByAndDelegatedToAndStatusIn(userId, sitterId, LIVE);
+        List<CareDelegation> live = careDelegationRepository.findByDelegatedByAndStatusInOrderByActiveFromAsc(userId, LIVE);
         List<CareDelegation> over = live.stream().filter(d -> !d.getActiveUntil().isAfter(now)).toList();
         over.forEach(d -> d.setStatus(CareDelegation.ENDED));
         careDelegationRepository.saveAllAndFlush(over);
-        if (live.size() > over.size()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "You already asked this friend");
-        }
+        live.stream().filter(d -> d.getActiveUntil().isAfter(now)).findFirst().ifPresent(d -> {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "You already asked " + userService.loadUser(d.getDelegatedTo()).getUsername() + ". Cancel that request first");
+        });
 
         List<Plant> plants = plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(userId);
         if (plants.isEmpty()) {
@@ -108,6 +109,17 @@ public class CareRequestService {
     public void decline(UUID userId, UUID requesterId) {
         pendingRequest(requesterId, userId).forEach(d -> d.setStatus(CareDelegation.DECLINED));
         pushNotificationService.sendCareAnswer(userId, requesterId, false);
+    }
+
+    // Works while it waits for an answer and after it was accepted.
+    @Transactional
+    public void cancel(UUID userId, UUID sitterId) {
+        List<CareDelegation> rows = careDelegationRepository.findByDelegatedByAndDelegatedToAndStatusIn(userId, sitterId, LIVE);
+        if (rows.isEmpty()) {
+            throw new IllegalStateException("No plant sitter request to this user");
+        }
+        rows.forEach(d -> d.setStatus(CareDelegation.ENDED));
+        pushNotificationService.sendCareCancelled(userId, sitterId);
     }
 
     private List<CareDelegation> pendingRequest(UUID requesterId, UUID sitterId) {

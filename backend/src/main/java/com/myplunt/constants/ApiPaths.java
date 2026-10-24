@@ -92,6 +92,7 @@ public final class ApiPaths {
         // Keyed by who asked, like friend requests: there's only ever one live request between two people.
         public static final String ACCEPT = BASE + "/{userId}/accept";
         public static final String DECLINE = BASE + "/{userId}/decline";
+        public static final String CANCEL = BASE + "/{userId}/cancel";
 
         private CareRequests() {}
     }

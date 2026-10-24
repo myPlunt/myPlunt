@@ -47,4 +47,10 @@ public class CareRequestController {
     public void decline(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
         careRequestService.decline(principal.getId(), userId);
     }
+
+    @PostMapping(ApiPaths.CareRequests.CANCEL)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancel(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
+        careRequestService.cancel(principal.getId(), userId);
+    }
 }
