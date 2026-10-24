@@ -65,8 +65,14 @@ export function PlantSitterScreen() {
                     key={sitter.user.id}
                     user={sitter.user}
                     tag={sitter.distanceKm !== null ? `${sitter.distanceKm} km` : undefined}
-                    onPress={() => router.push({ pathname: '/user/[id]', params: { id: sitter.user.id } })}
-                  />
+                    onPress={() => router.push({ pathname: '/user/[id]', params: { id: sitter.user.id } })}>
+                    {/* Placeholder until the plant-sitting request endpoint exists (next ticket). */}
+                    <Button
+                      label="Ask to plant-sit"
+                      accessibilityLabel={`Ask ${sitter.user.username} to plant-sit`}
+                      onPress={() => {}}
+                    />
+                  </PersonRow>
                 ))}
               </View>
             ))
