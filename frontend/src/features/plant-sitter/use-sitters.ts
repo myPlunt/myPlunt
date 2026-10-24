@@ -12,9 +12,10 @@ export function useSitters() {
   const [sitters, setSitters] = useState<Sitter[] | null>(null);
   const [careRequests, setCareRequests] = useState<CareRequests | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const load = useCallback(
-    (isCancelled: () => boolean) => {
+    (isCancelled: () => boolean) =>
       // Together, so a friend's button and their request never disagree.
       Promise.all([plantSitterService.getSitters(), plantSitterService.getCareRequests()])
         .then(([sittersResult, requestsResult]) => {
@@ -30,8 +31,7 @@ export function useSitters() {
             return;
           }
           setError(describeError(err));
-        });
-    },
+        }),
     [setUnauthenticated],
   );
 
@@ -49,6 +49,11 @@ export function useSitters() {
     sitters,
     careRequests,
     error,
+    isRefreshing,
+    refresh() {
+      setIsRefreshing(true);
+      return load(() => false).finally(() => setIsRefreshing(false));
+    },
     retry() {
       setError(null);
       load(() => false);

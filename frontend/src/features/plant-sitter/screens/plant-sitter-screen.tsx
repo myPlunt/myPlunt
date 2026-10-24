@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
@@ -19,8 +19,8 @@ import { useSitters } from '../use-sitters';
 export function PlantSitterScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { sitters, careRequests, error, retry, reload } = useSitters();
-  const { garden } = useGarden();
+  const { sitters, careRequests, error, isRefreshing, refresh, retry, reload } = useSitters();
+  const { garden, refresh: refreshGarden } = useGarden();
   const liveRequest = careRequests?.sent[0];
   const [trip, setTrip] = useState(() => {
     const tomorrow = addDays(startOfDay(new Date()), 1);
@@ -32,7 +32,20 @@ export function PlantSitterScreen() {
       <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
         <AppHeader showBack />
 
-        <ScrollView contentContainerClassName="w-full max-w-content grow gap-6 self-center px-6 pb-8 pt-2">
+        <ScrollView
+          contentContainerClassName="w-full max-w-content grow gap-6 self-center px-6 pb-8 pt-2"
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => {
+                refreshGarden();
+                refresh();
+              }}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+              progressBackgroundColor={theme.backgroundElement}
+            />
+          }>
           <Text accessibilityRole="header" className="type-h3 text-action-primary" style={styles.title}>
             Plant sitter
           </Text>

@@ -24,6 +24,8 @@ function sittersState(state: Partial<ReturnType<typeof useSitters>>) {
     sitters: [{ user: sara, city: 'Enschede', distanceKm: 1.2, sameCity: true }],
     careRequests: { received: [], sent: [] },
     error: null,
+    isRefreshing: false,
+    refresh: jest.fn(),
     retry: jest.fn(),
     reload,
     ...state,
@@ -34,7 +36,7 @@ beforeEach(() => {
   jest.useFakeTimers({ now: new Date(2026, 10, 6, 12), advanceTimers: true });
   sittersState({});
   jest.mocked(useRouter).mockReturnValue({ push: jest.fn() } as unknown as ReturnType<typeof useRouter>);
-  jest.mocked(useGarden).mockReturnValue({ garden: null } as ReturnType<typeof useGarden>);
+  jest.mocked(useGarden).mockReturnValue({ garden: null, refresh: jest.fn() } as unknown as ReturnType<typeof useGarden>);
 });
 
 afterEach(() => {
