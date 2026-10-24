@@ -1,40 +1,77 @@
 # Each entry runs from its own pipeline schedule, which sets CONFIG_ENTRY_NAME to the entry's name and PACKAGE_MANAGER_SET to its ecosystem.
+# Every entry bundles all its updates into one MR (plus one security MR when an advisory has a fix).
+# Major versions are ignored and upgraded by hand, so one breaking bump can't block the bundle.
 version: 2
 updates:
   - name: backend
     package-ecosystem: maven
     directory: /backend
     target-branch: dev
+    open-pull-requests-limit: 1
     schedule:
       interval: weekly
     groups:
-      spring-boot:
-        patterns: ["org.springframework.boot*"]
+      backend:
+        patterns: ["*"]
+      backend-security:
+        applies-to: security-updates
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - name: frontend
     package-ecosystem: npm
     directory: /frontend
     target-branch: dev
+    open-pull-requests-limit: 1
     schedule:
       interval: weekly
     groups:
-      expo:
-        patterns: ["expo", "expo-*", "@expo/*", "jest-expo"]
+      frontend:
+        patterns: ["*"]
+      frontend-security:
+        applies-to: security-updates
+        patterns: ["*"]
     ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "react"
       - dependency-name: "react-dom"
       - dependency-name: "react-native"
+      # Version is pinned by the Expo SDK
+      - dependency-name: "react-native-worklets"
 
   - name: web-landing
     package-ecosystem: npm
     directory: /web_landing
     target-branch: dev
+    open-pull-requests-limit: 1
     schedule:
       interval: weekly
+    groups:
+      web-landing:
+        patterns: ["*"]
+      web-landing-security:
+        applies-to: security-updates
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - name: admin-dashboard
     package-ecosystem: npm
     directory: /admin_dashboard
     target-branch: dev
+    open-pull-requests-limit: 1
     schedule:
       interval: weekly
+    groups:
+      admin-dashboard:
+        patterns: ["*"]
+      admin-dashboard-security:
+        applies-to: security-updates
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
