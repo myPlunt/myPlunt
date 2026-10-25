@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { LinkCard } from '@/components/ui/link-card';
 import { RoomSection } from '@/features/garden/components/room-section';
 import { WaterDueCard } from '@/features/garden/components/water-due-card';
 import { WaterSelectionBar } from '@/features/garden/components/water-selection-bar';
@@ -145,6 +146,13 @@ export function GardenScreen() {
                     />
                   ))}
                 </View>
+                {!selectedIds && !isTourStep && (
+                  <LinkCard
+                    title="Going away? Find a plant sitter"
+                    icon={{ ios: 'key.fill', android: 'key', web: 'key' }}
+                    onPress={() => router.push('/plant-sitter')}
+                  />
+                )}
               </>
             ))
           )}
