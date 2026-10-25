@@ -317,10 +317,52 @@ build-android-staging:
     - job: typecheck-frontend
       optional: true
 
+# App bundle (.aab) for a Play Console testing track.
+build-android-aab-staging:
+  extends: [.build-mobile, .rules-frontend-dev]
+  variables:
+    EAS_PROFILE: staging-aab
+    EAS_PLATFORM: android
+  needs:
+    - job: test-frontend
+      optional: true
+    - job: lint-frontend
+      optional: true
+    - job: typecheck-frontend
+      optional: true
+
 build-ios-prod:
   extends: [.build-mobile, .rules-frontend-main]
   variables:
     EAS_PROFILE: production
+  needs:
+    - job: test-frontend
+      optional: true
+    - job: lint-frontend
+      optional: true
+    - job: typecheck-frontend
+      optional: true
+
+# App bundle (.aab) for the Play Store.
+build-android-prod:
+  extends: [.build-mobile, .rules-frontend-main]
+  variables:
+    EAS_PROFILE: production
+    EAS_PLATFORM: android
+  needs:
+    - job: test-frontend
+      optional: true
+    - job: lint-frontend
+      optional: true
+    - job: typecheck-frontend
+      optional: true
+
+# Installable .apk for sharing directly.
+build-android-apk-prod:
+  extends: [.build-mobile, .rules-frontend-main]
+  variables:
+    EAS_PROFILE: production-apk
+    EAS_PLATFORM: android
   needs:
     - job: test-frontend
       optional: true
