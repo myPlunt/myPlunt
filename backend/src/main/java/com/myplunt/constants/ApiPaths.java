@@ -87,6 +87,16 @@ public final class ApiPaths {
         private Friends() {}
     }
 
+    public static final class CareRequests {
+        public static final String BASE = "/v1/care-requests";
+        // Keyed by who asked, like friend requests: there's only ever one live request between two people.
+        public static final String ACCEPT = BASE + "/{userId}/accept";
+        public static final String DECLINE = BASE + "/{userId}/decline";
+        public static final String CANCEL = BASE + "/{userId}/cancel";
+
+        private CareRequests() {}
+    }
+
     public static final class Garden {
         public static final String BASE = "/v1/garden";
 
