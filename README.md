@@ -58,6 +58,16 @@ cd admin_dashboard && npm run dev
 
 Local admin login: `admin@myplunt.dev` / `dev-admin-password`.
 
+### Sample accounts
+
+The seed data (local and staging) includes these accounts. Every password is `password123`.
+
+| Account | Email | Set up as |
+| --- | --- | --- |
+| Alice | `alice@example.com` | Friends with Bob and gardener. Plants: Lily and Spike (1 day overdue), Pip (due tomorrow), George the Monstera (due in 6 days, plant-sat by Bob), Zed and Aloe Blacc (due in 10 days) |
+| Bob | `bob@example.com` | Friends with Alice. Pending friend request to Greg. Plant-sitting Alice's George; has posted on George |
+| Greg | `greg@example.com` | No friends; incoming request from Bob. Only a dead plant |
+
 ## Roadmap
 
 - A community "cemetery" for plants that die

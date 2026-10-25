@@ -11,6 +11,10 @@ export function sendWeatherAlerts(): Promise<void> {
   return apiAction('/v1/admin/jobs/send-weather-alerts', 'POST')
 }
 
+export function skipDay(): Promise<void> {
+  return apiAction('/v1/admin/jobs/skip-day', 'POST')
+}
+
 export function previewWeather(condition: 'rain' | 'wind' | 'snow'): Promise<void> {
   return apiAction(`/v1/admin/jobs/preview-${condition}`, 'POST')
 }

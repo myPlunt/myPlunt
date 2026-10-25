@@ -118,13 +118,22 @@ public class PushNotificationService {
     }
 
     public void sendWateringReminders(Instant now) {
+        sendWateringReminders(now, zone -> now.atZone(zone).getHour() == REMINDER_HOUR);
+    }
+
+    // A staging dashboard job: shows the reminder on a phone without waiting for 9:00.
+    public void sendWateringRemindersToEveryone() {
+        sendWateringReminders(Instant.now(), zone -> true);
+    }
+
+    private void sendWateringReminders(Instant now, Predicate<ZoneId> isTime) {
         List<ExpoPushMessage> messages = new ArrayList<>();
         // A user with two phones gets the reminder on both, but it's in their list once.
         Set<UUID> listed = new HashSet<>();
         Set<String> listedSitting = new HashSet<>();
         for (PushToken pushToken : pushTokenRepository.findAll()) {
             ZoneId zone = ZoneId.of(pushToken.getTimeZone());
-            if (now.atZone(zone).getHour() != REMINDER_HOUR || !wantsWateringReminders(pushToken.getUserId())) {
+            if (!isTime.test(zone) || !wantsWateringReminders(pushToken.getUserId())) {
                 continue;
             }
             List<String> names = plantsDueToday(pushToken.getUserId(), zone, now);
