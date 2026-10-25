@@ -149,6 +149,16 @@ workflow:
     - npx --yes eas-cli@latest submit --platform ios --profile "$EAS_PROFILE" --non-interactive --latest --no-wait
 
 # TEST STAGE
+mr-check:
+  stage: test
+  image: alpine
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - echo ok
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
 test-frontend:
   extends: [.node, .rules-frontend]
   stage: test
@@ -367,7 +377,6 @@ submit-ios-staging:
   environment:
     name: staging
   needs: ["build-ios-staging"]
-  when: manual
 
 submit-ios-prod:
   extends: [.submit-mobile, .rules-frontend-main]
@@ -376,4 +385,3 @@ submit-ios-prod:
   environment:
     name: production
   needs: ["build-ios-prod"]
-  when: manual
