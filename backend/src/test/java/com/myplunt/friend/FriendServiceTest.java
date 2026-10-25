@@ -36,6 +36,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -291,6 +292,49 @@ class FriendServiceTest {
                     .hasMessage("You're not friends with this user");
         }
         verifyNoInteractions(gardenService, plantService, speciesService, postService);
+    }
+
+    @Test
+    void search_saysHowEachResultRelatesToTheSearcher() {
+        User friend = userAt("friend", null, null, null);
+        User asked = userAt("asked", null, null, null);
+        User asker = userAt("asker", null, null, null);
+        User stranger = userAt("stranger", null, null, null);
+        Friendship accepted = new Friendship(friend.getId(), janeId);
+        ReflectionTestUtils.setField(accepted, "status", Friendship.ACCEPTED);
+        when(userService.searchUsers(janeId, "a")).thenReturn(List.of(friend, asked, asker, stranger));
+        when(friendshipRepository.findBetween(
+                        janeId, List.of(friend.getId(), asked.getId(), asker.getId(), stranger.getId())))
+                .thenReturn(List.of(
+                        accepted,
+                        new Friendship(janeId, asked.getId()),
+                        new Friendship(asker.getId(), janeId)));
+        when(userService.toSummary(any(), any())).thenAnswer(call -> {
+            User user = call.getArgument(0);
+            return new UserSummaryResponse(user.getId(), user.getUsername(), null, null, call.getArgument(1));
+        });
+
+        assertThat(friendService().search(janeId, "a"))
+                .extracting(UserSummaryResponse::friendship)
+                .containsExactly("friends", "request_sent", "request_received", null);
+    }
+
+    @Test
+    void search_skipsTheFriendshipLookupWhenNobodyMatches() {
+        when(userService.searchUsers(janeId, "zz")).thenReturn(List.of());
+
+        assertThat(friendService().search(janeId, "zz")).isEmpty();
+        verifyNoInteractions(friendshipRepository);
+    }
+
+    @Test
+    void getSummary_returnsTheUserAndHowTheyRelateToTheViewer() {
+        tomExists();
+        UserSummaryResponse tomSummary = new UserSummaryResponse(tomId, "tom", null, null, "request_received");
+        when(friendshipRepository.findBetween(janeId, List.of(tomId))).thenReturn(List.of(new Friendship(tomId, janeId)));
+        when(userService.toSummary(any(), eq("request_received"))).thenReturn(tomSummary);
+
+        assertThat(friendService().getSummary(janeId, tomId)).isEqualTo(tomSummary);
     }
 
     @Test

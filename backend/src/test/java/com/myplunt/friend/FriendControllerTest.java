@@ -70,6 +70,35 @@ class FriendControllerTest {
     }
 
     @Test
+    void search_returnsTheMatchingUsersWithoutTheirEmail() {
+        UUID janeId = authenticateAsJane();
+        List<UserSummaryResponse> users = List.of(new UserSummaryResponse(UUID.randomUUID(), "jane_doe", "Fern collector", null, null));
+        when(friendService.search(janeId, "jan")).thenReturn(users);
+
+        restTestClient.get().uri("/v1/users/search?q=jan")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(new ParameterizedTypeReference<List<UserSummaryResponse>>() {})
+                .isEqualTo(users);
+    }
+
+    @Test
+    void user_returnsAnotherUserForTheSignedInViewer() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+        UserSummaryResponse tom = new UserSummaryResponse(tomId, "tom", null, null, "friends");
+        when(friendService.getSummary(janeId, tomId)).thenReturn(tom);
+
+        restTestClient.get().uri("/v1/users/" + tomId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(UserSummaryResponse.class)
+                .isEqualTo(tom);
+    }
+
+    @Test
     void sendRequest_sendsItFromTheSignedInUser() {
         UUID janeId = authenticateAsJane();
         UUID tomId = UUID.randomUUID();

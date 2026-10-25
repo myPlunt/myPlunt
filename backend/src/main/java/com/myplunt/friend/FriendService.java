@@ -28,7 +28,10 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class FriendService {
@@ -59,6 +62,41 @@ public class FriendService {
         this.postService = postService;
         this.pushNotificationService = pushNotificationService;
         this.auditLog = auditLog;
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserSummaryResponse> search(UUID searcherId, String query) {
+        List<User> users = userService.searchUsers(searcherId, query);
+        if (users.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, Friendship> friendships = friendshipRepository
+                .findBetween(searcherId, users.stream().map(User::getId).toList())
+                .stream()
+                .collect(Collectors.toMap(
+                        f -> f.getRequesterId().equals(searcherId) ? f.getReceiverId() : f.getRequesterId(),
+                        Function.identity()));
+        return users.stream()
+                .map(user -> userService.toSummary(user, friendship(friendships.get(user.getId()), searcherId)))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public UserSummaryResponse getSummary(UUID viewerId, UUID userId) {
+        User user = userService.loadUser(userId);
+        List<Friendship> friendship = friendshipRepository.findBetween(viewerId, List.of(userId));
+        return userService.toSummary(user, friendship(friendship.isEmpty() ? null : friendship.getFirst(), viewerId));
+    }
+
+    // Declining deletes the row, so only "blocked" (not used yet) would read as a pending request here.
+    private static String friendship(Friendship friendship, UUID viewerId) {
+        if (friendship == null) {
+            return null;
+        }
+        if (Friendship.ACCEPTED.equals(friendship.getStatus())) {
+            return "friends";
+        }
+        return friendship.getRequesterId().equals(viewerId) ? "request_sent" : "request_received";
     }
 
     @Transactional(readOnly = true)
@@ -156,16 +194,25 @@ public class FriendService {
         return postService.getUserPosts(userId, friendId);
     }
 
+    @Transactional(readOnly = true)
+    public boolean areFriends(UUID userId, UUID otherId) {
+        return findAcceptedFriendship(userId, otherId).isPresent();
+    }
+
     // Strangers and pending requests get the same 404 as an unknown user, so it doesn't tell them who exists.
     private void requireFriends(UUID userId, UUID otherId) {
         acceptedFriendship(userId, otherId);
     }
 
     private Friendship acceptedFriendship(UUID userId, UUID otherId) {
+        return findAcceptedFriendship(userId, otherId)
+                .orElseThrow(() -> new NotFoundException("You're not friends with this user"));
+    }
+
+    private Optional<Friendship> findAcceptedFriendship(UUID userId, UUID otherId) {
         return friendshipRepository.findBetween(userId, List.of(otherId)).stream()
                 .filter(f -> Friendship.ACCEPTED.equals(f.getStatus()))
-                .findFirst()
-                .orElseThrow(() -> new NotFoundException("You're not friends with this user"));
+                .findFirst();
     }
 
     // Looked up by direction, so accept/decline can't touch the user's own request and cancel can't touch one they received.

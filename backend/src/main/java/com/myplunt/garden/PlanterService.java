@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -57,8 +58,11 @@ public class PlanterService {
         auditLog.recorded(AuditEvent.PLANTER_DELETED, ownerId, ownerId, Map.of("planter_id", planterId));
     }
 
+    public Optional<Planter> findPlanter(UUID ownerId, UUID planterId) {
+        return planterRepository.findByIdAndOwnerId(planterId, ownerId);
+    }
+
     private Planter findOwnPlanter(UUID ownerId, UUID planterId) {
-        return planterRepository.findByIdAndOwnerId(planterId, ownerId)
-                .orElseThrow(() -> new NotFoundException("Planter not found"));
+        return findPlanter(ownerId, planterId).orElseThrow(() -> new NotFoundException("Planter not found"));
     }
 }

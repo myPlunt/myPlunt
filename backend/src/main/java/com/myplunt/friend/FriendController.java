@@ -35,6 +35,17 @@ public class FriendController {
         this.friendService = friendService;
     }
 
+    @GetMapping(ApiPaths.Users.SEARCH)
+    public List<UserSummaryResponse> search(
+            @AuthenticationPrincipal User principal, @RequestParam(defaultValue = "") String q) {
+        return friendService.search(principal.getId(), q);
+    }
+
+    @GetMapping(ApiPaths.Users.BY_ID)
+    public UserSummaryResponse user(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
+        return friendService.getSummary(principal.getId(), userId);
+    }
+
     @PostMapping(ApiPaths.Friends.REQUESTS)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void sendRequest(@AuthenticationPrincipal User principal, @Valid @RequestBody SendFriendRequest request) {

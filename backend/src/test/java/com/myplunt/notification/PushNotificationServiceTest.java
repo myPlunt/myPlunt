@@ -1,18 +1,15 @@
 package com.myplunt.notification;
 
-import com.myplunt.care.CareDelegationRepository;
+import com.myplunt.care.CareDelegationService;
 import com.myplunt.notification.dto.NotificationResponse;
 import com.myplunt.notification.dto.PushTokenRequest;
-import com.myplunt.plant.LastWatering;
 import com.myplunt.plant.Plant;
-import com.myplunt.plant.PlantRepository;
-import com.myplunt.plant.WateringLogRepository;
+import com.myplunt.plant.PlantService;
+import com.myplunt.plant.SitterWateredEvent;
 import com.myplunt.post.Post;
-import com.myplunt.storage.StorageService;
 import com.myplunt.user.User;
-import com.myplunt.user.UserRepository;
-import com.myplunt.user.UserSettings;
-import com.myplunt.user.UserSettingsRepository;
+import com.myplunt.user.UserService;
+import com.myplunt.user.dto.NotificationSettings;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -24,6 +21,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,31 +40,27 @@ class PushNotificationServiceTest {
     // 9:00 in Amsterdam (CEST, UTC+2).
     private static final Instant NINE_IN_AMSTERDAM = Instant.parse("2026-10-21T07:00:00Z");
     private static final UUID USER_ID = UUID.randomUUID();
+    private static final NotificationSettings ALL_ON = new NotificationSettings(true, true, true, true, true, true);
 
     @Mock
     private PushTokenRepository pushTokenRepository;
     @Mock
-    private UserSettingsRepository userSettingsRepository;
-    @Mock
-    private PlantRepository plantRepository;
-    @Mock
-    private WateringLogRepository wateringLogRepository;
-    @Mock
-    private UserRepository userRepository;
-    @Mock
     private NotificationRepository notificationRepository;
     @Mock
-    private StorageService storageService;
+    private UserService userService;
+    @Mock
+    private PlantService plantService;
     @Mock
     private ExpoPushClient expoPushClient;
     @Mock
     private OpenWeatherClient openWeatherClient;
     @Mock
-    private CareDelegationRepository careDelegationRepository;
+    private CareDelegationService careDelegationService;
 
     private PushNotificationService service() {
         return new PushNotificationService(
-                pushTokenRepository, userSettingsRepository, plantRepository, wateringLogRepository, userRepository, notificationRepository, storageService, expoPushClient, openWeatherClient, careDelegationRepository);
+                pushTokenRepository, notificationRepository, userService, plantService, expoPushClient, openWeatherClient,
+                careDelegationService);
     }
 
     // On a 3-day schedule (the owner's own).
@@ -78,8 +72,8 @@ class PushNotificationServiceTest {
         return plant;
     }
 
-    private LastWatering watered(Plant plant, int daysAgo) {
-        return new LastWatering(plant.getId(), NINE_IN_AMSTERDAM.minus(Duration.ofDays(daysAgo)));
+    private static Instant daysAgo(int days) {
+        return NINE_IN_AMSTERDAM.minus(Duration.ofDays(days));
     }
 
     // Two phones get the reminder, but it's listed once.
@@ -92,11 +86,10 @@ class PushNotificationServiceTest {
                 .thenReturn(List.of(
                         new PushToken("ExponentPushToken[a]", USER_ID, "Europe/Amsterdam"),
                         new PushToken("ExponentPushToken[b]", USER_ID, "Europe/Amsterdam")));
-        when(userSettingsRepository.findById(USER_ID)).thenReturn(Optional.empty());
-        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(USER_ID))
-                .thenReturn(List.of(dueToday, overdue, dueTomorrow));
-        when(wateringLogRepository.findLastWateredAt(anyList()))
-                .thenReturn(List.of(watered(dueToday, 3), watered(overdue, 5), watered(dueTomorrow, 2)));
+        when(userService.notificationSettings(USER_ID)).thenReturn(ALL_ON);
+        when(plantService.getLivingPlants(USER_ID)).thenReturn(List.of(dueToday, overdue, dueTomorrow));
+        when(plantService.getLastWateredAt(anyList()))
+                .thenReturn(Map.of(dueToday.getId(), daysAgo(3), overdue.getId(), daysAgo(5), dueTomorrow.getId(), daysAgo(2)));
 
         service().sendWateringReminders(NINE_IN_AMSTERDAM);
 
@@ -109,17 +102,15 @@ class PushNotificationServiceTest {
     @Test
     void sendWateringReminders_skipsPhonesWhereItIsNotNineAndUsersWhoTurnedRemindersOff() {
         UUID otherUser = UUID.randomUUID();
-        UserSettings off = new UserSettings(USER_ID);
-        off.setWateringReminders(false);
         when(pushTokenRepository.findAll()).thenReturn(List.of(
                 new PushToken("ExponentPushToken[a]", USER_ID, "Europe/Amsterdam"),
                 // 8:00 in London at the same moment.
                 new PushToken("ExponentPushToken[b]", otherUser, "Europe/London")));
-        when(userSettingsRepository.findById(USER_ID)).thenReturn(Optional.of(off));
+        when(userService.notificationSettings(USER_ID)).thenReturn(new NotificationSettings(false, true, true, true, true, true));
 
         service().sendWateringReminders(NINE_IN_AMSTERDAM);
 
-        verify(plantRepository, never()).findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(any());
+        verify(plantService, never()).getLivingPlants(any());
         verify(expoPushClient, never()).send(anyList());
     }
 
@@ -137,10 +128,10 @@ class PushNotificationServiceTest {
         when(pushTokenRepository.findAll()).thenReturn(List.of(
                 new PushToken("ExponentPushToken[a]", USER_ID, "Europe/Amsterdam"),
                 new PushToken("ExponentPushToken[b]", neighbour, "Europe/Amsterdam")));
-        when(userSettingsRepository.findById(any())).thenReturn(Optional.empty());
-        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(any())).thenReturn(List.of(plant("Monty")));
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(userRepository.findById(neighbour)).thenReturn(Optional.of(other));
+        when(userService.notificationSettings(any())).thenReturn(ALL_ON);
+        when(plantService.getLivingPlants(any())).thenReturn(List.of(plant("Monty")));
+        when(userService.findUser(USER_ID)).thenReturn(Optional.of(user));
+        when(userService.findUser(neighbour)).thenReturn(Optional.of(other));
         when(openWeatherClient.next24Hours(52.22, 6.89)).thenReturn(new OpenWeatherClient.Forecast(-1.4, 6, 12));
 
         service().sendWeatherAlerts(NINE_IN_AMSTERDAM);
@@ -169,7 +160,7 @@ class PushNotificationServiceTest {
         when(pushTokenRepository.findByUserId(USER_ID)).thenReturn(List.of(
                 new PushToken("ExponentPushToken[phone]", USER_ID, "Europe/Amsterdam"),
                 new PushToken("ExponentPushToken[tablet]", USER_ID, "Europe/Amsterdam")));
-        when(userRepository.findById(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
+        when(userService.findUser(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
 
         service().sendFriendRequest(janeId, USER_ID);
 
@@ -182,7 +173,8 @@ class PushNotificationServiceTest {
     @Test
     void sendCareRequest_tellsTheSitterWhoAskedAndForHowLong() {
         UUID rafaelId = UUID.randomUUID();
-        when(userRepository.findById(rafaelId)).thenReturn(Optional.of(new User("rafael", "rafael@example.com", "hashed")));
+        when(userService.notificationSettings(USER_ID)).thenReturn(ALL_ON);
+        when(userService.findUser(rafaelId)).thenReturn(Optional.of(new User("rafael", "rafael@example.com", "hashed")));
         when(pushTokenRepository.findByUserId(USER_ID)).thenReturn(List.of());
 
         service().sendCareRequest(rafaelId, USER_ID, 9);
@@ -197,13 +189,14 @@ class PushNotificationServiceTest {
     @Test
     void sendSitterWatered_tellsTheOwnerOnceForARoundOfWatering() {
         UUID sitterId = UUID.randomUUID();
-        when(userRepository.findById(sitterId)).thenReturn(Optional.of(new User("gardener", "gardener@example.com", "hashed")));
+        when(userService.notificationSettings(USER_ID)).thenReturn(ALL_ON);
+        when(userService.findUser(sitterId)).thenReturn(Optional.of(new User("gardener", "gardener@example.com", "hashed")));
         when(pushTokenRepository.findByUserId(USER_ID)).thenReturn(List.of());
         when(notificationRepository.existsByUserIdAndFromUserIdAndTitleAndCreatedAtAfter(eq(USER_ID), eq(sitterId), any(), any()))
                 .thenReturn(false, true);
 
-        service().sendSitterWatered(sitterId, USER_ID);
-        service().sendSitterWatered(sitterId, USER_ID);
+        service().sendSitterWatered(new SitterWateredEvent(sitterId, USER_ID));
+        service().sendSitterWatered(new SitterWateredEvent(sitterId, USER_ID));
 
         ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
         verify(notificationRepository).save(saved.capture());
@@ -213,7 +206,7 @@ class PushNotificationServiceTest {
     @Test
     void sendFriendRequest_listsTheRequestForAReceiverWithoutPush() {
         UUID janeId = UUID.randomUUID();
-        when(userRepository.findById(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
+        when(userService.findUser(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
         when(pushTokenRepository.findByUserId(USER_ID)).thenReturn(List.of());
 
         service().sendFriendRequest(janeId, USER_ID);
@@ -230,8 +223,9 @@ class PushNotificationServiceTest {
     @Test
     void sendPostComment_tellsTheAuthorTheirQuestionWasAnsweredAndOpensIt() {
         UUID janeId = UUID.randomUUID();
+        when(userService.notificationSettings(any())).thenReturn(ALL_ON);
         UUID postId = UUID.randomUUID();
-        when(userRepository.findById(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
+        when(userService.findUser(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
         when(pushTokenRepository.findByUserId(USER_ID))
                 .thenReturn(List.of(new PushToken("ExponentPushToken[phone]", USER_ID, "Europe/Amsterdam")));
 
@@ -248,7 +242,8 @@ class PushNotificationServiceTest {
     @Test
     void sendCommentReply_tellsEarlierCommentersButNotTheCommenter() {
         UUID janeId = UUID.randomUUID();
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(new User("emma", "emma@example.com", "hashed")));
+        when(userService.notificationSettings(any())).thenReturn(ALL_ON);
+        when(userService.findUser(USER_ID)).thenReturn(Optional.of(new User("emma", "emma@example.com", "hashed")));
 
         service().sendCommentReply(USER_ID, new PostNotice(UUID.randomUUID(), USER_ID, Post.NEW_PLANT, "Gus", null),
                 "Thanks!", List.of(janeId, USER_ID));
@@ -263,7 +258,8 @@ class PushNotificationServiceTest {
     @Test
     void sendPostWatered_saysWhichPhotoWasLiked() {
         UUID janeId = UUID.randomUUID();
-        when(userRepository.findById(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
+        when(userService.notificationSettings(any())).thenReturn(ALL_ON);
+        when(userService.findUser(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
 
         service().sendPostWatered(janeId, new PostNotice(UUID.randomUUID(), USER_ID, Post.NEW_PHOTO, "Gus the Fern", null));
 
@@ -275,9 +271,7 @@ class PushNotificationServiceTest {
 
     @Test
     void sendPostWatered_staysQuietWhenTheAuthorTurnedLikesAndCommentsOff() {
-        UserSettings settings = new UserSettings(USER_ID);
-        settings.setPostInteractions(false);
-        when(userSettingsRepository.findById(USER_ID)).thenReturn(Optional.of(settings));
+        when(userService.notificationSettings(USER_ID)).thenReturn(new NotificationSettings(true, true, true, true, false, true));
 
         service().sendPostWatered(UUID.randomUUID(), new PostNotice(UUID.randomUUID(), USER_ID, Post.NEW_PLANT, "Gus", null));
 
@@ -294,8 +288,8 @@ class PushNotificationServiceTest {
         when(notificationRepository.findByUserIdOrderByCreatedAtDesc(any(), any())).thenReturn(List.of(
                 new Notification(USER_ID, janeId, "New friend request 🌱", "jane wants to be friends.", "/friends?tab=requests"),
                 new Notification(USER_ID, null, "Monty is thirsty 💧", "Give Monty some water today.", "/garden")));
-        when(userRepository.findAllById(List.of(janeId))).thenReturn(List.of(jane));
-        when(storageService.createReadUrl("avatars/jane.jpg")).thenReturn("https://storage.test/jane.jpg");
+        when(userService.loadUsers(List.of(janeId))).thenReturn(List.of(jane));
+        when(userService.avatarUrl(jane)).thenReturn("https://storage.test/jane.jpg");
 
         List<NotificationResponse> inbox = service().getInbox(USER_ID);
 

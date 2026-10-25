@@ -1,11 +1,10 @@
 package com.myplunt.care;
 
 import com.myplunt.care.dto.SendCareRequest;
-import com.myplunt.friend.Friendship;
-import com.myplunt.friend.FriendshipRepository;
+import com.myplunt.friend.FriendService;
 import com.myplunt.notification.PushNotificationService;
 import com.myplunt.plant.Plant;
-import com.myplunt.plant.PlantRepository;
+import com.myplunt.plant.PlantService;
 import com.myplunt.user.User;
 import com.myplunt.user.UserService;
 import org.junit.jupiter.api.Test;
@@ -40,10 +39,10 @@ class CareRequestServiceTest {
     private CareDelegationRepository careDelegationRepository;
 
     @Mock
-    private FriendshipRepository friendshipRepository;
+    private FriendService friendService;
 
     @Mock
-    private PlantRepository plantRepository;
+    private PlantService plantService;
 
     @Mock
     private UserService userService;
@@ -57,13 +56,11 @@ class CareRequestServiceTest {
     private final Instant until = from.plus(Duration.ofDays(9));
 
     private CareRequestService service() {
-        return new CareRequestService(careDelegationRepository, friendshipRepository, plantRepository, userService, pushNotificationService);
+        return new CareRequestService(careDelegationRepository, friendService, plantService, userService, pushNotificationService);
     }
 
     private void friends() {
-        Friendship friendship = new Friendship(rafaelId, saraId);
-        friendship.accept();
-        when(friendshipRepository.findBetween(rafaelId, List.of(saraId))).thenReturn(List.of(friendship));
+        when(friendService.areFriends(rafaelId, saraId)).thenReturn(true);
     }
 
     private Plant plant(String name) {
@@ -76,7 +73,7 @@ class CareRequestServiceTest {
     @SuppressWarnings("unchecked")
     void send_savesAPendingRowPerPlantAndTellsTheSitterHowLong() {
         friends();
-        when(plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(rafaelId))
+        when(plantService.getLivingPlants(rafaelId))
                 .thenReturn(List.of(plant("Monstera"), plant("Fern")));
 
         service().send(rafaelId, new SendCareRequest(saraId, from, until));
@@ -115,7 +112,7 @@ class CareRequestServiceTest {
 
     @Test
     void send_rejectsSomeoneWhoIsNotAFriend() {
-        when(friendshipRepository.findBetween(rafaelId, List.of(saraId))).thenReturn(List.of());
+        when(friendService.areFriends(rafaelId, saraId)).thenReturn(false);
 
         assertThatThrownBy(() -> service().send(rafaelId, new SendCareRequest(saraId, from, until)))
                 .isInstanceOf(IllegalStateException.class);
