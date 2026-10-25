@@ -6,7 +6,7 @@ import com.myplunt.common.logging.AuditLog;
 import com.myplunt.common.logging.LogEvent;
 import com.myplunt.common.logging.StructuredLog;
 import com.myplunt.garden.Planter;
-import com.myplunt.garden.PlanterRepository;
+import com.myplunt.garden.PlanterService;
 import com.myplunt.plant.dto.AddPlantPhotoRequest;
 import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
@@ -18,13 +18,12 @@ import com.myplunt.plant.dto.WateringHistoryResponse;
 import com.myplunt.plant.dto.WateringLogResponse;
 import com.myplunt.plant.dto.WateringResponse;
 import com.myplunt.plant.dto.WateringStreakResponse;
-import com.myplunt.post.Post;
-import com.myplunt.post.PostRepository;
 import com.myplunt.species.Species;
-import com.myplunt.species.SpeciesRepository;
+import com.myplunt.species.SpeciesService;
 import com.myplunt.storage.StorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,30 +47,30 @@ public class PlantService {
 
     private final PlantRepository plantRepository;
     private final WateringLogRepository wateringLogRepository;
-    private final PlanterRepository planterRepository;
-    private final SpeciesRepository speciesRepository;
     private final PlantPhotoRepository plantPhotoRepository;
-    private final PostRepository postRepository;
+    private final PlanterService planterService;
+    private final SpeciesService speciesService;
     private final StorageService storageService;
     private final AuditLog auditLog;
+    private final ApplicationEventPublisher eventPublisher;
 
     public PlantService(
             PlantRepository plantRepository,
             WateringLogRepository wateringLogRepository,
-            PlanterRepository planterRepository,
-            SpeciesRepository speciesRepository,
             PlantPhotoRepository plantPhotoRepository,
-            PostRepository postRepository,
+            PlanterService planterService,
+            SpeciesService speciesService,
             StorageService storageService,
-            AuditLog auditLog) {
+            AuditLog auditLog,
+            ApplicationEventPublisher eventPublisher) {
         this.plantRepository = plantRepository;
         this.wateringLogRepository = wateringLogRepository;
-        this.planterRepository = planterRepository;
-        this.speciesRepository = speciesRepository;
         this.plantPhotoRepository = plantPhotoRepository;
-        this.postRepository = postRepository;
+        this.planterService = planterService;
+        this.speciesService = speciesService;
         this.storageService = storageService;
         this.auditLog = auditLog;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -98,7 +97,7 @@ public class PlantService {
         }
         boolean shareToFeed = Boolean.TRUE.equals(request.shareToFeed());
         if (shareToFeed) {
-            postRepository.save(new Post(ownerId, saved, Post.NEW_PLANT));
+            eventPublisher.publishEvent(new PlantSharedEvent(ownerId, saved));
         }
         Map<String, Object> details = new LinkedHashMap<>();
         details.put("plant_id", saved.getId());
@@ -276,7 +275,7 @@ public class PlantService {
         boolean shareToFeed = Boolean.TRUE.equals(request.shareToFeed());
         String comment = shareToFeed ? cleanNotes(request.comment()) : null;
         if (shareToFeed) {
-            postRepository.save(new Post(ownerId, saved, comment));
+            eventPublisher.publishEvent(new PlantPhotoSharedEvent(ownerId, saved, comment));
         }
         auditLog.recorded(AuditEvent.PLANT_PHOTO_ADDED, ownerId, ownerId, Map.of(
                 "plant_id", plantId,
@@ -400,21 +399,18 @@ public class PlantService {
     }
 
     private void requireOwnPlanter(UUID ownerId, UUID planterId) {
-        if (planterId != null && !planterRepository.existsByIdAndOwnerId(planterId, ownerId)) {
+        if (planterId != null && planterService.findPlanter(ownerId, planterId).isEmpty()) {
             throw new NotFoundException("Planter not found");
         }
     }
 
     private Species findApprovedSpecies(UUID speciesId) {
-        return speciesId == null
-                ? null
-                : speciesRepository.findByIdAndApprovedTrue(speciesId)
-                        .orElseThrow(() -> new NotFoundException("Species not found"));
+        return speciesId == null ? null : speciesService.findApproved(speciesId);
     }
 
     private void markDiscovered(UUID ownerId, Species species) {
         if (species != null) {
-            speciesRepository.markDiscovered(ownerId, species.getId());
+            speciesService.markDiscovered(ownerId, species.getId());
         }
     }
 
@@ -426,7 +422,7 @@ public class PlantService {
         Species species = plant.getSpecies();
         String planterName = plant.getPlanterId() == null
                 ? null
-                : planterRepository.findByIdAndOwnerId(plant.getPlanterId(), plant.getOwnerId())
+                : planterService.findPlanter(plant.getOwnerId(), plant.getPlanterId())
                         .map(Planter::getName)
                         .orElse(null);
         Instant lastWateredAt = getLastWateredAt(List.of(plant.getId())).get(plant.getId());

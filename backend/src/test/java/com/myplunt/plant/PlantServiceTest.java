@@ -4,7 +4,7 @@ import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.garden.Planter;
-import com.myplunt.garden.PlanterRepository;
+import com.myplunt.garden.PlanterService;
 import com.myplunt.plant.dto.AddPlantPhotoRequest;
 import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
@@ -15,10 +15,8 @@ import com.myplunt.plant.dto.UpdatePlantRequest;
 import com.myplunt.plant.dto.WateringHistoryResponse;
 import com.myplunt.plant.dto.WateringResponse;
 import com.myplunt.plant.dto.WateringStreakResponse;
-import com.myplunt.post.Post;
-import com.myplunt.post.PostRepository;
 import com.myplunt.species.Species;
-import com.myplunt.species.SpeciesRepository;
+import com.myplunt.species.SpeciesService;
 import com.myplunt.storage.StorageService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
@@ -58,22 +57,22 @@ class PlantServiceTest {
     private WateringLogRepository wateringLogRepository;
 
     @Mock
-    private PlanterRepository planterRepository;
-
-    @Mock
-    private SpeciesRepository speciesRepository;
-
-    @Mock
     private PlantPhotoRepository plantPhotoRepository;
 
     @Mock
-    private PostRepository postRepository;
+    private PlanterService planterService;
+
+    @Mock
+    private SpeciesService speciesService;
 
     @Mock
     private StorageService storageService;
 
     @Mock
     private AuditLog auditLog;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private final UUID userId = UUID.randomUUID();
     private final UUID plantId = UUID.randomUUID();
@@ -82,12 +81,12 @@ class PlantServiceTest {
         return new PlantService(
                 plantRepository,
                 wateringLogRepository,
-                planterRepository,
-                speciesRepository,
                 plantPhotoRepository,
-                postRepository,
+                planterService,
+                speciesService,
                 storageService,
-                auditLog);
+                auditLog,
+                eventPublisher);
     }
 
     private void saveAssignsId() {
@@ -110,26 +109,25 @@ class PlantServiceTest {
         verify(plantRepository).save(saved.capture());
         assertThat(saved.getValue().getOwnerId()).isEqualTo(userId);
         assertThat(saved.getValue().isAlive()).isTrue();
-        verify(postRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 
     @Test
-    void create_sharesANewPlantPostWhenTheOwnerAsks() {
+    void create_sharesThePlantWhenTheOwnerAsks() {
         saveAssignsId();
 
         plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, null, null, null, true));
 
-        ArgumentCaptor<Post> post = ArgumentCaptor.forClass(Post.class);
-        verify(postRepository).save(post.capture());
-        assertThat(post.getValue().getUserId()).isEqualTo(userId);
-        assertThat(post.getValue().getPlant().getId()).isEqualTo(plantId);
-        assertThat(post.getValue().getPostType()).isEqualTo(Post.NEW_PLANT);
+        ArgumentCaptor<PlantSharedEvent> event = ArgumentCaptor.forClass(PlantSharedEvent.class);
+        verify(eventPublisher).publishEvent(event.capture());
+        assertThat(event.getValue().ownerId()).isEqualTo(userId);
+        assertThat(event.getValue().plant().getId()).isEqualTo(plantId);
     }
 
     @Test
     void create_throwsNotFoundForAPlanterTheUserDoesNotOwn() {
         UUID planterId = UUID.randomUUID();
-        when(planterRepository.existsByIdAndOwnerId(planterId, userId)).thenReturn(false);
+        when(planterService.findPlanter(userId, planterId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> plantService().create(userId, new CreatePlantRequest("Vera", null, null, null, planterId, null, null, false)))
                 .isInstanceOf(NotFoundException.class)
@@ -142,7 +140,7 @@ class PlantServiceTest {
         UUID speciesId = UUID.randomUUID();
         Species monstera = new Species("Monstera", 7);
         ReflectionTestUtils.setField(monstera, "id", speciesId);
-        when(speciesRepository.findByIdAndApprovedTrue(speciesId)).thenReturn(Optional.of(monstera));
+        when(speciesService.findApproved(speciesId)).thenReturn(monstera);
         saveAssignsId();
 
         PlantResponse response =
@@ -152,7 +150,7 @@ class PlantServiceTest {
         ArgumentCaptor<Plant> saved = ArgumentCaptor.forClass(Plant.class);
         verify(plantRepository).save(saved.capture());
         assertThat(saved.getValue().getSpecies()).isSameAs(monstera);
-        verify(speciesRepository).markDiscovered(userId, speciesId);
+        verify(speciesService).markDiscovered(userId, speciesId);
     }
 
     @Test
@@ -199,7 +197,7 @@ class PlantServiceTest {
     private Species approvedSpecies(String name, Integer wateringFrequencyDays) {
         Species species = new Species(name, wateringFrequencyDays);
         ReflectionTestUtils.setField(species, "id", UUID.randomUUID());
-        when(speciesRepository.findByIdAndApprovedTrue(species.getId())).thenReturn(Optional.of(species));
+        when(speciesService.findApproved(species.getId())).thenReturn(species);
         return species;
     }
 
@@ -215,7 +213,7 @@ class PlantServiceTest {
         vera.setLight("bright_indirect");
         vera.setNotes("Found at a flea market");
         Instant wateredAt = Instant.parse("2026-10-07T08:00:00Z");
-        when(planterRepository.findByIdAndOwnerId(balcony.getId(), userId)).thenReturn(Optional.of(balcony));
+        when(planterService.findPlanter(userId, balcony.getId())).thenReturn(Optional.of(balcony));
         when(wateringLogRepository.findLastWateredAt(List.of(plantId))).thenReturn(List.of(new LastWatering(plantId, wateredAt)));
         when(plantPhotoRepository.findLatestPhotos(List.of(plantId)))
                 .thenReturn(List.of(new LatestPhoto(plantId, "plants/vera.jpg")));
@@ -255,7 +253,7 @@ class PlantServiceTest {
         vera.setWateringEveryDays(4);
         vera.setNotes("Old notes");
         UUID planterId = UUID.randomUUID();
-        when(planterRepository.existsByIdAndOwnerId(planterId, userId)).thenReturn(true);
+        when(planterService.findPlanter(userId, planterId)).thenReturn(Optional.of(new Planter(userId, "Balcony")));
         Species pothos = approvedSpecies("Pothos", 10);
         when(plantRepository.save(vera)).thenReturn(vera);
 
@@ -271,7 +269,7 @@ class PlantServiceTest {
         assertThat(details.name()).isEqualTo("Vera II");
         assertThat(details.speciesName()).isEqualTo("Pothos");
         assertThat(details.wateringFrequencyDays()).isEqualTo(9);
-        verify(speciesRepository).markDiscovered(userId, pothos.getId());
+        verify(speciesService).markDiscovered(userId, pothos.getId());
     }
 
     @Test
@@ -487,12 +485,12 @@ class PlantServiceTest {
         assertThat(response.takenAt()).isEqualTo(takenAt);
         // The comment belongs to the post, not the photo's own note.
         assertThat(response.caption()).isNull();
-        ArgumentCaptor<Post> post = ArgumentCaptor.forClass(Post.class);
-        verify(postRepository).save(post.capture());
-        assertThat(post.getValue().getPostType()).isEqualTo(Post.NEW_PHOTO);
-        assertThat(post.getValue().getPhoto().getPhotoKey()).isEqualTo(key);
-        assertThat(post.getValue().getPlant().getId()).isEqualTo(plantId);
-        assertThat(post.getValue().getBody()).isEqualTo("First split leaf!");
+        ArgumentCaptor<PlantPhotoSharedEvent> event = ArgumentCaptor.forClass(PlantPhotoSharedEvent.class);
+        verify(eventPublisher).publishEvent(event.capture());
+        assertThat(event.getValue().ownerId()).isEqualTo(userId);
+        assertThat(event.getValue().photo().getPhotoKey()).isEqualTo(key);
+        assertThat(event.getValue().photo().getPlant().getId()).isEqualTo(plantId);
+        assertThat(event.getValue().comment()).isEqualTo("First split leaf!");
     }
 
     @Test
@@ -506,7 +504,7 @@ class PlantServiceTest {
                 .isEqualTo(HttpStatus.CONFLICT);
         verify(storageService, never()).confirmUpload(any(), any());
         verify(plantPhotoRepository, never()).save(any());
-        verify(postRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 
     private PlantPhoto ownPhoto(Plant plant, UUID photoId, String key) {

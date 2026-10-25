@@ -29,6 +29,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class FriendService {
@@ -59,6 +61,41 @@ public class FriendService {
         this.postService = postService;
         this.pushNotificationService = pushNotificationService;
         this.auditLog = auditLog;
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserSummaryResponse> search(UUID searcherId, String query) {
+        List<User> users = userService.searchUsers(searcherId, query);
+        if (users.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, Friendship> friendships = friendshipRepository
+                .findBetween(searcherId, users.stream().map(User::getId).toList())
+                .stream()
+                .collect(Collectors.toMap(
+                        f -> f.getRequesterId().equals(searcherId) ? f.getReceiverId() : f.getRequesterId(),
+                        Function.identity()));
+        return users.stream()
+                .map(user -> userService.toSummary(user, friendship(friendships.get(user.getId()), searcherId)))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public UserSummaryResponse getSummary(UUID viewerId, UUID userId) {
+        User user = userService.loadUser(userId);
+        List<Friendship> friendship = friendshipRepository.findBetween(viewerId, List.of(userId));
+        return userService.toSummary(user, friendship(friendship.isEmpty() ? null : friendship.getFirst(), viewerId));
+    }
+
+    // Declining deletes the row, so only "blocked" (not used yet) would read as a pending request here.
+    private static String friendship(Friendship friendship, UUID viewerId) {
+        if (friendship == null) {
+            return null;
+        }
+        if (Friendship.ACCEPTED.equals(friendship.getStatus())) {
+            return "friends";
+        }
+        return friendship.getRequesterId().equals(viewerId) ? "request_sent" : "request_received";
     }
 
     @Transactional(readOnly = true)

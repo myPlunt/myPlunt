@@ -1,5 +1,6 @@
 package com.myplunt.species;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.species.dto.DiscoveredSpeciesResponse;
 import com.myplunt.species.dto.SpeciesResponse;
 import com.myplunt.storage.StorageService;
@@ -43,5 +44,27 @@ public class SpeciesService {
         return speciesRepository.findDiscoveredSpecies(userId).stream()
                 .map(discovered -> new DiscoveredSpeciesResponse(discovered.getSpeciesId(), discovered.getDiscoveredAt()))
                 .toList();
+    }
+
+    public Species findApproved(UUID speciesId) {
+        return speciesRepository.findByIdAndApprovedTrue(speciesId)
+                .orElseThrow(() -> new NotFoundException("Species not found"));
+    }
+
+    public void markDiscovered(UUID userId, UUID speciesId) {
+        speciesRepository.markDiscovered(userId, speciesId);
+    }
+
+    public List<Species> findPending() {
+        return speciesRepository.findPendingWithSubmitter();
+    }
+
+    public Species findPending(UUID speciesId) {
+        return speciesRepository.findByIdAndApprovedFalse(speciesId)
+                .orElseThrow(() -> new NotFoundException("Species not found"));
+    }
+
+    public void delete(Species species) {
+        speciesRepository.delete(species);
     }
 }

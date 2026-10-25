@@ -8,21 +8,15 @@ import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
-import com.myplunt.user.dto.UserSummaryResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-import java.util.UUID;
 
 @RestController
 public class UserController {
@@ -42,17 +36,6 @@ public class UserController {
     public UserResponse updateMe(
             @AuthenticationPrincipal User principal, @Valid @RequestBody UpdateProfileRequest request) {
         return userService.updateProfile(principal.getId(), request);
-    }
-
-    @GetMapping(ApiPaths.Users.SEARCH)
-    public List<UserSummaryResponse> search(
-            @AuthenticationPrincipal User principal, @RequestParam(defaultValue = "") String q) {
-        return userService.search(principal.getId(), q);
-    }
-
-    @GetMapping(ApiPaths.Users.BY_ID)
-    public UserSummaryResponse user(@AuthenticationPrincipal User principal, @PathVariable UUID userId) {
-        return userService.getSummary(principal.getId(), userId);
     }
 
     @PutMapping(ApiPaths.Users.ME_EMAIL)
