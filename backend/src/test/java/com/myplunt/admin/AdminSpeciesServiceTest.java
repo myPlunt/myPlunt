@@ -5,7 +5,7 @@ import com.myplunt.admin.dto.PendingSpeciesResponse;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.species.Species;
-import com.myplunt.species.SpeciesRepository;
+import com.myplunt.species.SpeciesService;
 import com.myplunt.storage.StorageService;
 import com.myplunt.user.User;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ import static org.mockito.Mockito.when;
 class AdminSpeciesServiceTest {
 
     @Mock
-    private SpeciesRepository speciesRepository;
+    private SpeciesService speciesService;
 
     @Mock
     private StorageService storageService;
@@ -44,7 +44,7 @@ class AdminSpeciesServiceTest {
     private final UUID adminId = UUID.randomUUID();
 
     private AdminSpeciesService service() {
-        return new AdminSpeciesService(speciesRepository, storageService, auditLog);
+        return new AdminSpeciesService(speciesService, storageService, auditLog);
     }
 
     private Species species(String commonName, String scientificName) {
@@ -65,7 +65,7 @@ class AdminSpeciesServiceTest {
         ReflectionTestUtils.setField(olive, "updatedAt", submittedAt);
         // Its submitter's account was deleted, and it has no picture.
         Species sage = species("Common sage", "Salvia officinalis");
-        when(speciesRepository.findPendingWithSubmitter()).thenReturn(List.of(olive, sage));
+        when(speciesService.findPending()).thenReturn(List.of(olive, sage));
         when(storageService.createReadUrl("species/olive/seed.jpg")).thenReturn("https://storage.test/olive");
 
         List<PendingSpeciesResponse> pending = service().getPendingSpecies();
@@ -83,7 +83,7 @@ class AdminSpeciesServiceTest {
         User submitter = new User("plantdad", "plantdad@example.com", "hashed");
         ReflectionTestUtils.setField(submitter, "id", UUID.randomUUID());
         ReflectionTestUtils.setField(olive, "submittedBy", submitter);
-        when(speciesRepository.findByIdAndApprovedFalse(olive.getId())).thenReturn(Optional.of(olive));
+        when(speciesService.findPending(olive.getId())).thenReturn(olive);
 
         service().approve(olive.getId(), adminId);
 
@@ -95,22 +95,22 @@ class AdminSpeciesServiceTest {
     @Test
     void reject_deletesThePendingSpeciesAndLogsIt() {
         Species olive = species("Olive tree", "Olea europaea");
-        when(speciesRepository.findByIdAndApprovedFalse(olive.getId())).thenReturn(Optional.of(olive));
+        when(speciesService.findPending(olive.getId())).thenReturn(olive);
 
         service().reject(olive.getId(), adminId);
 
-        verify(speciesRepository).delete(olive);
+        verify(speciesService).delete(olive);
         verify(auditLog).recorded(eq(AuditEvent.SPECIES_REJECTED), eq(null), eq(adminId), anyMap());
     }
 
     @Test
     void reject_throwsNotFoundForASpeciesThatIsNotPending() {
         UUID approvedId = UUID.randomUUID();
-        when(speciesRepository.findByIdAndApprovedFalse(approvedId)).thenReturn(Optional.empty());
+        when(speciesService.findPending(approvedId)).thenThrow(new NotFoundException("Species not found"));
 
         assertThatThrownBy(() -> service().reject(approvedId, adminId))
                 .isInstanceOf(NotFoundException.class);
-        verify(speciesRepository, never()).delete(any());
+        verify(speciesService, never()).delete(any());
         verify(auditLog, never()).recorded(any(), any(), any(), anyMap());
     }
 }

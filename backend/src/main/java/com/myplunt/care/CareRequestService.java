@@ -3,11 +3,10 @@ package com.myplunt.care;
 import com.myplunt.care.dto.CareRequestResponse;
 import com.myplunt.care.dto.CareRequestsResponse;
 import com.myplunt.care.dto.SendCareRequest;
-import com.myplunt.friend.Friendship;
-import com.myplunt.friend.FriendshipRepository;
+import com.myplunt.friend.FriendService;
 import com.myplunt.notification.PushNotificationService;
 import com.myplunt.plant.Plant;
-import com.myplunt.plant.PlantRepository;
+import com.myplunt.plant.PlantService;
 import com.myplunt.user.UserService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -29,20 +28,20 @@ public class CareRequestService {
     private static final List<String> LIVE = List.of(CareDelegation.PENDING, CareDelegation.ACTIVE);
 
     private final CareDelegationRepository careDelegationRepository;
-    private final FriendshipRepository friendshipRepository;
-    private final PlantRepository plantRepository;
+    private final FriendService friendService;
+    private final PlantService plantService;
     private final UserService userService;
     private final PushNotificationService pushNotificationService;
 
     public CareRequestService(
             CareDelegationRepository careDelegationRepository,
-            FriendshipRepository friendshipRepository,
-            PlantRepository plantRepository,
+            FriendService friendService,
+            PlantService plantService,
             UserService userService,
             PushNotificationService pushNotificationService) {
         this.careDelegationRepository = careDelegationRepository;
-        this.friendshipRepository = friendshipRepository;
-        this.plantRepository = plantRepository;
+        this.friendService = friendService;
+        this.plantService = plantService;
         this.userService = userService;
         this.pushNotificationService = pushNotificationService;
     }
@@ -60,9 +59,7 @@ public class CareRequestService {
         if (!request.until().isAfter(now)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pick dates that aren't in the past");
         }
-        boolean friends = friendshipRepository.findBetween(userId, List.of(sitterId)).stream()
-                .anyMatch(f -> Friendship.ACCEPTED.equals(f.getStatus()));
-        if (!friends) {
+        if (!friendService.areFriends(userId, sitterId)) {
             throw new IllegalStateException("You're not friends with this user");
         }
 
@@ -75,7 +72,7 @@ public class CareRequestService {
                     "You already asked " + userService.loadUser(d.getDelegatedTo()).getUsername() + ". Cancel that request first");
         });
 
-        List<Plant> plants = plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(userId);
+        List<Plant> plants = plantService.getLivingPlants(userId);
         if (plants.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Add a plant before asking for a plant sitter");
         }

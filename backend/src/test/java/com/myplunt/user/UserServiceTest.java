@@ -2,8 +2,6 @@ package com.myplunt.user;
 
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
-import com.myplunt.friend.Friendship;
-import com.myplunt.friend.FriendshipRepository;
 import com.myplunt.storage.StorageService;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.dto.ChangeEmailRequest;
@@ -13,13 +11,11 @@ import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
-import com.myplunt.user.dto.UserSummaryResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Limit;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -57,9 +53,6 @@ class UserServiceTest {
     private StorageService storageService;
 
     @Mock
-    private FriendshipRepository friendshipRepository;
-
-    @Mock
     private UserSettingsRepository userSettingsRepository;
 
     private final UUID id = UUID.randomUUID();
@@ -72,7 +65,7 @@ class UserServiceTest {
     }
 
     private UserService userService() {
-        return new UserService(userRepository, passwordEncoder, storageService, friendshipRepository, userSettingsRepository, auditLog);
+        return new UserService(userRepository, passwordEncoder, storageService, userSettingsRepository, auditLog);
     }
 
     @Test
@@ -227,48 +220,9 @@ class UserServiceTest {
     }
 
     @Test
-    void search_saysHowEachResultRelatesToTheSearcher() {
-        UUID searcherId = UUID.randomUUID();
-        User friend = user("friend");
-        User asked = user("asked");
-        User asker = user("asker");
-        User stranger = user("stranger");
-        Friendship accepted = new Friendship(friend.getId(), searcherId);
-        ReflectionTestUtils.setField(accepted, "status", Friendship.ACCEPTED);
-        when(userRepository.search("a", searcherId, Limit.of(20))).thenReturn(List.of(friend, asked, asker, stranger));
-        when(friendshipRepository.findBetween(
-                        searcherId, List.of(friend.getId(), asked.getId(), asker.getId(), stranger.getId())))
-                .thenReturn(List.of(
-                        accepted,
-                        new Friendship(searcherId, asked.getId()),
-                        new Friendship(asker.getId(), searcherId)));
-
-        assertThat(userService().search(searcherId, "a"))
-                .extracting(UserSummaryResponse::friendship)
-                .containsExactly("friends", "request_sent", "request_received", null);
-    }
-
-    @Test
-    void getSummary_returnsTheUserAndHowTheyRelateToTheViewer() {
-        UUID viewerId = UUID.randomUUID();
-        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
-        when(friendshipRepository.findBetween(viewerId, List.of(id)))
-                .thenReturn(List.of(new Friendship(id, viewerId)));
-
-        assertThat(userService().getSummary(viewerId, id))
-                .isEqualTo(new UserSummaryResponse(id, "jane", null, null, "request_received"));
-    }
-
-    private static User user(String username) {
-        User user = new User(username, username + "@example.com", "hashed");
-        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
-        return user;
-    }
-
-    @Test
-    void search_returnsNothingForABlankOrTooLongQuery() {
-        assertThat(userService().search(id, "  ")).isEmpty();
-        assertThat(userService().search(id, "a".repeat(31))).isEmpty();
+    void searchUsers_returnsNothingForABlankOrTooLongQuery() {
+        assertThat(userService().searchUsers(id, "  ")).isEmpty();
+        assertThat(userService().searchUsers(id, "a".repeat(31))).isEmpty();
         verifyNoInteractions(userRepository);
     }
 }

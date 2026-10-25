@@ -5,7 +5,7 @@ import com.myplunt.auth.dto.LoginRequest;
 import com.myplunt.auth.dto.RegisterRequest;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.user.User;
-import com.myplunt.user.UserRepository;
+import com.myplunt.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 class AuthServiceTest {
 
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
@@ -45,20 +45,18 @@ class AuthServiceTest {
     private AuditLog auditLog;
 
     private AuthService authService() {
-        return new AuthService(userRepository, refreshTokenRepository, passwordEncoder, jwtService, auditLog, 30);
+        return new AuthService(userService, refreshTokenRepository, passwordEncoder, jwtService, auditLog, 30);
     }
 
     @Test
     void register_savesUserAndIssuesTokens() {
-        when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.empty());
-        when(userRepository.findByUsername("jane")).thenReturn(Optional.empty());
+        when(userService.findByEmail("jane@example.com")).thenReturn(Optional.empty());
+        when(userService.findByUsername("jane")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("password123")).thenReturn("hashed");
         UUID userId = UUID.randomUUID();
-        when(userRepository.save(any())).thenAnswer(invocation -> {
-            User user = invocation.getArgument(0);
-            ReflectionTestUtils.setField(user, "id", userId);
-            return user;
-        });
+        User jane = new User("jane", "jane@example.com", "hashed");
+        ReflectionTestUtils.setField(jane, "id", userId);
+        when(userService.create("jane", "jane@example.com", "hashed")).thenReturn(jane);
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtService.generateAccessToken(any())).thenReturn("access-token");
 
@@ -70,7 +68,7 @@ class AuthServiceTest {
 
     @Test
     void register_throwsConflictWhenEmailAlreadyRegistered() {
-        when(userRepository.findByEmail("jane@example.com"))
+        when(userService.findByEmail("jane@example.com"))
                 .thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
 
         assertThatThrownBy(() -> authService().register(new RegisterRequest("jane2", "jane@example.com", "password123")))
@@ -78,7 +76,7 @@ class AuthServiceTest {
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.CONFLICT);
 
-        verify(userRepository, never()).save(any());
+        verify(userService, never()).create(any(), any(), any());
     }
 
     @Test
@@ -86,7 +84,7 @@ class AuthServiceTest {
         User user = new User("jane", "jane@example.com", "hashed");
         UUID userId = UUID.randomUUID();
         ReflectionTestUtils.setField(user, "id", userId);
-        when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
+        when(userService.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password123", "hashed")).thenReturn(true);
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtService.generateAccessToken(user)).thenReturn("access-token");
@@ -102,7 +100,7 @@ class AuthServiceTest {
         User user = new User("jane", "jane@example.com", "hashed");
         UUID userId = UUID.randomUUID();
         ReflectionTestUtils.setField(user, "id", userId);
-        when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
+        when(userService.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong", "hashed")).thenReturn(false);
 
         assertThatThrownBy(() -> authService().login(new LoginRequest("jane@example.com", "wrong")))

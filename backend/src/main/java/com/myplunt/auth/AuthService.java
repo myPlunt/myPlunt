@@ -6,7 +6,7 @@ import com.myplunt.auth.dto.RegisterRequest;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.user.User;
-import com.myplunt.user.UserRepository;
+import com.myplunt.user.UserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,7 +21,7 @@ import java.util.UUID;
 @Service
 public class AuthService {
 
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -29,13 +29,13 @@ public class AuthService {
     private final Duration refreshTokenTtl;
 
     public AuthService(
-            UserRepository userRepository,
+            UserService userService,
             RefreshTokenRepository refreshTokenRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             AuditLog auditLog,
             @Value("${app.jwt.refresh-token-ttl-days}") long refreshTokenTtlDays) {
-        this.userRepository = userRepository;
+        this.userService = userService;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -44,19 +44,18 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.email()).isPresent()) {
+        if (userService.findByEmail(request.email()).isPresent()) {
             auditLog.rejected(AuditEvent.REGISTRATION_REJECTED, null, "email_in_use",
                     Map.of("email", request.email()));
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
         }
-        if (userRepository.findByUsername(request.username()).isPresent()) {
+        if (userService.findByUsername(request.username()).isPresent()) {
             auditLog.rejected(AuditEvent.REGISTRATION_REJECTED, null, "username_taken",
                     Map.of("username", request.username()));
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already taken");
         }
 
-        User user = userRepository.save(new User(
-                request.username(), request.email(), passwordEncoder.encode(request.password())));
+        User user = userService.create(request.username(), request.email(), passwordEncoder.encode(request.password()));
         auditLog.recorded(AuditEvent.USER_REGISTERED, user.getId(), user.getId(),
                 Map.of("email", user.getEmail()));
 
@@ -64,7 +63,7 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.email()).orElse(null);
+        User user = userService.findByEmail(request.email()).orElse(null);
         if (user == null) {
             auditLog.rejected(AuditEvent.LOGIN_FAILED, null, "unknown_email",
                     Map.of("email", request.email()));

@@ -1,11 +1,11 @@
 package com.myplunt.admin;
 
-import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.admin.dto.PendingSpeciesResponse;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.species.Species;
-import com.myplunt.species.SpeciesRepository;
+import com.myplunt.species.SpeciesService;
+import com.myplunt.species.dto.SpeciesResponse;
 import com.myplunt.storage.StorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,19 +19,23 @@ import java.util.UUID;
 @Service
 public class AdminSpeciesService {
 
-    private final SpeciesRepository speciesRepository;
+    private final SpeciesService speciesService;
     private final StorageService storageService;
     private final AuditLog auditLog;
 
-    public AdminSpeciesService(SpeciesRepository speciesRepository, StorageService storageService, AuditLog auditLog) {
-        this.speciesRepository = speciesRepository;
+    public AdminSpeciesService(SpeciesService speciesService, StorageService storageService, AuditLog auditLog) {
+        this.speciesService = speciesService;
         this.storageService = storageService;
         this.auditLog = auditLog;
     }
 
+    public List<SpeciesResponse> getApprovedSpecies() {
+        return speciesService.getApprovedSpecies();
+    }
+
     @Transactional(readOnly = true)
     public List<PendingSpeciesResponse> getPendingSpecies() {
-        return speciesRepository.findPendingWithSubmitter().stream()
+        return speciesService.findPending().stream()
                 .map(species -> new PendingSpeciesResponse(
                         species.getId(),
                         species.getCommonName(),
@@ -47,7 +51,7 @@ public class AdminSpeciesService {
 
     @Transactional
     public void approve(UUID id, UUID adminId) {
-        Species species = findPending(id);
+        Species species = speciesService.findPending(id);
         species.approve();
         record(AuditEvent.SPECIES_APPROVED, species, adminId);
     }
@@ -55,8 +59,8 @@ public class AdminSpeciesService {
     // The picture stays in storage: seeded species share theirs across staging reseeds.
     @Transactional
     public void reject(UUID id, UUID adminId) {
-        Species species = findPending(id);
-        speciesRepository.delete(species);
+        Species species = speciesService.findPending(id);
+        speciesService.delete(species);
         record(AuditEvent.SPECIES_REJECTED, species, adminId);
     }
 
@@ -68,10 +72,5 @@ public class AdminSpeciesService {
         details.put("common_name", species.getCommonName());
         details.put("scientific_name", species.getScientificName());
         auditLog.recorded(event, submitterId, adminId, details);
-    }
-
-    private Species findPending(UUID id) {
-        return speciesRepository.findByIdAndApprovedFalse(id)
-                .orElseThrow(() -> new NotFoundException("Species not found"));
     }
 }
