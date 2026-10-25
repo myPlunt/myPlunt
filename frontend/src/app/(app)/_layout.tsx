@@ -1,5 +1,7 @@
 import { Stack } from 'expo-router';
+import { useEffect } from 'react';
 
+import { sendWaterings } from '@/features/garden/watering-outbox';
 import { useNotificationLinks } from '@/features/notifications/use-notification-links';
 import { usePushTokenRegistration } from '@/features/notifications/use-push-token-registration';
 import { useResumeTour } from '@/features/onboarding/use-resume-tour';
@@ -10,6 +12,9 @@ export default function AppLayout() {
   useResumeTour();
   usePushTokenRegistration();
   useNotificationLinks();
+  useEffect(() => {
+    sendWaterings();
+  }, []);
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
@@ -23,6 +28,7 @@ export default function AppLayout() {
       <Stack.Screen name="inbox" />
       <Stack.Screen name="edit-profile" />
       <Stack.Screen name="friends" />
+      <Stack.Screen name="plant-sitter" />
       <Stack.Screen name="user/[id]" />
       <Stack.Screen name="watering-calendar" />
       <Stack.Screen name="add" options={{ presentation: 'modal' }} />

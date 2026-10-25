@@ -20,6 +20,10 @@ export default {
       },
     },
     android: {
+      // Same as the iOS bundleIdentifier. Never change it after the first install: Android treats a new one as another app.
+      package: isStaging ? "com.myplunt.app.staging" : "com.myplunt.app",
+      // Firebase config for push notifications (FCM).
+      googleServicesFile: "./google-services.json",
       adaptiveIcon: {
         backgroundColor: SAND_DUNE,
         foregroundImage: "./assets/images/android-icon-foreground.png",

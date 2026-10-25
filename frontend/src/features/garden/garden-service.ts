@@ -9,8 +9,12 @@ export async function getGarden(userId?: string): Promise<Garden> {
   return apiFetch<Garden>(`${path}${timeZoneQuery()}`);
 }
 
-export async function waterPlant(plantId: string): Promise<void> {
+export async function waterPlant(plantId: string, wateredAt: string): Promise<void> {
   const requestId = createRequestId();
   logAction('watering_submitted', { requestId, context: { plant_id: plantId } });
-  return apiFetch<void>(`/v1/plants/${plantId}/waterings${timeZoneQuery()}`, { method: 'POST', requestId });
+  return apiFetch<void>(`/v1/plants/${plantId}/waterings${timeZoneQuery()}&wateredAt=${encodeURIComponent(wateredAt)}`, {
+    method: 'POST',
+    requestId,
+    idempotent: true,
+  });
 }

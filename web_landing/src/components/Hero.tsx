@@ -1,34 +1,12 @@
-import type { ComponentType, SVGProps } from 'react'
-import DropIcon from '../assets/icons/drop.svg?react'
-import KeyIcon from '../assets/icons/key.svg?react'
-import RainIcon from '../assets/icons/rain.svg?react'
+import keyNotification from '../assets/notifications/keynoti.jpg'
+import frostNotification from '../assets/notifications/snownoti.jpg'
+import waterNotification from '../assets/notifications/waternoti.jpg'
+import feedScreen from '../assets/screens/Feed.jpg'
+import pluntDexScreen from '../assets/screens/PluntDex.jpg'
 import LeafShape from './LeafShape'
+import NotificationShot from './NotificationShot'
 import PhoneMockup from './PhoneMockup'
 import StoreBadges from './StoreBadges'
-
-type NotificationCardProps = {
-  Icon: ComponentType<SVGProps<SVGSVGElement>>
-  iconBg: string
-  title: string
-  body: string
-  className: string
-}
-
-function NotificationCard({ Icon, iconBg, title, body, className }: NotificationCardProps) {
-  return (
-    <div
-      className={`absolute flex items-center gap-3 rounded-[18px] bg-white py-3.5 pr-5 pl-4 shadow-card ${className}`}
-    >
-      <div className={`flex size-10 shrink-0 items-center justify-center rounded-full text-white ${iconBg}`}>
-        <Icon width={22} height={22} />
-      </div>
-      <div className="flex w-[220px] flex-col gap-0.5">
-        <p className="text-[15px] font-semibold text-green">{title}</p>
-        <p className="text-[13px] leading-[1.4] text-ink">{body}</p>
-      </div>
-    </div>
-  )
-}
 
 function HeroVisual() {
   return (
@@ -37,29 +15,29 @@ function HeroVisual() {
         <LeafShape direction="right" tone="leaf" className="absolute top-[150px] left-[-50px] size-[350px] rotate-15" />
         <LeafShape direction="left" tone="leaf" className="absolute top-15 left-[320px] size-[400px] rotate-350" />
 
-        <PhoneMockup size={250} className="absolute top-[122px] left-[302px] rotate-6" />
-        <PhoneMockup size={290} className="absolute top-[30px] left-[120px]" />
+        <PhoneMockup size={250} screen={pluntDexScreen} className="absolute top-[122px] left-[302px] rotate-6" />
+        <PhoneMockup size={290} screen={feedScreen} className="absolute top-[30px] left-[120px]" />
 
-        <NotificationCard
-          Icon={DropIcon}
-          iconBg="bg-leaf"
-          title="Time to water"
-          body="Your Monstera is thirsty. It's been 7 days."
-          className="top-[200px] left-[20px]"
+        <NotificationShot
+          src={waterNotification}
+          alt="Time to water: Your Monstera is thirsty, it's been 7 days."
+          cropTop={28}
+          cropHeight={187}
+          className="absolute w-[250px] rounded-[18px] top-[160px] left-[20px]"
         />
-        <NotificationCard
-          Icon={RainIcon}
-          iconBg="bg-green"
-          title="Frost tonight"
-          body="Bring your Basil inside before 22:00."
-          className="top-[420px] left-[340px]"
+        <NotificationShot
+          src={frostNotification}
+          alt="Frost today: Bring your Basil inside today."
+          cropTop={28}
+          cropHeight={187}
+          className="absolute w-[250px] rounded-[18px] top-[380px] left-[320px]"
         />
-        <NotificationCard
-          Icon={KeyIcon}
-          iconBg="bg-soil"
-          title="Tom has the keys"
-          body="He's watering your plants while you're away."
-          className="top-[560px] left-[60px]"
+        <NotificationShot
+          src={keyNotification}
+          alt="Alisa has the keys: She just watered your plants while you're away."
+          cropTop={34}
+          cropHeight={224}
+          className="absolute w-[250px] rounded-[18px] top-[520px] left-[60px]"
         />
       </div>
     </div>

@@ -6,20 +6,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
+import { LinkCard } from '@/components/ui/link-card';
 import { RoomSection } from '@/features/garden/components/room-section';
 import { WaterDueCard } from '@/features/garden/components/water-due-card';
 import { WaterSelectionBar } from '@/features/garden/components/water-selection-bar';
 import { useGarden } from '@/features/garden/use-garden';
-import { useGardenActions } from '@/features/garden/use-garden-actions';
 import { plantsNeedingWater } from '@/features/garden/watering';
+import { queueWaterings } from '@/features/garden/watering-outbox';
 import { OnboardingCard } from '@/features/onboarding/components/onboarding-card';
 import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
+import { FriendGarden } from '@/features/plant-sitter/components/friend-garden';
+import { GardenSwitch } from '@/features/plant-sitter/components/garden-switch';
+import { useSitting } from '@/features/plant-sitter/use-sitting';
 import { EditPlanterDialog } from '@/features/planters/components/edit-planter-dialog';
 import { useTheme } from '@/hooks/use-theme';
-import { describeError } from '@/lib/auth/api-client';
-import type { Room } from '@/lib/garden/types';
-import { logFailedUi } from '@/lib/logger';
-import { useNetworkStore } from '@/stores/network-store';
+import type { GardenPlant, Room } from '@/lib/garden/types';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
 export function GardenScreen() {
@@ -31,41 +32,26 @@ export function GardenScreen() {
   const isWaterStep = step === 'water';
   const isTourStep = isPlantStep || isWaterStep;
   useTourBackLock(isTourStep);
-  const { waterPlants } = useGardenActions();
-  const { isOffline, explainOffline } = useNetworkStore();
   const [isWatering, setIsWatering] = useState(false);
-  const [waterError, setWaterError] = useState<string | null>(null);
   // The plants picked to water; null when the user isn't picking.
   const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const stay = useSitting();
+  const [showFriend, setShowFriend] = useState(false);
 
   const now = new Date();
   const due = garden ? plantsNeedingWater(garden, now) : [];
-  const allPlantIds = garden ? garden.rooms.flatMap((room) => room.plants.map((plant) => plant.id)) : [];
+  const allPlants = garden ? garden.rooms.flatMap((room) => room.plants) : [];
+  const allPlantIds = allPlants.map((plant) => plant.id);
   const hasPlants = allPlantIds.length > 0;
   const allSelected = selectedIds !== null && hasPlants && allPlantIds.every((id) => selectedIds.has(id));
 
-  /** Resolves to whether watering worked; on failure the error is shown and nothing is refreshed. */
-  async function water(plantIds: string[]) {
-    setWaterError(null);
+  async function water(plants: GardenPlant[]) {
     setIsWatering(true);
-    try {
-      await waterPlants(plantIds);
-      if (isWaterStep) next();
-      await refresh();
-      return true;
-    } catch (err) {
-      logFailedUi('watering_failed_ui', err, { plant_count: plantIds.length });
-      setWaterError(describeError(err));
-      return false;
-    } finally {
-      setIsWatering(false);
-    }
-  }
-
-  function startSelecting() {
-    setWaterError(null);
-    setSelectedIds(new Set());
+    await queueWaterings(plants);
+    if (isWaterStep) next();
+    await refresh();
+    setIsWatering(false);
   }
 
   function selectMany(plantIds: string[], selected: boolean) {
@@ -87,10 +73,9 @@ export function GardenScreen() {
   }
 
   async function waterSelected() {
-    // Stays in selection mode on failure, so the user can retry without picking again.
-    if (selectedIds && (await water([...selectedIds]))) {
-      setSelectedIds(null);
-    }
+    if (!selectedIds) return;
+    await water(allPlants.filter((plant) => selectedIds.has(plant.id)));
+    setSelectedIds(null);
   }
 
   return (
@@ -107,15 +92,16 @@ export function GardenScreen() {
                 onPress={() => selectMany(allPlantIds, !allSelected)}
               />
             ) : (
-              hasPlants && (
+              hasPlants &&
+              !(showFriend && stay) && (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Water plants"
-                  accessibilityHint={isOffline ? "Doesn't work offline" : 'Pick the plants you watered'}
-                  onPress={isOffline ? () => explainOffline('Watering') : startSelecting}
+                  accessibilityHint="Pick the plants you watered"
+                  onPress={() => setSelectedIds(new Set())}
                   className={`h-10 w-10 items-center justify-center rounded-full active:opacity-70 ${
                     isWaterStep ? 'border-2 border-primary' : ''
-                  } ${isOffline ? 'opacity-40' : ''}`}>
+                  }`}>
                   <SymbolView
                     name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
                     tintColor={theme.water}
@@ -130,7 +116,12 @@ export function GardenScreen() {
         <ScrollView
           // Room to scroll the garden out from under the tour card.
           contentContainerClassName={`w-full max-w-content grow gap-8 self-center px-6 pt-2 ${isTourStep ? 'pb-72' : 'pb-8'}`}>
-          {isLoading ? (
+          {stay && !selectedIds && (
+            <GardenSwitch friendName={stay.user.username} showFriend={showFriend} onChange={setShowFriend} />
+          )}
+          {showFriend && stay ? (
+            <FriendGarden stay={stay} />
+          ) : isLoading ? (
             <ActivityIndicator accessibilityLabel="Loading garden" color={theme.primary} className="mt-6" />
           ) : error ? (
             <View className="items-center gap-3">
@@ -150,12 +141,7 @@ export function GardenScreen() {
               <>
                 {/* Hidden while picking plants, so there's only one Water button on screen. */}
                 {due.length > 0 && !selectedIds && (
-                  <WaterDueCard
-                    plants={due}
-                    onWater={() => water(due.map((plant) => plant.id))}
-                    loading={isWatering}
-                    error={waterError}
-                  />
+                  <WaterDueCard plants={due} onWater={() => water(due)} loading={isWatering} />
                 )}
                 {/* Plants don't open during the tour's steps, which would leave them; picking still works. */}
                 <View className="gap-8" pointerEvents={isTourStep && !selectedIds ? 'none' : 'auto'}>
@@ -171,6 +157,13 @@ export function GardenScreen() {
                     />
                   ))}
                 </View>
+                {!selectedIds && !isTourStep && (
+                  <LinkCard
+                    title="Going away? Find a plant sitter"
+                    icon={{ ios: 'key.fill', android: 'key', web: 'key' }}
+                    onPress={() => router.push('/plant-sitter')}
+                  />
+                )}
               </>
             ))
           )}
@@ -195,7 +188,6 @@ export function GardenScreen() {
             onWater={waterSelected}
             onCancel={() => setSelectedIds(null)}
             loading={isWatering}
-            error={waterError}
           />
         )}
 

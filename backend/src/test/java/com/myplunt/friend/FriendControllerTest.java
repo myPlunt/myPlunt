@@ -1,5 +1,6 @@
 package com.myplunt.friend;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.friend.dto.FriendRequestsResponse;
@@ -66,6 +67,35 @@ class FriendControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .exchange();
+    }
+
+    @Test
+    void search_returnsTheMatchingUsersWithoutTheirEmail() {
+        UUID janeId = authenticateAsJane();
+        List<UserSummaryResponse> users = List.of(new UserSummaryResponse(UUID.randomUUID(), "jane_doe", "Fern collector", null, null));
+        when(friendService.search(janeId, "jan")).thenReturn(users);
+
+        restTestClient.get().uri("/v1/users/search?q=jan")
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(new ParameterizedTypeReference<List<UserSummaryResponse>>() {})
+                .isEqualTo(users);
+    }
+
+    @Test
+    void user_returnsAnotherUserForTheSignedInViewer() {
+        UUID janeId = authenticateAsJane();
+        UUID tomId = UUID.randomUUID();
+        UserSummaryResponse tom = new UserSummaryResponse(tomId, "tom", null, null, "friends");
+        when(friendService.getSummary(janeId, tomId)).thenReturn(tom);
+
+        restTestClient.get().uri("/v1/users/" + tomId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(UserSummaryResponse.class)
+                .isEqualTo(tom);
     }
 
     @Test
@@ -156,7 +186,7 @@ class FriendControllerTest {
     @Test
     void accept_returnsNotFoundWithoutARequest() {
         authenticateAsJane();
-        doThrow(new IllegalStateException("No pending friend request with this user"))
+        doThrow(new NotFoundException("No pending friend request with this user"))
                 .when(friendService).accept(any(), any());
 
         postAnswer("/v1/friends/requests/" + UUID.randomUUID() + "/accept").expectStatus().isNotFound();
@@ -225,7 +255,7 @@ class FriendControllerTest {
     void friendData_returnsNotFoundWhenNotFriends() {
         authenticateAsJane();
         UUID tomId = UUID.randomUUID();
-        IllegalStateException notFriends = new IllegalStateException("You're not friends with this user");
+        NotFoundException notFriends = new NotFoundException("You're not friends with this user");
         when(friendService.getFriendGarden(any(), any(), any())).thenThrow(notFriends);
         when(friendService.getFriendDiscoveredSpecies(any(), any())).thenThrow(notFriends);
         when(friendService.getFriendPosts(any(), any())).thenThrow(notFriends);

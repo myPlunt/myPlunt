@@ -24,7 +24,7 @@ const problems = [
 
 function Problem() {
   return (
-    <section id="why" className="scroll-mt-4 bg-paper">
+    <section id="why" className="scroll-mt-4 bg-sand">
       <div className="mx-auto flex max-w-page flex-col items-center gap-14 py-20 px-page lg:py-[120px]">
         <SectionHeader
           eyebrow="Why myPlunt"
@@ -36,7 +36,7 @@ function Problem() {
           {problems.map(({ title, body, Icon }) => (
             <article
               key={title}
-              className="flex flex-col items-start gap-4 rounded-3xl border-[1.5px] border-sand bg-white px-8 pt-8 pb-9"
+              className="flex flex-col items-start gap-4 rounded-3xl border-[1.5px] border-sand bg-cream px-8 pt-8 pb-9"
             >
               <div className="flex size-14 items-center justify-center rounded-2xl bg-cream text-soil">
                 <Icon width={28} height={28} />
