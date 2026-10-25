@@ -28,6 +28,7 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -193,16 +194,25 @@ public class FriendService {
         return postService.getUserPosts(userId, friendId);
     }
 
+    @Transactional(readOnly = true)
+    public boolean areFriends(UUID userId, UUID otherId) {
+        return findAcceptedFriendship(userId, otherId).isPresent();
+    }
+
     // Strangers and pending requests get the same 404 as an unknown user, so it doesn't tell them who exists.
     private void requireFriends(UUID userId, UUID otherId) {
         acceptedFriendship(userId, otherId);
     }
 
     private Friendship acceptedFriendship(UUID userId, UUID otherId) {
+        return findAcceptedFriendship(userId, otherId)
+                .orElseThrow(() -> new NotFoundException("You're not friends with this user"));
+    }
+
+    private Optional<Friendship> findAcceptedFriendship(UUID userId, UUID otherId) {
         return friendshipRepository.findBetween(userId, List.of(otherId)).stream()
                 .filter(f -> Friendship.ACCEPTED.equals(f.getStatus()))
-                .findFirst()
-                .orElseThrow(() -> new NotFoundException("You're not friends with this user"));
+                .findFirst();
     }
 
     // Looked up by direction, so accept/decline can't touch the user's own request and cancel can't touch one they received.

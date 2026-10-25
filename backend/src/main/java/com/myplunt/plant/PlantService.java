@@ -1,5 +1,6 @@
 package com.myplunt.plant;
 
+import com.myplunt.care.CareDelegationService;
 import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
@@ -53,6 +54,7 @@ public class PlantService {
     private final StorageService storageService;
     private final AuditLog auditLog;
     private final ApplicationEventPublisher eventPublisher;
+    private final CareDelegationService careDelegationService;
 
     public PlantService(
             PlantRepository plantRepository,
@@ -62,7 +64,8 @@ public class PlantService {
             SpeciesService speciesService,
             StorageService storageService,
             AuditLog auditLog,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            CareDelegationService careDelegationService) {
         this.plantRepository = plantRepository;
         this.wateringLogRepository = wateringLogRepository;
         this.plantPhotoRepository = plantPhotoRepository;
@@ -71,6 +74,7 @@ public class PlantService {
         this.storageService = storageService;
         this.auditLog = auditLog;
         this.eventPublisher = eventPublisher;
+        this.careDelegationService = careDelegationService;
     }
 
     @Transactional
@@ -196,7 +200,7 @@ public class PlantService {
 
     @Transactional
     public void water(UUID userId, UUID plantId, Instant wateredAt, ZoneId zone) {
-        Plant plant = findOwnPlant(userId, plantId);
+        Plant plant = findPlantToWater(userId, plantId);
         if (!plant.isAlive()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be watered");
         }
@@ -210,6 +214,9 @@ public class PlantService {
         }
         wateringLogRepository.save(new WateringLog(plant, userId, at));
         recordWatering(userId, plant, earlier, at, zone);
+        if (!plant.getOwnerId().equals(userId)) {
+            eventPublisher.publishEvent(new SitterWateredEvent(userId, plant.getOwnerId()));
+        }
     }
 
     private void recordWatering(UUID userId, Plant plant, List<Instant> earlier, Instant wateredAt, ZoneId zone) {
@@ -222,11 +229,11 @@ public class PlantService {
         all.sort(null);
         int streak = WateringConsistency.of(plant, all, zone, all.getLast()).currentStreak();
 
-        auditLog.recorded(AuditEvent.PLANT_WATERED, userId, userId, Map.of("plant_id", plant.getId(), "streak", streak));
+        auditLog.recorded(AuditEvent.PLANT_WATERED, plant.getOwnerId(), userId, Map.of("plant_id", plant.getId(), "streak", streak));
         // No changed_by: the streak broke as a consequence of the watering, not by the user's choice.
         // Only the newest watering can break it.
         if (wateredAt.equals(all.getLast()) && streakBefore > 0 && streak == 0) {
-            auditLog.recorded(AuditEvent.WATERING_STREAK_BROKEN, userId, null,
+            auditLog.recorded(AuditEvent.WATERING_STREAK_BROKEN, plant.getOwnerId(), null,
                     Map.of("plant_id", plant.getId(), "lost_streak", streakBefore));
         }
     }
@@ -391,6 +398,15 @@ public class PlantService {
                         "plant_id", plantId, "photo_key", key, "reason", e.getClass().getSimpleName()));
             }
         }
+    }
+
+    // A plant sitter may water (only water) a friend's plant while their stay hasn't ended.
+    private Plant findPlantToWater(UUID userId, UUID plantId) {
+        Plant plant = plantRepository.findById(plantId).orElseThrow(() -> new IllegalStateException("Plant not found"));
+        if (!plant.getOwnerId().equals(userId) && !careDelegationService.isSitting(plantId, userId)) {
+            throw new IllegalStateException("Plant not found");
+        }
+        return plant;
     }
 
     private Plant findOwnPlant(UUID ownerId, UUID plantId) {

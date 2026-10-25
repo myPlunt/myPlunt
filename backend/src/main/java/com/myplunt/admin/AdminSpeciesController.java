@@ -2,7 +2,6 @@ package com.myplunt.admin;
 
 import com.myplunt.admin.dto.PendingSpeciesResponse;
 import com.myplunt.constants.ApiPaths;
-import com.myplunt.species.SpeciesService;
 import com.myplunt.species.dto.SpeciesResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,16 +19,14 @@ import java.util.UUID;
 public class AdminSpeciesController {
 
     private final AdminSpeciesService adminSpeciesService;
-    private final SpeciesService speciesService;
 
-    public AdminSpeciesController(AdminSpeciesService adminSpeciesService, SpeciesService speciesService) {
+    public AdminSpeciesController(AdminSpeciesService adminSpeciesService) {
         this.adminSpeciesService = adminSpeciesService;
-        this.speciesService = speciesService;
     }
 
     @GetMapping(ApiPaths.Admin.SPECIES)
     public List<SpeciesResponse> approved() {
-        return speciesService.getApprovedSpecies();
+        return adminSpeciesService.getApprovedSpecies();
     }
 
     @GetMapping(ApiPaths.Admin.PENDING_SPECIES)

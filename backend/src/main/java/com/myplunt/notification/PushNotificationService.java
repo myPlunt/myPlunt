@@ -1,17 +1,20 @@
 package com.myplunt.notification;
 
+import com.myplunt.care.CareDelegationService;
 import com.myplunt.common.logging.LogEvent;
 import com.myplunt.common.logging.StructuredLog;
 import com.myplunt.notification.dto.NotificationResponse;
 import com.myplunt.notification.dto.PushTokenRequest;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantService;
+import com.myplunt.plant.SitterWateredEvent;
 import com.myplunt.plant.WateringSchedule;
 import com.myplunt.post.Post;
 import com.myplunt.user.User;
 import com.myplunt.user.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Limit;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
@@ -22,6 +25,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.DateTimeException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -48,11 +52,16 @@ public class PushNotificationService {
     static final String GARDEN_URL = "/garden";
     static final String FRIEND_REQUESTS_URL = "/friends?tab=requests";
     static final String POST_URL = "/post/";
+    static final String PLANT_SITTER_URL = "/plant-sitter";
 
     // A comment or question is quoted only this far, so it fits the banner (and notifications.body).
     static final int QUOTE_LENGTH = 100;
 
     static final int INBOX_SIZE = 50;
+
+    // A sitter waters plant by plant; one message per round is enough for the owner.
+    static final Duration SITTER_WATERED_QUIET = Duration.ofMinutes(15);
+    static final String SITTER_WATERED_TITLE = "Your plants got water 💧";
 
     // Weather alert thresholds in °C over the next 24 hours.
     static final double FROST_BELOW = 3;
@@ -66,6 +75,7 @@ public class PushNotificationService {
     private final PlantService plantService;
     private final ExpoPushClient expoPushClient;
     private final OpenWeatherClient openWeatherClient;
+    private final CareDelegationService careDelegationService;
 
     public PushNotificationService(
             PushTokenRepository pushTokenRepository,
@@ -73,13 +83,15 @@ public class PushNotificationService {
             UserService userService,
             PlantService plantService,
             ExpoPushClient expoPushClient,
-            OpenWeatherClient openWeatherClient) {
+            OpenWeatherClient openWeatherClient,
+            CareDelegationService careDelegationService) {
         this.pushTokenRepository = pushTokenRepository;
         this.notificationRepository = notificationRepository;
         this.userService = userService;
         this.plantService = plantService;
         this.expoPushClient = expoPushClient;
         this.openWeatherClient = openWeatherClient;
+        this.careDelegationService = careDelegationService;
     }
 
     public void registerToken(UUID userId, PushTokenRequest request) {
@@ -109,6 +121,7 @@ public class PushNotificationService {
         List<ExpoPushMessage> messages = new ArrayList<>();
         // A user with two phones gets the reminder on both, but it's in their list once.
         Set<UUID> listed = new HashSet<>();
+        Set<String> listedSitting = new HashSet<>();
         for (PushToken pushToken : pushTokenRepository.findAll()) {
             ZoneId zone = ZoneId.of(pushToken.getTimeZone());
             if (now.atZone(zone).getHour() != REMINDER_HOUR || !wantsWateringReminders(pushToken.getUserId())) {
@@ -121,6 +134,17 @@ public class PushNotificationService {
                 if (listed.add(pushToken.getUserId())) {
                     notificationRepository.save(new Notification(
                             pushToken.getUserId(), null, reminderTitle(names), reminderText(names), GARDEN_URL));
+                }
+            }
+            for (UUID ownerId : careDelegationService.sittingFor(pushToken.getUserId(), now)) {
+                List<String> due = plantsDueToday(ownerId, zone, now);
+                if (due.isEmpty()) {
+                    continue;
+                }
+                String title = username(ownerId) + "'s plants are thirsty 💧";
+                messages.add(new ExpoPushMessage(pushToken.getToken(), title, reminderText(due), GARDEN_URL));
+                if (listedSitting.add(pushToken.getUserId() + ":" + ownerId)) {
+                    notificationRepository.save(new Notification(pushToken.getUserId(), ownerId, title, reminderText(due), GARDEN_URL));
                 }
             }
         }
@@ -208,6 +232,57 @@ public class PushNotificationService {
     public void sendFriendRequest(UUID requesterId, UUID receiverId) {
         notify(receiverId, requesterId, "New friend request 🌱", username(requesterId) + " wants to be friends.",
                 FRIEND_REQUESTS_URL);
+    }
+
+    @Async
+    public void sendCareRequest(UUID requesterId, UUID sitterId, long days) {
+        if (!wantsPlantSitting(sitterId)) {
+            return;
+        }
+        notify(sitterId, requesterId, "Plant sitter request 🪴",
+                username(requesterId) + " asked you to look after their plants for " + days + (days == 1 ? " day." : " days."),
+                PLANT_SITTER_URL);
+    }
+
+    @Async
+    public void sendCareAnswer(UUID sitterId, UUID requesterId, boolean accepted) {
+        if (!wantsPlantSitting(requesterId)) {
+            return;
+        }
+        String who = username(sitterId);
+        notify(requesterId, sitterId, accepted ? "Plant sitter found 🪴" : "Plant sitter request declined",
+                accepted ? who + " will look after your plants while you're away." : who + " can't look after your plants this time.",
+                PLANT_SITTER_URL);
+    }
+
+    @Async
+    @EventListener
+    public void sendSitterWatered(SitterWateredEvent event) {
+        UUID sitterId = event.sitterId();
+        UUID ownerId = event.ownerId();
+        if (!wantsPlantSitting(ownerId) || notificationRepository.existsByUserIdAndFromUserIdAndTitleAndCreatedAtAfter(
+                ownerId, sitterId, SITTER_WATERED_TITLE, Instant.now().minus(SITTER_WATERED_QUIET))) {
+            return;
+        }
+        notify(ownerId, sitterId, SITTER_WATERED_TITLE, username(sitterId) + " watered your plants.", GARDEN_URL);
+    }
+
+    @Async
+    public void sendCareWithdrawn(UUID sitterId, UUID requesterId) {
+        if (!wantsPlantSitting(requesterId)) {
+            return;
+        }
+        notify(requesterId, sitterId, "Plant sitter cancelled",
+                username(sitterId) + " can't look after your plants anymore.", PLANT_SITTER_URL);
+    }
+
+    @Async
+    public void sendCareCancelled(UUID requesterId, UUID sitterId) {
+        if (!wantsPlantSitting(sitterId)) {
+            return;
+        }
+        notify(sitterId, requesterId, "Plant sitter request cancelled",
+                username(requesterId) + " doesn't need a plant sitter anymore.", PLANT_SITTER_URL);
     }
 
     @Async
@@ -300,6 +375,10 @@ public class PushNotificationService {
 
     private boolean wantsWeatherAlerts(UUID userId) {
         return userService.notificationSettings(userId).weatherAlerts();
+    }
+
+    private boolean wantsPlantSitting(UUID userId) {
+        return userService.notificationSettings(userId).plantSitting();
     }
 
     private boolean wantsPostInteractions(UUID userId) {

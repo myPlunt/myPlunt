@@ -5,6 +5,7 @@ import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesService;
+import com.myplunt.species.dto.SpeciesResponse;
 import com.myplunt.storage.StorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,10 @@ public class AdminSpeciesService {
         this.speciesService = speciesService;
         this.storageService = storageService;
         this.auditLog = auditLog;
+    }
+
+    public List<SpeciesResponse> getApprovedSpecies() {
+        return speciesService.getApprovedSpecies();
     }
 
     @Transactional(readOnly = true)

@@ -57,6 +57,20 @@ export interface Sitter {
   sameCity: boolean;
 }
 
+// user is who asked (received) or who was asked (sent). until is exclusive: the day after the last day away.
+export interface CareRequest {
+  user: UserSummary;
+  from: string;
+  until: string;
+  plantCount: number;
+  status: 'pending' | 'active';
+}
+
+export interface CareRequests {
+  received: CareRequest[];
+  sent: CareRequest[];
+}
+
 export interface FriendRequests {
   received: UserSummary[];
   sent: UserSummary[];

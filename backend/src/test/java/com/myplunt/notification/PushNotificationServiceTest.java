@@ -1,9 +1,11 @@
 package com.myplunt.notification;
 
+import com.myplunt.care.CareDelegationService;
 import com.myplunt.notification.dto.NotificationResponse;
 import com.myplunt.notification.dto.PushTokenRequest;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantService;
+import com.myplunt.plant.SitterWateredEvent;
 import com.myplunt.post.Post;
 import com.myplunt.user.User;
 import com.myplunt.user.UserService;
@@ -26,6 +28,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -51,10 +54,13 @@ class PushNotificationServiceTest {
     private ExpoPushClient expoPushClient;
     @Mock
     private OpenWeatherClient openWeatherClient;
+    @Mock
+    private CareDelegationService careDelegationService;
 
     private PushNotificationService service() {
         return new PushNotificationService(
-                pushTokenRepository, notificationRepository, userService, plantService, expoPushClient, openWeatherClient);
+                pushTokenRepository, notificationRepository, userService, plantService, expoPushClient, openWeatherClient,
+                careDelegationService);
     }
 
     // On a 3-day schedule (the owner's own).
@@ -162,6 +168,39 @@ class PushNotificationServiceTest {
                 new ExpoPushMessage("ExponentPushToken[phone]", "New friend request 🌱", "jane wants to be friends.", "/friends?tab=requests"),
                 new ExpoPushMessage("ExponentPushToken[tablet]", "New friend request 🌱", "jane wants to be friends.", "/friends?tab=requests")));
         verify(notificationRepository).save(any(Notification.class));
+    }
+
+    @Test
+    void sendCareRequest_tellsTheSitterWhoAskedAndForHowLong() {
+        UUID rafaelId = UUID.randomUUID();
+        when(userService.notificationSettings(USER_ID)).thenReturn(ALL_ON);
+        when(userService.findUser(rafaelId)).thenReturn(Optional.of(new User("rafael", "rafael@example.com", "hashed")));
+        when(pushTokenRepository.findByUserId(USER_ID)).thenReturn(List.of());
+
+        service().sendCareRequest(rafaelId, USER_ID, 9);
+
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(saved.capture());
+        assertThat(saved.getValue().getTitle()).isEqualTo("Plant sitter request 🪴");
+        assertThat(saved.getValue().getBody()).isEqualTo("rafael asked you to look after their plants for 9 days.");
+        assertThat(saved.getValue().getUrl()).isEqualTo("/plant-sitter");
+    }
+
+    @Test
+    void sendSitterWatered_tellsTheOwnerOnceForARoundOfWatering() {
+        UUID sitterId = UUID.randomUUID();
+        when(userService.notificationSettings(USER_ID)).thenReturn(ALL_ON);
+        when(userService.findUser(sitterId)).thenReturn(Optional.of(new User("gardener", "gardener@example.com", "hashed")));
+        when(pushTokenRepository.findByUserId(USER_ID)).thenReturn(List.of());
+        when(notificationRepository.existsByUserIdAndFromUserIdAndTitleAndCreatedAtAfter(eq(USER_ID), eq(sitterId), any(), any()))
+                .thenReturn(false, true);
+
+        service().sendSitterWatered(new SitterWateredEvent(sitterId, USER_ID));
+        service().sendSitterWatered(new SitterWateredEvent(sitterId, USER_ID));
+
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(saved.capture());
+        assertThat(saved.getValue().getBody()).isEqualTo("gardener watered your plants.");
     }
 
     @Test
