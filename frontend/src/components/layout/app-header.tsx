@@ -7,7 +7,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { StagingPill } from '@/components/ui/staging-pill';
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useNetworkStore } from '@/stores/network-store';
+import { offlineMessages, useNetworkStore, type OfflineReason } from '@/stores/network-store';
+
+import { offlineIcons } from './offline-notice';
 
 interface AppHeaderProps {
   showBack?: boolean;
@@ -49,9 +51,14 @@ export function LogoBackButton() {
 
 const EXPLANATION_MS = 4000;
 
+const explanations: Record<OfflineReason, string> = {
+  internet: "Your phone isn't connected to the internet. Your garden and plants still work, and waterings sync once you're back online.",
+  server: "The myPlunt server isn't answering right now. Your garden and plants still work, and waterings sync once it's back.",
+};
+
 function OfflineButton() {
   const theme = useTheme();
-  const { isOffline } = useNetworkStore();
+  const { offlineReason } = useNetworkStore();
   const [isExplaining, setIsExplaining] = useState(false);
 
   useEffect(() => {
@@ -60,25 +67,26 @@ function OfflineButton() {
     return () => clearTimeout(timer);
   }, [isExplaining]);
 
-  if (!isOffline) return null;
+  if (!offlineReason) return null;
 
   return (
     <View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="You're offline"
+        accessibilityLabel={offlineMessages[offlineReason]}
         accessibilityHint="Says what still works"
         accessibilityState={{ expanded: isExplaining }}
         onPress={() => setIsExplaining((open) => !open)}
         className="h-8 w-8 items-center justify-center rounded-full border border-input-border bg-background-element active:opacity-70">
-        <SymbolView name={{ ios: 'wifi.slash', android: 'wifi_off', web: 'wifi_off' }} tintColor={theme.accent} size={16} />
+        <SymbolView name={offlineIcons[offlineReason]} tintColor={theme.accent} size={16} />
       </Pressable>
       {isExplaining && (
         <View
           pointerEvents="none"
-          className="absolute left-6 top-11 w-60 rounded-xl border border-primary/40 bg-info px-3 py-2"
+          className="absolute left-6 top-11 w-60 gap-1 rounded-xl border border-primary/40 bg-info px-3 py-2"
           style={Shadow.card}>
-          <Text className="type-caption text-action-primary">You&apos;re offline. Your garden and plants still work.</Text>
+          <Text className="type-label text-action-primary">{offlineMessages[offlineReason]}</Text>
+          <Text className="type-caption text-action-primary">{explanations[offlineReason]}</Text>
         </View>
       )}
     </View>

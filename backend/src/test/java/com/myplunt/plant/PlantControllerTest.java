@@ -1,5 +1,6 @@
 package com.myplunt.plant;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.plant.dto.AddPlantPhotoRequest;
@@ -98,7 +99,7 @@ class PlantControllerTest {
     @Test
     void create_returnsNotFoundForSomeoneElsesPlanter() {
         authenticateAsJane();
-        when(plantService.create(any(), any())).thenThrow(new IllegalStateException("Planter not found"));
+        when(plantService.create(any(), any())).thenThrow(new NotFoundException("Planter not found"));
 
         restTestClient.post().uri("/v1/plants")
                 .header("Authorization", "Bearer access-token")
@@ -148,12 +149,24 @@ class PlantControllerTest {
     @Test
     void get_returnsNotFoundWhenThePlantIsNotTheUsers() {
         UUID userId = authenticateAsJane();
-        when(plantService.getDetails(userId, plantId)).thenThrow(new IllegalStateException("Plant not found"));
+        when(plantService.getDetails(userId, plantId)).thenThrow(new NotFoundException("Plant not found"));
 
         restTestClient.get().uri("/v1/plants/{plantId}", plantId)
                 .header("Authorization", "Bearer access-token")
                 .exchange()
                 .expectStatus().isNotFound();
+    }
+
+    @Test
+    void get_hidesTheMessageOfAnUnexpectedIllegalState() {
+        UUID userId = authenticateAsJane();
+        when(plantService.getDetails(userId, plantId)).thenThrow(new IllegalStateException("Session is closed"));
+
+        restTestClient.get().uri("/v1/plants/{plantId}", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isEqualTo(500)
+                .expectBody().jsonPath("$.detail").isEqualTo("An unexpected error occurred");
     }
 
     @Test
@@ -193,14 +206,26 @@ class PlantControllerTest {
                 .exchange()
                 .expectStatus().isNoContent();
 
-        verify(plantService).water(userId, plantId, ZoneId.of("UTC"));
+        verify(plantService).water(userId, plantId, null, ZoneId.of("UTC"));
+    }
+
+    @Test
+    void water_passesOnTheTimeOfAWateringSavedOffline() {
+        UUID userId = authenticateAsJane();
+
+        restTestClient.post().uri("/v1/plants/{plantId}/waterings?wateredAt=2026-10-22T08:00:00.123Z", plantId)
+                .header("Authorization", "Bearer access-token")
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(plantService).water(userId, plantId, Instant.parse("2026-10-22T08:00:00.123Z"), ZoneId.of("UTC"));
     }
 
     @Test
     void water_propagatesConflictFromService() {
         UUID userId = authenticateAsJane();
         doThrow(new ResponseStatusException(HttpStatus.CONFLICT, "This plant has passed away and can't be watered"))
-                .when(plantService).water(userId, plantId, ZoneId.of("UTC"));
+                .when(plantService).water(userId, plantId, null, ZoneId.of("UTC"));
 
         restTestClient.post().uri("/v1/plants/{plantId}/waterings", plantId)
                 .header("Authorization", "Bearer access-token")
@@ -265,7 +290,7 @@ class PlantControllerTest {
     void deletePhoto_returnsNotFoundForAPhotoOfAnotherPlant() {
         UUID userId = authenticateAsJane();
         UUID photoId = UUID.randomUUID();
-        doThrow(new IllegalStateException("Photo not found")).when(plantService).deletePhoto(userId, plantId, photoId);
+        doThrow(new NotFoundException("Photo not found")).when(plantService).deletePhoto(userId, plantId, photoId);
 
         restTestClient.delete().uri("/v1/plants/{plantId}/photos/{photoId}", plantId, photoId)
                 .header("Authorization", "Bearer access-token")

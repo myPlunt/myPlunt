@@ -19,6 +19,9 @@
       "environment": "preview",
       "env": {
         "APP_VARIANT": "staging"
+      },
+      "android": {
+        "buildType": "apk"
       }
     },
     "production": {

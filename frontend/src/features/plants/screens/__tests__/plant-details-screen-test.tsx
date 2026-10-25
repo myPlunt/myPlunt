@@ -105,6 +105,16 @@ describe('PlantDetailsScreen', () => {
     expect(screen.getByText('Found at a flea market')).toBeOnTheScreen();
   });
 
+  it('says when its last watering, made offline, is not synced yet', async () => {
+    await render(<PlantDetailsScreen plantId="p1" />);
+    expect(screen.queryByText('Not synced yet')).toBeNull();
+
+    mockPlant({ plant: { ...vera, lastWateredAt: daysFromNow(0), waitingToSync: true } });
+    await render(<PlantDetailsScreen plantId="p1" />);
+    expect(screen.getByText('Today')).toBeOnTheScreen();
+    expect(screen.getByText('Not synced yet')).toBeOnTheScreen();
+  });
+
   it('opens on the newest growth photo and steps back through older ones with the arrows', async () => {
     jest.mocked(usePlantPhotos).mockReturnValue({
       photos: [

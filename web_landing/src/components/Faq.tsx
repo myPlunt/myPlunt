@@ -13,10 +13,10 @@ const questions = [
   },
   {
     question: 'How do the weather alerts work?',
-    answer: 'Each plant has its own location, so alerts are based on the weather where that plant actually lives.',
+    answer: 'Each user has its own location, so alerts are based on the weather where they live.',
   },
   {
-    question: 'What is the Plantdex?',
+    question: 'What is the PluntDex?',
     answer: 'A guide to regional plants that grow well where you live, so you can discover them before you bring them home.',
   },
   {
@@ -35,7 +35,7 @@ function Faq() {
           {questions.map(({ question, answer }) => (
             <div
               key={question}
-              className="flex gap-4 rounded-2xl border-[1.5px] border-sand bg-white p-6 shadow-card sm:gap-5 sm:p-8"
+              className="flex gap-4 rounded-2xl border-[1.5px] border-sand bg-cream p-6 shadow-card sm:gap-5 sm:p-8"
             >
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-leaf/14 text-leaf">
                 <QuestionMarkIcon width={26} height={26} aria-hidden />

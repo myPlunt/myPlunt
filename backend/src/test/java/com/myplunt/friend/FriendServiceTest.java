@@ -1,8 +1,10 @@
 package com.myplunt.friend;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.friend.dto.FriendRequestsResponse;
+import com.myplunt.friend.dto.SitterResponse;
 import com.myplunt.garden.GardenService;
 import com.myplunt.garden.dto.GardenResponse;
 import com.myplunt.notification.PushNotificationService;
@@ -34,6 +36,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -87,6 +90,36 @@ class FriendServiceTest {
                     assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
                     assertThat(e.getReason()).isEqualTo(message);
                 });
+    }
+
+    private User userAt(String username, String city, Double latitude, Double longitude) {
+        User user = new User(username, username + "@example.com", "hashed");
+        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+        user.setCity(city);
+        user.setLatitude(latitude);
+        user.setLongitude(longitude);
+        return user;
+    }
+
+    @Test
+    void getSitters_putsSameCityFirstThenClosestAndNoLocationLast() {
+        User jane = userAt("jane", "Enschede", 52.2215, 6.8937);
+        User anna = userAt("anna", null, null, null);
+        User lotte = userAt("lotte", "Hengelo", 52.2658, 6.7931);
+        User sara = userAt("sara", "enschede", 52.2390, 6.8500);
+        when(userService.loadUser(janeId)).thenReturn(jane);
+        when(friendshipRepository.findFriends(janeId)).thenReturn(List.of(anna, lotte, sara));
+        when(userService.toSummary(any(), any())).thenAnswer(call -> {
+            User user = call.getArgument(0);
+            return new UserSummaryResponse(user.getId(), user.getUsername(), null, null, "friends");
+        });
+
+        List<SitterResponse> sitters = friendService().getSitters(janeId);
+
+        assertThat(sitters).extracting(s -> s.user().username()).containsExactly("sara", "lotte", "anna");
+        assertThat(sitters).extracting(SitterResponse::sameCity).containsExactly(true, false, false);
+        assertThat(sitters.get(1).distanceKm()).isEqualTo(8.4);
+        assertThat(sitters.get(2).distanceKm()).isNull();
     }
 
     @Test
@@ -162,9 +195,9 @@ class FriendServiceTest {
     @Test
     void acceptAndDecline_failWithoutAPendingRequestFromThem() {
         assertThatThrownBy(() -> friendService().accept(janeId, tomId))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("No pending friend request with this user");
-        assertThatThrownBy(() -> friendService().decline(janeId, tomId)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> friendService().decline(janeId, tomId)).isInstanceOf(NotFoundException.class);
         verify(friendshipRepository, never()).delete(any());
     }
 
@@ -183,7 +216,7 @@ class FriendServiceTest {
     // A request tom sent jane is looked up with jane as the requester, so she can't cancel it, only decline.
     @Test
     void cancel_failsWithoutAPendingRequestToThem() {
-        assertThatThrownBy(() -> friendService().cancel(janeId, tomId)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> friendService().cancel(janeId, tomId)).isInstanceOf(NotFoundException.class);
         verify(friendshipRepository, never()).delete(any());
     }
 
@@ -205,7 +238,7 @@ class FriendServiceTest {
         when(friendshipRepository.findBetween(janeId, List.of(tomId))).thenReturn(List.of(new Friendship(janeId, tomId)));
 
         assertThatThrownBy(() -> friendService().remove(janeId, tomId))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("You're not friends with this user");
         verify(friendshipRepository, never()).delete(any());
     }
@@ -243,22 +276,65 @@ class FriendServiceTest {
         for (List<Friendship> between : notFriends) {
             when(friendshipRepository.findBetween(janeId, List.of(tomId))).thenReturn(between);
             assertThatThrownBy(() -> friendService().getFriendGarden(janeId, tomId, ZoneId.of("UTC")))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(NotFoundException.class)
                     .hasMessage("You're not friends with this user");
             assertThatThrownBy(() -> friendService().getFriendDiscoveredSpecies(janeId, tomId))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(NotFoundException.class)
                     .hasMessage("You're not friends with this user");
             assertThatThrownBy(() -> friendService().getFriendPosts(janeId, tomId))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(NotFoundException.class)
                     .hasMessage("You're not friends with this user");
             assertThatThrownBy(() -> friendService().getFriendPlant(janeId, tomId, UUID.randomUUID()))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(NotFoundException.class)
                     .hasMessage("You're not friends with this user");
             assertThatThrownBy(() -> friendService().getFriendPlantPhotos(janeId, tomId, UUID.randomUUID()))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(NotFoundException.class)
                     .hasMessage("You're not friends with this user");
         }
         verifyNoInteractions(gardenService, plantService, speciesService, postService);
+    }
+
+    @Test
+    void search_saysHowEachResultRelatesToTheSearcher() {
+        User friend = userAt("friend", null, null, null);
+        User asked = userAt("asked", null, null, null);
+        User asker = userAt("asker", null, null, null);
+        User stranger = userAt("stranger", null, null, null);
+        Friendship accepted = new Friendship(friend.getId(), janeId);
+        ReflectionTestUtils.setField(accepted, "status", Friendship.ACCEPTED);
+        when(userService.searchUsers(janeId, "a")).thenReturn(List.of(friend, asked, asker, stranger));
+        when(friendshipRepository.findBetween(
+                        janeId, List.of(friend.getId(), asked.getId(), asker.getId(), stranger.getId())))
+                .thenReturn(List.of(
+                        accepted,
+                        new Friendship(janeId, asked.getId()),
+                        new Friendship(asker.getId(), janeId)));
+        when(userService.toSummary(any(), any())).thenAnswer(call -> {
+            User user = call.getArgument(0);
+            return new UserSummaryResponse(user.getId(), user.getUsername(), null, null, call.getArgument(1));
+        });
+
+        assertThat(friendService().search(janeId, "a"))
+                .extracting(UserSummaryResponse::friendship)
+                .containsExactly("friends", "request_sent", "request_received", null);
+    }
+
+    @Test
+    void search_skipsTheFriendshipLookupWhenNobodyMatches() {
+        when(userService.searchUsers(janeId, "zz")).thenReturn(List.of());
+
+        assertThat(friendService().search(janeId, "zz")).isEmpty();
+        verifyNoInteractions(friendshipRepository);
+    }
+
+    @Test
+    void getSummary_returnsTheUserAndHowTheyRelateToTheViewer() {
+        tomExists();
+        UserSummaryResponse tomSummary = new UserSummaryResponse(tomId, "tom", null, null, "request_received");
+        when(friendshipRepository.findBetween(janeId, List.of(tomId))).thenReturn(List.of(new Friendship(tomId, janeId)));
+        when(userService.toSummary(any(), eq("request_received"))).thenReturn(tomSummary);
+
+        assertThat(friendService().getSummary(janeId, tomId)).isEqualTo(tomSummary);
     }
 
     @Test

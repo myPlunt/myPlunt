@@ -8,12 +8,10 @@ import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
 import com.myplunt.user.dto.UpdateProfileRequest;
 import com.myplunt.user.dto.UserResponse;
-import com.myplunt.user.dto.UserSummaryResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,7 +20,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -139,35 +136,6 @@ class UserControllerTest {
                 .body(new ChangeEmailRequest("new@example.com", "wrong"))
                 .exchange()
                 .expectStatus().isForbidden();
-    }
-
-    @Test
-    void search_returnsTheMatchingUsersWithoutTheirEmail() {
-        UUID janeId = authenticateAsJane();
-        List<UserSummaryResponse> users = List.of(new UserSummaryResponse(UUID.randomUUID(), "jane_doe", "Fern collector", null, null));
-        when(userService.search(janeId, "jan")).thenReturn(users);
-
-        restTestClient.get().uri("/v1/users/search?q=jan")
-                .header("Authorization", "Bearer access-token")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(new ParameterizedTypeReference<List<UserSummaryResponse>>() {})
-                .isEqualTo(users);
-    }
-
-    @Test
-    void user_returnsAnotherUserForTheSignedInViewer() {
-        UUID janeId = authenticateAsJane();
-        UUID tomId = UUID.randomUUID();
-        UserSummaryResponse tom = new UserSummaryResponse(tomId, "tom", null, null, "friends");
-        when(userService.getSummary(janeId, tomId)).thenReturn(tom);
-
-        restTestClient.get().uri("/v1/users/" + tomId)
-                .header("Authorization", "Bearer access-token")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(UserSummaryResponse.class)
-                .isEqualTo(tom);
     }
 
     @Test

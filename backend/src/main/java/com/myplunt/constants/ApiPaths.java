@@ -21,6 +21,9 @@ public final class ApiPaths {
         public static final String JOBS = BASE + "/jobs";
         public static final String RESET_DB = JOBS + "/reset-db";
         public static final String SEND_WEATHER_ALERTS = JOBS + "/send-weather-alerts";
+        public static final String PREVIEW_RAIN = JOBS + "/preview-rain";
+        public static final String PREVIEW_WIND = JOBS + "/preview-wind";
+        public static final String PREVIEW_SNOW = JOBS + "/preview-snow";
 
         private Admin() {}
     }
@@ -79,8 +82,19 @@ public final class ApiPaths {
         public static final String DECLINE = REQUESTS + "/{userId}/decline";
         public static final String CANCEL = REQUESTS + "/{userId}/cancel";
         public static final String REMOVE = BASE + "/{userId}/remove";
+        public static final String SITTERS = BASE + "/sitters";
 
         private Friends() {}
+    }
+
+    public static final class CareRequests {
+        public static final String BASE = "/v1/care-requests";
+        // Keyed by who asked, like friend requests: there's only ever one live request between two people.
+        public static final String ACCEPT = BASE + "/{userId}/accept";
+        public static final String DECLINE = BASE + "/{userId}/decline";
+        public static final String CANCEL = BASE + "/{userId}/cancel";
+
+        private CareRequests() {}
     }
 
     public static final class Garden {
@@ -130,5 +144,12 @@ public final class ApiPaths {
         public static final String DISCOVERED = BASE + "/discovered";
 
         private Species() {}
+    }
+
+    public static final class Weather {
+        public static final String BASE = "/v1/weather";
+        public static final String CURRENT = BASE + "/current";
+
+        private Weather() {}
     }
 }

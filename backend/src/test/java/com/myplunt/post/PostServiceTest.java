@@ -1,13 +1,15 @@
 package com.myplunt.post;
 
+import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.notification.PostNotice;
 import com.myplunt.notification.PushNotificationService;
-import com.myplunt.plant.LatestPhoto;
 import com.myplunt.plant.Plant;
 import com.myplunt.plant.PlantPhoto;
-import com.myplunt.plant.PlantPhotoRepository;
+import com.myplunt.plant.PlantPhotoSharedEvent;
+import com.myplunt.plant.PlantService;
+import com.myplunt.plant.PlantSharedEvent;
 import com.myplunt.post.dto.AddCommentRequest;
 import com.myplunt.post.dto.AskQuestionRequest;
 import com.myplunt.post.dto.CommentResponse;
@@ -16,7 +18,6 @@ import com.myplunt.post.dto.UpdatePostRequest;
 import com.myplunt.storage.StorageService;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.User;
-import com.myplunt.user.UserRepository;
 import com.myplunt.user.UserService;
 import com.myplunt.user.dto.UserSummaryResponse;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -55,13 +57,10 @@ class PostServiceTest {
     private PostReactionRepository postReactionRepository;
 
     @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private PlantPhotoRepository plantPhotoRepository;
-
-    @Mock
     private UserService userService;
+
+    @Mock
+    private PlantService plantService;
 
     @Mock
     private StorageService storageService;
@@ -73,7 +72,7 @@ class PostServiceTest {
     private PushNotificationService pushNotificationService;
 
     private PostService postService() {
-        return new PostService(postRepository, postCommentRepository, postReactionRepository, userRepository, plantPhotoRepository, userService, storageService, auditLog,
+        return new PostService(postRepository, postCommentRepository, postReactionRepository, userService, plantService, storageService, auditLog,
                 pushNotificationService);
     }
 
@@ -92,10 +91,8 @@ class PostServiceTest {
         Post myPost = withId(new Post(me.getId(), vera, Post.NEW_PLANT), UUID.randomUUID());
         when(postRepository.findFeed(eq(me.getId()), eq(List.of(Post.NEW_PLANT, Post.NEW_PHOTO, Post.QUESTION)), any()))
                 .thenReturn(List.of(friendsPost, myPost));
-        when(userRepository.findAllById(anyCollection())).thenReturn(List.of(me, friend));
-        when(plantPhotoRepository.findLatestPhotos(anyCollection()))
-                .thenReturn(List.of(new LatestPhoto(gus.getId(), "plants/gus.jpg")));
-        when(storageService.createReadUrl("plants/gus.jpg")).thenReturn("https://storage.test/gus.jpg?signed");
+        when(userService.loadUsers(anyList())).thenReturn(List.of(me, friend));
+        when(plantService.getPhotoUrls(anyList())).thenReturn(Map.of(gus.getId(), "https://storage.test/gus.jpg?signed"));
         when(postCommentRepository.countByPostIds(anyCollection()))
                 .thenReturn(List.of(new PostCount(friendsPost.getId(), 3)));
         when(postReactionRepository.countByPostIds(anyCollection()))
@@ -122,7 +119,7 @@ class PostServiceTest {
         Post question = withId(new Post(friend.getId(), "Why are the leaves yellow?", null), UUID.randomUUID());
         when(postRepository.findOwn(friend.getId(), List.of(Post.NEW_PLANT, Post.NEW_PHOTO, Post.QUESTION)))
                 .thenReturn(List.of(question));
-        when(userRepository.findAllById(anyCollection())).thenReturn(List.of(friend));
+        when(userService.loadUsers(anyList())).thenReturn(List.of(friend));
         UserSummaryResponse emma = new UserSummaryResponse(friend.getId(), "emma", null, null, "friends");
         when(userService.toSummary(friend, "friends")).thenReturn(emma);
 
@@ -138,10 +135,9 @@ class PostServiceTest {
         PlantPhoto weekTwo = new PlantPhoto(vera, me.getId(), "plants/vera-week-2.jpg", null);
         Post post = withId(new Post(me.getId(), weekTwo, null), UUID.randomUUID());
         when(postRepository.findFeed(eq(me.getId()), any(), any())).thenReturn(List.of(post));
-        when(userRepository.findAllById(anyCollection())).thenReturn(List.of(me));
+        when(userService.loadUsers(anyList())).thenReturn(List.of(me));
         // A newer photo was added since; the post still shows the one that was shared.
-        when(plantPhotoRepository.findLatestPhotos(anyCollection()))
-                .thenReturn(List.of(new LatestPhoto(vera.getId(), "plants/vera-week-6.jpg")));
+        when(plantService.getPhotoUrls(anyList())).thenReturn(Map.of(vera.getId(), "https://storage.test/week-6.jpg"));
         when(storageService.createReadUrl("plants/vera-week-2.jpg")).thenReturn("https://storage.test/week-2.jpg");
 
         List<PostResponse> feed = postService().getFeed(me.getId());
@@ -153,12 +149,41 @@ class PostServiceTest {
     }
 
     @Test
+    void onPlantShared_savesANewPlantPost() {
+        UUID userId = UUID.randomUUID();
+        Plant vera = withId(new Plant(userId, "Vera"), UUID.randomUUID());
+
+        postService().onPlantShared(new PlantSharedEvent(userId, vera));
+
+        ArgumentCaptor<Post> saved = ArgumentCaptor.forClass(Post.class);
+        verify(postRepository).save(saved.capture());
+        assertThat(saved.getValue().getPostType()).isEqualTo(Post.NEW_PLANT);
+        assertThat(saved.getValue().getUserId()).isEqualTo(userId);
+        assertThat(saved.getValue().getPlant()).isSameAs(vera);
+    }
+
+    @Test
+    void onPlantPhotoShared_savesAPhotoPostWithTheComment() {
+        UUID userId = UUID.randomUUID();
+        Plant vera = withId(new Plant(userId, "Vera"), UUID.randomUUID());
+        PlantPhoto photo = new PlantPhoto(vera, userId, "plants/vera.jpg", null);
+
+        postService().onPlantPhotoShared(new PlantPhotoSharedEvent(userId, photo, "First split leaf!"));
+
+        ArgumentCaptor<Post> saved = ArgumentCaptor.forClass(Post.class);
+        verify(postRepository).save(saved.capture());
+        assertThat(saved.getValue().getPostType()).isEqualTo(Post.NEW_PHOTO);
+        assertThat(saved.getValue().getPhoto()).isSameAs(photo);
+        assertThat(saved.getValue().getBody()).isEqualTo("First split leaf!");
+    }
+
+    @Test
     void askQuestion_confirmsItsPhotoAndSavesAnOpenQuestion() {
         User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
         String key = "posts/" + me.getId() + "/leaves.jpg";
         when(storageService.isCategory(key, PhotoCategory.POST)).thenReturn(true);
         when(postRepository.save(any())).thenAnswer(invocation -> withId(invocation.getArgument(0), UUID.randomUUID()));
-        when(userRepository.findById(me.getId())).thenReturn(Optional.of(me));
+        when(userService.loadUser(me.getId())).thenReturn(me);
         when(storageService.createReadUrl(key)).thenReturn("https://storage.test/leaves.jpg");
 
         PostResponse response = postService().askQuestion(me.getId(), new AskQuestionRequest("Why are my leaves red?", key));
@@ -193,7 +218,7 @@ class PostServiceTest {
         User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
         Post question = withId(new Post(me.getId(), "Why are my leaves red?", null), UUID.randomUUID());
         when(postRepository.findByIdAndUserId(question.getId(), me.getId())).thenReturn(Optional.of(question));
-        when(userRepository.findAllById(anyCollection())).thenReturn(List.of(me));
+        when(userService.loadUsers(anyList())).thenReturn(List.of(me));
 
         PostResponse response = postService().updatePost(me.getId(), question.getId(), new UpdatePostRequest("Why are they yellow?"));
 
@@ -226,7 +251,7 @@ class PostServiceTest {
         UUID earlierCommenter = UUID.randomUUID();
         when(postCommentRepository.findAuthorIds(question.getId())).thenReturn(List.of(earlierCommenter));
         when(postCommentRepository.save(any())).thenAnswer(invocation -> withId(invocation.getArgument(0), UUID.randomUUID()));
-        when(userRepository.findById(me.getId())).thenReturn(Optional.of(me));
+        when(userService.loadUser(me.getId())).thenReturn(me);
         UserSummaryResponse self = new UserSummaryResponse(me.getId(), "me", null, null, null);
         when(userService.toSummary(me, null)).thenReturn(self);
 
@@ -250,7 +275,7 @@ class PostServiceTest {
         when(postRepository.findVisible(eq(postId), eq(userId), anyCollection())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> postService().addComment(userId, postId, new AddCommentRequest("Hi")))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(NotFoundException.class);
         verify(postCommentRepository, never()).save(any());
     }
 
@@ -294,7 +319,7 @@ class PostServiceTest {
         UUID postId = UUID.randomUUID();
         when(postRepository.findByIdAndUserId(postId, userId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> postService().deletePost(userId, postId)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> postService().deletePost(userId, postId)).isInstanceOf(NotFoundException.class);
         verify(postRepository, never()).delete(any());
         verify(storageService, never()).deleteObject(any());
     }

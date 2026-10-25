@@ -9,7 +9,6 @@ import java.util.UUID;
 public interface PlanterRepository extends JpaRepository<Planter, UUID> {
     List<Planter> findByOwnerIdOrderByCreatedAtAsc(UUID ownerId);
 
-    boolean existsByIdAndOwnerId(UUID id, UUID ownerId);
 
     Optional<Planter> findByIdAndOwnerId(UUID id, UUID ownerId);
 

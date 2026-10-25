@@ -104,12 +104,13 @@ function WateringRow({ watering, now }: { watering: Watering; now: Date }) {
     year: 'numeric',
   });
   const when = lastWateredLabel(watering.wateredAt, now);
+  const status = watering.waitingToSync ? 'Not synced yet' : lateLabel(watering.daysLate);
 
   return (
     // One phrase for screen readers ("Watered 2 days ago, 13 Oct 2026, on time") instead of four pieces.
     <View
       accessible
-      accessibilityLabel={`Watered ${when.toLowerCase()}, ${date}, ${lateLabel(watering.daysLate).toLowerCase()}`}
+      accessibilityLabel={`Watered ${when.toLowerCase()}, ${date}, ${status.toLowerCase()}`}
       className="flex-row items-center gap-3">
       <SymbolView
         name={{ ios: 'drop.fill', android: 'water_drop', web: 'water_drop' }}
@@ -120,11 +121,20 @@ function WateringRow({ watering, now }: { watering: Watering; now: Date }) {
         <Text className="type-body-large text-text">{when}</Text>
         <Text className="type-caption text-text-secondary">{date}</Text>
       </View>
-      <View className={`rounded-full px-2.5 py-1 ${isLate ? 'bg-error/15' : 'bg-primary/15'}`}>
-        <Text className={`type-body-medium ${isLate ? 'text-error' : 'text-primary'}`}>
-          {lateLabel(watering.daysLate)}
-        </Text>
-      </View>
+      {watering.waitingToSync ? (
+        <View className="flex-row items-center gap-1 rounded-full bg-text-secondary/15 px-2.5 py-1">
+          <SymbolView
+            name={{ ios: 'icloud.and.arrow.up', android: 'cloud_upload', web: 'cloud_upload' }}
+            tintColor={theme.textSecondary}
+            size={14}
+          />
+          <Text className="type-body-medium text-text-secondary">{status}</Text>
+        </View>
+      ) : (
+        <View className={`rounded-full px-2.5 py-1 ${isLate ? 'bg-error/15' : 'bg-primary/15'}`}>
+          <Text className={`type-body-medium ${isLate ? 'text-error' : 'text-primary'}`}>{status}</Text>
+        </View>
+      )}
     </View>
   );
 }

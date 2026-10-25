@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { LinkCard } from '@/components/ui/link-card';
 import { Shadow } from '@/constants/theme';
-import { WateringPill } from '@/features/garden/components/watering-pill';
+import { NotSyncedNote, WateringPill } from '@/features/garden/components/watering-pill';
 import { lastWateredLabel } from '@/features/garden/watering';
 import { OnboardingCard } from '@/features/onboarding/components/onboarding-card';
 import { useTourBackLock } from '@/features/onboarding/use-tour-back-lock';
@@ -170,7 +170,11 @@ function PlantDetailsContent({ plant, ownerId, isPhotoStep, onGrowthLayout }: Pl
         <DetailRow label="Planter" value={plant.planterName ?? 'Other plants'} />
         <DetailRow label="Light" value={light?.label ?? 'Not set'} />
         <DetailRow label="Watering" value={watering} />
-        <DetailRow label="Last watered" value={lastWateredLabel(plant.lastWateredAt, now)} />
+        <DetailRow
+          label="Last watered"
+          value={lastWateredLabel(plant.lastWateredAt, now)}
+          note={plant.waitingToSync && <NotSyncedNote />}
+        />
         <View className="flex-row items-center justify-between gap-4">
           <Text className="type-body-large text-text-secondary">Next watering</Text>
           <WateringPill plant={plant} now={now} />

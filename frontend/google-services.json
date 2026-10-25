@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "424719097312",
+    "project_id": "myplunt-mobile",
+    "storage_bucket": "myplunt-mobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:424719097312:android:200107024b9555a4dc9f85",
+        "android_client_info": {
+          "package_name": "com.myplunt.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjLwkLoOOcPWiqZAoFdyjO0HUB_yaLcuY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:424719097312:android:53b082425817bfd8dc9f85",
+        "android_client_info": {
+          "package_name": "com.myplunt.app.staging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjLwkLoOOcPWiqZAoFdyjO0HUB_yaLcuY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

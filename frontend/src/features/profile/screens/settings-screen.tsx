@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
 import { LinkCard } from '@/components/ui/link-card';
+import { Toggle } from '@/components/ui/toggle';
 import { useAuthActions } from '@/features/auth/use-auth-actions';
 import { ChangeEmailForm } from '@/features/profile/components/change-email-form';
 import { NotificationSettingsCard } from '@/features/profile/components/notification-settings-card';
@@ -13,6 +14,7 @@ import { useProfile } from '@/features/profile/use-profile';
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { useWeatherVisualsStore } from '@/stores/weather-visuals-store';
 
 export function SettingsScreen() {
   const theme = useTheme();
@@ -20,6 +22,7 @@ export function SettingsScreen() {
   const { logout } = useAuthActions();
   const { user, error, isLoading, retry } = useProfile();
   const onboarding = useOnboardingStore();
+  const weatherVisuals = useWeatherVisualsStore();
 
   function retakeTour() {
     onboarding.start();
@@ -57,6 +60,23 @@ export function SettingsScreen() {
           </View>
 
           <NotificationSettingsCard />
+
+          <View
+            className="gap-2 rounded-2xl border-[1.5px] border-input-border bg-background-element px-4 py-3"
+            style={Shadow.card}>
+            <Text className="type-label text-accent">APPEARANCE</Text>
+            <View className="flex-row items-center gap-3">
+              <View className="flex-1">
+                <Text className="type-body-medium text-text">Weather animations</Text>
+                <Text className="type-caption text-text-secondary">Rain, snow and wind from the weather where you are.</Text>
+              </View>
+              <Toggle
+                label="Weather animations"
+                checked={weatherVisuals.enabled}
+                onChange={weatherVisuals.setEnabled}
+              />
+            </View>
+          </View>
 
           <LinkCard
             title="Take the tour again"

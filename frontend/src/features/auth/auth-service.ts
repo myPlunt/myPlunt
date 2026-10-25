@@ -1,3 +1,4 @@
+import { sendWaterings } from '@/features/garden/watering-outbox';
 import { removePushToken } from '@/features/notifications/push-token-service';
 import { publicFetch } from '@/lib/auth/api-client';
 import { tokenStorage } from '@/lib/auth/token-storage';
@@ -26,6 +27,7 @@ export async function register(details: RegisterRequest): Promise<void> {
 export async function logout(): Promise<void> {
   logAction('logout_submitted');
   // Sent while the session exists; otherwise the lines would go out under the next user's id.
+  await sendWaterings();
   await flushLogs();
   await removePushToken().catch(() => {});
   const tokens = await tokenStorage.getTokens();
