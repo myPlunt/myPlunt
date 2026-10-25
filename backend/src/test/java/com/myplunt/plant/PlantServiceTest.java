@@ -1,10 +1,13 @@
 package com.myplunt.plant;
 
+import com.myplunt.care.CareDelegation;
+import com.myplunt.care.CareDelegationRepository;
 import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.garden.Planter;
 import com.myplunt.garden.PlanterRepository;
+import com.myplunt.notification.PushNotificationService;
 import com.myplunt.plant.dto.AddPlantPhotoRequest;
 import com.myplunt.plant.dto.CreatePlantRequest;
 import com.myplunt.plant.dto.PlantDetailsResponse;
@@ -44,8 +47,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,6 +80,12 @@ class PlantServiceTest {
     @Mock
     private AuditLog auditLog;
 
+    @Mock
+    private CareDelegationRepository careDelegationRepository;
+
+    @Mock
+    private PushNotificationService pushNotificationService;
+
     private final UUID userId = UUID.randomUUID();
     private final UUID plantId = UUID.randomUUID();
 
@@ -87,7 +98,9 @@ class PlantServiceTest {
                 plantPhotoRepository,
                 postRepository,
                 storageService,
-                auditLog);
+                auditLog,
+                careDelegationRepository,
+                pushNotificationService);
     }
 
     private void saveAssignsId() {
@@ -192,7 +205,9 @@ class PlantServiceTest {
         Plant plant = new Plant(userId, name);
         ReflectionTestUtils.setField(plant, "id", plantId);
         ReflectionTestUtils.setField(plant, "createdAt", Instant.parse("2026-09-01T10:00:00Z"));
-        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(plant));
+        // Lenient: watering looks the plant up by id alone (a sitter may water it), everything else by owner.
+        lenient().when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.of(plant));
+        lenient().when(plantRepository.findById(plantId)).thenReturn(Optional.of(plant));
         return plant;
     }
 
@@ -364,13 +379,32 @@ class PlantServiceTest {
     }
 
     @Test
-    void water_throwsNotFoundForAPlantTheUserDoesNotOwn() {
-        when(plantRepository.findByIdAndOwnerId(plantId, userId)).thenReturn(Optional.empty());
+    void water_letsAPlantSitterWaterAFriendsPlantAndTellsTheOwner() {
+        Plant george = ownPlant("George");
+        UUID sitterId = UUID.randomUUID();
+        when(careDelegationRepository.existsByPlantIdAndDelegatedToAndStatusAndActiveUntilAfter(
+                eq(plantId), eq(sitterId), eq(CareDelegation.ACTIVE), any())).thenReturn(true);
 
-        assertThatThrownBy(() -> plantService().water(userId, plantId, null, ZoneOffset.UTC))
-                .isInstanceOf(NotFoundException.class)
+        plantService().water(sitterId, plantId, null, ZoneOffset.UTC);
+
+        ArgumentCaptor<WateringLog> saved = ArgumentCaptor.forClass(WateringLog.class);
+        verify(wateringLogRepository).save(saved.capture());
+        assertThat(saved.getValue().getPlant()).isSameAs(george);
+        assertThat(saved.getValue().getWateredBy()).isEqualTo(sitterId);
+        verify(auditLog).recorded(eq(AuditEvent.PLANT_WATERED), eq(userId), eq(sitterId), any());
+        verify(pushNotificationService).sendSitterWatered(sitterId, userId);
+    }
+
+    @Test
+    void water_throwsNotFoundForSomeoneElsesPlantWithoutAStay() {
+        ownPlant("George");
+        UUID strangerId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> plantService().water(strangerId, plantId, null, ZoneOffset.UTC))
+                .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Plant not found");
         verify(wateringLogRepository, never()).save(any());
+        verifyNoInteractions(pushNotificationService);
     }
 
     @Test

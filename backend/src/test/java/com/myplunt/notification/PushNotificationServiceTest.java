@@ -1,5 +1,6 @@
 package com.myplunt.notification;
 
+import com.myplunt.care.CareDelegationRepository;
 import com.myplunt.notification.dto.NotificationResponse;
 import com.myplunt.notification.dto.PushTokenRequest;
 import com.myplunt.plant.LastWatering;
@@ -29,6 +30,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -59,10 +61,12 @@ class PushNotificationServiceTest {
     private ExpoPushClient expoPushClient;
     @Mock
     private OpenWeatherClient openWeatherClient;
+    @Mock
+    private CareDelegationRepository careDelegationRepository;
 
     private PushNotificationService service() {
         return new PushNotificationService(
-                pushTokenRepository, userSettingsRepository, plantRepository, wateringLogRepository, userRepository, notificationRepository, storageService, expoPushClient, openWeatherClient);
+                pushTokenRepository, userSettingsRepository, plantRepository, wateringLogRepository, userRepository, notificationRepository, storageService, expoPushClient, openWeatherClient, careDelegationRepository);
     }
 
     // On a 3-day schedule (the owner's own).
@@ -188,6 +192,22 @@ class PushNotificationServiceTest {
         assertThat(saved.getValue().getTitle()).isEqualTo("Plant sitter request 🪴");
         assertThat(saved.getValue().getBody()).isEqualTo("rafael asked you to look after their plants for 9 days.");
         assertThat(saved.getValue().getUrl()).isEqualTo("/plant-sitter");
+    }
+
+    @Test
+    void sendSitterWatered_tellsTheOwnerOnceForARoundOfWatering() {
+        UUID sitterId = UUID.randomUUID();
+        when(userRepository.findById(sitterId)).thenReturn(Optional.of(new User("gardener", "gardener@example.com", "hashed")));
+        when(pushTokenRepository.findByUserId(USER_ID)).thenReturn(List.of());
+        when(notificationRepository.existsByUserIdAndFromUserIdAndTitleAndCreatedAtAfter(eq(USER_ID), eq(sitterId), any(), any()))
+                .thenReturn(false, true);
+
+        service().sendSitterWatered(sitterId, USER_ID);
+        service().sendSitterWatered(sitterId, USER_ID);
+
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(saved.capture());
+        assertThat(saved.getValue().getBody()).isEqualTo("gardener watered your plants.");
     }
 
     @Test
