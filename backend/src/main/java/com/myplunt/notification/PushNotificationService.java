@@ -54,6 +54,7 @@ public class PushNotificationService {
     static final String GARDEN_URL = "/garden";
     static final String FRIEND_REQUESTS_URL = "/friends?tab=requests";
     static final String POST_URL = "/post/";
+    static final String PLANT_SITTER_URL = "/plant-sitter";
 
     // A comment or question is quoted only this far, so it fits the banner (and notifications.body).
     static final int QUOTE_LENGTH = 100;
@@ -226,6 +227,45 @@ public class PushNotificationService {
     }
 
     @Async
+    public void sendCareRequest(UUID requesterId, UUID sitterId, long days) {
+        if (!wantsPlantSitting(sitterId)) {
+            return;
+        }
+        notify(sitterId, requesterId, "Plant sitter request 🪴",
+                username(requesterId) + " asked you to look after their plants for " + days + (days == 1 ? " day." : " days."),
+                PLANT_SITTER_URL);
+    }
+
+    @Async
+    public void sendCareAnswer(UUID sitterId, UUID requesterId, boolean accepted) {
+        if (!wantsPlantSitting(requesterId)) {
+            return;
+        }
+        String who = username(sitterId);
+        notify(requesterId, sitterId, accepted ? "Plant sitter found 🪴" : "Plant sitter request declined",
+                accepted ? who + " will look after your plants while you're away." : who + " can't look after your plants this time.",
+                PLANT_SITTER_URL);
+    }
+
+    @Async
+    public void sendCareWithdrawn(UUID sitterId, UUID requesterId) {
+        if (!wantsPlantSitting(requesterId)) {
+            return;
+        }
+        notify(requesterId, sitterId, "Plant sitter cancelled",
+                username(sitterId) + " can't look after your plants anymore.", PLANT_SITTER_URL);
+    }
+
+    @Async
+    public void sendCareCancelled(UUID requesterId, UUID sitterId) {
+        if (!wantsPlantSitting(sitterId)) {
+            return;
+        }
+        notify(sitterId, requesterId, "Plant sitter request cancelled",
+                username(requesterId) + " doesn't need a plant sitter anymore.", PLANT_SITTER_URL);
+    }
+
+    @Async
     public void sendPostComment(UUID commenterId, PostNotice post, String comment) {
         if (!wantsPostInteractions(post.ownerId())) {
             return;
@@ -316,6 +356,10 @@ public class PushNotificationService {
 
     private boolean wantsWeatherAlerts(UUID userId) {
         return userSettingsRepository.findById(userId).map(UserSettings::isWeatherAlerts).orElse(true);
+    }
+
+    private boolean wantsPlantSitting(UUID userId) {
+        return userSettingsRepository.findById(userId).map(UserSettings::isDelegationRequests).orElse(true);
     }
 
     private boolean wantsPostInteractions(UUID userId) {

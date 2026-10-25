@@ -10,7 +10,6 @@ export function addDays(date: Date, days: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 }
 
-// Rounded because a day across a daylight-saving change is 23 or 25 hours long.
 function daysBetween(from: Date, to: Date): number {
   return Math.round((startOfDay(to).getTime() - startOfDay(from).getTime()) / DAY_MS);
 }
@@ -35,4 +34,9 @@ export function tripSummary(days: number, plantCount: number, waterings: number)
   if (plantCount === 0) return daysLabel;
   const plantsLabel = plantCount === 1 ? '1 plant needs' : `${plantCount} plants need`;
   return `${daysLabel} · ${plantsLabel} about ${waterings} ${waterings === 1 ? 'watering' : 'waterings'}`;
+}
+
+export function stayLabel(from: string, until: string): string {
+  const format = (date: Date) => date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  return `${format(new Date(from))} – ${format(addDays(new Date(until), -1))}`;
 }

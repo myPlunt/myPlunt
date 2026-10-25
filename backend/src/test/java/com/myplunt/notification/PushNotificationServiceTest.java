@@ -176,6 +176,21 @@ class PushNotificationServiceTest {
     }
 
     @Test
+    void sendCareRequest_tellsTheSitterWhoAskedAndForHowLong() {
+        UUID rafaelId = UUID.randomUUID();
+        when(userRepository.findById(rafaelId)).thenReturn(Optional.of(new User("rafael", "rafael@example.com", "hashed")));
+        when(pushTokenRepository.findByUserId(USER_ID)).thenReturn(List.of());
+
+        service().sendCareRequest(rafaelId, USER_ID, 9);
+
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(saved.capture());
+        assertThat(saved.getValue().getTitle()).isEqualTo("Plant sitter request 🪴");
+        assertThat(saved.getValue().getBody()).isEqualTo("rafael asked you to look after their plants for 9 days.");
+        assertThat(saved.getValue().getUrl()).isEqualTo("/plant-sitter");
+    }
+
+    @Test
     void sendFriendRequest_listsTheRequestForAReceiverWithoutPush() {
         UUID janeId = UUID.randomUUID();
         when(userRepository.findById(janeId)).thenReturn(Optional.of(new User("jane", "jane@example.com", "hashed")));
