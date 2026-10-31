@@ -114,6 +114,20 @@ class PushNotificationServiceTest {
         verify(expoPushClient, never()).send(anyList());
     }
 
+    @Test
+    void sendWateringRemindersToEveryone_remindsWhateverTheHour() {
+        Plant dueToday = plant("Monty");
+        when(pushTokenRepository.findAll()).thenReturn(List.of(new PushToken("ExponentPushToken[a]", USER_ID, "Europe/London")));
+        when(userService.notificationSettings(USER_ID)).thenReturn(ALL_ON);
+        when(plantService.getLivingPlants(USER_ID)).thenReturn(List.of(dueToday));
+        when(plantService.getLastWateredAt(anyList())).thenReturn(Map.of(dueToday.getId(), Instant.now().minus(Duration.ofDays(3))));
+
+        service().sendWateringRemindersToEveryone();
+
+        verify(expoPushClient).send(List.of(
+                new ExpoPushMessage("ExponentPushToken[a]", "Monty is thirsty 💧", "Give Monty some water today.", "/garden")));
+    }
+
     // Two neighbours a few metres apart round to the same spot, so their town is fetched once.
     @Test
     void sendWeatherAlerts_warnsAboutFrostWithOneForecastPerTown() {

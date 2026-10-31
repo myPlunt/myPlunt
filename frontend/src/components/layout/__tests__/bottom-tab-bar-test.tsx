@@ -11,7 +11,7 @@ jest.mock('@/stores/network-store', () => ({ useNetworkStore: jest.fn() }));
 jest.mock('@/stores/onboarding-store', () => ({ useOnboardingStore: jest.fn() }));
 
 const explainOffline = jest.fn();
-const navigate = jest.fn();
+const navigateToTab = jest.fn();
 const push = jest.fn();
 const user = userEvent.setup();
 
@@ -20,7 +20,8 @@ function renderBar(isOffline: boolean) {
   const routes = ['index', 'pluntdex', 'garden', 'profile'].map((name) => ({ key: name, name, params: undefined }));
   const props = {
     state: { index: 2, routes },
-    navigation: { emit: () => ({ defaultPrevented: false }), navigate },
+    emitter: { emit: () => ({ defaultPrevented: false }) },
+    navigateToTab,
     insets: { top: 0, bottom: 0, left: 0, right: 0 },
     descriptors: {},
   } as unknown as BottomTabBarProps;
@@ -55,7 +56,7 @@ it('offline, says a greyed-out tab does not work offline instead of opening it',
   await user.press(screen.getByRole('button', { name: 'Add plant' }));
 
   expect(explainOffline.mock.calls).toEqual([['Feed'], ['Adding plants']]);
-  expect(navigate).not.toHaveBeenCalled();
+  expect(navigateToTab).not.toHaveBeenCalled();
   expect(push).not.toHaveBeenCalled();
 });
 
@@ -64,7 +65,7 @@ it('online, opens the tabs as usual', async () => {
 
   await user.press(screen.getByRole('tab', { name: 'Feed' }));
 
-  expect(navigate).toHaveBeenCalledWith('index', undefined);
+  expect(navigateToTab).toHaveBeenCalledWith('index');
   expect(explainOffline).not.toHaveBeenCalled();
   expect(screen.queryAllByHintText("Doesn't work offline")).toHaveLength(0);
 });

@@ -1,6 +1,6 @@
 import { Link } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Text, type TextInputInstance, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { AuthScreenLayout } from '@/features/auth/components/auth-screen-layout';
@@ -11,8 +11,8 @@ import { logFailedUi } from '@/lib/logger';
 
 export function RegisterScreen() {
   const { register } = useAuthActions();
-  const emailRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInputInstance>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

@@ -9,7 +9,8 @@ export function AuthScreenLayout({ children }: { children: ReactNode }) {
   return (
     <View className="flex-1 bg-background">
       <KeyboardAvoidingView
-        className="flex-1"
+        // style, not className: a flex-1 class overrides the height Android's "height" behavior sets.
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.select({ ios: 0, android: 24 })}>
         <SafeAreaView className="flex-1">

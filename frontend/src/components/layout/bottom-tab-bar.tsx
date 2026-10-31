@@ -42,7 +42,7 @@ const rightTabs: TabConfig[] = [
 ];
 
 // Our own tab bar: the default is Liquid Glass on iOS 26, and Add opens a screen instead of a tab.
-export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
+export function BottomTabBar({ state, emitter, navigateToTab, insets }: BottomTabBarProps) {
   const theme = useTheme();
   const router = useRouter();
   const activeRoute = state.routes[state.index]?.name;
@@ -66,9 +66,9 @@ export function BottomTabBar({ state, navigation, insets }: BottomTabBarProps) {
         return;
       }
       // Emitting tabPress keeps the navigator's behaviour (screens can listen for it).
-      const event = navigation.emit({ type: 'tabPress', target: target!.key, canPreventDefault: true });
+      const event = emitter.emit({ type: 'tabPress', target: target!.key, canPreventDefault: true });
       if (!focused && !event.defaultPrevented) {
-        navigation.navigate(target!.name, target!.params);
+        navigateToTab(target!.key);
       }
     }
 

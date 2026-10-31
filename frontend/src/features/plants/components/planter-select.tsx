@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
-import { Shadow } from '@/constants/theme';
-import { boxHeight, oneLine, singleLineInputText } from '@/features/plants/components/notebook-paper';
+import { Shadow, singleLineInputText } from '@/constants/theme';
+import { boxHeight, oneLine } from '@/features/plants/components/notebook-paper';
 import { usePlanterActions } from '@/features/planters/use-planter-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';

@@ -13,7 +13,7 @@ The repository is a monorepo with four apps:
 | Folder | What it is | Stack |
 |---|---|---|
 | `backend/` | REST API | Spring Boot 4, Java 25, PostgreSQL, Flyway, JWT |
-| `frontend/` | Mobile app | Expo SDK 57, React Native, expo-router, TypeScript, NativeWind |
+| `frontend/` | Mobile app | Expo SDK 58, React Native, expo-router, TypeScript, NativeWind |
 | `web_landing/` | Marketing site | Vite, React 19, Tailwind v4 |
 | `admin_dashboard/` | Internal admin app | Vite, React 19, Tailwind v4 |
 
@@ -26,6 +26,7 @@ git clone git@gitlab.com:saxionnl/hbo-ict/aad/2026-2027/11.git
 cd 11
 ```
 
+<<<<<<< HEAD
 Each app has its own dependencies, so install them inside its folder:
 
 ```bash
@@ -38,10 +39,23 @@ The backend uses the Maven wrapper (`./mvnw`), so it needs no separate install.
 
 Environment files:
 - `frontend/`: copy `.env.example` to `.env` and set `EXPO_PUBLIC_API_URL` to your backend.
+=======
+Install everything from the root:
+
+```bash
+npm run setup
+```
+
+This installs the root tools and the dependencies of `frontend/`, `web_landing/` and `admin_dashboard/`, and copies `frontend/.env.example` to `frontend/.env.local` (an existing file is kept). The backend uses the Maven wrapper (`./mvnw`), so it needs no separate install.
+
+Environment files:
+- `frontend/`: set `EXPO_PUBLIC_API_URL` in `.env.local` to your backend.
+>>>>>>> origin/dev
 - `admin_dashboard/`: copy `.env.example` to `.env.local` and set `VITE_API_URL`.
 
 ## Usage
 
+<<<<<<< HEAD
 ```bash
 # backend: starts the local Postgres through Docker and loads seed data
 cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
@@ -53,10 +67,44 @@ cd frontend && npm start
 cd web_landing && npm run dev
 
 # admin dashboard on http://localhost:5174
+=======
+The root scripts start several apps at once in one terminal:
+
+| Command | Starts |
+|---|---|
+| `npm run dev` | backend, mobile app (Expo dev server) and admin dashboard |
+| `npm run dev:ios` | the same, opening the mobile app on the iOS simulator |
+| `npm run dev:android` | the same, opening the mobile app on the Android emulator |
+| `npm run dev:admin` | backend and admin dashboard |
+| `npm run dev:landing` | landing site |
+| `npm run dev:kill` | stops anything left on ports 8080, 8081 and 5174 |
+
+The backend starts the local Postgres through Docker and loads seed data. The admin dashboard runs on http://localhost:5174.
+
+To run one app on its own:
+
+```bash
+cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+cd frontend && npm start          # press i for iOS or a for Android
+cd web_landing && npm run dev
+>>>>>>> origin/dev
 cd admin_dashboard && npm run dev
 ```
 
 Local admin login: `admin@myplunt.dev` / `dev-admin-password`.
+<<<<<<< HEAD
+=======
+
+### Sample accounts
+
+The seed data (local and staging) includes these accounts. Every password is `password123`.
+
+| Account | Email | Set up as |
+| --- | --- | --- |
+| Alice | `alice@example.com` | Friends with Bob and gardener. Plants: Lily and Spike (1 day overdue), Pip (due tomorrow), George the Monstera (due in 6 days, plant-sat by Bob), Zed and Aloe Blacc (due in 10 days) |
+| Bob | `bob@example.com` | Friends with Alice. Pending friend request to Greg. Plant-sitting Alice's George; has posted on George |
+| Greg | `greg@example.com` | No friends; incoming request from Bob. Only a dead plant |
+>>>>>>> origin/dev
 
 ## Roadmap
 
