@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Keyboard, ScrollView, TextInput, View } from 'react-native';
+import { Keyboard, type ScrollViewInstance, TextInput } from 'react-native';
 
 // Room left above the field, so its label stays readable.
 const GAP = 48;
@@ -10,14 +10,12 @@ const GAP = 48;
  * the page stays under the keyboard. keyboardDidShow, because keyboardWillShow never fires on Android.
  */
 export function useKeepFocusedInputVisible() {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   useEffect(() => {
     const sub = Keyboard.addListener('keyboardDidShow', () => {
       const input = TextInput.State.currentlyFocusedInput();
-      // getInnerViewRef exists at runtime but is missing from RN's legacy typings.
-      const scroll = scrollRef.current as (ScrollView & { getInnerViewRef(): View | null }) | null;
-      const content = scroll?.getInnerViewRef();
+      const content = scrollRef.current?.getInnerViewRef();
       if (!input || !content) return;
       // y is the field's offset inside the scrolled content; scrollTo clamps past the end itself.
       // A field outside it (in a dialog's Modal) can't be measured against it, so it's left alone.

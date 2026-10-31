@@ -1,0 +1,910 @@
+openapi: 3.0.3
+info:
+  title: myPlunt API
+  version: 1.0.1
+  description: |
+    REST API behind the myPlunt app.
+
+    - Every app route needs an app access token (`Authorization: Bearer <token>`) unless it says otherwise.
+servers:
+  - url: https://api.myplunt.com
+    description: Production
+  - url: https://api-staging.myplunt.com
+    description: Staging
+  - url: http://localhost:8080
+    description: Local
+security:
+  - appBearer: []
+
+tags:
+  - name: Auth
+    description: Register, log in, refresh and log out of the app.
+  - name: Users
+    description: The signed-in user's profile and settings, and looking up other users.
+  - name: Friends
+    description: Friend requests, the friend list and viewing a friend's garden.
+  - name: Plant sitting
+    description: Asking a friend to look after your plants while you are away.
+  - name: Garden
+    description: The signed-in user's garden grouped by room.
+  - name: Planters
+    description: Rooms (planters) that group plants in the garden.
+  - name: Plants
+    description: Create, edit, delete, photograph and water plants.
+  - name: Waterings
+    description: Watering logs and the overall watering streak.
+  - name: Posts
+    description: The feed, questions, comments and water drops (likes).
+  - name: Species
+    description: The Plantdex of approved species.
+  - name: Photos
+    description: Presigned uploads for avatar, plant and post photos.
+  - name: Notifications
+    description: Push tokens and the in-app inbox.
+  - name: Weather
+    description: Current weather at the user's saved location.
+  - name: Client logs
+    description: Error and action logs sent by the app.
+
+paths:
+  # ---------- Auth ----------
+  /v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Create an account
+      description: Rate limited to 5 requests per minute per IP.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '201':
+          description: Account created and signed in.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in
+      description: Rate limited to 10 requests per minute per IP.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Exchange a refresh token for new tokens
+      description: Rate limited to 30 requests per minute per IP.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: New token pair.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke a refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+
+  # ---------- Users ----------
+  /v1/users/me:
+    get:
+      tags: [Users]
+      summary: Get my profile
+      responses:
+        '200':
+          description: The signed-in user.
+          content:
+            application/json: {}
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    put:
+      tags: [Users]
+      summary: Update my username and bio
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Updated profile.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/users/me/email:
+    put:
+      tags: [Users]
+      summary: Change my email
+      description: Requires the current password.
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Updated profile.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/users/me/avatar:
+    put:
+      tags: [Users]
+      summary: Set my avatar
+      description: '`key` comes from `POST /v1/photos/upload-url` with category `AVATAR`.'
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Updated profile.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Users]
+      summary: Remove my avatar
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+  /v1/users/me/location:
+    put:
+      tags: [Users]
+      summary: Save my location
+      description: Used for weather alerts and sitter distance. Coordinates are never sent to other users.
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /v1/users/me/onboarding:
+    put:
+      tags: [Users]
+      summary: Mark onboarding as done
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /v1/users/me/notifications:
+    get:
+      tags: [Users]
+      summary: Get my notification settings
+      responses:
+        '200':
+          description: Current settings.
+          content:
+            application/json: {}
+    put:
+      tags: [Users]
+      summary: Update my notification settings
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Saved settings.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /v1/users/search:
+    get:
+      tags: [Users]
+      summary: Search users by username
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string, default: '' }
+      responses:
+        '200':
+          description: Matching users.
+          content:
+            application/json: {}
+  /v1/users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get a user's public profile
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      responses:
+        '200':
+          description: The user, with the viewer's friendship status.
+          content:
+            application/json: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ---------- Friends ----------
+  /v1/friends:
+    get:
+      tags: [Friends]
+      summary: List my friends
+      responses:
+        '200':
+          description: Friends.
+          content:
+            application/json: {}
+  /v1/friends/requests:
+    get:
+      tags: [Friends]
+      summary: List pending friend requests
+      responses:
+        '200':
+          description: Requests I received and sent.
+          content:
+            application/json: {}
+    post:
+      tags: [Friends]
+      summary: Send a friend request
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/friends/requests/{userId}/accept:
+    post:
+      tags: [Friends]
+      summary: Accept a friend request from a user
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/friends/requests/{userId}/decline:
+    post:
+      tags: [Friends]
+      summary: Decline a friend request from a user
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/friends/requests/{userId}/cancel:
+    post:
+      tags: [Friends]
+      summary: Cancel a friend request I sent to a user
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/friends/{userId}/remove:
+    post:
+      tags: [Friends]
+      summary: Remove a friend
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/friends/sitters:
+    get:
+      tags: [Friends, Plant sitting]
+      summary: List friends who could sit my plants
+      responses:
+        '200':
+          description: Friends with city and distance (null when either has no location).
+          content:
+            application/json: {}
+  /v1/users/{userId}/garden:
+    get:
+      tags: [Friends]
+      summary: View a friend's garden
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/Zone'
+      responses:
+        '200':
+          description: The friend's garden.
+          content:
+            application/json: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/users/{userId}/plants/{plantId}:
+    get:
+      tags: [Friends]
+      summary: View a friend's plant
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/PlantId'
+      responses:
+        '200':
+          description: Plant details.
+          content:
+            application/json: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/users/{userId}/plants/{plantId}/photos:
+    get:
+      tags: [Friends]
+      summary: View a friend's plant photos
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/PlantId'
+      responses:
+        '200':
+          description: Photos.
+          content:
+            application/json: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/users/{userId}/species/discovered:
+    get:
+      tags: [Friends]
+      summary: View a friend's discovered species
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      responses:
+        '200':
+          description: Discovered species.
+          content:
+            application/json: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/users/{userId}/posts:
+    get:
+      tags: [Friends]
+      summary: View a friend's posts
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      responses:
+        '200':
+          description: Posts.
+          content:
+            application/json: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ---------- Plant sitting ----------
+  /v1/care-requests:
+    get:
+      tags: [Plant sitting]
+      summary: List my plant-sitting requests
+      responses:
+        '200':
+          description: Requests I received and sent.
+          content:
+            application/json: {}
+    post:
+      tags: [Plant sitting]
+      summary: Ask a friend to sit my plants
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/care-requests/{userId}/accept:
+    post:
+      tags: [Plant sitting]
+      summary: Accept a sitting request from a user
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/care-requests/{userId}/decline:
+    post:
+      tags: [Plant sitting]
+      summary: Decline a sitting request from a user
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/care-requests/{userId}/cancel:
+    post:
+      tags: [Plant sitting]
+      summary: Cancel a sitting request I sent to a user
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ---------- Garden ----------
+  /v1/garden:
+    get:
+      tags: [Garden]
+      summary: Get my garden
+      parameters: [{ $ref: '#/components/parameters/Zone' }]
+      responses:
+        '200':
+          description: 'Plants grouped by room. The room with `id: null` holds plants not in a room.'
+          content:
+            application/json: {}
+
+  # ---------- Planters ----------
+  /v1/planters:
+    post:
+      tags: [Planters]
+      summary: Create a room
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /v1/planters/{planterId}:
+    parameters: [{ $ref: '#/components/parameters/PlanterId' }]
+    put:
+      tags: [Planters]
+      summary: Rename a room
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Renamed.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Planters]
+      summary: Delete a room
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ---------- Plants ----------
+  /v1/plants:
+    post:
+      tags: [Plants]
+      summary: Add a plant
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/plants/{plantId}:
+    parameters: [{ $ref: '#/components/parameters/PlantId' }]
+    get:
+      tags: [Plants]
+      summary: Get a plant
+      description: Works for my own plants and plants I am sitting.
+      responses:
+        '200':
+          description: Plant details.
+          content:
+            application/json: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Plants]
+      summary: Edit a plant
+      description: Replaces every field (null clears it), except `photoKey`, where null keeps the current photo.
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Plants]
+      summary: Delete a plant
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/plants/{plantId}/photos:
+    parameters: [{ $ref: '#/components/parameters/PlantId' }]
+    get:
+      tags: [Plants]
+      summary: List a plant's photos
+      responses:
+        '200':
+          description: Photos.
+          content:
+            application/json: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Plants]
+      summary: Add a photo to a plant
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '201':
+          description: Added.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/plants/{plantId}/photos/{photoId}:
+    parameters:
+      - $ref: '#/components/parameters/PlantId'
+      - $ref: '#/components/parameters/PhotoId'
+    put:
+      tags: [Plants]
+      summary: Edit a photo's date and note
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Plants]
+      summary: Delete a photo
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/plants/{plantId}/waterings:
+    parameters: [{ $ref: '#/components/parameters/PlantId' }]
+    post:
+      tags: [Plants, Waterings]
+      summary: Water a plant
+      description: Works for my own plants and plants I am sitting.
+      parameters:
+        - $ref: '#/components/parameters/Zone'
+        - name: wateredAt
+          in: query
+          description: When it was watered. Defaults to now.
+          schema: { type: string, format: date-time }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    get:
+      tags: [Plants, Waterings]
+      summary: Get a plant's watering history and streaks
+      parameters: [{ $ref: '#/components/parameters/Zone' }]
+      responses:
+        '200':
+          description: History.
+          content:
+            application/json: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ---------- Waterings ----------
+  /v1/waterings:
+    get:
+      tags: [Waterings]
+      summary: List my waterings in a time range
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: Inclusive.
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          required: true
+          description: Exclusive.
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Waterings.
+          content:
+            application/json: {}
+  /v1/waterings/streak:
+    get:
+      tags: [Waterings]
+      summary: Get my total watering streak
+      parameters: [{ $ref: '#/components/parameters/Zone' }]
+      responses:
+        '200':
+          description: Sum of the living plants' current streaks.
+          content:
+            application/json: {}
+
+  # ---------- Posts ----------
+  /v1/posts/feed:
+    get:
+      tags: [Posts]
+      summary: Get my feed
+      responses:
+        '200':
+          description: Posts from me and my friends.
+          content:
+            application/json: {}
+  /v1/posts/mine:
+    get:
+      tags: [Posts]
+      summary: Get my posts
+      responses:
+        '200':
+          description: My posts.
+          content:
+            application/json: {}
+  /v1/posts/questions:
+    post:
+      tags: [Posts]
+      summary: Ask a question
+      description: Plant and photo posts are created by the plant endpoints (`shareToFeed`), not here.
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /v1/posts/{postId}:
+    parameters: [{ $ref: '#/components/parameters/PostId' }]
+    get:
+      tags: [Posts]
+      summary: Get a post
+      responses:
+        '200':
+          description: The post.
+          content:
+            application/json: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Posts]
+      summary: Edit my post's text
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Posts]
+      summary: Delete my post
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/posts/{postId}/comments:
+    parameters: [{ $ref: '#/components/parameters/PostId' }]
+    get:
+      tags: [Posts]
+      summary: List comments
+      responses:
+        '200':
+          description: Comments.
+          content:
+            application/json: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Posts]
+      summary: Add a comment
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/posts/{postId}/water:
+    parameters: [{ $ref: '#/components/parameters/PostId' }]
+    put:
+      tags: [Posts]
+      summary: Give a post a water drop
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Posts]
+      summary: Take back my water drop
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ---------- Species ----------
+  /v1/species:
+    get:
+      tags: [Species]
+      summary: List approved species (Plantdex)
+      responses:
+        '200':
+          description: Species.
+          content:
+            application/json: {}
+  /v1/species/discovered:
+    get:
+      tags: [Species]
+      summary: List species I have discovered
+      responses:
+        '200':
+          description: Discovered species.
+          content:
+            application/json: {}
+
+  # ---------- Photos ----------
+  /v1/photos/upload-url:
+    post:
+      tags: [Photos]
+      summary: Get a presigned upload URL
+      description: PUT the image to `uploadUrl`, then confirm it and pass `key` to the plant, post or avatar endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Upload URL and storage key.
+          content:
+            application/json: {}
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /v1/photos/confirm:
+    post:
+      tags: [Photos]
+      summary: Confirm an upload finished
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+
+  # ---------- Notifications ----------
+  /v1/users/me/push-token:
+    put:
+      tags: [Notifications]
+      summary: Register this device's push token
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Notifications]
+      summary: Remove this device's push token
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /v1/users/me/inbox:
+    get:
+      tags: [Notifications]
+      summary: Get my notification inbox
+      responses:
+        '200':
+          description: Notifications.
+          content:
+            application/json: {}
+
+  # ---------- Weather ----------
+  /v1/weather/current:
+    get:
+      tags: [Weather]
+      summary: Current weather at my saved location
+      responses:
+        '200':
+          description: Drives the app's weather visuals.
+          content:
+            application/json: {}
+
+  # ---------- Client logs ----------
+  /v1/client-logs:
+    post:
+      tags: [Client logs]
+      summary: Send a batch of app logs
+      requestBody:
+        required: true
+        content:
+          application/json: {}
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+
+components:
+  securitySchemes:
+    appBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: App access token from `/v1/auth/login` or `/v1/auth/register`.
+
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PlantId:
+      name: plantId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PhotoId:
+      name: photoId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PlanterId:
+      name: planterId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PostId:
+      name: postId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Zone:
+      name: zone
+      in: query
+      description: The viewer's IANA time zone, used for day boundaries in schedules and streaks.
+      schema: { type: string, default: UTC, example: Europe/Amsterdam }
+
+  responses:
+    NoContent:
+      description: Done, no body.
+    ValidationError:
+      description: Invalid request body. `errors` maps each field to its message.
+      content:
+        application/problem+json: {}
+    Unauthorized:
+      description: Missing, invalid or expired credentials.
+      content:
+        application/problem+json: {}
+    NotFound:
+      description: Not found, or not visible to the caller.
+      content:
+        application/problem+json: {}
+    Conflict:
+      description: Conflicts with existing data (e.g. email already registered).
+      content:
+        application/problem+json: {}
+    TooManyRequests:
+      description: Rate limit hit.
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content:
+        application/problem+json: {}

@@ -1,6 +1,6 @@
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, type ScrollViewInstance, Text, View } from 'react-native';
 
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
 import { photoMonth } from '@/features/plants/growth';
@@ -16,7 +16,7 @@ interface PhotoCarouselProps {
 }
 
 export function PhotoCarousel({ plantName, photos, fallbackUrl, index, onChange }: PhotoCarouselProps) {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const [width, setWidth] = useState(0);
   const hasMany = photos.length > 1;
 

@@ -212,7 +212,7 @@ function FriendContent({ user, header }: { user: UserSummary; header: ReactNode 
           <ActivityIndicator accessibilityLabel={LOADING_LABELS[tab]} color={theme.primary} />
         ) : rows.length === 0 ? (
           <Text className="type-body-medium text-center text-text-secondary">{emptyText}</Text>
-        ) : null
+        ) : undefined
       }
       renderItem={({ item: row }) =>
         'room' in row ? (

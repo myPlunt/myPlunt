@@ -16,6 +16,7 @@ import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTe
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -24,6 +25,7 @@ import org.springframework.test.web.servlet.client.RestTestClient;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -53,6 +55,9 @@ class AdminJobsControllerTest {
 
     @MockitoBean
     private WeatherService weatherService;
+
+    @MockitoBean
+    private JdbcTemplate jdbc;
 
     @MockitoBean
     private AdminJwtService adminJwtService;
@@ -109,6 +114,29 @@ class AdminJobsControllerTest {
                 .expectStatus().isUnauthorized();
 
         verify(pushNotificationService, never()).sendWeatherAlertsToEveryone();
+    }
+
+    @Test
+    void skipDay_movesTimesBackThenSendsReminders() {
+        signedInAdmin();
+
+        restTestClient.post().uri("/v1/admin/jobs/skip-day")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer admin-token")
+                .exchange()
+                .expectStatus().isNoContent();
+
+        InOrder order = inOrder(jdbc, pushNotificationService);
+        order.verify(jdbc).batchUpdate(any(String[].class));
+        order.verify(pushNotificationService).sendWateringRemindersToEveryone();
+    }
+
+    @Test
+    void skipDay_withoutAnAdmin_isUnauthorizedAndChangesNothing() {
+        restTestClient.post().uri("/v1/admin/jobs/skip-day")
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        verify(jdbc, never()).batchUpdate(any(String[].class));
     }
 
     @Test
