@@ -1,0 +1,48 @@
+name: Mobile build
+
+# Manual EAS builds (Actions > Mobile build > Run workflow). Staging profiles run from dev, production from main.
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        options: [ios, android]
+      profile:
+        description: "staging / production; staging-aab = .aab for a Play testing track, production-apk = installable .apk"
+        type: choice
+        options: [staging, staging-aab, production, production-apk]
+      submit:
+        description: Submit to App Store Connect after the build (iOS only)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: ${{ startsWith(inputs.profile, 'production') && 'production' || 'staging' }}
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - name: Check branch matches profile
+        run: |
+          expected=${{ startsWith(inputs.profile, 'production') && 'main' || 'dev' }}
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "::error::Profile '${{ inputs.profile }}' must run from $expected, not $GITHUB_REF_NAME"; exit 1
+          fi
+        working-directory: .
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx --yes eas-cli@latest build --platform ${{ inputs.platform }} --profile ${{ inputs.profile }} --non-interactive
+      - if: inputs.submit && inputs.platform == 'ios'
+        run: npx --yes eas-cli@latest submit --platform ios --profile ${{ inputs.profile }} --non-interactive --latest --no-wait
