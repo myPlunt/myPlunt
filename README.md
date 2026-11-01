@@ -22,7 +22,7 @@ The repository is a monorepo with four apps:
 Requirements: Java 25, Node.js with npm, Docker, and Xcode or Android Studio to run the app on a simulator or emulator.
 
 ```bash
-git clone git@gitlab.com:saxionnl/hbo-ict/aad/2026-2027/11.git
+git clone https://github.com/myPlunt/myPlunt.git
 cd 11
 ```
 
@@ -79,13 +79,13 @@ The seed data (local and staging) includes these accounts. Every password is `pa
 
 1. Branch off `dev`: `feature/FMP-XXX-Short-description` or `technical/TMP-XXX-Short-description`.
 2. Start commit messages with the ticket key, e.g. `FMP-004-Add user profile screen`.
-3. Run the checks for every app you changed before opening a merge request:
+3. Run the checks for every app you changed before opening a pull request:
    - backend: `./mvnw test` (needs Docker for `ApplicationTests`)
    - frontend: `npm run test:ci && npm run lint && npx tsc --noEmit`
    - web_landing and admin_dashboard: `npm run lint && npm run build`
-4. Open the merge request against `dev`. `dev` deploys to staging and `main` to production.
+4. Open the pull request against `dev`. `dev` deploys to staging and `main` to production.
 
-GitLab CI runs the same checks on every merge request.
+GitHub Actions runs the same checks on every pull request.
 
 ## Authors and acknowledgment
 
