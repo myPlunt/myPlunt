@@ -176,30 +176,3 @@ jobs:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           WEBHOOK_URL: ${{ github.ref_name == 'main' && secrets.COOLIFY_ADMIN_PROD_WEBHOOK_URL || secrets.COOLIFY_ADMIN_STAGING_WEBHOOK_URL }}
         run: 'curl -fsS -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$WEBHOOK_URL"'
-
-  # The landing page only ships to production.
-  deploy-landing:
-    needs: check-landing
-    if: github.event_name == 'push' && github.ref_name == 'main'
-    runs-on: ubuntu-latest
-    environment: production
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
-        with:
-          context: web_landing
-          push: true
-          tags: ${{ env.REGISTRY_IMAGE }}/web-landing:latest
-      - name: Deploy via Coolify
-        env:
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-          WEBHOOK_URL: ${{ secrets.COOLIFY_LANDING_WEBHOOK_URL }}
-        run: 'curl -fsS -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$WEBHOOK_URL"'
