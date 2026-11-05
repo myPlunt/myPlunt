@@ -1,0 +1,72 @@
+# Every entry bundles all its updates into one PR (plus one security PR when an advisory has a fix).
+# Major versions are ignored and upgraded by hand, so one breaking bump can't block the bundle.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /backend
+    target-branch: dev
+    open-pull-requests-limit: 1
+    schedule:
+      interval: weekly
+    groups:
+      backend:
+        patterns: ["*"]
+      backend-security:
+        applies-to: security-updates
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    target-branch: dev
+    open-pull-requests-limit: 1
+    schedule:
+      interval: weekly
+    groups:
+      frontend:
+        patterns: ["*"]
+      frontend-security:
+        applies-to: security-updates
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+      - dependency-name: "react-native"
+      # Version is pinned by the Expo SDK
+      - dependency-name: "react-native-worklets"
+
+  - package-ecosystem: npm
+    directory: /web_landing
+    target-branch: dev
+    open-pull-requests-limit: 1
+    schedule:
+      interval: weekly
+    groups:
+      web-landing:
+        patterns: ["*"]
+      web-landing-security:
+        applies-to: security-updates
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: npm
+    directory: /admin_dashboard
+    target-branch: dev
+    open-pull-requests-limit: 1
+    schedule:
+      interval: weekly
+    groups:
+      admin-dashboard:
+        patterns: ["*"]
+      admin-dashboard-security:
+        applies-to: security-updates
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
