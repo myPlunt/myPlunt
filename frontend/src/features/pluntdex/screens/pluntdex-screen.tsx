@@ -120,7 +120,7 @@ export function PluntdexScreen() {
                   </Text>
                   <Button label="Clear filters" variant="secondary" onPress={clearAll} />
                 </View>
-              ) : null
+              ) : undefined
             }
             renderItem={({ item: row }) =>
               row === 'filters' ? (

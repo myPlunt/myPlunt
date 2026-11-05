@@ -71,7 +71,8 @@ export function PostScreen({ postId }: { postId: string }) {
   return (
     <View className="flex-1 bg-background">
       <KeyboardAvoidingView
-        className="flex-1"
+        // style, not className: a flex-1 class overrides the height Android's "height" behavior sets.
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
           {/* y counts the safe-area padding above the header; the menu is positioned from the same edge. */}

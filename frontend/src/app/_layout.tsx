@@ -38,7 +38,8 @@ function RootNavigator() {
 
   return (
     <Stack>
-      <Stack.Protected guard={status === 'authenticated'}>
+      {/* (auth) has no index, so "/" needs an explicit target when logged out. */}
+      <Stack.Protected guard={status === 'authenticated'} redirectTo="/login">
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={status !== 'authenticated'}>

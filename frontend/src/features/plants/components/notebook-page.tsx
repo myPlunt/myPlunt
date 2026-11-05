@@ -13,7 +13,8 @@ export function NotebookPage({ title, children }: { title: string; children: Rea
     <View className="flex-1 bg-background-element">
       <NotebookMargin />
       <KeyboardAvoidingView
-        className="flex-1"
+        // style, not className: a flex-1 class overrides the height Android's "height" behavior sets.
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <SafeAreaView className="flex-1" edges={['top', 'bottom', 'left', 'right']}>
           <ScrollView

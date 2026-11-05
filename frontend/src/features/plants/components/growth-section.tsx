@@ -1,6 +1,6 @@
 import { SymbolView } from 'expo-symbols';
 import { Fragment, useRef } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, type ScrollViewInstance, Text, View } from 'react-native';
 
 import { Shadow } from '@/constants/theme';
 import { PlantPhoto } from '@/features/plants/components/plant-photo';
@@ -31,7 +31,7 @@ export function GrowthSection({
 }: GrowthSectionProps) {
   const theme = useTheme();
   const { isOffline, explainOffline } = useNetworkStore();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const first = photos[0]?.takenAt;
   const last = photos.at(-1)?.takenAt;
   const span = photos.length > 1 && first && last ? timeBetween(first, last) : null;

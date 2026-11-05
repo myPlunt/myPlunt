@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
-import { Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Text, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
 
-import { Shadow } from '@/constants/theme';
+import { Shadow, singleLineInputText } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface FormFieldProps extends TextInputProps {
@@ -11,7 +11,7 @@ interface FormFieldProps extends TextInputProps {
   helperSuccess?: boolean;
 }
 
-export const FormField = forwardRef<TextInput, FormFieldProps>(function FormField(
+export const FormField = forwardRef<TextInputInstance, FormFieldProps>(function FormField(
   { label, error, helperText, helperSuccess, className, multiline, ...rest },
   ref,
 ) {
@@ -22,11 +22,11 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(function FormFiel
       <Text className="type-label text-text-secondary">{label}</Text>
       <TextInput
         ref={ref}
-        className={`type-body-large rounded-[10px] border-[1.5px] bg-background-element px-4 text-text ${
-          multiline ? 'min-h-24 py-2' : 'h-10'
+        className={`rounded-[10px] border-[1.5px] bg-background-element px-4 text-text ${
+          multiline ? 'type-body-large min-h-24 py-2' : 'h-10'
         } ${error ? 'border-error' : 'border-input-border'} ${className ?? ''}`}
         // Android centres multiline text vertically by default; iOS starts at the top.
-        style={[Shadow.level2, multiline && { textAlignVertical: 'top' }]}
+        style={[Shadow.level2, multiline ? { textAlignVertical: 'top' } : singleLineInputText]}
         multiline={multiline}
         placeholderTextColor={theme.placeholder}
         autoCapitalize="none"

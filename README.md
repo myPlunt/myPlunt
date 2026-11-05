@@ -13,7 +13,7 @@ The repository is a monorepo with four apps:
 | Folder | What it is | Stack |
 |---|---|---|
 | `backend/` | REST API | Spring Boot 4, Java 25, PostgreSQL, Flyway, JWT |
-| `frontend/` | Mobile app | Expo SDK 57, React Native, expo-router, TypeScript, NativeWind |
+| `frontend/` | Mobile app | Expo SDK 58, React Native, expo-router, TypeScript, NativeWind |
 | `web_landing/` | Marketing site | Vite, React 19, Tailwind v4 |
 | `admin_dashboard/` | Internal admin app | Vite, React 19, Tailwind v4 |
 
@@ -22,10 +22,18 @@ The repository is a monorepo with four apps:
 Requirements: Java 25, Node.js with npm, Docker, and Xcode or Android Studio to run the app on a simulator or emulator.
 
 ```bash
+<<<<<<< HEAD
 git clone https://github.com/myPlunt/myPlunt.git
 cd 11
 ```
 
+=======
+git clone git@gitlab.com:saxionnl/hbo-ict/aad/2026-2027/11.git
+cd 11
+```
+
+<<<<<<< HEAD
+>>>>>>> main
 Each app has its own dependencies, so install them inside its folder:
 
 ```bash
@@ -38,10 +46,29 @@ The backend uses the Maven wrapper (`./mvnw`), so it needs no separate install.
 
 Environment files:
 - `frontend/`: copy `.env.example` to `.env` and set `EXPO_PUBLIC_API_URL` to your backend.
+<<<<<<< HEAD
+=======
+=======
+Install everything from the root:
+
+```bash
+npm run setup
+```
+
+This installs the root tools and the dependencies of `frontend/`, `web_landing/` and `admin_dashboard/`, and copies `frontend/.env.example` to `frontend/.env.local` (an existing file is kept). The backend uses the Maven wrapper (`./mvnw`), so it needs no separate install.
+
+Environment files:
+- `frontend/`: set `EXPO_PUBLIC_API_URL` in `.env.local` to your backend.
+>>>>>>> origin/dev
+>>>>>>> main
 - `admin_dashboard/`: copy `.env.example` to `.env.local` and set `VITE_API_URL`.
 
 ## Usage
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> main
 ```bash
 # backend: starts the local Postgres through Docker and loads seed data
 cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
@@ -53,10 +80,39 @@ cd frontend && npm start
 cd web_landing && npm run dev
 
 # admin dashboard on http://localhost:5174
+<<<<<<< HEAD
+=======
+=======
+The root scripts start several apps at once in one terminal:
+
+| Command | Starts |
+|---|---|
+| `npm run dev` | backend, mobile app (Expo dev server) and admin dashboard |
+| `npm run dev:ios` | the same, opening the mobile app on the iOS simulator |
+| `npm run dev:android` | the same, opening the mobile app on the Android emulator |
+| `npm run dev:admin` | backend and admin dashboard |
+| `npm run dev:landing` | landing site |
+| `npm run dev:kill` | stops anything left on ports 8080, 8081 and 5174 |
+
+The backend starts the local Postgres through Docker and loads seed data. The admin dashboard runs on http://localhost:5174.
+
+To run one app on its own:
+
+```bash
+cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+cd frontend && npm start          # press i for iOS or a for Android
+cd web_landing && npm run dev
+>>>>>>> origin/dev
+>>>>>>> main
 cd admin_dashboard && npm run dev
 ```
 
 Local admin login: `admin@myplunt.dev` / `dev-admin-password`.
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> main
 
 ### Sample accounts
 
@@ -67,6 +123,10 @@ The seed data (local and staging) includes these accounts. Every password is `pa
 | Alice | `alice@example.com` | Friends with Bob and gardener. Plants: Lily and Spike (1 day overdue), Pip (due tomorrow), George the Monstera (due in 6 days, plant-sat by Bob), Zed and Aloe Blacc (due in 10 days) |
 | Bob | `bob@example.com` | Friends with Alice. Pending friend request to Greg. Plant-sitting Alice's George; has posted on George |
 | Greg | `greg@example.com` | No friends; incoming request from Bob. Only a dead plant |
+<<<<<<< HEAD
+=======
+>>>>>>> origin/dev
+>>>>>>> main
 
 ## Roadmap
 
@@ -79,6 +139,7 @@ The seed data (local and staging) includes these accounts. Every password is `pa
 
 1. Branch off `dev`: `feature/FMP-XXX-Short-description` or `technical/TMP-XXX-Short-description`.
 2. Start commit messages with the ticket key, e.g. `FMP-004-Add user profile screen`.
+<<<<<<< HEAD
 3. Run the checks for every app you changed before opening a pull request:
    - backend: `./mvnw test` (needs Docker for `ApplicationTests`)
    - frontend: `npm run test:ci && npm run lint && npx tsc --noEmit`
@@ -86,6 +147,15 @@ The seed data (local and staging) includes these accounts. Every password is `pa
 4. Open the pull request against `dev`. `dev` deploys to staging and `main` to production.
 
 GitHub Actions runs the same checks on every pull request.
+=======
+3. Run the checks for every app you changed before opening a merge request:
+   - backend: `./mvnw test` (needs Docker for `ApplicationTests`)
+   - frontend: `npm run test:ci && npm run lint && npx tsc --noEmit`
+   - web_landing and admin_dashboard: `npm run lint && npm run build`
+4. Open the merge request against `dev`. `dev` deploys to staging and `main` to production.
+
+GitLab CI runs the same checks on every merge request.
+>>>>>>> main
 
 ## Authors and acknowledgment
 

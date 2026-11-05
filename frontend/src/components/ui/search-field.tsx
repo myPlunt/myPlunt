@@ -1,6 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { Pressable, TextInput, View } from 'react-native';
 
+import { singleLineInputText } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface SearchFieldProps {
@@ -36,7 +37,8 @@ export function SearchField({
         autoCorrect={false}
         autoCapitalize={autoCapitalize}
         returnKeyType="search"
-        className="type-body-large flex-1 text-text"
+        className="flex-1 self-stretch text-text"
+        style={singleLineInputText}
       />
       {value !== '' && (
         <Pressable

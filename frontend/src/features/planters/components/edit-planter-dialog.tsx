@@ -75,7 +75,8 @@ export function EditPlanterDialog({ planter, onClose, onChanged }: EditPlanterDi
   return (
     <Modal visible transparent animationType="fade" onRequestClose={close}>
       <KeyboardAvoidingView
-        className="flex-1"
+        // style, not className: a flex-1 class overrides the height Android's "height" behavior sets.
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View className="flex-1 items-center justify-center px-6">
           <Pressable

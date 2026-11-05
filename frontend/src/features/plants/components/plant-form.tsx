@@ -3,6 +3,7 @@ import { Children, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { singleLineInputText } from '@/constants/theme';
 import { usePhotoUpload } from '@/features/photos/use-photo-upload';
 import { ChoiceChip } from '@/features/plants/components/choice-chip';
 import {
@@ -11,7 +12,6 @@ import {
   oneLine,
   RuledLine,
   RuledTextField,
-  singleLineInputText,
 } from '@/features/plants/components/notebook-paper';
 import { PhotoField } from '@/features/plants/components/photo-field';
 import { PlanterSelect } from '@/features/plants/components/planter-select';

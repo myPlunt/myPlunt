@@ -1,4 +1,4 @@
-import { lightColors } from './tokens';
+import { lightColors, Typography } from './tokens';
 
 export { brand, Fonts, MaxContentWidth, Typography } from './tokens';
 
@@ -28,4 +28,15 @@ export const Shadow = {
     shadowRadius: 12,
     elevation: 3,
   },
+} as const;
+
+/**
+ * No lineHeight: with one, iOS draws single-line input text at the bottom of the box. Android needs
+ * its vertical padding removed and explicit centring to do the same.
+ */
+export const singleLineInputText = {
+  fontFamily: Typography.bodyLarge.fontFamily,
+  fontSize: Typography.bodyLarge.fontSize,
+  paddingVertical: 0,
+  textAlignVertical: 'center',
 } as const;

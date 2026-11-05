@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Easing, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Animated, Easing, Text, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
 
-import { Typography } from '@/constants/theme';
+import { singleLineInputText } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 // Grid sizes go through style, not h-* classes: NativeWind's native rem is 14px, so h-10 is 35px.
@@ -14,17 +14,6 @@ const BOX_GAP = 6;
 export function boxHeight(rows: number) {
   return rows * RULE_HEIGHT - 2 * BOX_GAP;
 }
-
-/**
- * No lineHeight: with one, iOS draws single-line input text at the bottom of the box. Android needs
- * its vertical padding removed and explicit centring to do the same.
- */
-export const singleLineInputText = {
-  fontFamily: Typography.bodyLarge.fontFamily,
-  fontSize: Typography.bodyLarge.fontSize,
-  paddingVertical: 0,
-  textAlignVertical: 'center',
-} as const;
 
 // Enough lines to cover a tall page; the parent clips the rest.
 const RULE_COUNT = 60;
@@ -89,7 +78,7 @@ interface RuledTextFieldProps extends TextInputProps {
   rows?: number;
 }
 
-export const RuledTextField = forwardRef<TextInput, RuledTextFieldProps>(function RuledTextField(
+export const RuledTextField = forwardRef<TextInputInstance, RuledTextFieldProps>(function RuledTextField(
   { label, error, rows = 1, multiline, ...rest },
   ref,
 ) {
