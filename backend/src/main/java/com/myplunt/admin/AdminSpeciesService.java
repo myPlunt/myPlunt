@@ -64,6 +64,18 @@ public class AdminSpeciesService {
         record(AuditEvent.SPECIES_REJECTED, species, adminId);
     }
 
+    // Imported pictures belong to their species alone, so they go with it; seeded ones stay (see reject).
+    @Transactional
+    public void rejectAll(UUID adminId) {
+        for (Species species : speciesService.findPending()) {
+            speciesService.delete(species);
+            record(AuditEvent.SPECIES_REJECTED, species, adminId);
+            if (species.getImageKey() != null && species.getImageKey().contains("/perenual.")) {
+                storageService.deleteObject(species.getImageKey());
+            }
+        }
+    }
+
     // Names are logged too: a rejected species no longer exists to look its id up.
     private void record(AuditEvent event, Species species, UUID adminId) {
         UUID submitterId = species.getSubmittedBy() == null ? null : species.getSubmittedBy().getId();

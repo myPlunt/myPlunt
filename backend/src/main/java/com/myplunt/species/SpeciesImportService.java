@@ -33,49 +33,66 @@ public class SpeciesImportService {
         this.storageService = storageService;
     }
 
-    // Each species is saved on its own, so hitting the daily limit keeps what was already imported.
-    public SpeciesImportResponse importPage(int page) {
+    // Imports up to count new species, starting at a Perenual page (30 species each) and moving on to the
+    // next pages as needed. Each species is saved on its own, so hitting the daily limit keeps what was
+    // already imported. nextPage is where the next import should start: the same page while it still
+    // has species left to look at.
+    public SpeciesImportResponse importSpecies(int count, int startPage) {
         if (!perenualClient.isEnabled()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "The plant API is not set up.");
         }
-        PerenualClient.Page list;
-        try {
-            list = perenualClient.list(page);
-        } catch (RestClientException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The plant API is unavailable. Try again later.");
-        }
         int imported = 0;
         int skipped = 0;
-        boolean limitReached = false;
-        for (PerenualClient.Item item : list.data()) {
-            String scientificName = first(item.scientific_name());
-            // Checked before the details call, so species we already have cost no requests.
-            if (scientificName == null || speciesRepository.existsByScientificNameIgnoreCase(scientificName)) {
-                skipped++;
-                continue;
-            }
-            JsonNode details;
-            Species species;
+        int page = startPage;
+        while (true) {
+            PerenualClient.Page list;
             try {
-                details = perenualClient.details(item.id());
-                species = toSpecies(scientificName, details);
+                list = perenualClient.list(page);
             } catch (HttpClientErrorException.TooManyRequests e) {
-                limitReached = true;
-                break;
+                return new SpeciesImportResponse(imported, skipped, page, true);
             } catch (RestClientException e) {
-                skipped++;
-                continue;
+                if (imported > 0) {
+                    return new SpeciesImportResponse(imported, skipped, page, false);
+                }
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The plant API is unavailable. Try again later.");
             }
-            if (species == null) {
-                skipped++;
-            } else {
-                Species saved = speciesRepository.save(species);
-                copyImage(saved, details);
-                imported++;
+            for (PerenualClient.Item item : list.data()) {
+                if (imported == count) {
+                    return new SpeciesImportResponse(imported, skipped, page, false);
+                }
+                String scientificName = first(item.scientific_name());
+                // Checked before the details call, so species we already have cost no requests.
+                if (scientificName == null || speciesRepository.existsByScientificNameIgnoreCase(scientificName)) {
+                    skipped++;
+                    continue;
+                }
+                JsonNode details;
+                Species species;
+                try {
+                    details = perenualClient.details(item.id());
+                    species = toSpecies(scientificName, details);
+                } catch (HttpClientErrorException.TooManyRequests e) {
+                    return new SpeciesImportResponse(imported, skipped, page, true);
+                } catch (RestClientException e) {
+                    skipped++;
+                    continue;
+                }
+                if (species == null) {
+                    skipped++;
+                } else {
+                    Species saved = speciesRepository.save(species);
+                    copyImage(saved, details);
+                    imported++;
+                }
+            }
+            if (page >= list.last_page()) {
+                return new SpeciesImportResponse(imported, skipped, null, false);
+            }
+            page++;
+            if (imported == count) {
+                return new SpeciesImportResponse(imported, skipped, page, false);
             }
         }
-        Integer nextPage = page < list.last_page() ? page + 1 : null;
-        return new SpeciesImportResponse(imported, skipped, limitReached ? page : nextPage, limitReached);
     }
 
     // A species without a picture is still worth importing, so a failed copy is ignored.

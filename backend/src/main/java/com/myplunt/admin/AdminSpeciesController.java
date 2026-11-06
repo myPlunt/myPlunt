@@ -45,6 +45,13 @@ public class AdminSpeciesController {
         adminSpeciesService.approve(id, admin.getId());
     }
 
+    // Rejects every pending species at once, e.g. a bad import. Approved species are never touched.
+    @DeleteMapping(ApiPaths.Admin.PENDING_SPECIES)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void rejectAll(@AuthenticationPrincipal AdminUser admin) {
+        adminSpeciesService.rejectAll(admin.getId());
+    }
+
     @DeleteMapping(ApiPaths.Admin.PENDING_SPECIES_BY_ID)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void reject(@AuthenticationPrincipal AdminUser admin, @PathVariable UUID id) {
@@ -53,7 +60,9 @@ public class AdminSpeciesController {
 
     // Imported species land in the pending list for review.
     @PostMapping(ApiPaths.Admin.IMPORT_SPECIES)
-    public SpeciesImportResponse importSpecies(@RequestParam(defaultValue = "1") int page) {
-        return speciesImportService.importPage(Math.max(page, 1));
+    public SpeciesImportResponse importSpecies(@RequestParam(defaultValue = "1") int count,
+                                               @RequestParam(defaultValue = "1") int page) {
+        // Capped at the free plan's 100 requests a day.
+        return speciesImportService.importSpecies(Math.clamp(count, 1, 100), Math.max(page, 1));
     }
 }

@@ -1,4 +1,4 @@
 package com.myplunt.species.dto;
 
-// nextPage is null after the last page; on limitReached it is the same page, to finish it tomorrow.
+// nextPage is the Perenual page the next import starts at; null after the last page.
 public record SpeciesImportResponse(int imported, int skipped, Integer nextPage, boolean limitReached) {}

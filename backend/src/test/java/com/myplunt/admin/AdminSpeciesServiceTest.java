@@ -113,4 +113,20 @@ class AdminSpeciesServiceTest {
         verify(speciesService, never()).delete(any());
         verify(auditLog, never()).recorded(any(), any(), any(), anyMap());
     }
+
+    @Test
+    void rejectAll_deletesEveryPendingSpeciesAndOnlyImportedPictures() {
+        Species imported = species("Aloe", "Aloe vera");
+        ReflectionTestUtils.setField(imported, "imageKey", "species/1/perenual.jpg");
+        Species seeded = species("Olive tree", "Olea europaea");
+        ReflectionTestUtils.setField(seeded, "imageKey", "species/2/seed.jpg");
+        when(speciesService.findPending()).thenReturn(List.of(imported, seeded));
+
+        service().rejectAll(adminId);
+
+        verify(speciesService).delete(imported);
+        verify(speciesService).delete(seeded);
+        verify(storageService).deleteObject("species/1/perenual.jpg");
+        verify(storageService, never()).deleteObject("species/2/seed.jpg");
+    }
 }

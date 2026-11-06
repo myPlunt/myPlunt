@@ -87,11 +87,12 @@ class SpeciesImportServiceTest {
     }
 
     @Test
-    void importPage_skipsKnownSpeciesAndCopiesTheNewOnesPicture() {
+    void importSpecies_stopsAtTheCountAndStaysOnThePageItStoppedIn() {
         when(perenualClient.isEnabled()).thenReturn(true);
         when(perenualClient.list(1)).thenReturn(new PerenualClient.Page(List.of(
                 new PerenualClient.Item(1, List.of("Monstera deliciosa")),
-                new PerenualClient.Item(2, List.of("Aloe vera"))), 5));
+                new PerenualClient.Item(2, List.of("Aloe vera")),
+                new PerenualClient.Item(3, List.of("Ficus lyrata"))), 5));
         when(speciesRepository.existsByScientificNameIgnoreCase("Monstera deliciosa")).thenReturn(true);
         when(perenualClient.details(2)).thenReturn(json("""
                 {"common_name": "aloe", "watering": "Minimum", "default_image": {"regular_url": "https://img.test/aloe.jpg"}}
@@ -107,18 +108,19 @@ class SpeciesImportServiceTest {
                 .thenReturn(ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(picture));
         when(storageService.putSpeciesImage(aloeId, picture, "image/jpeg")).thenReturn("species/aloe/perenual.jpg");
 
-        SpeciesImportResponse result = service().importPage(1);
+        SpeciesImportResponse result = service().importSpecies(1, 1);
 
         verify(perenualClient, never()).details(1);
+        verify(perenualClient, never()).details(3);
         ArgumentCaptor<Species> saved = ArgumentCaptor.forClass(Species.class);
         verify(speciesRepository, org.mockito.Mockito.atLeastOnce()).save(saved.capture());
         assertThat(saved.getValue().getScientificName()).isEqualTo("Aloe vera");
         assertThat(saved.getValue().getImageKey()).isEqualTo("species/aloe/perenual.jpg");
-        assertThat(result).isEqualTo(new SpeciesImportResponse(1, 1, 2, false));
+        assertThat(result).isEqualTo(new SpeciesImportResponse(1, 1, 1, false));
     }
 
     @Test
-    void importPage_stopsAtTheDailyLimitAndOffersTheSamePageAgain() {
+    void importSpecies_stopsAtTheDailyLimitAndOffersTheSamePageAgain() {
         when(perenualClient.isEnabled()).thenReturn(true);
         when(perenualClient.list(3)).thenReturn(new PerenualClient.Page(List.of(
                 new PerenualClient.Item(7, List.of("Aloe vera")),
@@ -126,10 +128,28 @@ class SpeciesImportServiceTest {
         when(perenualClient.details(anyInt())).thenThrow(HttpClientErrorException.create(
                 HttpStatus.TOO_MANY_REQUESTS, "Too Many Requests", null, null, null));
 
-        SpeciesImportResponse result = service().importPage(3);
+        SpeciesImportResponse result = service().importSpecies(10, 3);
 
         verify(perenualClient, never()).details(8);
         verify(speciesRepository, never()).save(any());
         assertThat(result).isEqualTo(new SpeciesImportResponse(0, 0, 3, true));
+    }
+
+    @Test
+    void importSpecies_movesOnToTheNextPageWhenOneHasNothingNew() {
+        when(perenualClient.isEnabled()).thenReturn(true);
+        when(perenualClient.list(1)).thenReturn(new PerenualClient.Page(List.of(
+                new PerenualClient.Item(1, List.of("Monstera deliciosa"))), 5));
+        when(perenualClient.list(2)).thenReturn(new PerenualClient.Page(List.of(
+                new PerenualClient.Item(31, List.of("Aloe vera"))), 5));
+        when(speciesRepository.existsByScientificNameIgnoreCase("Monstera deliciosa")).thenReturn(true);
+        when(perenualClient.details(31)).thenReturn(json("""
+                {"common_name": "aloe", "watering": "Minimum"}
+                """));
+        when(speciesRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+
+        SpeciesImportResponse result = service().importSpecies(1, 1);
+
+        assertThat(result).isEqualTo(new SpeciesImportResponse(1, 1, 3, false));
     }
 }

@@ -67,7 +67,7 @@ function SpeciesPage() {
     <>
       <PageHeader title="Species" />
 
-      <ImportSpeciesForm onImported={reloadPending} />
+      <ImportSpeciesForm pendingCount={result?.pending?.length ?? 0} onChanged={reloadPending} />
 
       {result?.error && (
         <p role="alert" className="text-sm font-semibold text-soil">

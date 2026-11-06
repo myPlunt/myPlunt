@@ -43,7 +43,8 @@ export function rejectSpecies(id: string): Promise<void> {
   return apiAction(`/v1/admin/species/pending/${id}`, 'DELETE')
 }
 
-// nextPage is null after Perenual's last page; limitReached means the free plan's daily requests ran out.
+// nextPage is the Perenual page the next import starts at, null after the last one; limitReached means
+// the free plan's 100 daily requests ran out.
 export type SpeciesImport = {
   imported: number
   skipped: number
@@ -51,7 +52,13 @@ export type SpeciesImport = {
   limitReached: boolean
 }
 
-// Adds one Perenual page (30 species) to the pending list. Species we already have are skipped.
-export function importSpecies(page: number): Promise<SpeciesImport> {
-  return apiPost(`/v1/admin/species/import?page=${page}`)
+// Adds up to count new species to the pending list, looking from Perenual page `page` on. Species we
+// already have are skipped.
+export function importSpecies(count: number, page: number): Promise<SpeciesImport> {
+  return apiPost(`/v1/admin/species/import?count=${count}&page=${page}`)
+}
+
+// Rejects every pending species; approved ones stay.
+export function rejectAllPendingSpecies(): Promise<void> {
+  return apiAction('/v1/admin/species/pending', 'DELETE')
 }
