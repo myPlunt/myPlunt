@@ -27,9 +27,9 @@ public class StorageService {
             "image/jpeg", "jpg",
             "image/png", "png");
 
-    // Signed into the presigned PUT, so the uploader's PUT must send this exact header.
-    // Lets a bucket lifecycle rule expire anything never confirmed.
-    private static final String PENDING_UPLOAD_TAGGING = "pending=true";
+    // Uploads land under this prefix until confirmed, so a bucket lifecycle rule on it expires anything
+    // never confirmed. A prefix, not an object tag: R2 supports neither tagging nor tag-filtered rules.
+    static final String PENDING_PREFIX = "pending/";
 
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
@@ -69,8 +69,7 @@ public class StorageService {
 
         PutObjectRequest putRequest = PutObjectRequest.builder()
                 .bucket(bucket)
-                .key(key)
-                .tagging(PENDING_UPLOAD_TAGGING)
+                .key(PENDING_PREFIX + key)
                 .build();
 
         String url = s3Presigner.presignPutObject(r -> r
@@ -87,22 +86,39 @@ public class StorageService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Upload not found for key: " + key);
         }
 
+        String pendingKey = PENDING_PREFIX + key;
         HeadObjectResponse head;
         try {
-            head = s3Client.headObject(r -> r.bucket(bucket).key(key));
+            head = s3Client.headObject(r -> r.bucket(bucket).key(pendingKey));
         } catch (NoSuchKeyException e) {
+            // Editing a plant re-sends its current photo key, which was confirmed (moved) earlier.
+            if (exists(key)) {
+                return;
+            }
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Upload not found for key: " + key);
         }
 
         if (head.contentLength() > maxUploadSizeBytes) {
-            s3Client.deleteObject(r -> r.bucket(bucket).key(key));
+            s3Client.deleteObject(r -> r.bucket(bucket).key(pendingKey));
             auditLog.rejected(AuditEvent.PHOTO_UPLOAD_REJECTED, userId, "too_large",
                     Map.of("photo_key", key, "size_bytes", head.contentLength()));
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uploaded file exceeds the size limit.");
         }
 
-        // Clears the pending tag so the lifecycle rule no longer expires this object.
-        s3Client.deleteObjectTagging(r -> r.bucket(bucket).key(key));
+        // Moves it out of pending/ so the lifecycle rule no longer expires it.
+        s3Client.copyObject(r -> r
+                .sourceBucket(bucket).sourceKey(pendingKey)
+                .destinationBucket(bucket).destinationKey(key));
+        s3Client.deleteObject(r -> r.bucket(bucket).key(pendingKey));
+    }
+
+    private boolean exists(String key) {
+        try {
+            s3Client.headObject(r -> r.bucket(bucket).key(key));
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        }
     }
 
     // Keys are "[prefix/]<category>/<userId>/<file>" - userId is always second to last.
