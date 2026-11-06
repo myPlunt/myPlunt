@@ -63,7 +63,7 @@ public class StorageConfig {
                 .build();
     }
 
-    // Expires uploads that were never confirmed (StorageService tags them pending=true). Dev only:
+    // Expires uploads that were never confirmed (StorageService keeps them under pending/). Dev only:
     // staging and prod buckets are provisioned externally.
     private static final int PENDING_UPLOAD_EXPIRATION_DAYS = 1;
 
@@ -95,7 +95,7 @@ public class StorageConfig {
                     .lifecycleConfiguration(c -> c.rules(rule -> rule
                             .id("expire-unconfirmed-uploads")
                             .status(ExpirationStatus.ENABLED)
-                            .filter(f -> f.tag(t -> t.key("pending").value("true")))
+                            .filter(f -> f.prefix(StorageService.PENDING_PREFIX))
                             .expiration(e -> e.days(PENDING_UPLOAD_EXPIRATION_DAYS)))));
 
             startSeedImageUpload(s3Client, bucket, prefix);

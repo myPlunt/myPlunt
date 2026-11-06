@@ -26,8 +26,8 @@ export async function uploadPhoto(localUri: string, category: PhotoCategory): Pr
     const file = await (await fetch(localUri)).blob();
     response = await fetch(uploadUrl, {
       method: 'PUT',
-      // Both headers are part of the presigned signature, so they must match it exactly.
-      headers: { 'Content-Type': CONTENT_TYPE, 'x-amz-tagging': 'pending=true' },
+      // Part of the presigned signature, so it must match it exactly.
+      headers: { 'Content-Type': CONTENT_TYPE },
       body: file,
     });
   } catch (err) {

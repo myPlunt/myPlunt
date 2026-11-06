@@ -34,7 +34,7 @@ describe('uploadPhoto', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(1, 'file:///photo.jpg');
     expect(fetchMock).toHaveBeenNthCalledWith(2, 'https://storage.test/upload?signed', {
       method: 'PUT',
-      headers: { 'Content-Type': 'image/jpeg', 'x-amz-tagging': 'pending=true' },
+      headers: { 'Content-Type': 'image/jpeg' },
       body: file,
     });
   });

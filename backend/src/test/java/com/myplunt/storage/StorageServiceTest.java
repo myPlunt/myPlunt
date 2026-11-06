@@ -6,12 +6,16 @@ import com.myplunt.storage.dto.UploadUrlRequest;
 import com.myplunt.storage.dto.UploadUrlResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
@@ -22,6 +26,7 @@ import java.util.function.Consumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -102,14 +107,50 @@ class StorageServiceTest {
     }
 
     @Test
-    void confirmUpload_succeedsAndClearsPendingTagWhenWithinLimit() {
+    void confirmUpload_movesTheUploadOutOfPending() {
         UUID userId = UUID.randomUUID();
+        String key = "avatars/" + userId + "/fine.jpg";
         when(s3Client.headObject(any(java.util.function.Consumer.class)))
                 .thenReturn(HeadObjectResponse.builder().contentLength(1_000L).build());
 
-        storageService().confirmUpload(userId, "avatars/" + userId + "/fine.jpg");
+        storageService().confirmUpload(userId, key);
 
-        verify(s3Client).deleteObjectTagging(any(java.util.function.Consumer.class));
+        ArgumentCaptor<Consumer<CopyObjectRequest.Builder>> copy = ArgumentCaptor.captor();
+        verify(s3Client).copyObject(copy.capture());
+        CopyObjectRequest.Builder copyRequest = CopyObjectRequest.builder();
+        copy.getValue().accept(copyRequest);
+        assertThat(copyRequest.build().sourceKey()).isEqualTo("pending/" + key);
+        assertThat(copyRequest.build().destinationKey()).isEqualTo(key);
+
+        ArgumentCaptor<Consumer<DeleteObjectRequest.Builder>> delete = ArgumentCaptor.captor();
+        verify(s3Client).deleteObject(delete.capture());
+        DeleteObjectRequest.Builder deleteRequest = DeleteObjectRequest.builder();
+        delete.getValue().accept(deleteRequest);
+        assertThat(deleteRequest.build().key()).isEqualTo("pending/" + key);
     }
+
+    @Test
+    void confirmUpload_acceptsAKeyThatWasAlreadyConfirmed() {
+        UUID userId = UUID.randomUUID();
+        when(s3Client.headObject(any(java.util.function.Consumer.class)))
+                .thenThrow(NoSuchKeyException.builder().build())
+                .thenReturn(HeadObjectResponse.builder().contentLength(1_000L).build());
+
+        storageService().confirmUpload(userId, "plants/" + userId + "/kept.jpg");
+
+        verify(s3Client, never()).copyObject(any(java.util.function.Consumer.class));
+    }
+
+    @Test
+    void confirmUpload_throwsNotFoundWhenNothingWasUploaded() {
+        UUID userId = UUID.randomUUID();
+        when(s3Client.headObject(any(java.util.function.Consumer.class)))
+                .thenThrow(NoSuchKeyException.builder().build());
+
+        assertThatThrownBy(() -> storageService().confirmUpload(userId, "plants/" + userId + "/missing.jpg"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("404");
+    }
+
 
 }
