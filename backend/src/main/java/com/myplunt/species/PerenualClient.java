@@ -4,7 +4,10 @@ import tools.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClient;
+
+import java.net.URI;
 
 import java.util.List;
 
@@ -43,6 +46,12 @@ public class PerenualClient {
                 .uri("/species/details/{id}?key={key}", id, apiKey)
                 .retrieve()
                 .body(JsonNode.class);
+    }
+
+    // Image links are signed and expire after a day, so the picture is copied, not linked. A URI, so the
+    // signature isn't re-encoded. Not an API call: it doesn't count against the daily limit.
+    public ResponseEntity<byte[]> image(String url) {
+        return restClient.get().uri(URI.create(url)).retrieve().toEntity(byte[].class);
     }
 
     public record Page(List<Item> data, int last_page) {}

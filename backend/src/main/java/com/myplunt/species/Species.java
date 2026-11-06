@@ -105,6 +105,10 @@ public class Species {
         return imageKey;
     }
 
+    public void setImageKey(String imageKey) {
+        this.imageKey = imageKey;
+    }
+
     public boolean isCommon() {
         return common;
     }

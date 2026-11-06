@@ -2,6 +2,9 @@ package com.myplunt.species;
 
 import tools.jackson.databind.JsonNode;
 import com.myplunt.species.dto.SpeciesImportResponse;
+import com.myplunt.storage.StorageService;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -21,10 +24,13 @@ public class SpeciesImportService {
 
     private final PerenualClient perenualClient;
     private final SpeciesRepository speciesRepository;
+    private final StorageService storageService;
 
-    public SpeciesImportService(PerenualClient perenualClient, SpeciesRepository speciesRepository) {
+    public SpeciesImportService(PerenualClient perenualClient, SpeciesRepository speciesRepository,
+                                StorageService storageService) {
         this.perenualClient = perenualClient;
         this.speciesRepository = speciesRepository;
+        this.storageService = storageService;
     }
 
     // Each species is saved on its own, so hitting the daily limit keeps what was already imported.
@@ -48,9 +54,11 @@ public class SpeciesImportService {
                 skipped++;
                 continue;
             }
+            JsonNode details;
             Species species;
             try {
-                species = toSpecies(scientificName, perenualClient.details(item.id()));
+                details = perenualClient.details(item.id());
+                species = toSpecies(scientificName, details);
             } catch (HttpClientErrorException.TooManyRequests e) {
                 limitReached = true;
                 break;
@@ -61,12 +69,39 @@ public class SpeciesImportService {
             if (species == null) {
                 skipped++;
             } else {
-                speciesRepository.save(species);
+                Species saved = speciesRepository.save(species);
+                copyImage(saved, details);
                 imported++;
             }
         }
         Integer nextPage = page < list.last_page() ? page + 1 : null;
         return new SpeciesImportResponse(imported, skipped, limitReached ? page : nextPage, limitReached);
+    }
+
+    // A species without a picture is still worth importing, so a failed copy is ignored.
+    private void copyImage(Species species, JsonNode details) {
+        JsonNode image = details.path("default_image");
+        String url = text(image.path("regular_url"));
+        if (url == null) {
+            url = text(image.path("medium_url"));
+        }
+        if (url == null) {
+            return;
+        }
+        try {
+            ResponseEntity<byte[]> response = perenualClient.image(url);
+            MediaType type = response.getHeaders().getContentType();
+            if (response.getBody() == null || type == null) {
+                return;
+            }
+            String key = storageService.putSpeciesImage(species.getId(), response.getBody(), type.getType() + "/" + type.getSubtype());
+            if (key != null) {
+                species.setImageKey(key);
+                speciesRepository.save(species);
+            }
+        } catch (RuntimeException e) {
+            // Download or storage failed: the admin sees "No picture" and can still approve.
+        }
     }
 
     // Null when the free plan hides the care data: a species without watering is no use in the PluntDex.
