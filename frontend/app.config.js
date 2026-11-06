@@ -10,7 +10,7 @@ export default {
     owner: "my-plunt",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: isStaging ? "./assets/images/icon-staging.png" : "./assets/images/icon.png",
     scheme: "frontend",
     userInterfaceStyle: "automatic",
     ios: {
@@ -26,7 +26,7 @@ export default {
       googleServicesFile: "./google-services.json",
       adaptiveIcon: {
         backgroundColor: SAND_DUNE,
-        foregroundImage: "./assets/images/android-icon-foreground.png",
+        foregroundImage: isStaging ? "./assets/images/android-icon-foreground-staging.png" : "./assets/images/android-icon-foreground.png",
         monochromeImage: "./assets/images/android-icon-monochrome.png",
       },
       predictiveBackGestureEnabled: false,
