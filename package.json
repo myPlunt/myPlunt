@@ -12,7 +12,7 @@
     "dev:android": "npm run dev:kill && concurrently -n backend,frontend,admin -c blue,green,magenta \"npm run dev:backend\" \"npm run dev:frontend:android\" \"npm run dev:admin-ui\"",
     "dev:landing": "cd web_landing && npm run dev",
     "dev:admin": "npm run dev:kill && concurrently -n backend,admin -c blue,magenta \"npm run dev:backend\" \"npm run dev:admin-ui\"",
-    "dev:backend": "cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev",
+    "dev:backend": "cd backend && set -a && { [ ! -f .env ] || . ./.env; } && set +a && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev",
     "dev:frontend": "cd frontend && npm start",
     "dev:frontend:ios": "cd frontend && npm run ios",
     "dev:frontend:android": "cd frontend && npm run android",

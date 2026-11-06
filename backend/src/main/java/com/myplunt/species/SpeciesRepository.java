@@ -12,6 +12,8 @@ import java.util.UUID;
 public interface SpeciesRepository extends JpaRepository<Species, UUID> {
     List<Species> findByApprovedTrueOrderByCommonNameAsc();
 
+    boolean existsByScientificNameIgnoreCase(String scientificName);
+
     Optional<Species> findByIdAndApprovedTrue(UUID id);
 
     Optional<Species> findByIdAndApprovedFalse(UUID id);

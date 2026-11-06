@@ -2,6 +2,8 @@ package com.myplunt.admin;
 
 import com.myplunt.admin.dto.PendingSpeciesResponse;
 import com.myplunt.constants.ApiPaths;
+import com.myplunt.species.SpeciesImportService;
+import com.myplunt.species.dto.SpeciesImportResponse;
 import com.myplunt.species.dto.SpeciesResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,9 +22,11 @@ import java.util.UUID;
 public class AdminSpeciesController {
 
     private final AdminSpeciesService adminSpeciesService;
+    private final SpeciesImportService speciesImportService;
 
-    public AdminSpeciesController(AdminSpeciesService adminSpeciesService) {
+    public AdminSpeciesController(AdminSpeciesService adminSpeciesService, SpeciesImportService speciesImportService) {
         this.adminSpeciesService = adminSpeciesService;
+        this.speciesImportService = speciesImportService;
     }
 
     @GetMapping(ApiPaths.Admin.SPECIES)
@@ -44,5 +49,11 @@ public class AdminSpeciesController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void reject(@AuthenticationPrincipal AdminUser admin, @PathVariable UUID id) {
         adminSpeciesService.reject(id, admin.getId());
+    }
+
+    // Imported species land in the pending list for review.
+    @PostMapping(ApiPaths.Admin.IMPORT_SPECIES)
+    public SpeciesImportResponse importSpecies(@RequestParam(defaultValue = "1") int page) {
+        return speciesImportService.importPage(Math.max(page, 1));
     }
 }

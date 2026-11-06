@@ -1,4 +1,4 @@
-import { apiAction, apiGet } from './api'
+import { apiAction, apiGet, apiPost } from './api'
 
 // The care fields and imageUrl are null when the submitter left them out; submittedBy (a
 // username) when no user submitted it or the account was deleted.
@@ -41,4 +41,17 @@ export function approveSpecies(id: string): Promise<void> {
 // Deletes the submission; plants that used it keep their own data.
 export function rejectSpecies(id: string): Promise<void> {
   return apiAction(`/v1/admin/species/pending/${id}`, 'DELETE')
+}
+
+// nextPage is null after Perenual's last page; limitReached means the free plan's daily requests ran out.
+export type SpeciesImport = {
+  imported: number
+  skipped: number
+  nextPage: number | null
+  limitReached: boolean
+}
+
+// Adds one Perenual page (30 species) to the pending list. Species we already have are skipped.
+export function importSpecies(page: number): Promise<SpeciesImport> {
+  return apiPost(`/v1/admin/species/import?page=${page}`)
 }

@@ -1,0 +1,143 @@
+package com.myplunt.species;
+
+import tools.jackson.databind.JsonNode;
+import com.myplunt.species.dto.SpeciesImportResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+// Imports one Perenual page (30 species) as pending species, so they go through the normal approval.
+@Service
+public class SpeciesImportService {
+
+    private static final Pattern NUMBER = Pattern.compile("\\d+");
+
+    private final PerenualClient perenualClient;
+    private final SpeciesRepository speciesRepository;
+
+    public SpeciesImportService(PerenualClient perenualClient, SpeciesRepository speciesRepository) {
+        this.perenualClient = perenualClient;
+        this.speciesRepository = speciesRepository;
+    }
+
+    // Each species is saved on its own, so hitting the daily limit keeps what was already imported.
+    public SpeciesImportResponse importPage(int page) {
+        if (!perenualClient.isEnabled()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "The plant API is not set up.");
+        }
+        PerenualClient.Page list;
+        try {
+            list = perenualClient.list(page);
+        } catch (RestClientException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The plant API is unavailable. Try again later.");
+        }
+        int imported = 0;
+        int skipped = 0;
+        boolean limitReached = false;
+        for (PerenualClient.Item item : list.data()) {
+            String scientificName = first(item.scientific_name());
+            // Checked before the details call, so species we already have cost no requests.
+            if (scientificName == null || speciesRepository.existsByScientificNameIgnoreCase(scientificName)) {
+                skipped++;
+                continue;
+            }
+            Species species;
+            try {
+                species = toSpecies(scientificName, perenualClient.details(item.id()));
+            } catch (HttpClientErrorException.TooManyRequests e) {
+                limitReached = true;
+                break;
+            } catch (RestClientException e) {
+                skipped++;
+                continue;
+            }
+            if (species == null) {
+                skipped++;
+            } else {
+                speciesRepository.save(species);
+                imported++;
+            }
+        }
+        Integer nextPage = page < list.last_page() ? page + 1 : null;
+        return new SpeciesImportResponse(imported, skipped, limitReached ? page : nextPage, limitReached);
+    }
+
+    // Null when the free plan hides the care data: a species without watering is no use in the PluntDex.
+    static Species toSpecies(String scientificName, JsonNode details) {
+        String commonName = text(details.path("common_name"));
+        Integer wateringDays = wateringDays(details);
+        if (commonName == null || wateringDays == null) {
+            return null;
+        }
+        return new Species(capitalize(commonName), scientificName, join(details.path("origin")), wateringDays,
+                capitalize(join(details.path("sunlight"))));
+    }
+
+    // "watering_general_benchmark": {"value": "7-10", "unit": "days"} → 7, the safe end of the range.
+    static Integer wateringDays(JsonNode details) {
+        JsonNode benchmark = details.path("watering_general_benchmark");
+        String value = text(benchmark.path("value"));
+        if (value != null) {
+            Matcher matcher = NUMBER.matcher(value);
+            if (matcher.find()) {
+                int amount = Integer.parseInt(matcher.group());
+                String unit = String.valueOf(text(benchmark.path("unit"))).toLowerCase(Locale.ROOT);
+                int days = unit.startsWith("week") ? amount * 7 : amount;
+                if (days > 0) {
+                    return Math.min(days, 365);
+                }
+            }
+        }
+        String watering = text(details.path("watering"));
+        if (watering == null) {
+            return null;
+        }
+        return switch (watering.toLowerCase(Locale.ROOT)) {
+            case "frequent" -> 3;
+            case "average" -> 7;
+            case "minimum" -> 14;
+            case "none" -> 30;
+            default -> null;
+        };
+    }
+
+    private static String text(JsonNode node) {
+        if (!node.isValueNode() || node.isNull()) {
+            return null;
+        }
+        String value = node.asString().replace("\"", "").trim();
+        return value.isEmpty() || value.startsWith("Upgrade") ? null : value;
+    }
+
+    // Whole entries only, within the columns' VARCHAR(255): some origin lists name 30+ countries.
+    private static String join(JsonNode array) {
+        StringBuilder joined = new StringBuilder();
+        for (JsonNode part : array) {
+            String value = text(part);
+            if (value == null) {
+                continue;
+            }
+            String next = joined.isEmpty() ? value : ", " + value;
+            if (joined.length() + next.length() > 255) {
+                break;
+            }
+            joined.append(next);
+        }
+        return joined.isEmpty() ? null : joined.toString();
+    }
+
+    private static String first(List<String> values) {
+        return values == null || values.isEmpty() || values.get(0).isBlank() ? null : values.get(0).trim();
+    }
+
+    private static String capitalize(String value) {
+        return value == null ? null : Character.toUpperCase(value.charAt(0)) + value.substring(1);
+    }
+}

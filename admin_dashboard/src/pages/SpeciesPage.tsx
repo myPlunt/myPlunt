@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import PageHeader from '../components/PageHeader'
+import ImportSpeciesForm from '../components/species/ImportSpeciesForm'
 import PendingSpeciesCard from '../components/species/PendingSpeciesCard'
 import SpeciesCard from '../components/species/SpeciesCard'
 import { ApiError } from '../lib/api'
@@ -36,6 +37,12 @@ function SpeciesPage() {
     }
   }, [])
 
+  function reloadPending() {
+    getPendingSpecies()
+      .then((pending) => setResult((current) => ({ ...current, pending })))
+      .catch(() => {})
+  }
+
   // An approved species joins the approved list right away instead of waiting for a reload.
   function moveReviewed(reviewed: PendingSpecies, approved: boolean) {
     setResult((current) => ({
@@ -59,6 +66,8 @@ function SpeciesPage() {
   return (
     <>
       <PageHeader title="Species" />
+
+      <ImportSpeciesForm onImported={reloadPending} />
 
       {result?.error && (
         <p role="alert" className="text-sm font-semibold text-soil">
