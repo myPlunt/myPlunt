@@ -72,7 +72,7 @@ public class AdminSpeciesController {
     @PostMapping(ApiPaths.Admin.IMPORT_SPECIES)
     public SpeciesImportResponse importSpecies(@RequestParam(defaultValue = "1") int count,
                                                @RequestParam(defaultValue = "1") int page) {
-        // Capped at the free plan's 100 requests a day.
-        return speciesImportService.importSpecies(Math.clamp(count, 1, 100), Math.max(page, 1));
+        // Capped under Trefle's 60 requests a minute: one details request per species, plus the list pages.
+        return speciesImportService.importSpecies(Math.clamp(count, 1, 50), Math.max(page, 1));
     }
 }

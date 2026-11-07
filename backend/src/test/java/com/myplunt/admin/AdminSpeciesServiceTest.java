@@ -118,7 +118,7 @@ class AdminSpeciesServiceTest {
     @Test
     void rejectAll_deletesEveryPendingSpeciesAndOnlyImportedPictures() {
         Species imported = species("Aloe", "Aloe vera");
-        ReflectionTestUtils.setField(imported, "imageKey", "species/1/perenual.jpg");
+        ReflectionTestUtils.setField(imported, "imageKey", "species/1/imported.jpg");
         Species seeded = species("Olive tree", "Olea europaea");
         ReflectionTestUtils.setField(seeded, "imageKey", "species/2/seed.jpg");
         when(speciesService.findPending()).thenReturn(List.of(imported, seeded));
@@ -127,7 +127,7 @@ class AdminSpeciesServiceTest {
 
         verify(speciesService).delete(imported);
         verify(speciesService).delete(seeded);
-        verify(storageService).deleteObject("species/1/perenual.jpg");
+        verify(storageService).deleteObject("species/1/imported.jpg");
         verify(storageService, never()).deleteObject("species/2/seed.jpg");
     }
 

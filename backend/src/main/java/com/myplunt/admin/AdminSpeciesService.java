@@ -86,7 +86,7 @@ public class AdminSpeciesService {
         for (Species species : speciesService.findPending()) {
             speciesService.delete(species);
             record(AuditEvent.SPECIES_REJECTED, species, adminId);
-            if (species.getImageKey() != null && species.getImageKey().contains("/perenual.")) {
+            if (species.getImageKey() != null && species.getImageKey().contains("/imported.")) {
                 storageService.deleteObject(species.getImageKey());
             }
         }

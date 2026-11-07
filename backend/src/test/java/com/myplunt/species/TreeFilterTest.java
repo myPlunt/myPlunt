@@ -14,26 +14,20 @@ class TreeFilterTest {
 
     @Test
     void isTreeGenus_skipsBigTreesButNotPottedOnes() {
-        assertThat(TreeFilter.isTreeGenus("Abies")).isTrue();
+        assertThat(TreeFilter.isTreeGenus("Quercus")).isTrue();
         assertThat(TreeFilter.isTreeGenus("Acer")).isTrue();
         assertThat(TreeFilter.isTreeGenus("Ficus")).isFalse();
         assertThat(TreeFilter.isTreeGenus(null)).isFalse();
     }
 
     @Test
-    void isTree_byTypeOrHeight_unlessItIsAnIndoorPlant() {
-        // Abies alba's real Perenual details.
-        assertThat(TreeFilter.isTree(json("""
-                {"type": "tree", "indoor": false, "dimensions": [{"type": "Height", "max_value": 60, "unit": "feet"}]}
-                """))).isTrue();
-        assertThat(TreeFilter.isTree(json("""
-                {"type": "Deciduous shrub", "indoor": false, "dimensions": [{"type": "Height", "max_value": 15, "unit": "meters"}]}
-                """))).isTrue();
-        assertThat(TreeFilter.isTree(json("""
-                {"type": "tree", "indoor": true, "dimensions": [{"type": "Height", "max_value": 50, "unit": "feet"}]}
-                """))).isFalse();
-        assertThat(TreeFilter.isTree(json("""
-                {"type": "Flower", "indoor": false, "dimensions": [{"type": "Height", "max_value": 2, "unit": "feet"}]}
-                """))).isFalse();
+    void isTree_byTypeHabitOrHeight() {
+        assertThat(TreeFilter.isTree(json("{\"specifications\": {\"ligneous_type\": \"tree\"}}"))).isTrue();
+        assertThat(TreeFilter.isTree(json("{\"specifications\": {\"growth_habit\": \"Tree, Shrub\"}}"))).isTrue();
+        assertThat(TreeFilter.isTree(json("{\"specifications\": {\"maximum_height\": {\"cm\": 2500}}}"))).isTrue();
+        // Monstera and lavender's real Trefle specifications.
+        assertThat(TreeFilter.isTree(json("{\"specifications\": {\"growth_habit\": \"Vine, Forb/herb\", \"maximum_height\": {\"cm\": null}}}")))
+                .isFalse();
+        assertThat(TreeFilter.isTree(json("{\"specifications\": {\"average_height\": {\"cm\": 100}}}"))).isFalse();
     }
 }

@@ -7,7 +7,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-// Turns Perenual's origin list ("Austria", "Germany", "Southeastern United States") into one of the
+// Turns Trefle's native distribution ("Guatemala", "Mexico Gulf", "Cape Provinces") into one of the
 // PluntDex regions, which the app's region filter groups species by. Only the regions the seeded
 // species already use: an origin outside them (Australia, Central Asia...) gives null, and the admin
 // sets the region by hand before approving.
@@ -23,46 +23,60 @@ public final class OriginRegions {
         add("Southeast Asia", "papua new guinea", "new guinea");
         add("North America", "indiana");
         add("West Africa", "equatorial guinea", "guinea-bissau");
-        add("Southern Africa", "south africa", "southern africa", "cape province");
+        add("Southern Africa", "south africa", "southern africa", "cape province", "cape provinces", "kwazulu-natal",
+                "northern provinces", "free state");
         add("Mediterranean", "mediterranean", "southern europe", "north africa", "northern africa",
                 "spain", "portugal", "italy", "sicily", "sardinia", "corsica", "greece", "crete", "malta", "cyprus",
-                "balearic islands", "canary islands", "madeira", "azores", "turkey", "lebanon", "israel",
+                "balearic islands", "baleares", "sicilia", "sardegna", "corse", "kriti", "aegean", "canary islands",
+                "madeira", "azores", "turkey", "lebanon", "israel",
                 "palestine", "syria", "morocco", "algeria", "tunisia", "libya", "egypt");
-        add("Europe", "europe", "united kingdom", "great britain", "britain", "england", "scotland", "wales",
+        add("Europe", "europe", "european", "czechoslovakia", "yugoslavia", "baltic states", "foroyar", "united kingdom", "great britain", "britain", "england", "scotland", "wales",
                 "ireland", "france", "germany", "netherlands", "belgium", "luxembourg", "switzerland", "austria",
                 "denmark", "norway", "sweden", "finland", "iceland", "poland", "czech republic", "czechia",
                 "slovakia", "hungary", "slovenia", "croatia", "bosnia", "serbia", "montenegro", "albania",
                 "north macedonia", "macedonia", "kosovo", "bulgaria", "romania", "moldova", "ukraine", "belarus",
-                "lithuania", "latvia", "estonia", "russia", "caucasus", "armenia", "azerbaijan", "balkans",
+                "lithuania", "latvia", "estonia", "russia", "caucasus", "transcaucasus", "armenia", "azerbaijan", "balkans",
                 "scandinavia", "alps", "pyrenees", "carpathians");
         add("North America", "north america", "united states", "usa", "u.s.", "canada", "alaska", "hawaii",
                 "california", "texas", "florida", "arizona", "nevada", "oregon", "washington", "new mexico",
                 "colorado", "utah", "appalachians", "great plains", "rocky mountains", "new england",
-                "greenland");
+                "greenland",
+                // Trefle names the US states and Canadian provinces one by one. Georgia is the US state there:
+                // the country is "Transcaucasus".
+                "alabama", "arkansas", "connecticut", "delaware", "georgia", "idaho", "illinois", "iowa",
+                "kansas", "kentucky", "louisiana", "maine", "maryland", "massachusetts", "michigan", "minnesota",
+                "mississippi", "missouri", "montana", "nebraska", "new hampshire", "new jersey", "new york",
+                "north carolina", "north dakota", "ohio", "oklahoma", "pennsylvania", "rhode island",
+                "south carolina", "south dakota", "tennessee", "vermont", "virginia", "west virginia",
+                "wisconsin", "wyoming", "district of columbia", "ontario", "quebec", "british columbia",
+                "alberta", "manitoba", "saskatchewan", "new brunswick", "nova scotia", "newfoundland",
+                "labrador", "yukon", "northwest territories", "nunavut", "prince edward");
         add("Central America", "central america", "mexico", "guatemala", "belize", "honduras", "el salvador",
                 "nicaragua", "costa rica", "panama", "caribbean", "west indies", "cuba", "jamaica", "haiti",
                 "dominican republic", "hispaniola", "puerto rico", "bahamas", "trinidad", "barbados",
-                "lesser antilles", "greater antilles", "antilles");
+                "lesser antilles", "greater antilles", "antilles", "leeward", "windward",
+                "cayman");
         add("South America", "south america", "brazil", "argentina", "chile", "peru", "bolivia", "ecuador",
                 "colombia", "venezuela", "uruguay", "paraguay", "guyana", "french guiana", "suriname", "andes",
                 "patagonia", "amazon", "galapagos");
         add("Arabian Peninsula", "arabian peninsula", "arabia", "saudi arabia", "yemen", "oman",
-                "united arab emirates", "qatar", "kuwait", "bahrain", "socotra");
+                "united arab emirates", "qatar", "kuwait", "bahrain", "socotra", "gulf states");
         add("South Asia", "south asia", "india", "sri lanka", "nepal", "bangladesh", "bhutan", "pakistan",
-                "himalaya", "himalayas");
+                "himalaya", "himalayas", "assam", "laccadive");
         add("Southeast Asia", "southeast asia", "south-east asia", "thailand", "vietnam", "laos", "cambodia",
                 "myanmar", "burma", "malaysia", "indonesia", "philippines", "singapore", "borneo", "brunei",
-                "sumatra", "java", "sulawesi", "malesia", "malay peninsula");
+                "sumatra", "sumatera", "java", "jawa", "sulawesi", "malesia", "malay peninsula", "malaya", "maluku",
+                "lesser sunda");
         add("Tropical Asia", "tropical asia");
         add("East Asia", "east asia", "eastern asia", "china", "japan", "korea", "taiwan", "mongolia",
-                "hong kong", "tibet");
+                "hong kong", "tibet", "hainan", "nansei-shoto");
         add("East Africa", "east africa", "eastern africa", "kenya", "tanzania", "uganda", "ethiopia",
                 "somalia", "rwanda", "burundi", "sudan", "eritrea", "djibouti", "madagascar");
         add("Southern Africa", "namibia", "botswana", "zimbabwe", "lesotho", "eswatini", "swaziland",
                 "mozambique", "angola", "zambia", "malawi");
         add("West Africa", "west africa", "western africa", "tropical africa", "central africa", "nigeria",
                 "ghana", "senegal", "ivory coast", "cote d'ivoire", "guinea", "sierra leone", "liberia", "mali",
-                "burkina faso", "niger", "benin", "togo", "gambia", "cameroon", "gabon", "congo");
+                "burkina", "niger", "benin", "togo", "gambia", "cameroon", "gabon", "congo", "zaire");
     }
 
     private static final List<Map.Entry<Pattern, String>> PATTERNS = KEYWORDS.entrySet().stream()

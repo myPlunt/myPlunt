@@ -10,7 +10,7 @@ class OriginRegionsTest {
 
     @Test
     void regionOf_groupsCountriesIntoTheRegionMostOfThemAreIn() {
-        // Abies alba's real Perenual origin list.
+        // A European origin list.
         assertThat(OriginRegions.regionOf(List.of("Austria", "Germany", "Switzerland", "France", "Italy", "Slovenia",
                 "Croatia", "Bosnia and Herzegovina", "Serbia", "Montenegro", "Albania", "Bulgaria", "Romania")))
                 .isEqualTo("Europe");
@@ -26,6 +26,11 @@ class OriginRegionsTest {
         assertThat(OriginRegions.match("Guinea")).isEqualTo("West Africa");
         assertThat(OriginRegions.match("New Mexico")).isEqualTo("North America");
         assertThat(OriginRegions.match("Côte d'Ivoire")).isEqualTo("West Africa");
+        // Trefle's place names.
+        assertThat(OriginRegions.match("Cape Provinces")).isEqualTo("Southern Africa");
+        assertThat(OriginRegions.match("Central European Rus")).isEqualTo("Europe");
+        assertThat(OriginRegions.match("Ohio")).isEqualTo("North America");
+        assertThat(OriginRegions.match("Panamá")).isEqualTo("Central America");
     }
 
     @Test

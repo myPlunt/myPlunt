@@ -151,7 +151,7 @@ public class StorageService {
         if (extension == null || bytes.length > maxUploadSizeBytes) {
             return null;
         }
-        String base = "species/%s/perenual.%s".formatted(speciesId, extension);
+        String base = "species/%s/imported.%s".formatted(speciesId, extension);
         String key = prefix.isBlank() ? base : prefix + "/" + base;
         s3Client.putObject(r -> r.bucket(bucket).key(key).contentType(contentType), RequestBody.fromBytes(bytes));
         return key;

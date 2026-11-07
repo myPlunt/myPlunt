@@ -1,54 +1,50 @@
 package com.myplunt.species;
 
-import tools.jackson.databind.JsonNode;
 import com.myplunt.species.dto.SpeciesImportResponse;
 import com.myplunt.storage.StorageService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-// Imports one Perenual page (30 species) as pending species, so they go through the normal approval.
+// Imports Trefle species as pending species, so they go through the normal approval. Trefle has no
+// watering and rarely light, so the admin sets those with Edit before approving.
 @Service
 public class SpeciesImportService {
 
-    private static final Pattern NUMBER = Pattern.compile("\\d+");
-
-    private final PerenualClient perenualClient;
+    private final TrefleClient trefleClient;
     private final SpeciesRepository speciesRepository;
     private final StorageService storageService;
 
-    public SpeciesImportService(PerenualClient perenualClient, SpeciesRepository speciesRepository,
+    public SpeciesImportService(TrefleClient trefleClient, SpeciesRepository speciesRepository,
                                 StorageService storageService) {
-        this.perenualClient = perenualClient;
+        this.trefleClient = trefleClient;
         this.speciesRepository = speciesRepository;
         this.storageService = storageService;
     }
 
-    // Imports up to count new species, starting at a Perenual page (30 species each) and moving on to the
-    // next pages as needed. Each species is saved on its own, so hitting the daily limit keeps what was
+    // Imports up to count new species, starting at a Trefle page (20 species each) and moving on to the
+    // next pages as needed. Each species is saved on its own, so hitting the rate limit keeps what was
     // already imported. nextPage is where the next import should start: the same page while it still
     // has species left to look at.
     public SpeciesImportResponse importSpecies(int count, int startPage) {
-        if (!perenualClient.isEnabled()) {
+        if (!trefleClient.isEnabled()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "The plant API is not set up.");
         }
         int imported = 0;
         int skipped = 0;
         int page = startPage;
         while (true) {
-            PerenualClient.Page list;
+            TrefleClient.Page list;
             try {
-                list = perenualClient.list(page);
+                list = trefleClient.list(page);
             } catch (HttpClientErrorException.TooManyRequests e) {
                 return new SpeciesImportResponse(imported, skipped, page, true);
             } catch (RestClientException e) {
@@ -57,22 +53,21 @@ public class SpeciesImportService {
                 }
                 throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The plant API is unavailable. Try again later.");
             }
-            for (PerenualClient.Item item : list.data()) {
+            for (TrefleClient.Item item : list.data()) {
                 if (imported == count) {
                     return new SpeciesImportResponse(imported, skipped, page, false);
                 }
-                String scientificName = first(item.scientific_name());
-                // Checked before the details call, so species we already have cost no requests.
-                if (scientificName == null || TreeFilter.isTreeGenus(genus(item, scientificName))
+                String scientificName = blankToNull(item.scientific_name());
+                // Checked before the details call, so trees and species we already have cost no requests.
+                if (scientificName == null || blankToNull(item.common_name()) == null
+                        || TreeFilter.isTreeGenus(genus(item, scientificName))
                         || speciesRepository.existsByScientificNameIgnoreCase(scientificName)) {
                     skipped++;
                     continue;
                 }
-                JsonNode details;
                 Species species;
                 try {
-                    details = perenualClient.details(item.id());
-                    species = toSpecies(scientificName, details);
+                    species = toSpecies(item, trefleClient.details(item.id()));
                 } catch (HttpClientErrorException.TooManyRequests e) {
                     return new SpeciesImportResponse(imported, skipped, page, true);
                 } catch (RestClientException e) {
@@ -82,12 +77,11 @@ public class SpeciesImportService {
                 if (species == null) {
                     skipped++;
                 } else {
-                    Species saved = speciesRepository.save(species);
-                    copyImage(saved, details);
+                    copyImage(speciesRepository.save(species), item.image_url());
                     imported++;
                 }
             }
-            if (page >= list.last_page()) {
+            if (page >= list.lastPage()) {
                 return new SpeciesImportResponse(imported, skipped, null, false);
             }
             page++;
@@ -97,23 +91,48 @@ public class SpeciesImportService {
         }
     }
 
-    // A species without a picture is still worth importing, so a failed copy is ignored.
-    private void copyImage(Species species, JsonNode details) {
-        JsonNode image = details.path("default_image");
-        String url = text(image.path("regular_url"));
-        if (url == null) {
-            url = text(image.path("medium_url"));
+    // Null for trees. Watering stays empty: Trefle has no watering data.
+    static Species toSpecies(TrefleClient.Item item, JsonNode details) {
+        if (details == null || TreeFilter.isTree(details)) {
+            return null;
         }
-        if (url == null) {
+        return new Species(capitalize(item.common_name().trim()), item.scientific_name().trim(),
+                OriginRegions.regionOf(nativeRegions(details)), null, sunlight(details.path("growth").path("light")));
+    }
+
+    // Trefle's light goes from 0 (no light) to 10 (very intense).
+    static String sunlight(JsonNode light) {
+        if (!light.isNumber()) {
+            return null;
+        }
+        int value = light.asInt();
+        return value <= 3 ? "Full shade" : value <= 6 ? "Part shade" : "Full sun";
+    }
+
+    // "distribution.native" is a plain list of names, e.g. ["Guatemala", "Mexico Gulf"].
+    private static List<String> nativeRegions(JsonNode details) {
+        List<String> names = new ArrayList<>();
+        details.path("distribution").path("native").forEach(name -> {
+            if (name.isString() && !name.asString().isBlank()) {
+                names.add(name.asString());
+            }
+        });
+        return names;
+    }
+
+    // A species without a picture is still worth importing, so a failed copy is ignored.
+    private void copyImage(Species species, String url) {
+        if (blankToNull(url) == null) {
             return;
         }
         try {
-            ResponseEntity<byte[]> response = perenualClient.image(url);
+            ResponseEntity<byte[]> response = trefleClient.image(url);
             MediaType type = response.getHeaders().getContentType();
             if (response.getBody() == null || type == null) {
                 return;
             }
-            String key = storageService.putSpeciesImage(species.getId(), response.getBody(), type.getType() + "/" + type.getSubtype());
+            String key = storageService.putSpeciesImage(species.getId(), response.getBody(),
+                    type.getType() + "/" + type.getSubtype());
             if (key != null) {
                 species.setImageKey(key);
                 speciesRepository.save(species);
@@ -123,92 +142,16 @@ public class SpeciesImportService {
         }
     }
 
-    // Null when the free plan hides the care data (a species without watering is no use in the PluntDex)
-    // or when it is a tree.
-    static Species toSpecies(String scientificName, JsonNode details) {
-        String commonName = text(details.path("common_name"));
-        Integer wateringDays = wateringDays(details);
-        if (commonName == null || wateringDays == null || TreeFilter.isTree(details)) {
-            return null;
-        }
-        return new Species(capitalize(commonName), scientificName, OriginRegions.regionOf(texts(details.path("origin"))), wateringDays,
-                capitalize(join(details.path("sunlight"))));
-    }
-
-    // "watering_general_benchmark": {"value": "7-10", "unit": "days"} → 7, the safe end of the range.
-    static Integer wateringDays(JsonNode details) {
-        JsonNode benchmark = details.path("watering_general_benchmark");
-        String value = text(benchmark.path("value"));
-        if (value != null) {
-            Matcher matcher = NUMBER.matcher(value);
-            if (matcher.find()) {
-                int amount = Integer.parseInt(matcher.group());
-                String unit = String.valueOf(text(benchmark.path("unit"))).toLowerCase(Locale.ROOT);
-                int days = unit.startsWith("week") ? amount * 7 : amount;
-                if (days > 0) {
-                    return Math.min(days, 365);
-                }
-            }
-        }
-        String watering = text(details.path("watering"));
-        if (watering == null) {
-            return null;
-        }
-        return switch (watering.toLowerCase(Locale.ROOT)) {
-            case "frequent" -> 3;
-            case "average" -> 7;
-            case "minimum" -> 14;
-            case "none" -> 30;
-            default -> null;
-        };
-    }
-
-    private static String text(JsonNode node) {
-        if (!node.isValueNode() || node.isNull()) {
-            return null;
-        }
-        String value = node.asString().replace("\"", "").trim();
-        return value.isEmpty() || value.startsWith("Upgrade") ? null : value;
-    }
-
-    private static List<String> texts(JsonNode array) {
-        List<String> values = new ArrayList<>();
-        array.forEach(part -> {
-            String value = text(part);
-            if (value != null) {
-                values.add(value);
-            }
-        });
-        return values;
-    }
-
-    // Whole entries only, within the columns' VARCHAR(255): some origin lists name 30+ countries.
-    private static String join(JsonNode array) {
-        StringBuilder joined = new StringBuilder();
-        for (JsonNode part : array) {
-            String value = text(part);
-            if (value == null) {
-                continue;
-            }
-            String next = joined.isEmpty() ? value : ", " + value;
-            if (joined.length() + next.length() > 255) {
-                break;
-            }
-            joined.append(next);
-        }
-        return joined.isEmpty() ? null : joined.toString();
-    }
-
     // The list's genus, or the first word of the scientific name when the list leaves it out.
-    private static String genus(PerenualClient.Item item, String scientificName) {
-        return item.genus() != null && !item.genus().isBlank() ? item.genus() : scientificName.split("\\s+")[0];
+    private static String genus(TrefleClient.Item item, String scientificName) {
+        return blankToNull(item.genus()) != null ? item.genus() : scientificName.split("\\s+")[0];
     }
 
-    private static String first(List<String> values) {
-        return values == null || values.isEmpty() || values.get(0).isBlank() ? null : values.get(0).trim();
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     private static String capitalize(String value) {
-        return value == null ? null : Character.toUpperCase(value.charAt(0)) + value.substring(1);
+        return Character.toUpperCase(value.charAt(0)) + value.substring(1);
     }
 }

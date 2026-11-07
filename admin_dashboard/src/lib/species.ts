@@ -54,8 +54,8 @@ export function rejectSpecies(id: string): Promise<void> {
   return apiAction(`/v1/admin/species/pending/${id}`, 'DELETE')
 }
 
-// nextPage is the Perenual page the next import starts at, null after the last one; limitReached means
-// the free plan's 100 daily requests ran out.
+// nextPage is the Trefle page the next import starts at, null after the last one; limitReached means
+// Trefle's 60 requests a minute ran out.
 export type SpeciesImport = {
   imported: number
   skipped: number
@@ -63,7 +63,8 @@ export type SpeciesImport = {
   limitReached: boolean
 }
 
-// Adds up to count new species to the pending list, looking from Perenual page `page` on. Species we
+// Adds up to count new species to the pending list, looking from Trefle page `page` on. Watering stays empty:
+// Trefle has none, so the admin sets it with Edit. Species we
 // already have are skipped.
 export function importSpecies(count: number, page: number): Promise<SpeciesImport> {
   return apiPost(`/v1/admin/species/import?count=${count}&page=${page}`)

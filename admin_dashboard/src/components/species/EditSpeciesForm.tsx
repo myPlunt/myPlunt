@@ -1,121 +1,126 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent } from 'react'
 
-import { ApiError } from "../../lib/api";
-import { updatePendingSpecies, type PendingSpecies } from "../../lib/species";
+import { ApiError } from '../../lib/api'
+import { updatePendingSpecies, type PendingSpecies } from '../../lib/species'
 
 type EditSpeciesFormProps = {
-  species: PendingSpecies;
+  species: PendingSpecies
   // The PluntDex regions, so the species lands in one the app's region filter already shows.
-  regions: string[];
-  sunlightOptions: string[];
-  onSaved: (species: PendingSpecies) => void;
-  onCancel: () => void;
-};
+  regions: string[]
+  sunlightOptions: string[]
+  onSaved: (species: PendingSpecies) => void
+  onCancel: () => void
+}
 
-const inputClass =
-  "w-full rounded-full border border-sand bg-white px-3 py-1.5 text-sm text-charcoal outline-none focus:border-leaf";
-const labelClass =
-  "flex flex-col gap-1 text-xs font-semibold tracking-wider text-soil uppercase";
+const fieldClass =
+  'w-full min-w-0 rounded-full border border-sand bg-white px-3 py-1 text-sm text-charcoal outline-none focus:border-leaf'
+const labelClass = 'text-xs font-semibold tracking-wider text-soil uppercase'
 
-function EditSpeciesForm({
-  species,
-  regions,
-  sunlightOptions,
-  onSaved,
-  onCancel,
-}: EditSpeciesFormProps) {
-  const [region, setRegion] = useState(species.region ?? "");
-  const [watering, setWatering] = useState(
-    String(species.wateringFrequencyDays ?? 7),
-  );
-  const [sunlight, setSunlight] = useState(species.sunlightNeeds ?? "");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// Suggested while typing; any number from 1 to 365 is allowed.
+const WATERING_DAYS = ['1', '2', '3', '4', '5', '7', '10', '14', '21', '30']
 
-  // A region from before the mapping (e.g. a country list) stays choosable, so opening the form loses nothing.
-  const regionOptions =
-    region && !regions.includes(region) ? [region, ...regions] : regions;
-  const sunlightListId = `sunlight-${species.id}`;
+// Takes the place of the care details, in the same label/value grid, so the card doesn't grow.
+function EditSpeciesForm({ species, regions, sunlightOptions, onSaved, onCancel }: EditSpeciesFormProps) {
+  const [region, setRegion] = useState(species.region ?? '')
+  const [watering, setWatering] = useState(species.wateringFrequencyDays ? String(species.wateringFrequencyDays) : '')
+  const [sunlight, setSunlight] = useState(species.sunlightNeeds ?? '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // A value from before (e.g. an unmapped region) stays choosable, so opening the form loses nothing.
+  const withCurrent = (options: string[], current: string) =>
+    current && !options.includes(current) ? [current, ...options] : options
+  const id = (field: string) => `${field}-${species.id}`
 
   async function save(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError(null);
+    event.preventDefault()
+    setBusy(true)
+    setError(null)
     try {
       onSaved(
         await updatePendingSpecies(species.id, {
           region: region || null,
           wateringFrequencyDays: Number(watering),
-          sunlightNeeds: sunlight.trim() || null,
+          sunlightNeeds: sunlight || null,
         }),
-      );
+      )
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Can't reach the server.",
-      );
-      setBusy(false);
+      setError(err instanceof ApiError ? err.message : "Can't reach the server.")
+      setBusy(false)
     }
   }
 
   return (
-    <form
-      onSubmit={save}
-      className="flex flex-col gap-3 border-t border-sand pt-3"
-    >
-      <label className={labelClass}>
-        Region
-        <select
-          value={region}
-          onChange={(e) => setRegion(e.target.value)}
-          className={inputClass}
-        >
-          <option value="">No region</option>
-          {regionOptions.map((name) => (
+    <form onSubmit={save} className="flex flex-1 flex-col gap-4">
+      <div className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2">
+        <label htmlFor={id('region')} className={labelClass}>
+          Region
+        </label>
+        <select id={id('region')} value={region} onChange={(e) => setRegion(e.target.value)} className={fieldClass}>
+          <option value="">Not set</option>
+          {withCurrent(regions, region).map((name) => (
             <option key={name} value={name}>
               {name}
             </option>
           ))}
         </select>
-      </label>
-      <label className={labelClass}>
-        Watering (every N days)
-        <input
-          type="number"
-          required
-          min={1}
-          max={365}
-          value={watering}
-          onChange={(e) => setWatering(e.target.value)}
-          className={inputClass}
-        />
-      </label>
-      <label className={labelClass}>
-        Sunlight
-        <input
-          list={sunlightListId}
+
+        <label htmlFor={id('watering')} className={labelClass}>
+          Watering
+        </label>
+        {/* Any number of days, styled like the selects; required, since reminders need it. */}
+        <div className="flex w-full min-w-0 items-center rounded-full border border-sand bg-white px-3 py-1 text-sm focus-within:border-leaf">
+          <input
+            id={id('watering')}
+            type="number"
+            inputMode="numeric"
+            required
+            min={1}
+            max={365}
+            placeholder="e.g. 7"
+            list={id('watering-days')}
+            value={watering}
+            onChange={(e) => setWatering(e.target.value)}
+            className="w-full min-w-0 [appearance:textfield] bg-transparent text-charcoal outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+          <span className="shrink-0 text-ink">days</span>
+          <datalist id={id('watering-days')}>
+            {WATERING_DAYS.map((days) => (
+              <option key={days} value={days} />
+            ))}
+          </datalist>
+        </div>
+
+        <label htmlFor={id('sunlight')} className={labelClass}>
+          Sunlight
+        </label>
+        <select
+          id={id('sunlight')}
           value={sunlight}
-          maxLength={255}
           onChange={(e) => setSunlight(e.target.value)}
-          className={inputClass}
-        />
-        <datalist id={sunlightListId}>
-          {sunlightOptions.map((option) => (
-            <option key={option} value={option} />
+          className={fieldClass}
+        >
+          <option value="">Not set</option>
+          {withCurrent(sunlightOptions, sunlight).map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
           ))}
-        </datalist>
-      </label>
+        </select>
+      </div>
+
       {error && (
         <p role="alert" className="text-sm font-semibold text-soil">
           {error}
         </p>
       )}
-      <div className="flex gap-2">
+      <div className="mt-auto flex gap-2">
         <button
           type="submit"
           disabled={busy}
           className="flex-1 rounded-full bg-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
         >
-          Save
+          {busy ? 'Saving…' : 'Save'}
         </button>
         <button
           type="button"
@@ -127,7 +132,7 @@ function EditSpeciesForm({
         </button>
       </div>
     </form>
-  );
+  )
 }
 
-export default EditSpeciesForm;
+export default EditSpeciesForm

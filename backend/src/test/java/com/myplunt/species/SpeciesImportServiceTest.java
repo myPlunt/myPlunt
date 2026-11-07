@@ -21,6 +21,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,7 +32,7 @@ class SpeciesImportServiceTest {
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
     @Mock
-    private PerenualClient perenualClient;
+    private TrefleClient trefleClient;
 
     @Mock
     private SpeciesRepository speciesRepository;
@@ -40,54 +41,54 @@ class SpeciesImportServiceTest {
     private StorageService storageService;
 
     private SpeciesImportService service() {
-        return new SpeciesImportService(perenualClient, speciesRepository, storageService);
+        return new SpeciesImportService(trefleClient, speciesRepository, storageService);
     }
 
     private static JsonNode json(String text) {
         return JSON.readTree(text);
     }
 
+    private static TrefleClient.Item item(int id, String commonName, String scientificName, String genus) {
+        return new TrefleClient.Item(id, commonName, scientificName, genus, null);
+    }
+
+    private static TrefleClient.Page page(TrefleClient.Item... items) {
+        return new TrefleClient.Page(List.of(items), new TrefleClient.Meta(100));
+    }
+
     @Test
-    void toSpecies_mapsWateringRangeSunlightAndOrigin() {
-        Species species = SpeciesImportService.toSpecies("Acer palmatum", json("""
-                {"common_name": "japanese maple", "watering": "Average",
-                 "watering_general_benchmark": {"value": "\\"7-10\\"", "unit": "days"},
-                 "sunlight": ["full sun", "part shade"], "origin": ["Japan", "Korea"]}
+    void toSpecies_mapsNameRegionAndLightAndLeavesWateringForTheAdmin() {
+        // Monstera deliciosa's real Trefle distribution, with a light value added.
+        Species species = SpeciesImportService.toSpecies(item(1, "fruit-salad-plant", "Monstera deliciosa", "Monstera"), json("""
+                {"growth": {"light": 5}, "specifications": {"growth_habit": "Vine, Forb/herb"},
+                 "distribution": {"native": ["Guatemala", "Mexico Gulf", "Mexico Southeast", "Mexico Southwest"]}}
                 """));
 
-        assertThat(species.getCommonName()).isEqualTo("Japanese maple");
-        assertThat(species.getWateringFrequencyDays()).isEqualTo(7);
-        assertThat(species.getSunlightNeeds()).isEqualTo("Full sun, part shade");
-        assertThat(species.getRegion()).isEqualTo("East Asia");
+        assertThat(species.getCommonName()).isEqualTo("Fruit-salad-plant");
+        assertThat(species.getRegion()).isEqualTo("Central America");
+        assertThat(species.getSunlightNeeds()).isEqualTo("Part shade");
+        assertThat(species.getWateringFrequencyDays()).isNull();
         assertThat(species.isApproved()).isFalse();
     }
 
     @Test
-    void toSpecies_fallsBackOnWateringWordAndSkipsPaidOnlyData() {
-        Species minimum = SpeciesImportService.toSpecies("Aloe vera", json("""
-                {"common_name": "aloe", "watering": "Minimum", "watering_general_benchmark": {"value": null}}
-                """));
-        Species gated = SpeciesImportService.toSpecies("Rosa", json("""
-                {"common_name": "rose", "watering": "Upgrade Plans To Premium/Supreme - https://perenual.com",
-                 "watering_general_benchmark": "Upgrade Plans To Premium/Supreme - https://perenual.com"}
-                """));
-
-        assertThat(minimum.getWateringFrequencyDays()).isEqualTo(14);
-        assertThat(minimum.getRegion()).isNull();
-        assertThat(gated).isNull();
+    void toSpecies_skipsTreesAndGrasses() {
+        assertThat(SpeciesImportService.toSpecies(item(1, "oak", "Quercus robur", "Quercus"),
+                json("{\"specifications\": {\"ligneous_type\": \"tree\"}}"))).isNull();
+        assertThat(SpeciesImportService.toSpecies(item(2, "barnyard grass", "Dactylis glomerata", "Dactylis"),
+                json("{\"specifications\": {\"growth_habit\": \"Graminoid\"}}"))).isNull();
     }
 
     @Test
-    void importSpecies_stopsAtTheCountAndStaysOnThePageItStoppedIn() {
-        when(perenualClient.isEnabled()).thenReturn(true);
-        when(perenualClient.list(1)).thenReturn(new PerenualClient.Page(List.of(
-                new PerenualClient.Item(1, List.of("Monstera deliciosa"), null),
-                new PerenualClient.Item(2, List.of("Aloe vera"), null),
-                new PerenualClient.Item(3, List.of("Ficus lyrata"), null)), 5));
+    void importSpecies_stopsAtTheCountSkipsTreeGeneraFreeAndCopiesThePicture() {
+        when(trefleClient.isEnabled()).thenReturn(true);
+        when(trefleClient.list(1)).thenReturn(page(
+                item(1, "evergreen oak", "Quercus rotundifolia", "Quercus"),
+                item(2, "Monstera", "Monstera deliciosa", "Monstera"),
+                new TrefleClient.Item(3, "Aloe", "Aloe vera", "Aloe", "https://img.test/aloe.jpg"),
+                item(4, "Fiddle-leaf fig", "Ficus lyrata", "Ficus")));
         when(speciesRepository.existsByScientificNameIgnoreCase("Monstera deliciosa")).thenReturn(true);
-        when(perenualClient.details(2)).thenReturn(json("""
-                {"common_name": "aloe", "watering": "Minimum", "default_image": {"regular_url": "https://img.test/aloe.jpg"}}
-                """));
+        when(trefleClient.details(3)).thenReturn(json("{}"));
         UUID aloeId = UUID.randomUUID();
         when(speciesRepository.save(any())).thenAnswer(call -> {
             Species saved = call.getArgument(0);
@@ -95,48 +96,45 @@ class SpeciesImportServiceTest {
             return saved;
         });
         byte[] picture = {1, 2, 3};
-        when(perenualClient.image("https://img.test/aloe.jpg"))
+        when(trefleClient.image("https://img.test/aloe.jpg"))
                 .thenReturn(ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(picture));
-        when(storageService.putSpeciesImage(aloeId, picture, "image/jpeg")).thenReturn("species/aloe/perenual.jpg");
+        when(storageService.putSpeciesImage(aloeId, picture, "image/jpeg")).thenReturn("species/aloe/imported.jpg");
 
         SpeciesImportResponse result = service().importSpecies(1, 1);
 
-        verify(perenualClient, never()).details(1);
-        verify(perenualClient, never()).details(3);
+        verify(trefleClient, never()).details(1);
+        verify(trefleClient, never()).details(2);
+        verify(trefleClient, never()).details(4);
         ArgumentCaptor<Species> saved = ArgumentCaptor.forClass(Species.class);
-        verify(speciesRepository, org.mockito.Mockito.atLeastOnce()).save(saved.capture());
+        verify(speciesRepository, atLeastOnce()).save(saved.capture());
         assertThat(saved.getValue().getScientificName()).isEqualTo("Aloe vera");
-        assertThat(saved.getValue().getImageKey()).isEqualTo("species/aloe/perenual.jpg");
-        assertThat(result).isEqualTo(new SpeciesImportResponse(1, 1, 1, false));
+        assertThat(saved.getValue().getImageKey()).isEqualTo("species/aloe/imported.jpg");
+        assertThat(result).isEqualTo(new SpeciesImportResponse(1, 2, 1, false));
     }
 
     @Test
-    void importSpecies_stopsAtTheDailyLimitAndOffersTheSamePageAgain() {
-        when(perenualClient.isEnabled()).thenReturn(true);
-        when(perenualClient.list(3)).thenReturn(new PerenualClient.Page(List.of(
-                new PerenualClient.Item(7, List.of("Aloe vera"), null),
-                new PerenualClient.Item(8, List.of("Ficus lyrata"), null)), 5));
-        when(perenualClient.details(anyInt())).thenThrow(HttpClientErrorException.create(
+    void importSpecies_stopsAtTheRateLimitAndOffersTheSamePageAgain() {
+        when(trefleClient.isEnabled()).thenReturn(true);
+        when(trefleClient.list(3)).thenReturn(page(
+                item(7, "Aloe", "Aloe vera", "Aloe"),
+                item(8, "Fiddle-leaf fig", "Ficus lyrata", "Ficus")));
+        when(trefleClient.details(anyInt())).thenThrow(HttpClientErrorException.create(
                 HttpStatus.TOO_MANY_REQUESTS, "Too Many Requests", null, null, null));
 
         SpeciesImportResponse result = service().importSpecies(10, 3);
 
-        verify(perenualClient, never()).details(8);
+        verify(trefleClient, never()).details(8);
         verify(speciesRepository, never()).save(any());
         assertThat(result).isEqualTo(new SpeciesImportResponse(0, 0, 3, true));
     }
 
     @Test
     void importSpecies_movesOnToTheNextPageWhenOneHasNothingNew() {
-        when(perenualClient.isEnabled()).thenReturn(true);
-        when(perenualClient.list(1)).thenReturn(new PerenualClient.Page(List.of(
-                new PerenualClient.Item(1, List.of("Monstera deliciosa"), null)), 5));
-        when(perenualClient.list(2)).thenReturn(new PerenualClient.Page(List.of(
-                new PerenualClient.Item(31, List.of("Aloe vera"), null)), 5));
+        when(trefleClient.isEnabled()).thenReturn(true);
+        when(trefleClient.list(1)).thenReturn(page(item(1, "Monstera", "Monstera deliciosa", "Monstera")));
+        when(trefleClient.list(2)).thenReturn(page(item(31, "Aloe", "Aloe vera", "Aloe")));
         when(speciesRepository.existsByScientificNameIgnoreCase("Monstera deliciosa")).thenReturn(true);
-        when(perenualClient.details(31)).thenReturn(json("""
-                {"common_name": "aloe", "watering": "Minimum"}
-                """));
+        when(trefleClient.details(31)).thenReturn(json("{}"));
         when(speciesRepository.save(any())).thenAnswer(call -> call.getArgument(0));
 
         SpeciesImportResponse result = service().importSpecies(1, 1);
