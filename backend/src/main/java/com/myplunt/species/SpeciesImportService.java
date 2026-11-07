@@ -63,7 +63,8 @@ public class SpeciesImportService {
                 }
                 String scientificName = first(item.scientific_name());
                 // Checked before the details call, so species we already have cost no requests.
-                if (scientificName == null || speciesRepository.existsByScientificNameIgnoreCase(scientificName)) {
+                if (scientificName == null || TreeFilter.isTreeGenus(genus(item, scientificName))
+                        || speciesRepository.existsByScientificNameIgnoreCase(scientificName)) {
                     skipped++;
                     continue;
                 }
@@ -122,11 +123,12 @@ public class SpeciesImportService {
         }
     }
 
-    // Null when the free plan hides the care data: a species without watering is no use in the PluntDex.
+    // Null when the free plan hides the care data (a species without watering is no use in the PluntDex)
+    // or when it is a tree.
     static Species toSpecies(String scientificName, JsonNode details) {
         String commonName = text(details.path("common_name"));
         Integer wateringDays = wateringDays(details);
-        if (commonName == null || wateringDays == null) {
+        if (commonName == null || wateringDays == null || TreeFilter.isTree(details)) {
             return null;
         }
         return new Species(capitalize(commonName), scientificName, OriginRegions.regionOf(texts(details.path("origin"))), wateringDays,
@@ -195,6 +197,11 @@ public class SpeciesImportService {
             joined.append(next);
         }
         return joined.isEmpty() ? null : joined.toString();
+    }
+
+    // The list's genus, or the first word of the scientific name when the list leaves it out.
+    private static String genus(PerenualClient.Item item, String scientificName) {
+        return item.genus() != null && !item.genus().isBlank() ? item.genus() : scientificName.split("\\s+")[0];
     }
 
     private static String first(List<String> values) {

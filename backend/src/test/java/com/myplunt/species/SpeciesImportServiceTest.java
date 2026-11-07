@@ -81,9 +81,9 @@ class SpeciesImportServiceTest {
     void importSpecies_stopsAtTheCountAndStaysOnThePageItStoppedIn() {
         when(perenualClient.isEnabled()).thenReturn(true);
         when(perenualClient.list(1)).thenReturn(new PerenualClient.Page(List.of(
-                new PerenualClient.Item(1, List.of("Monstera deliciosa")),
-                new PerenualClient.Item(2, List.of("Aloe vera")),
-                new PerenualClient.Item(3, List.of("Ficus lyrata"))), 5));
+                new PerenualClient.Item(1, List.of("Monstera deliciosa"), null),
+                new PerenualClient.Item(2, List.of("Aloe vera"), null),
+                new PerenualClient.Item(3, List.of("Ficus lyrata"), null)), 5));
         when(speciesRepository.existsByScientificNameIgnoreCase("Monstera deliciosa")).thenReturn(true);
         when(perenualClient.details(2)).thenReturn(json("""
                 {"common_name": "aloe", "watering": "Minimum", "default_image": {"regular_url": "https://img.test/aloe.jpg"}}
@@ -114,8 +114,8 @@ class SpeciesImportServiceTest {
     void importSpecies_stopsAtTheDailyLimitAndOffersTheSamePageAgain() {
         when(perenualClient.isEnabled()).thenReturn(true);
         when(perenualClient.list(3)).thenReturn(new PerenualClient.Page(List.of(
-                new PerenualClient.Item(7, List.of("Aloe vera")),
-                new PerenualClient.Item(8, List.of("Ficus lyrata"))), 5));
+                new PerenualClient.Item(7, List.of("Aloe vera"), null),
+                new PerenualClient.Item(8, List.of("Ficus lyrata"), null)), 5));
         when(perenualClient.details(anyInt())).thenThrow(HttpClientErrorException.create(
                 HttpStatus.TOO_MANY_REQUESTS, "Too Many Requests", null, null, null));
 
@@ -130,9 +130,9 @@ class SpeciesImportServiceTest {
     void importSpecies_movesOnToTheNextPageWhenOneHasNothingNew() {
         when(perenualClient.isEnabled()).thenReturn(true);
         when(perenualClient.list(1)).thenReturn(new PerenualClient.Page(List.of(
-                new PerenualClient.Item(1, List.of("Monstera deliciosa"))), 5));
+                new PerenualClient.Item(1, List.of("Monstera deliciosa"), null)), 5));
         when(perenualClient.list(2)).thenReturn(new PerenualClient.Page(List.of(
-                new PerenualClient.Item(31, List.of("Aloe vera"))), 5));
+                new PerenualClient.Item(31, List.of("Aloe vera"), null)), 5));
         when(speciesRepository.existsByScientificNameIgnoreCase("Monstera deliciosa")).thenReturn(true);
         when(perenualClient.details(31)).thenReturn(json("""
                 {"common_name": "aloe", "watering": "Minimum"}

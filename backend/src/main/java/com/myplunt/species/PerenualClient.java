@@ -56,5 +56,5 @@ public class PerenualClient {
 
     public record Page(List<Item> data, int last_page) {}
 
-    public record Item(int id, List<String> scientific_name) {}
+    public record Item(int id, List<String> scientific_name, String genus) {}
 }
