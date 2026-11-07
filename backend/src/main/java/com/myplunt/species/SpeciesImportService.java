@@ -11,6 +11,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -128,7 +129,7 @@ public class SpeciesImportService {
         if (commonName == null || wateringDays == null) {
             return null;
         }
-        return new Species(capitalize(commonName), scientificName, join(details.path("origin")), wateringDays,
+        return new Species(capitalize(commonName), scientificName, OriginRegions.regionOf(texts(details.path("origin"))), wateringDays,
                 capitalize(join(details.path("sunlight"))));
     }
 
@@ -166,6 +167,17 @@ public class SpeciesImportService {
         }
         String value = node.asString().replace("\"", "").trim();
         return value.isEmpty() || value.startsWith("Upgrade") ? null : value;
+    }
+
+    private static List<String> texts(JsonNode array) {
+        List<String> values = new ArrayList<>();
+        array.forEach(part -> {
+            String value = text(part);
+            if (value != null) {
+                values.add(value);
+            }
+        });
+        return values;
     }
 
     // Whole entries only, within the columns' VARCHAR(255): some origin lists name 30+ countries.

@@ -1,35 +1,76 @@
-import { useState } from 'react'
+import { useState } from "react";
 
-import { ApiError } from '../../lib/api'
-import { approveSpecies, rejectSpecies, type PendingSpecies } from '../../lib/species'
-import SpeciesCard from './SpeciesCard'
+import { ApiError } from "../../lib/api";
+import {
+  approveSpecies,
+  rejectSpecies,
+  type PendingSpecies,
+} from "../../lib/species";
+import EditSpeciesForm from "./EditSpeciesForm";
+import SpeciesCard from "./SpeciesCard";
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 type PendingSpeciesCardProps = {
-  species: PendingSpecies
+  species: PendingSpecies;
   // Called once the species is approved or rejected, so the page can move it out of the list.
-  onReviewed: (species: PendingSpecies, approved: boolean) => void
-}
+  onReviewed: (species: PendingSpecies, approved: boolean) => void;
+  regions: string[];
+  sunlightOptions: string[];
+  onEdited: (species: PendingSpecies) => void;
+};
 
-function PendingSpeciesCard({ species, onReviewed }: PendingSpeciesCardProps) {
-  const [busy, setBusy] = useState(false)
-  const [confirmingReject, setConfirmingReject] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+function PendingSpeciesCard({
+  species,
+  onReviewed,
+  regions,
+  sunlightOptions,
+  onEdited,
+}: PendingSpeciesCardProps) {
+  const [busy, setBusy] = useState(false);
+  const [confirmingReject, setConfirmingReject] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function review(action: (id: string) => Promise<void>, approved: boolean) {
-    setBusy(true)
-    setError(null)
+  async function review(
+    action: (id: string) => Promise<void>,
+    approved: boolean,
+  ) {
+    setBusy(true);
+    setError(null);
     try {
-      await action(species.id)
-      onReviewed(species, approved)
+      await action(species.id);
+      onReviewed(species, approved);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Can't reach the server.")
-      setBusy(false)
-      setConfirmingReject(false)
+      setError(
+        err instanceof ApiError ? err.message : "Can't reach the server.",
+      );
+      setBusy(false);
+      setConfirmingReject(false);
     }
+  }
+
+  if (editing) {
+    return (
+      <SpeciesCard {...species}>
+        <EditSpeciesForm
+          species={species}
+          regions={regions}
+          sunlightOptions={sunlightOptions}
+          onSaved={(updated) => {
+            onEdited(updated);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      </SpeciesCard>
+    );
   }
 
   return (
@@ -37,11 +78,14 @@ function PendingSpeciesCard({ species, onReviewed }: PendingSpeciesCardProps) {
       <p className="mt-auto border-t border-sand pt-3 text-sm text-ink">
         {species.submittedBy ? (
           <>
-            Submitted by <span className="font-semibold text-charcoal">@{species.submittedBy}</span>
+            Submitted by{" "}
+            <span className="font-semibold text-charcoal">
+              @{species.submittedBy}
+            </span>
           </>
         ) : (
-          'Submitted by a deleted account'
-        )}{' '}
+          "Submitted by a deleted account"
+        )}{" "}
         on {formatDate(species.submittedAt)}
       </p>
       {error && (
@@ -83,6 +127,14 @@ function PendingSpeciesCard({ species, onReviewed }: PendingSpeciesCardProps) {
             <button
               type="button"
               disabled={busy}
+              onClick={() => setEditing(true)}
+              className="flex-1 rounded-full border border-green px-4 py-2 text-sm font-semibold text-green transition-opacity hover:opacity-80 disabled:opacity-50"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              disabled={busy}
               onClick={() => setConfirmingReject(true)}
               className="flex-1 rounded-full border border-green px-4 py-2 text-sm font-semibold text-green transition-opacity hover:opacity-80 disabled:opacity-50"
             >
@@ -92,7 +144,7 @@ function PendingSpeciesCard({ species, onReviewed }: PendingSpeciesCardProps) {
         )}
       </div>
     </SpeciesCard>
-  )
+  );
 }
 
-export default PendingSpeciesCard
+export default PendingSpeciesCard;

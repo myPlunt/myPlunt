@@ -1,6 +1,7 @@
 package com.myplunt.admin;
 
 import com.myplunt.admin.dto.PendingSpeciesResponse;
+import com.myplunt.admin.dto.UpdatePendingSpeciesRequest;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.species.Species;
@@ -35,18 +36,33 @@ public class AdminSpeciesService {
 
     @Transactional(readOnly = true)
     public List<PendingSpeciesResponse> getPendingSpecies() {
-        return speciesService.findPending().stream()
-                .map(species -> new PendingSpeciesResponse(
-                        species.getId(),
-                        species.getCommonName(),
-                        species.getScientificName(),
-                        species.getRegion(),
-                        species.getWateringFrequencyDays(),
-                        species.getSunlightNeeds(),
-                        species.getImageKey() == null ? null : storageService.createReadUrl(species.getImageKey()),
-                        species.getSubmittedBy() == null ? null : species.getSubmittedBy().getUsername(),
-                        species.getUpdatedAt()))
-                .toList();
+        return speciesService.findPending().stream().map(this::toResponse).toList();
+    }
+
+    // Only pending species: approved ones are already in users' gardens.
+    @Transactional
+    public PendingSpeciesResponse update(UUID id, UpdatePendingSpeciesRequest request) {
+        Species species = speciesService.findPending(id);
+        species.updateCare(blankToNull(request.region()), request.wateringFrequencyDays(),
+                blankToNull(request.sunlightNeeds()));
+        return toResponse(species);
+    }
+
+    private PendingSpeciesResponse toResponse(Species species) {
+        return new PendingSpeciesResponse(
+                species.getId(),
+                species.getCommonName(),
+                species.getScientificName(),
+                species.getRegion(),
+                species.getWateringFrequencyDays(),
+                species.getSunlightNeeds(),
+                species.getImageKey() == null ? null : storageService.createReadUrl(species.getImageKey()),
+                species.getSubmittedBy() == null ? null : species.getSubmittedBy().getUsername(),
+                species.getUpdatedAt());
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     @Transactional

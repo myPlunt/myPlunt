@@ -1,4 +1,4 @@
-import { apiAction, apiGet, apiPost } from './api'
+import { apiAction, apiGet, apiPost, apiPut } from './api'
 
 // The care fields and imageUrl are null when the submitter left them out; submittedBy (a
 // username) when no user submitted it or the account was deleted.
@@ -36,6 +36,17 @@ export function getPendingSpecies(): Promise<PendingSpecies[]> {
 
 export function approveSpecies(id: string): Promise<void> {
   return apiAction(`/v1/admin/species/pending/${id}/approve`, 'POST')
+}
+
+// What an admin can correct before approving. A null region or sunlight clears it.
+export type SpeciesCare = {
+  region: string | null
+  wateringFrequencyDays: number
+  sunlightNeeds: string | null
+}
+
+export function updatePendingSpecies(id: string, care: SpeciesCare): Promise<PendingSpecies> {
+  return apiPut(`/v1/admin/species/pending/${id}`, care)
 }
 
 // Deletes the submission; plants that used it keep their own data.

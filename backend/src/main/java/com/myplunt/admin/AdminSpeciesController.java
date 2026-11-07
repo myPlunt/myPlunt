@@ -1,16 +1,20 @@
 package com.myplunt.admin;
 
 import com.myplunt.admin.dto.PendingSpeciesResponse;
+import com.myplunt.admin.dto.UpdatePendingSpeciesRequest;
 import com.myplunt.constants.ApiPaths;
 import com.myplunt.species.SpeciesImportService;
 import com.myplunt.species.dto.SpeciesImportResponse;
 import com.myplunt.species.dto.SpeciesResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,6 +41,12 @@ public class AdminSpeciesController {
     @GetMapping(ApiPaths.Admin.PENDING_SPECIES)
     public List<PendingSpeciesResponse> pending() {
         return adminSpeciesService.getPendingSpecies();
+    }
+
+    // Lets the admin correct an imported or submitted species before approving it.
+    @PutMapping(ApiPaths.Admin.PENDING_SPECIES_BY_ID)
+    public PendingSpeciesResponse update(@PathVariable UUID id, @Valid @RequestBody UpdatePendingSpeciesRequest request) {
+        return adminSpeciesService.update(id, request);
     }
 
     @PostMapping(ApiPaths.Admin.APPROVE_SPECIES)

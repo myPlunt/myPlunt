@@ -105,6 +105,12 @@ public class Species {
         return imageKey;
     }
 
+    public void updateCare(String region, Integer wateringFrequencyDays, String sunlightNeeds) {
+        this.region = region;
+        this.wateringFrequencyDays = wateringFrequencyDays;
+        this.sunlightNeeds = sunlightNeeds;
+    }
+
     public void setImageKey(String imageKey) {
         this.imageKey = imageKey;
     }

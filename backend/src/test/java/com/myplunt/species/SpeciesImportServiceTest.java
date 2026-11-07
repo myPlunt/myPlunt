@@ -58,7 +58,7 @@ class SpeciesImportServiceTest {
         assertThat(species.getCommonName()).isEqualTo("Japanese maple");
         assertThat(species.getWateringFrequencyDays()).isEqualTo(7);
         assertThat(species.getSunlightNeeds()).isEqualTo("Full sun, part shade");
-        assertThat(species.getRegion()).isEqualTo("Japan, Korea");
+        assertThat(species.getRegion()).isEqualTo("East Asia");
         assertThat(species.isApproved()).isFalse();
     }
 
@@ -75,15 +75,6 @@ class SpeciesImportServiceTest {
         assertThat(minimum.getWateringFrequencyDays()).isEqualTo(14);
         assertThat(minimum.getRegion()).isNull();
         assertThat(gated).isNull();
-    }
-
-    @Test
-    void toSpecies_keepsALongOriginListWithinTheColumn() {
-        String countries = String.join(",", java.util.Collections.nCopies(40, "\"Bosnia and Herzegovina\""));
-        Species species = SpeciesImportService.toSpecies("Abies alba", json(
-                "{\"common_name\": \"fir\", \"watering\": \"Average\", \"origin\": [" + countries + "]}"));
-
-        assertThat(species.getRegion()).hasSizeLessThanOrEqualTo(255).endsWith("Herzegovina");
     }
 
     @Test
