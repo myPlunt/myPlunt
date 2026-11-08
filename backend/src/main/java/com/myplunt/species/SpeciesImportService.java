@@ -58,9 +58,9 @@ public class SpeciesImportService {
                     return new SpeciesImportResponse(imported, skipped, page, false);
                 }
                 String scientificName = blankToNull(item.scientific_name());
-                // Checked before the details call, so trees and species we already have cost no requests.
+                // Checked before the details call, so wild plants and species we already have cost no requests.
                 if (scientificName == null || blankToNull(item.common_name()) == null
-                        || TreeFilter.isTreeGenus(genus(item, scientificName))
+                        || !HouseplantFilter.isHouseplant(scientificName)
                         || speciesRepository.existsByScientificNameIgnoreCase(scientificName)) {
                     skipped++;
                     continue;
@@ -93,7 +93,7 @@ public class SpeciesImportService {
 
     // Null for trees. Watering stays empty: Trefle has no watering data.
     static Species toSpecies(TrefleClient.Item item, JsonNode details) {
-        if (details == null || TreeFilter.isTree(details)) {
+        if (details == null || HouseplantFilter.isTree(details)) {
             return null;
         }
         return new Species(capitalize(item.common_name().trim()), item.scientific_name().trim(),
@@ -140,11 +140,6 @@ public class SpeciesImportService {
         } catch (RuntimeException e) {
             // Download or storage failed: the admin sees "No picture" and can still approve.
         }
-    }
-
-    // The list's genus, or the first word of the scientific name when the list leaves it out.
-    private static String genus(TrefleClient.Item item, String scientificName) {
-        return blankToNull(item.genus()) != null ? item.genus() : scientificName.split("\\s+")[0];
     }
 
     private static String blankToNull(String value) {

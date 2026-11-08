@@ -80,10 +80,14 @@ public class AdminSpeciesService {
         record(AuditEvent.SPECIES_REJECTED, species, adminId);
     }
 
+    // Only species no user submitted, so clearing a bad import never loses a user's submission.
     // Imported pictures belong to their species alone, so they go with it; seeded ones stay (see reject).
     @Transactional
     public void rejectAll(UUID adminId) {
         for (Species species : speciesService.findPending()) {
+            if (species.getSubmittedBy() != null) {
+                continue;
+            }
             speciesService.delete(species);
             record(AuditEvent.SPECIES_REJECTED, species, adminId);
             if (species.getImageKey() != null && species.getImageKey().contains("/imported.")) {

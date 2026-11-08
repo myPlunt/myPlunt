@@ -70,7 +70,7 @@ export function importSpecies(count: number, page: number): Promise<SpeciesImpor
   return apiPost(`/v1/admin/species/import?count=${count}&page=${page}`)
 }
 
-// Rejects every pending species; approved ones stay.
+// Rejects every imported pending species; users' submissions and approved ones stay.
 export function rejectAllPendingSpecies(): Promise<void> {
   return apiAction('/v1/admin/species/pending', 'DELETE')
 }

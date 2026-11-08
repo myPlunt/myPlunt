@@ -116,17 +116,20 @@ class AdminSpeciesServiceTest {
     }
 
     @Test
-    void rejectAll_deletesEveryPendingSpeciesAndOnlyImportedPictures() {
+    void rejectAll_deletesOnlySpeciesNoUserSubmittedAndOnlyImportedPictures() {
         Species imported = species("Aloe", "Aloe vera");
         ReflectionTestUtils.setField(imported, "imageKey", "species/1/imported.jpg");
         Species seeded = species("Olive tree", "Olea europaea");
         ReflectionTestUtils.setField(seeded, "imageKey", "species/2/seed.jpg");
-        when(speciesService.findPending()).thenReturn(List.of(imported, seeded));
+        Species fromUser = species("Common sage", "Salvia officinalis");
+        ReflectionTestUtils.setField(fromUser, "submittedBy", new User("plantdad", "plantdad@example.com", "hashed"));
+        when(speciesService.findPending()).thenReturn(List.of(imported, seeded, fromUser));
 
         service().rejectAll(adminId);
 
         verify(speciesService).delete(imported);
         verify(speciesService).delete(seeded);
+        verify(speciesService, never()).delete(fromUser);
         verify(storageService).deleteObject("species/1/imported.jpg");
         verify(storageService, never()).deleteObject("species/2/seed.jpg");
     }

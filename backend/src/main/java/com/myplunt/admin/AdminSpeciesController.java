@@ -55,7 +55,8 @@ public class AdminSpeciesController {
         adminSpeciesService.approve(id, admin.getId());
     }
 
-    // Rejects every pending species at once, e.g. a bad import. Approved species are never touched.
+    // Rejects every imported pending species at once, e.g. a bad import. Users' submissions and approved
+    // species are never touched.
     @DeleteMapping(ApiPaths.Admin.PENDING_SPECIES)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void rejectAll(@AuthenticationPrincipal AdminUser admin) {

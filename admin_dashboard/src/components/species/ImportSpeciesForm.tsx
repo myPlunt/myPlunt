@@ -4,7 +4,7 @@ import { ApiError } from '../../lib/api'
 import { importSpecies, rejectAllPendingSpecies } from '../../lib/species'
 
 type ImportSpeciesFormProps = {
-  pendingCount: number
+  importedCount: number
   onChanged: () => void
 }
 
@@ -27,7 +27,7 @@ function savePage(page: number) {
   }
 }
 
-function ImportSpeciesForm({ pendingCount, onChanged }: ImportSpeciesFormProps) {
+function ImportSpeciesForm({ importedCount, onChanged }: ImportSpeciesFormProps) {
   const [count, setCount] = useState(1)
   const [busy, setBusy] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -63,7 +63,7 @@ function ImportSpeciesForm({ pendingCount, onChanged }: ImportSpeciesFormProps) 
     run(async () => {
       await rejectAllPendingSpecies()
       savePage(1)
-      return 'Deleted every species waiting for approval.'
+      return 'Deleted every imported species waiting for review.'
     })
 
   return (
@@ -95,7 +95,7 @@ function ImportSpeciesForm({ pendingCount, onChanged }: ImportSpeciesFormProps) 
             onClick={runDeleteAll}
             className="rounded-full bg-charcoal px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
           >
-            Yes, delete {pendingCount}
+            Yes, delete {importedCount}
           </button>
           <button
             type="button"
@@ -109,11 +109,11 @@ function ImportSpeciesForm({ pendingCount, onChanged }: ImportSpeciesFormProps) 
       ) : (
         <button
           type="button"
-          disabled={busy || pendingCount === 0}
+          disabled={busy || importedCount === 0}
           onClick={() => setConfirmingDelete(true)}
           className="rounded-full border border-green px-4 py-2 text-sm font-semibold text-green transition-opacity hover:opacity-80 disabled:opacity-50"
         >
-          Delete all waiting
+          Delete all imported
         </button>
       )}
       {message && (
