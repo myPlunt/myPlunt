@@ -2,6 +2,7 @@ package com.myplunt.admin;
 
 import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.admin.dto.PendingSpeciesResponse;
+import com.myplunt.admin.dto.UpdatePendingSpeciesRequest;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.species.Species;
@@ -112,5 +113,36 @@ class AdminSpeciesServiceTest {
                 .isInstanceOf(NotFoundException.class);
         verify(speciesService, never()).delete(any());
         verify(auditLog, never()).recorded(any(), any(), any(), anyMap());
+    }
+
+    @Test
+    void rejectAll_deletesOnlySpeciesNoUserSubmittedAndOnlyImportedPictures() {
+        Species imported = species("Aloe", "Aloe vera");
+        ReflectionTestUtils.setField(imported, "imageKey", "species/1/imported.jpg");
+        Species seeded = species("Olive tree", "Olea europaea");
+        ReflectionTestUtils.setField(seeded, "imageKey", "species/2/seed.jpg");
+        Species fromUser = species("Common sage", "Salvia officinalis");
+        ReflectionTestUtils.setField(fromUser, "submittedBy", new User("plantdad", "plantdad@example.com", "hashed"));
+        when(speciesService.findPending()).thenReturn(List.of(imported, seeded, fromUser));
+
+        service().rejectAll(adminId);
+
+        verify(speciesService).delete(imported);
+        verify(speciesService).delete(seeded);
+        verify(speciesService, never()).delete(fromUser);
+        verify(storageService).deleteObject("species/1/imported.jpg");
+        verify(storageService, never()).deleteObject("species/2/seed.jpg");
+    }
+
+    @Test
+    void update_correctsTheCareDetailsAndClearsBlankOnes() {
+        Species fir = species("Silver fir", "Abies alba");
+        when(speciesService.findPending(fir.getId())).thenReturn(fir);
+
+        PendingSpeciesResponse response = service().update(fir.getId(), new UpdatePendingSpeciesRequest(" ", 10, "Full shade"));
+
+        assertThat(fir.getRegion()).isNull();
+        assertThat(fir.getWateringFrequencyDays()).isEqualTo(10);
+        assertThat(response.sunlightNeeds()).isEqualTo("Full shade");
     }
 }

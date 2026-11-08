@@ -94,6 +94,14 @@ export async function apiGet<T>(path: string): Promise<T> {
   return (await authorizedSend(path)).json()
 }
 
+export async function apiPost<T>(path: string): Promise<T> {
+  return (await authorizedSend(path, { method: 'POST' })).json()
+}
+
+export async function apiPut<T>(path: string, body: unknown): Promise<T> {
+  return (await authorizedSend(path, { method: 'PUT', body: JSON.stringify(body) })).json()
+}
+
 // For actions that answer 204 No Content.
 export async function apiAction(path: string, method: 'POST' | 'DELETE'): Promise<void> {
   await authorizedSend(path, { method })

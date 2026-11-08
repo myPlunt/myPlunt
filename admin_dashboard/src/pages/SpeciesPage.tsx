@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 
 import PageHeader from '../components/PageHeader'
+import ImportSpeciesForm from '../components/species/ImportSpeciesForm'
 import PendingSpeciesCard from '../components/species/PendingSpeciesCard'
 import SpeciesCard from '../components/species/SpeciesCard'
 import { ApiError } from '../lib/api'
 import { getApprovedSpecies, getPendingSpecies, type PendingSpecies, type Species } from '../lib/species'
 
 type Result = { pending?: PendingSpecies[]; approved?: Species[]; error?: string }
-type Tab = 'pending' | 'approved'
+type Tab = 'import' | 'pending' | 'approved'
 
 // Case- and accent-insensitive, so "acer" finds "Acér" too.
 function normalize(text: string): string {
@@ -19,9 +20,15 @@ function matches(species: { commonName: string; scientificName: string }, query:
   return normalize(species.commonName).includes(q) || normalize(species.scientificName).includes(q)
 }
 
+const SUNLIGHT_SUGGESTIONS = ['Full sun', 'Part shade', 'Full shade', 'Bright indirect', 'Low light']
+
+function unique(values: (string | null | undefined)[] = []): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b))
+}
+
 function SpeciesPage() {
   const [result, setResult] = useState<Result | null>(null)
-  const [tab, setTab] = useState<Tab>('pending')
+  const [tab, setTab] = useState<Tab>('import')
   const [query, setQuery] = useState('')
 
   useEffect(() => {
@@ -36,6 +43,12 @@ function SpeciesPage() {
     }
   }, [])
 
+  function reloadPending() {
+    getPendingSpecies()
+      .then((pending) => setResult((current) => ({ ...current, pending })))
+      .catch(() => {})
+  }
+
   // An approved species joins the approved list right away instead of waiting for a reload.
   function moveReviewed(reviewed: PendingSpecies, approved: boolean) {
     setResult((current) => ({
@@ -48,11 +61,29 @@ function SpeciesPage() {
     }))
   }
 
-  const pending = result?.pending?.filter((item) => matches(item, query))
+  function replaceEdited(edited: PendingSpecies) {
+    setResult((current) => ({
+      ...current,
+      pending: current?.pending?.map((item) => (item.id === edited.id ? edited : item)),
+    }))
+  }
+
+  // Approved species hold the PluntDex's regions; pending ones may still carry unmapped ones.
+  const regions = unique(result?.approved?.map((item) => item.region))
+  const sunlightOptions = unique([
+    ...SUNLIGHT_SUGGESTIONS,
+    ...(result?.approved ?? []).map((item) => item.sunlightNeeds),
+  ])
+
+  // Imported species are the pending ones no user submitted.
+  const allImported = result?.pending?.filter((item) => !item.submittedBy)
+  const allFromUsers = result?.pending?.filter((item) => item.submittedBy)
+  const reviewing = (tab === 'import' ? allImported : allFromUsers)?.filter((item) => matches(item, query))
   const approved = result?.approved?.filter((item) => matches(item, query))
-  const shown = tab === 'pending' ? pending : approved
+  const shown = tab === 'approved' ? approved : reviewing
   const tabs = [
-    { id: 'pending' as const, label: 'Waiting for approval', count: result?.pending?.length },
+    { id: 'import' as const, label: 'Import new plants', count: allImported?.length },
+    { id: 'pending' as const, label: 'Waiting for approval', count: allFromUsers?.length },
     { id: 'approved' as const, label: 'Approved', count: result?.approved?.length },
   ]
 
@@ -105,19 +136,33 @@ function SpeciesPage() {
             />
           </div>
 
-          <div id="species-panel" role="tabpanel" aria-labelledby={`${tab}-tab`}>
+          <div id="species-panel" role="tabpanel" aria-labelledby={`${tab}-tab`} className="flex flex-col gap-6">
+            {tab === 'import' && (
+              <ImportSpeciesForm importedCount={allImported?.length ?? 0} onChanged={reloadPending} />
+            )}
             {shown.length === 0 ? (
               <p className="rounded-3xl bg-cream p-6 text-sm text-ink shadow-card">
                 {query.trim()
                   ? `No species match "${query.trim()}".`
-                  : tab === 'pending'
-                    ? 'No species are waiting for approval.'
-                    : 'No species have been approved yet.'}
+                  : tab === 'import'
+                    ? 'No imported species to review.'
+                    : tab === 'pending'
+                      ? 'No species are waiting for approval.'
+                      : 'No species have been approved yet.'}
               </p>
             ) : (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {tab === 'pending'
-                  ? pending?.map((item) => <PendingSpeciesCard key={item.id} species={item} onReviewed={moveReviewed} />)
+                {tab !== 'approved'
+                  ? reviewing?.map((item) => (
+                      <PendingSpeciesCard
+                        key={item.id}
+                        species={item}
+                        onReviewed={moveReviewed}
+                        regions={regions}
+                        sunlightOptions={sunlightOptions}
+                        onEdited={replaceEdited}
+                      />
+                    ))
                   : approved?.map((item) => <SpeciesCard key={item.id} {...item} />)}
               </div>
             )}

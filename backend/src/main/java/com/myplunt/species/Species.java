@@ -60,6 +60,15 @@ public class Species {
         this.wateringFrequencyDays = wateringFrequencyDays;
     }
 
+    // An imported species: pending until an admin approves it.
+    public Species(String commonName, String scientificName, String region, Integer wateringFrequencyDays,
+                   String sunlightNeeds) {
+        this(commonName, wateringFrequencyDays);
+        this.scientificName = scientificName;
+        this.region = region;
+        this.sunlightNeeds = sunlightNeeds;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -94,6 +103,16 @@ public class Species {
 
     public String getImageKey() {
         return imageKey;
+    }
+
+    public void updateCare(String region, Integer wateringFrequencyDays, String sunlightNeeds) {
+        this.region = region;
+        this.wateringFrequencyDays = wateringFrequencyDays;
+        this.sunlightNeeds = sunlightNeeds;
+    }
+
+    public void setImageKey(String imageKey) {
+        this.imageKey = imageKey;
     }
 
     public boolean isCommon() {
