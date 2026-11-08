@@ -26,16 +26,7 @@ public class SpeciesService {
     @Transactional(readOnly = true)
     public List<SpeciesResponse> getApprovedSpecies() {
         return speciesRepository.findByApprovedTrueOrderByCommonNameAsc().stream()
-                .map(species -> new SpeciesResponse(
-                        species.getId(),
-                        species.getCommonName(),
-                        species.getScientificName(),
-                        species.getWateringFrequencyDays(),
-                        species.getRegion(),
-                        species.getSunlightNeeds(),
-                        species.isCommon(),
-                        // Signing is local (no call to storage), so one per species is cheap.
-                        species.getImageKey() == null ? null : storageService.createReadUrl(species.getImageKey())))
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -62,6 +53,24 @@ public class SpeciesService {
     public Species findPending(UUID speciesId) {
         return speciesRepository.findByIdAndApprovedFalse(speciesId)
                 .orElseThrow(() -> new NotFoundException("Species not found"));
+    }
+
+    public SpeciesResponse toResponse(Species species) {
+        return new SpeciesResponse(
+                species.getId(),
+                species.getCommonName(),
+                species.getScientificName(),
+                species.getWateringFrequencyDays(),
+                species.getRegion(),
+                species.getSunlightNeeds(),
+                species.isCommon(),
+                // Signing is local (no call to storage), so one per species is cheap.
+                species.getImageKey() == null ? null : storageService.createReadUrl(species.getImageKey()));
+    }
+
+    // Checked against the other species only, so a species can fix the casing of its own name.
+    public boolean scientificNameTaken(String scientificName, UUID speciesId) {
+        return speciesRepository.existsByScientificNameIgnoreCaseAndIdNot(scientificName, speciesId);
     }
 
     public void delete(Species species) {

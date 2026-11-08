@@ -15,6 +15,7 @@ public final class ApiPaths {
         public static final String LOGS_OVERVIEW = LOGS + "/overview";
         public static final String SERVER = BASE + "/server";
         public static final String SPECIES = BASE + "/species";
+        public static final String SPECIES_BY_ID = SPECIES + "/{id}";
         public static final String PENDING_SPECIES = SPECIES + "/pending";
         public static final String PENDING_SPECIES_BY_ID = PENDING_SPECIES + "/{id}";
         public static final String APPROVE_SPECIES = PENDING_SPECIES_BY_ID + "/approve";

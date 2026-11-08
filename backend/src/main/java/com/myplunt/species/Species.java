@@ -80,6 +80,16 @@ public class Species {
         this.approved = true;
     }
 
+    public void update(String commonName, String scientificName, String region, Integer wateringFrequencyDays,
+            String sunlightNeeds, boolean common) {
+        this.commonName = commonName;
+        this.scientificName = scientificName;
+        this.region = region;
+        this.wateringFrequencyDays = wateringFrequencyDays;
+        this.sunlightNeeds = sunlightNeeds;
+        this.common = common;
+    }
+
     public Integer getWateringFrequencyDays() {
         return wateringFrequencyDays;
     }

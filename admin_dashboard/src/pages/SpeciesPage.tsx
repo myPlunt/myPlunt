@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import PageHeader from '../components/PageHeader'
 import PendingSpeciesCard from '../components/species/PendingSpeciesCard'
-import SpeciesCard from '../components/species/SpeciesCard'
+import ApprovedSpeciesCard from '../components/species/ApprovedSpeciesCard'
 import { ApiError } from '../lib/api'
 import { getApprovedSpecies, getPendingSpecies, type PendingSpecies, type Species } from '../lib/species'
 
@@ -45,6 +45,15 @@ function SpeciesPage() {
             a.commonName.localeCompare(b.commonName),
           )
         : current?.approved,
+    }))
+  }
+
+  function replaceApproved(edited: Species) {
+    setResult((current) => ({
+      ...current,
+      approved: current?.approved
+        ?.map((item) => (item.id === edited.id ? edited : item))
+        .sort((a, b) => a.commonName.localeCompare(b.commonName)),
     }))
   }
 
@@ -118,7 +127,7 @@ function SpeciesPage() {
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {tab === 'pending'
                   ? pending?.map((item) => <PendingSpeciesCard key={item.id} species={item} onReviewed={moveReviewed} />)
-                  : approved?.map((item) => <SpeciesCard key={item.id} {...item} />)}
+                  : approved?.map((item) => <ApprovedSpeciesCard key={item.id} species={item} onSaved={replaceApproved} />)}
               </div>
             )}
           </div>

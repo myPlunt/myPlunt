@@ -2,6 +2,7 @@ package com.myplunt.admin;
 
 import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.admin.dto.PendingSpeciesResponse;
+import com.myplunt.admin.dto.UpdateSpeciesRequest;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.species.Species;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
@@ -112,5 +114,47 @@ class AdminSpeciesServiceTest {
                 .isInstanceOf(NotFoundException.class);
         verify(speciesService, never()).delete(any());
         verify(auditLog, never()).recorded(any(), any(), any(), anyMap());
+    }
+
+    @Test
+    void update_changesEveryFieldOfTheApprovedSpecies() {
+        Species olive = species("Olive", "Olea europa");
+        when(speciesService.findApproved(olive.getId())).thenReturn(olive);
+
+        service().update(olive.getId(),
+                new UpdateSpeciesRequest("Olive tree", "Olea europaea", "Mediterranean", 10, "Full sun", true));
+
+        assertThat(olive.getCommonName()).isEqualTo("Olive tree");
+        assertThat(olive.getScientificName()).isEqualTo("Olea europaea");
+        assertThat(olive.getRegion()).isEqualTo("Mediterranean");
+        assertThat(olive.getWateringFrequencyDays()).isEqualTo(10);
+        assertThat(olive.getSunlightNeeds()).isEqualTo("Full sun");
+        assertThat(olive.isCommon()).isTrue();
+        verify(speciesService).toResponse(olive);
+    }
+
+    @Test
+    void update_withAScientificNameAnotherSpeciesHas_isAConflictAndChangesNothing() {
+        Species olive = species("Olive tree", "Olea europaea");
+        when(speciesService.findApproved(olive.getId())).thenReturn(olive);
+        when(speciesService.scientificNameTaken("Salvia officinalis", olive.getId())).thenReturn(true);
+
+        assertThatThrownBy(() -> service().update(olive.getId(),
+                new UpdateSpeciesRequest("Olive tree", "Salvia officinalis", null, 14, null, false)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("409");
+        assertThat(olive.getScientificName()).isEqualTo("Olea europaea");
+    }
+
+    @Test
+    void update_withARegionOffTheList_isABadRequestAndChangesNothing() {
+        Species olive = species("Olive tree", "Olea europaea");
+        when(speciesService.findApproved(olive.getId())).thenReturn(olive);
+
+        assertThatThrownBy(() -> service().update(olive.getId(),
+                new UpdateSpeciesRequest("Olive tree", "Olea europaea", "s", 14, "Full sun", false)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("400");
+        assertThat(olive.getRegion()).isNull();
     }
 }

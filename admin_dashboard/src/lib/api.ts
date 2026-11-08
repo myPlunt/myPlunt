@@ -99,6 +99,10 @@ export async function apiAction(path: string, method: 'POST' | 'DELETE'): Promis
   await authorizedSend(path, { method })
 }
 
+export async function apiPut<T>(path: string, body: unknown): Promise<T> {
+  return (await authorizedSend(path, { method: 'PUT', body: JSON.stringify(body) })).json()
+}
+
 export async function logout(): Promise<void> {
   try {
     await send('/v1/admin/auth/logout', { method: 'POST' })

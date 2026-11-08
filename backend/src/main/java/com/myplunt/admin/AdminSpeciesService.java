@@ -1,14 +1,18 @@
 package com.myplunt.admin;
 
 import com.myplunt.admin.dto.PendingSpeciesResponse;
+import com.myplunt.admin.dto.UpdateSpeciesRequest;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
 import com.myplunt.species.Species;
+import com.myplunt.species.SpeciesOptions;
 import com.myplunt.species.SpeciesService;
 import com.myplunt.species.dto.SpeciesResponse;
 import com.myplunt.storage.StorageService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,6 +51,25 @@ public class AdminSpeciesService {
                         species.getSubmittedBy() == null ? null : species.getSubmittedBy().getUsername(),
                         species.getUpdatedAt()))
                 .toList();
+    }
+
+    // Plants read the species live: a new watering applies right away to plants without their own.
+    @Transactional
+    public SpeciesResponse update(UUID id, UpdateSpeciesRequest request) {
+        Species species = speciesService.findApproved(id);
+        if (request.region() != null && !SpeciesOptions.REGIONS.contains(request.region())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pick a region from the list.");
+        }
+        if (request.sunlightNeeds() != null && !SpeciesOptions.SUNLIGHT.contains(request.sunlightNeeds())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pick a sunlight option from the list.");
+        }
+        if (speciesService.scientificNameTaken(request.scientificName(), id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Another species is already called " + request.scientificName());
+        }
+        species.update(request.commonName(), request.scientificName(), request.region(),
+                request.wateringFrequencyDays(), request.sunlightNeeds(), request.common());
+        return speciesService.toResponse(species);
     }
 
     @Transactional
