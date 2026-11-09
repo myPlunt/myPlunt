@@ -31,6 +31,31 @@
   --color-critical: #b4532a;
   --color-warning: #d4a017;
 
+  /* Regions map only: 23 regions need more distinct hues than the brand palette has. */
+  --color-region-north-america: #a8432f;
+  --color-region-central-america: #e08a4f;
+  --color-region-caribbean: #a6d18f;
+  --color-region-south-america: #f0c95f;
+  --color-region-greenland: #9fc6d6;
+  --color-region-scandinavia: #a58cc9;
+  --color-region-western-europe: #dcc9e8;
+  --color-region-central-europe: #8266b3;
+  --color-region-eastern-europe: #c3abe0;
+  --color-region-balkans: #b07fc0;
+  --color-region-southern-europe: #e7b8dc;
+  --color-region-eurasia: #8c3f6e;
+  --color-region-northern-africa: #c9b27c;
+  --color-region-west-africa: #8a8f98;
+  --color-region-central-africa: #2f6f73;
+  --color-region-east-africa: #d96c8a;
+  --color-region-southern-africa: #b88a3e;
+  --color-region-middle-east: #4a6aa8;
+  --color-region-central-asia: #7fa8d1;
+  --color-region-southern-asia: #6a4fb0;
+  --color-region-eastern-asia: #7fc4b4;
+  --color-region-southeast-asia: #4f9a4a;
+  --color-region-oceania: #f2a9a0;
+
   /* Primary: headlines. Secondary: subtitles, body, UI & buttons. */
   --font-primary: 'Lateef', Georgia, serif;
   --font-secondary: 'DM Sans', system-ui, sans-serif;
