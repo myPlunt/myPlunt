@@ -21,6 +21,7 @@ export const REGIONS: Region[] = [
     name: 'The Caribbean',
     color: 'var(--color-region-caribbean)',
     countries: [
+      'Saba and St. Eustatius', 'Bonaire',
       'Anguilla', 'Antigua and Barb.', 'Aruba', 'Bahamas', 'Barbados', 'Bermuda', 'British Virgin Is.', 'Cayman Is.',
       'Cuba', 'Curaçao', 'Dominica', 'Dominican Rep.', 'Grenada', 'Guadeloupe', 'Haiti', 'Jamaica', 'Martinique',
       'Montserrat', 'Puerto Rico', 'Saint Lucia', 'Sint Maarten', 'St-Barthélemy', 'St-Martin', 'St. Kitts and Nevis',
