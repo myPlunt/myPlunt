@@ -25,18 +25,19 @@ function RegionsPage() {
   return (
     <>
       <PageHeader title="Regions" />
-      <Card title="World map">
-        <input
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search for a region or country"
-          aria-label="Search for a region or country"
-          className="w-full rounded-full border border-sand bg-white px-4 py-2 text-sm text-charcoal outline-none focus:border-leaf sm:w-80"
-        />
-        <WorldMap shown={shown} />
+      <Card title="">
+        <WorldMap shown={shown}>
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search for a region or country"
+            aria-label="Search for a region or country"
+            className="min-w-0 flex-1 rounded-full border border-sand bg-white px-4 py-2 text-sm text-charcoal outline-none focus:border-leaf sm:w-80 sm:flex-none"
+          />
+        </WorldMap>
       </Card>
-      <Card title="Regions and countries">
+      <Card title=''>
         {matches.length === 0 && <p className="text-sm text-ink">No region or country matches your search.</p>}
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {matches.map((region) => (
