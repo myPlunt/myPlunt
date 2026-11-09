@@ -8,6 +8,7 @@ import StagingPill from './StagingPill'
 const links = [
   { label: 'Overview', to: '/overview' },
   { label: 'Species', to: '/species' },
+  { label: 'Regions', to: '/regions' },
   { label: 'Logs', to: '/logs' },
   ...(isStaging ? [{ label: 'Jobs', to: '/jobs' }] : []),
 ]

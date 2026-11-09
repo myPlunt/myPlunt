@@ -11,6 +11,8 @@ import SpeciesPage from './pages/SpeciesPage'
 
 // Loaded on first visit: its chart library is most of the bundle.
 const LogsPage = lazy(() => import('./pages/LogsPage'))
+// Same: the map's shapes are large.
+const RegionsPage = lazy(() => import('./pages/RegionsPage'))
 
 function App() {
   const { state, signOut } = useAuth()
@@ -26,6 +28,14 @@ function App() {
         <Route index element={<Navigate to="/overview" replace />} />
         <Route path="overview" element={<OverviewPage />} />
         <Route path="species" element={<SpeciesPage />} />
+        <Route
+          path="regions"
+          element={
+            <Suspense>
+              <RegionsPage />
+            </Suspense>
+          }
+        />
         <Route
           path="logs"
           element={
