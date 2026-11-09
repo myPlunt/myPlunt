@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
-import worldMap from '../assets/world-map.json'
 import Card from '../components/logs/Card'
 import PageHeader from '../components/PageHeader'
+import WorldMap from '../components/regions/WorldMap'
 import { REGIONS } from '../lib/regions'
 
 // Case- and accent-insensitive, so "reunion" finds Réunion.
@@ -34,21 +34,7 @@ function RegionsPage() {
           aria-label="Search for a region or country"
           className="w-full rounded-full border border-sand bg-white px-4 py-2 text-sm text-charcoal outline-none focus:border-leaf sm:w-80"
         />
-        <svg viewBox="0 0 960 419" role="img" aria-label="World map coloured by region" className="w-full">
-          {REGIONS.flatMap((region) =>
-            region.countries.map((country) => (
-              <path
-                key={country}
-                d={worldMap[country]}
-                fill={region.color}
-                strokeWidth={0.4}
-                className={`stroke-cream transition-opacity ${shown.has(country) ? '' : 'opacity-15'}`}
-              >
-                <title>{`${country} (${region.name})`}</title>
-              </path>
-            )),
-          )}
-        </svg>
+        <WorldMap shown={shown} />
       </Card>
       <Card title="Regions and countries">
         {matches.length === 0 && <p className="text-sm text-ink">No region or country matches your search.</p>}
