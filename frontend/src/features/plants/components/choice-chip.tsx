@@ -26,13 +26,6 @@ export function ChoiceChip({ label, icon, selected, onPress }: ChoiceChipProps) 
       }`}>
       <SymbolView name={icon} tintColor={selected ? theme.backgroundElement : theme.accent} size={16} />
       <Text className={`type-body-medium ${selected ? 'text-background-element' : 'text-text'}`}>{label}</Text>
-      {selected && (
-        <SymbolView
-          name={{ ios: 'xmark', android: 'close', web: 'close' }}
-          tintColor={theme.backgroundElement}
-          size={12}
-        />
-      )}
     </Pressable>
   );
 }

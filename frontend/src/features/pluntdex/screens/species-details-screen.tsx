@@ -74,7 +74,20 @@ export function SpeciesDetailsScreen({ speciesId }: { speciesId: string }) {
                 className="gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4"
                 style={Shadow.card}>
                 <Text className="type-label text-accent">ABOUT</Text>
-                <DetailRow label="Region" value={entry.region ?? 'Unknown'} />
+                {entry.regions.length > 1 ? (
+                  <View className="gap-2">
+                    <Text className="type-body-large text-text-secondary">Regions</Text>
+                    <View className="flex-row flex-wrap gap-2">
+                      {entry.regions.map((region) => (
+                        <View key={region} className="rounded-full border border-input-border bg-background px-3 py-1">
+                          <Text className="type-body-medium text-text">{region}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ) : (
+                  <DetailRow label="Region" value={entry.regions[0] ?? 'Unknown'} />
+                )}
                 <DetailRow label="Light" value={entry.sunlightNeeds ?? 'Unknown'} />
                 <DetailRow
                   label="Watering"

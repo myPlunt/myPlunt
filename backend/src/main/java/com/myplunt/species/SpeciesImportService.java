@@ -1,5 +1,6 @@
 package com.myplunt.species;
 
+import com.myplunt.region.RegionRepository;
 import com.myplunt.species.dto.SpeciesImportResponse;
 import com.myplunt.storage.StorageService;
 import org.springframework.http.HttpStatus;
@@ -22,12 +23,14 @@ public class SpeciesImportService {
     private final TrefleClient trefleClient;
     private final SpeciesRepository speciesRepository;
     private final StorageService storageService;
+    private final RegionRepository regionRepository;
 
     public SpeciesImportService(TrefleClient trefleClient, SpeciesRepository speciesRepository,
-                                StorageService storageService) {
+                                StorageService storageService, RegionRepository regionRepository) {
         this.trefleClient = trefleClient;
         this.speciesRepository = speciesRepository;
         this.storageService = storageService;
+        this.regionRepository = regionRepository;
     }
 
     // Imports up to count new species, starting at a Trefle page (20 species each) and moving on to the
@@ -66,8 +69,10 @@ public class SpeciesImportService {
                     continue;
                 }
                 Species species;
+                JsonNode details;
                 try {
-                    species = toSpecies(item, trefleClient.details(item.id()));
+                    details = trefleClient.details(item.id());
+                    species = toSpecies(item, details);
                 } catch (HttpClientErrorException.TooManyRequests e) {
                     return new SpeciesImportResponse(imported, skipped, page, true);
                 } catch (RestClientException e) {
@@ -77,6 +82,7 @@ public class SpeciesImportService {
                 if (species == null) {
                     skipped++;
                 } else {
+                    species.setRegions(regionRepository.findByNameInOrderByPosition(regionsOf(details)));
                     copyImage(speciesRepository.save(species), item.image_url());
                     imported++;
                 }
@@ -91,13 +97,19 @@ public class SpeciesImportService {
         }
     }
 
-    // Null for trees. Watering stays empty: Trefle has no watering data.
+    // Null for trees. Watering stays empty: Trefle has no watering data. The regions are set by the caller,
+    // which can look them up.
     static Species toSpecies(TrefleClient.Item item, JsonNode details) {
         if (details == null || HouseplantFilter.isTree(details)) {
             return null;
         }
-        return new Species(capitalize(item.common_name().trim()), item.scientific_name().trim(),
-                OriginRegions.regionOf(nativeRegions(details)), null, sunlight(details.path("growth").path("light")));
+        return new Species(capitalize(item.common_name().trim()), item.scientific_name().trim(), null,
+                sunlight(details.path("growth").path("light")));
+    }
+
+    // The PluntDex regions of the plant's native distribution.
+    static List<String> regionsOf(JsonNode details) {
+        return OriginRegions.regionsOf(nativeRegions(details));
     }
 
     // Trefle's light goes from 0 (no light) to 10 (very intense).

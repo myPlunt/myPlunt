@@ -4,6 +4,7 @@ import com.myplunt.admin.dto.PendingSpeciesResponse;
 import com.myplunt.admin.dto.UpdatePendingSpeciesRequest;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
+import com.myplunt.region.RegionService;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesService;
 import com.myplunt.species.dto.SpeciesResponse;
@@ -23,11 +24,14 @@ public class AdminSpeciesService {
     private final SpeciesService speciesService;
     private final StorageService storageService;
     private final AuditLog auditLog;
+    private final RegionService regionService;
 
-    public AdminSpeciesService(SpeciesService speciesService, StorageService storageService, AuditLog auditLog) {
+    public AdminSpeciesService(SpeciesService speciesService, StorageService storageService, AuditLog auditLog,
+                               RegionService regionService) {
         this.speciesService = speciesService;
         this.storageService = storageService;
         this.auditLog = auditLog;
+        this.regionService = regionService;
     }
 
     public List<SpeciesResponse> getApprovedSpecies() {
@@ -43,7 +47,7 @@ public class AdminSpeciesService {
     @Transactional
     public PendingSpeciesResponse update(UUID id, UpdatePendingSpeciesRequest request) {
         Species species = speciesService.findPending(id);
-        species.updateCare(blankToNull(request.region()), request.wateringFrequencyDays(),
+        species.updateCare(regionService.findSpeciesRegions(request.regions()), request.wateringFrequencyDays(),
                 blankToNull(request.sunlightNeeds()));
         return toResponse(species);
     }
@@ -53,7 +57,7 @@ public class AdminSpeciesService {
                 species.getId(),
                 species.getCommonName(),
                 species.getScientificName(),
-                species.getRegion(),
+                species.getRegionNames(),
                 species.getWateringFrequencyDays(),
                 species.getSunlightNeeds(),
                 species.getImageKey() == null ? null : storageService.createReadUrl(species.getImageKey()),

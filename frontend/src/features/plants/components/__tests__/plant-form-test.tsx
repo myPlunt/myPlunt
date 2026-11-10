@@ -41,9 +41,9 @@ const vera = {
   photoUrl: null,
 };
 const species = [
-  { id: 'monstera', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7, region: null, sunlightNeeds: null, common: false, imageUrl: null },
-  { id: 'pothos', commonName: 'Pothos', scientificName: 'Epipremnum aureum', wateringFrequencyDays: 10, region: null, sunlightNeeds: null, common: false, imageUrl: null },
-  { id: 'basil', commonName: 'Sweet basil', scientificName: 'Ocimum basilicum', wateringFrequencyDays: null, region: null, sunlightNeeds: null, common: false, imageUrl: null },
+  { id: 'monstera', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7, regions: [], sunlightNeeds: null, common: false, imageUrl: null },
+  { id: 'pothos', commonName: 'Pothos', scientificName: 'Epipremnum aureum', wateringFrequencyDays: 10, regions: [], sunlightNeeds: null, common: false, imageUrl: null },
+  { id: 'basil', commonName: 'Sweet basil', scientificName: 'Ocimum basilicum', wateringFrequencyDays: null, regions: [], sunlightNeeds: null, common: false, imageUrl: null },
 ];
 const planters = [
   { id: 'balcony', name: 'Balcony' },

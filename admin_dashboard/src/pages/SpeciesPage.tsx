@@ -5,14 +5,18 @@ import ImportSpeciesForm from '../components/species/ImportSpeciesForm'
 import PendingSpeciesCard from '../components/species/PendingSpeciesCard'
 import SpeciesCard from '../components/species/SpeciesCard'
 import { ApiError } from '../lib/api'
+import { getRegions, regionLabels, speciesRegions, type Region } from '../lib/regions'
 import { getApprovedSpecies, getPendingSpecies, type PendingSpecies, type Species } from '../lib/species'
 
-type Result = { pending?: PendingSpecies[]; approved?: Species[]; error?: string }
+type Result = { pending?: PendingSpecies[]; approved?: Species[]; regions?: Region[]; error?: string }
 type Tab = 'import' | 'pending' | 'approved'
 
 // Case- and accent-insensitive, so "acer" finds "Acér" too.
 function normalize(text: string): string {
-  return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+  return text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
 }
 
 function matches(species: { commonName: string; scientificName: string }, query: string): boolean {
@@ -33,8 +37,8 @@ function SpeciesPage() {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([getPendingSpecies(), getApprovedSpecies()])
-      .then(([pending, approved]) => !cancelled && setResult({ pending, approved }))
+    Promise.all([getPendingSpecies(), getApprovedSpecies(), getRegions()])
+      .then(([pending, approved, regions]) => !cancelled && setResult({ pending, approved, regions }))
       .catch((err) => {
         if (!cancelled) setResult({ error: err instanceof ApiError ? err.message : "Can't reach the server." })
       })
@@ -52,6 +56,7 @@ function SpeciesPage() {
   // An approved species joins the approved list right away instead of waiting for a reload.
   function moveReviewed(reviewed: PendingSpecies, approved: boolean) {
     setResult((current) => ({
+      ...current,
       pending: current?.pending?.filter((item) => item.id !== reviewed.id),
       approved: approved
         ? [...(current?.approved ?? []), { ...reviewed, common: false }].sort((a, b) =>
@@ -68,8 +73,7 @@ function SpeciesPage() {
     }))
   }
 
-  // Approved species hold the PluntDex's regions; pending ones may still carry unmapped ones.
-  const regions = unique(result?.approved?.map((item) => item.region))
+  const regions = speciesRegions(result?.regions ?? [])
   const sunlightOptions = unique([
     ...SUNLIGHT_SUGGESTIONS,
     ...(result?.approved ?? []).map((item) => item.sunlightNeeds),
@@ -163,7 +167,9 @@ function SpeciesPage() {
                         onEdited={replaceEdited}
                       />
                     ))
-                  : approved?.map((item) => <SpeciesCard key={item.id} {...item} />)}
+                  : approved?.map((item) => (
+                      <SpeciesCard key={item.id} {...item} regions={regionLabels(item.regions, regions)} />
+                    ))}
               </div>
             )}
           </div>
