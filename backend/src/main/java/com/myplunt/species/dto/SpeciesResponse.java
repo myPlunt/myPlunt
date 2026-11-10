@@ -1,5 +1,6 @@
 package com.myplunt.species.dto;
 
+import java.util.List;
 import java.util.UUID;
 
 public record SpeciesResponse(
@@ -7,7 +8,7 @@ public record SpeciesResponse(
         String commonName,
         String scientificName,
         Integer wateringFrequencyDays,
-        String region,
+        List<String> regions,
         String sunlightNeeds,
         boolean common,
         String imageUrl) {

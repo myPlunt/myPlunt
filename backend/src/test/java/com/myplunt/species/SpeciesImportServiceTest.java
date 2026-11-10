@@ -1,5 +1,6 @@
 package com.myplunt.species;
 
+import com.myplunt.region.RegionRepository;
 import com.myplunt.species.dto.SpeciesImportResponse;
 import com.myplunt.storage.StorageService;
 import org.junit.jupiter.api.Test;
@@ -40,8 +41,11 @@ class SpeciesImportServiceTest {
     @Mock
     private StorageService storageService;
 
+    @Mock
+    private RegionRepository regionRepository;
+
     private SpeciesImportService service() {
-        return new SpeciesImportService(trefleClient, speciesRepository, storageService);
+        return new SpeciesImportService(trefleClient, speciesRepository, storageService, regionRepository);
     }
 
     private static JsonNode json(String text) {
@@ -59,13 +63,14 @@ class SpeciesImportServiceTest {
     @Test
     void toSpecies_mapsNameRegionAndLightAndLeavesWateringForTheAdmin() {
         // Monstera deliciosa's real Trefle distribution, with a light value added.
-        Species species = SpeciesImportService.toSpecies(item(1, "fruit-salad-plant", "Monstera deliciosa", "Monstera"), json("""
+        JsonNode details = json("""
                 {"growth": {"light": 5}, "specifications": {"growth_habit": "Vine, Forb/herb"},
                  "distribution": {"native": ["Guatemala", "Mexico Gulf", "Mexico Southeast", "Mexico Southwest"]}}
-                """));
+                """);
+        Species species = SpeciesImportService.toSpecies(item(1, "fruit-salad-plant", "Monstera deliciosa", "Monstera"), details);
 
         assertThat(species.getCommonName()).isEqualTo("Fruit-salad-plant");
-        assertThat(species.getRegion()).isEqualTo("Central America");
+        assertThat(SpeciesImportService.regionsOf(details)).containsExactly("Central America", "Canada, USA and Mexico");
         assertThat(species.getSunlightNeeds()).isEqualTo("Part shade");
         assertThat(species.getWateringFrequencyDays()).isNull();
         assertThat(species.isApproved()).isFalse();

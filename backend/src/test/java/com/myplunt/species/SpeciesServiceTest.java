@@ -1,5 +1,6 @@
 package com.myplunt.species;
 
+import com.myplunt.region.Region;
 import com.myplunt.species.dto.SpeciesResponse;
 import com.myplunt.storage.StorageService;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,8 @@ class SpeciesServiceTest {
     @Test
     void getApprovedSpecies_mapsTheApprovedSpeciesInRepositoryOrder() {
         Species monstera = species("Monstera", "Monstera deliciosa");
-        ReflectionTestUtils.setField(monstera, "region", "Central America");
+        monstera.setRegions(List.of(new Region("Central America", "central-america", null, 1),
+                new Region("Canada, USA and Mexico", "north-america", null, 0)));
         ReflectionTestUtils.setField(monstera, "sunlightNeeds", "Bright indirect");
         ReflectionTestUtils.setField(monstera, "common", true);
         when(speciesRepository.findByApprovedTrueOrderByCommonNameAsc()).thenReturn(List.of(monstera));
@@ -41,7 +43,7 @@ class SpeciesServiceTest {
         List<SpeciesResponse> species = new SpeciesService(speciesRepository, storageService).getApprovedSpecies();
 
         assertThat(species).containsExactly(new SpeciesResponse(
-                monstera.getId(), "Monstera", "Monstera deliciosa", 7, "Central America", "Bright indirect", true, null));
+                monstera.getId(), "Monstera", "Monstera deliciosa", 7, List.of("Central America", "Canada, USA and Mexico"), "Bright indirect", true, null));
     }
 
 }

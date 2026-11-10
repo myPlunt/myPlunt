@@ -20,6 +20,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -61,9 +62,9 @@ class AdminSpeciesControllerTest {
     @Test
     void update_savesTheAdminsCorrections() {
         signedInAdmin();
-        var request = new UpdatePendingSpeciesRequest("Europe", 10, "Full shade");
+        var request = new UpdatePendingSpeciesRequest(List.of("Balkans"), 10, "Full shade");
         when(adminSpeciesService.update(speciesId, request)).thenReturn(new PendingSpeciesResponse(
-                speciesId, "Silver fir", "Abies alba", "Europe", 10, "Full shade", null, null, Instant.now()));
+                speciesId, "Silver fir", "Abies alba", List.of("Balkans"), 10, "Full shade", null, null, Instant.now()));
 
         restTestClient.put().uri("/v1/admin/species/pending/" + speciesId)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer admin-token")
@@ -81,7 +82,7 @@ class AdminSpeciesControllerTest {
         restTestClient.put().uri("/v1/admin/species/pending/" + speciesId)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer admin-token")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new UpdatePendingSpeciesRequest("Europe", 0, "Full sun"))
+                .body(new UpdatePendingSpeciesRequest(List.of("Balkans"), 0, "Full sun"))
                 .exchange()
                 .expectStatus().isBadRequest();
 
@@ -96,7 +97,7 @@ class AdminSpeciesControllerTest {
         restTestClient.put().uri("/v1/admin/species/pending/" + speciesId)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer admin-token")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new UpdatePendingSpeciesRequest("Europe", 7, "Full sun"))
+                .body(new UpdatePendingSpeciesRequest(List.of("Balkans"), 7, "Full sun"))
                 .exchange()
                 .expectStatus().isNotFound();
     }

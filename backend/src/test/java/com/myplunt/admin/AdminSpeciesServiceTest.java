@@ -5,6 +5,8 @@ import com.myplunt.admin.dto.PendingSpeciesResponse;
 import com.myplunt.admin.dto.UpdatePendingSpeciesRequest;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
+import com.myplunt.region.Region;
+import com.myplunt.region.RegionService;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesService;
 import com.myplunt.storage.StorageService;
@@ -42,10 +44,13 @@ class AdminSpeciesServiceTest {
     @Mock
     private AuditLog auditLog;
 
+    @Mock
+    private RegionService regionService;
+
     private final UUID adminId = UUID.randomUUID();
 
     private AdminSpeciesService service() {
-        return new AdminSpeciesService(speciesService, storageService, auditLog);
+        return new AdminSpeciesService(speciesService, storageService, auditLog, regionService);
     }
 
     private Species species(String commonName, String scientificName) {
@@ -59,7 +64,7 @@ class AdminSpeciesServiceTest {
     void getPendingSpecies_mapsEachSpeciesWithItsSubmitterAndPicture() {
         Instant submittedAt = Instant.parse("2026-10-11T09:30:00Z");
         Species olive = species("Olive tree", "Olea europaea");
-        ReflectionTestUtils.setField(olive, "region", "Mediterranean");
+        olive.setRegions(List.of(new Region("Balkans", "balkans", null, 10), new Region("Southern Europe", "southern-europe", null, 11)));
         ReflectionTestUtils.setField(olive, "sunlightNeeds", "Full sun");
         ReflectionTestUtils.setField(olive, "imageKey", "species/olive/seed.jpg");
         ReflectionTestUtils.setField(olive, "submittedBy", new User("plantdad", "plantdad@example.com", "hashed"));
@@ -72,9 +77,9 @@ class AdminSpeciesServiceTest {
         List<PendingSpeciesResponse> pending = service().getPendingSpecies();
 
         assertThat(pending).containsExactly(
-                new PendingSpeciesResponse(olive.getId(), "Olive tree", "Olea europaea", "Mediterranean", 14, "Full sun",
+                new PendingSpeciesResponse(olive.getId(), "Olive tree", "Olea europaea", List.of("Balkans", "Southern Europe"), 14, "Full sun",
                         "https://storage.test/olive", "plantdad", submittedAt),
-                new PendingSpeciesResponse(sage.getId(), "Common sage", "Salvia officinalis", null, 14, null,
+                new PendingSpeciesResponse(sage.getId(), "Common sage", "Salvia officinalis", List.of(), 14, null,
                         null, null, null));
     }
 
@@ -135,14 +140,19 @@ class AdminSpeciesServiceTest {
     }
 
     @Test
-    void update_correctsTheCareDetailsAndClearsBlankOnes() {
+    void update_correctsTheCareDetailsAndReplacesTheRegions() {
         Species fir = species("Silver fir", "Abies alba");
+        fir.setRegions(List.of(new Region("Southern Europe", "southern-europe", null, 11)));
+        Region balkans = new Region("Balkans", "balkans", null, 10);
+        Region central = new Region("Central Europe", "central-europe", null, 8);
         when(speciesService.findPending(fir.getId())).thenReturn(fir);
+        when(regionService.findSpeciesRegions(List.of("Central Europe", "Balkans"))).thenReturn(List.of(central, balkans));
 
-        PendingSpeciesResponse response = service().update(fir.getId(), new UpdatePendingSpeciesRequest(" ", 10, "Full shade"));
+        PendingSpeciesResponse response = service().update(fir.getId(),
+                new UpdatePendingSpeciesRequest(List.of("Central Europe", "Balkans"), 10, " "));
 
-        assertThat(fir.getRegion()).isNull();
+        assertThat(response.regions()).containsExactly("Central Europe", "Balkans");
+        assertThat(fir.getSunlightNeeds()).isNull();
         assertThat(fir.getWateringFrequencyDays()).isEqualTo(10);
-        assertThat(response.sunlightNeeds()).isEqualTo("Full shade");
     }
 }
