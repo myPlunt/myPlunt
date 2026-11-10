@@ -31,7 +31,7 @@ public class SpeciesService {
                         species.getCommonName(),
                         species.getScientificName(),
                         species.getWateringFrequencyDays(),
-                        species.getRegion(),
+                        species.getRegionNames(),
                         species.getSunlightNeeds(),
                         species.isCommon(),
                         // Signing is local (no call to storage), so one per species is cheap.
