@@ -74,7 +74,10 @@ export function SpeciesDetailsScreen({ speciesId }: { speciesId: string }) {
                 className="gap-3 rounded-2xl border-[1.5px] border-input-border bg-background-element p-4"
                 style={Shadow.card}>
                 <Text className="type-label text-accent">ABOUT</Text>
-                <DetailRow label="Region" value={entry.region ?? 'Unknown'} />
+                <DetailRow
+                  label={entry.regions.length > 1 ? 'Regions' : 'Region'}
+                  value={entry.regions.length > 0 ? entry.regions.join(', ') : 'Unknown'}
+                />
                 <DetailRow label="Light" value={entry.sunlightNeeds ?? 'Unknown'} />
                 <DetailRow
                   label="Watering"

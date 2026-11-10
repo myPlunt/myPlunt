@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 type SpeciesCardProps = {
   commonName: string
   scientificName: string
-  region: string | null
+  regions: string[]
   wateringFrequencyDays: number | null
   sunlightNeeds: string | null
   imageUrl: string | null
@@ -17,7 +17,7 @@ type SpeciesCardProps = {
 function SpeciesCard({
   commonName,
   scientificName,
-  region,
+  regions,
   wateringFrequencyDays,
   sunlightNeeds,
   imageUrl,
@@ -25,7 +25,7 @@ function SpeciesCard({
   children,
 }: SpeciesCardProps) {
   const rows = [
-    { label: 'Region', value: region },
+    { label: regions.length === 1 ? 'Region' : 'Regions', value: regions.join(', ') },
     {
       label: 'Watering',
       value: wateringFrequencyDays && `Every ${wateringFrequencyDays} day${wateringFrequencyDays === 1 ? '' : 's'}`,

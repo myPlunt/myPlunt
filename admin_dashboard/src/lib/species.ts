@@ -6,7 +6,8 @@ export type PendingSpecies = {
   id: string
   commonName: string
   scientificName: string
-  region: string | null
+  // Every region the plant is native to, in map order; empty when not set yet.
+  regions: string[]
   wateringFrequencyDays: number | null
   sunlightNeeds: string | null
   imageUrl: string | null
@@ -20,7 +21,7 @@ export type Species = {
   commonName: string
   scientificName: string
   wateringFrequencyDays: number | null
-  region: string | null
+  regions: string[]
   sunlightNeeds: string | null
   common: boolean
   imageUrl: string | null
@@ -38,9 +39,9 @@ export function approveSpecies(id: string): Promise<void> {
   return apiAction(`/v1/admin/species/pending/${id}/approve`, 'POST')
 }
 
-// What an admin can correct before approving. A null region or sunlight clears it.
+// What an admin can correct before approving. Empty regions or a null sunlight clear them.
 export type SpeciesCare = {
-  region: string | null
+  regions: string[]
   wateringFrequencyDays: number
   sunlightNeeds: string | null
 }

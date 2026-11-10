@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
 
 import { ApiError } from '../../lib/api'
+import type { Region } from '../../lib/regions'
 import { updatePendingSpecies, type PendingSpecies } from '../../lib/species'
 
 type EditSpeciesFormProps = {
   species: PendingSpecies
-  // The PluntDex regions, so the species lands in one the app's region filter already shows.
-  regions: string[]
+  // The regions a species can be in (no parents like Europe), in map order.
+  regions: Region[]
   sunlightOptions: string[]
   onSaved: (species: PendingSpecies) => void
   onCancel: () => void
@@ -21,7 +22,7 @@ const WATERING_DAYS = ['1', '2', '3', '4', '5', '7', '10', '14', '21', '30']
 
 // Takes the place of the care details, in the same label/value grid, so the card doesn't grow.
 function EditSpeciesForm({ species, regions, sunlightOptions, onSaved, onCancel }: EditSpeciesFormProps) {
-  const [region, setRegion] = useState(species.region ?? '')
+  const [chosen, setChosen] = useState(species.regions)
   const [watering, setWatering] = useState(species.wateringFrequencyDays ? String(species.wateringFrequencyDays) : '')
   const [sunlight, setSunlight] = useState(species.sunlightNeeds ?? '')
   const [busy, setBusy] = useState(false)
@@ -39,7 +40,8 @@ function EditSpeciesForm({ species, regions, sunlightOptions, onSaved, onCancel 
     try {
       onSaved(
         await updatePendingSpecies(species.id, {
-          region: region || null,
+          // In map order, whatever order they were ticked in.
+          regions: regions.filter((region) => chosen.includes(region.name)).map((region) => region.name),
           wateringFrequencyDays: Number(watering),
           sunlightNeeds: sunlight || null,
         }),
@@ -53,17 +55,36 @@ function EditSpeciesForm({ species, regions, sunlightOptions, onSaved, onCancel 
   return (
     <form onSubmit={save} className="flex flex-1 flex-col gap-4">
       <div className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2">
-        <label htmlFor={id('region')} className={labelClass}>
-          Region
-        </label>
-        <select id={id('region')} value={region} onChange={(e) => setRegion(e.target.value)} className={fieldClass}>
-          <option value="">Not set</option>
-          {withCurrent(regions, region).map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
+        <span id={id('regions')} className={labelClass}>
+          Regions
+        </span>
+        {/* A closed list keeps the card small; open, it shows every region to tick. */}
+        <details className="relative min-w-0">
+          <summary className={`${fieldClass} cursor-pointer list-none truncate`} aria-labelledby={id('regions')}>
+            {chosen.length > 0 ? chosen.join(', ') : 'Not set'}
+          </summary>
+          <fieldset
+            aria-labelledby={id('regions')}
+            className="absolute z-10 mt-1 flex max-h-64 w-64 flex-col gap-1 overflow-y-auto rounded-2xl bg-white p-3 shadow-card"
+          >
+            {regions.map((region) => (
+              <label key={region.name} className="flex items-center gap-2 text-sm text-charcoal">
+                <input
+                  type="checkbox"
+                  checked={chosen.includes(region.name)}
+                  onChange={(e) =>
+                    setChosen((current) =>
+                      e.target.checked ? [...current, region.name] : current.filter((name) => name !== region.name),
+                    )
+                  }
+                  className="accent-leaf"
+                />
+                {region.name}
+                {region.parent && <span className="text-ink">in {region.parent}</span>}
+              </label>
+            ))}
+          </fieldset>
+        </details>
 
         <label htmlFor={id('watering')} className={labelClass}>
           Watering

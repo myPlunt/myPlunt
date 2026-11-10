@@ -23,7 +23,7 @@ function species(id: string): Species {
     commonName: id,
     scientificName: id,
     wateringFrequencyDays: null,
-    region: null,
+    regions: [],
     sunlightNeeds: null,
     common: false,
     imageUrl: null,

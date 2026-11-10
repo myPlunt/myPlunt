@@ -23,7 +23,7 @@ const species = [
     commonName: 'Basil',
     scientificName: 'Ocimum basilicum',
     wateringFrequencyDays: 3,
-    region: 'Tropical Asia',
+    regions: ['Southeast Asia', 'Southern Asia'],
     sunlightNeeds: 'Full sun',
     common: true,
     imageUrl: 'https://storage.test/basil.jpg',
@@ -33,7 +33,7 @@ const species = [
     commonName: 'Monstera',
     scientificName: 'Monstera deliciosa',
     wateringFrequencyDays: null,
-    region: null,
+    regions: [],
     sunlightNeeds: null,
     common: false,
     imageUrl: null,
@@ -100,7 +100,7 @@ it('shows a discovered species with its facts, when it was discovered and the pl
 
   expect(screen.getByRole('header', { name: 'Basil' })).toBeOnTheScreen();
   expect(screen.getByText('#001')).toBeOnTheScreen();
-  expect(screen.getByText('Tropical Asia')).toBeOnTheScreen();
+  expect(screen.getByText('Southeast Asia, Southern Asia')).toBeOnTheScreen();
   expect(screen.getByText('Full sun')).toBeOnTheScreen();
   expect(screen.getByText('Every 3 days')).toBeOnTheScreen();
   expect(screen.getByText(/Discovered on/)).toBeOnTheScreen();

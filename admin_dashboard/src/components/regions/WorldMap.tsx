@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react'
 
 import worldDots from '../../assets/world-dots.json'
 import worldMap from '../../assets/world-map.json'
-import { REGIONS } from '../../lib/regions'
+import { regionColor, type Region } from '../../lib/regions'
 
 // The coordinate space world-map.json was projected into.
 const WIDTH = 960
@@ -12,6 +12,7 @@ const MAX_ZOOM = 20
 const FULL_VIEW = { x: 0, y: 0, width: WIDTH }
 // Countries too small to hover (Vatican, Monaco, small islands) also get an invisible hover area at their centre.
 const dots: Record<string, number[]> = worldDots
+const shapes: Record<string, string> = worldMap
 
 type View = typeof FULL_VIEW
 
@@ -36,8 +37,15 @@ function zoomAt(view: View, factor: number, fx = 0.5, fy = 0.5): View {
   })
 }
 
-// children: shown on the left of the zoom buttons (the page's search box).
-function WorldMap({ shown, children }: { shown: Set<string>; children: ReactNode }) {
+type WorldMapProps = {
+  regions: Region[]
+  // The countries to colour; the others fade.
+  shown: Set<string>
+  // Shown on the left of the zoom buttons (the page's search box).
+  children: ReactNode
+}
+
+function WorldMap({ regions, shown, children }: WorldMapProps) {
   const [view, setView] = useState(FULL_VIEW)
   const [hovered, setHovered] = useState<string | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -123,22 +131,25 @@ function WorldMap({ shown, children }: { shown: Set<string>; children: ReactNode
           onPointerOver={(event) => setHovered((event.target as Element).getAttribute('data-label'))}
           onPointerLeave={() => setHovered(null)}
         >
-          {REGIONS.flatMap((region) =>
-            region.countries.map((country) => (
-              <path
-                key={country}
-                d={worldMap[country]}
-                fill={region.color}
-                data-label={`${country} (${region.name})`}
-                vectorEffect="non-scaling-stroke"
-                strokeWidth={0.5}
-                className={`stroke-cream transition-opacity ${shown.has(country) ? '' : 'opacity-15'}`}
-              >
-                <title>{`${country} (${region.name})`}</title>
-              </path>
-            )),
+          {regions.flatMap((region) =>
+            // A country the map has no shape for is skipped; the list below still names it.
+            region.countries
+              .filter((country) => country in shapes)
+              .map((country) => (
+                <path
+                  key={country}
+                  d={shapes[country]}
+                  fill={regionColor(region)}
+                  data-label={`${country} (${region.name})`}
+                  vectorEffect="non-scaling-stroke"
+                  strokeWidth={0.5}
+                  className={`stroke-cream transition-opacity ${shown.has(country) ? '' : 'opacity-15'}`}
+                >
+                  <title>{`${country} (${region.name})`}</title>
+                </path>
+              )),
           )}
-          {REGIONS.flatMap((region) =>
+          {regions.flatMap((region) =>
             region.countries
               .filter((country) => country in dots)
               .map((country) => (

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { ApiError } from '../../lib/api'
+import { regionLabels, type Region } from '../../lib/regions'
 import { approveSpecies, rejectSpecies, type PendingSpecies } from '../../lib/species'
 import EditSpeciesForm from './EditSpeciesForm'
 import SpeciesCard from './SpeciesCard'
@@ -13,7 +14,7 @@ type PendingSpeciesCardProps = {
   species: PendingSpecies
   // Called once the species is approved or rejected, so the page can move it out of the list.
   onReviewed: (species: PendingSpecies, approved: boolean) => void
-  regions: string[]
+  regions: Region[]
   sunlightOptions: string[]
   onEdited: (species: PendingSpecies) => void
 }
@@ -68,7 +69,7 @@ function PendingSpeciesCard({ species, onReviewed, regions, sunlightOptions, onE
   }
 
   return (
-    <SpeciesCard {...species}>
+    <SpeciesCard {...species} regions={regionLabels(species.regions, regions)}>
       <p className="mt-auto border-t border-sand pt-3 text-xs text-ink">
         {species.submittedBy ? (
           <>
