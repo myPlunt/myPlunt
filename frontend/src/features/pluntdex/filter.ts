@@ -14,12 +14,14 @@ export interface RegionProgress {
 
 export function regionsOf(species: Species[], discovered: Set<string>): RegionProgress[] {
   const byName = new Map<string, RegionProgress>();
+  // A species native to several regions counts in each of them.
   for (const s of species) {
-    if (!s.region) continue;
-    const region = byName.get(s.region) ?? { name: s.region, discovered: 0, total: 0 };
-    region.total++;
-    if (discovered.has(s.id)) region.discovered++;
-    byName.set(s.region, region);
+    for (const name of s.regions) {
+      const region = byName.get(name) ?? { name, discovered: 0, total: 0 };
+      region.total++;
+      if (discovered.has(s.id)) region.discovered++;
+      byName.set(name, region);
+    }
   }
   return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -30,6 +32,6 @@ export function filterSpecies(species: Species[], discovered: Set<string>, query
       matchesSpecies(s, query) &&
       (filter.only !== 'common' || s.common) &&
       (filter.only !== 'discovered' || discovered.has(s.id)) &&
-      (filter.region === null || s.region === filter.region),
+      (filter.region === null || s.regions.includes(filter.region)),
   );
 }

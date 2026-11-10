@@ -51,7 +51,7 @@ export function SpeciesCard({ species, number, discovered, onPress }: SpeciesCar
             {species.scientificName}
           </Text>
         </View>
-        {species.region && (
+        {species.regions.length > 0 && (
           <View className="mt-1 flex-row items-center gap-1 self-start rounded-full bg-accent/15 px-2 py-0.5">
             <SymbolView
               name={{ ios: 'globe.europe.africa.fill', android: 'public', web: 'public' }}
@@ -59,7 +59,7 @@ export function SpeciesCard({ species, number, discovered, onPress }: SpeciesCar
               size={10}
             />
             <Text className="type-caption shrink text-accent" numberOfLines={1}>
-              {species.region}
+              {species.regions.join(', ')}
             </Text>
           </View>
         )}

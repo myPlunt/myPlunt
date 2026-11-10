@@ -82,7 +82,7 @@ function species(id: string, commonName: string): Species {
     commonName,
     scientificName: `${commonName} sp.`,
     wateringFrequencyDays: 7,
-    region: null,
+    regions: [],
     sunlightNeeds: null,
     common: true,
     imageUrl: null,
