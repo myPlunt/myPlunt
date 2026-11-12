@@ -3,10 +3,12 @@ import type { ReactNode } from 'react'
 type SpeciesCardProps = {
   commonName: string
   scientificName: string
-  region: string | null
+  regions: string[]
   wateringFrequencyDays: number | null
   sunlightNeeds: string | null
   imageUrl: string | null
+  // Replaces the care details, e.g. with the edit form.
+  details?: ReactNode
   // Shown under the details, e.g. who submitted it and the review buttons.
   children?: ReactNode
 }
@@ -15,14 +17,15 @@ type SpeciesCardProps = {
 function SpeciesCard({
   commonName,
   scientificName,
-  region,
+  regions,
   wateringFrequencyDays,
   sunlightNeeds,
   imageUrl,
+  details,
   children,
 }: SpeciesCardProps) {
-  const details = [
-    { label: 'Region', value: region },
+  const rows = [
+    { label: regions.length === 1 ? 'Region' : 'Regions', value: regions.join(', ') },
     {
       label: 'Watering',
       value: wateringFrequencyDays && `Every ${wateringFrequencyDays} day${wateringFrequencyDays === 1 ? '' : 's'}`,
@@ -42,14 +45,19 @@ function SpeciesCard({
           <h3 className="text-lg font-semibold text-green">{commonName}</h3>
           <p className="text-sm text-ink italic">{scientificName}</p>
         </header>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
-          {details.map((detail) => (
-            <div key={detail.label} className="contents">
-              <dt className="text-xs font-semibold tracking-wider text-soil uppercase">{detail.label}</dt>
-              <dd className="text-charcoal">{detail.value || '—'}</dd>
-            </div>
-          ))}
-        </dl>
+        {details ?? (
+          <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1.5 text-sm">
+            {rows.map((row) => (
+              <div key={row.label} className="contents">
+                <dt className="text-xs font-semibold tracking-wider text-soil uppercase">{row.label}</dt>
+                {/* Missing care details stand out, so they get filled in before approving. */}
+                <dd className={row.value ? 'text-charcoal' : 'font-semibold text-critical'}>
+                  {row.value || 'Not set'}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
         {children}
       </div>
     </article>

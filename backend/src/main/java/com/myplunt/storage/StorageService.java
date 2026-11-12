@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
@@ -142,6 +143,18 @@ public class StorageService {
                         .getObjectRequest(getRequest))
                 .url()
                 .toString();
+    }
+
+    // Next to the seed pictures ("species/<id>/seed.jpg"). Null when the picture isn't a JPEG or PNG or is too big.
+    public String putSpeciesImage(UUID speciesId, byte[] bytes, String contentType) {
+        String extension = ALLOWED_CONTENT_TYPES.get(contentType);
+        if (extension == null || bytes.length > maxUploadSizeBytes) {
+            return null;
+        }
+        String base = "species/%s/imported.%s".formatted(speciesId, extension);
+        String key = prefix.isBlank() ? base : prefix + "/" + base;
+        s3Client.putObject(r -> r.bucket(bucket).key(key).contentType(contentType), RequestBody.fromBytes(bytes));
+        return key;
     }
 
     public void deleteObject(String key) {

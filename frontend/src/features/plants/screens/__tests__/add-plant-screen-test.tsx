@@ -75,7 +75,7 @@ beforeEach(() => {
   });
   jest.mocked(usePlanterActions).mockReturnValue({ createPlanter: jest.fn(), renamePlanter: jest.fn(), deletePlanter: jest.fn() });
   mockedUseSpecies.mockReturnValue({
-    species: [{ id: 's1', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7, region: null, sunlightNeeds: null, common: false, imageUrl: null }],
+    species: [{ id: 's1', commonName: 'Monstera', scientificName: 'Monstera deliciosa', wateringFrequencyDays: 7, regions: [], sunlightNeeds: null, common: false, imageUrl: null }],
     error: null, retry: jest.fn() });
   mockedUseGarden.mockReturnValue({ garden, error: null, isLoading: false, retry: jest.fn(), refresh: jest.fn() });
   jest.mocked(useDiscoveredSpecies).mockReturnValue({ refresh: jest.fn(), discovered: [], error: null, isLoading: false, retry: jest.fn() });

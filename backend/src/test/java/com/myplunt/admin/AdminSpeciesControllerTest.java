@@ -1,11 +1,12 @@
 package com.myplunt.admin;
 
-import com.myplunt.admin.dto.UpdateSpeciesRequest;
+import com.myplunt.admin.dto.PendingSpeciesResponse;
+import com.myplunt.admin.dto.UpdatePendingSpeciesRequest;
 import com.myplunt.auth.JwtService;
 import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.config.AdminSecurityConfig;
 import com.myplunt.config.SecurityConfig;
-import com.myplunt.species.dto.SpeciesResponse;
+import com.myplunt.species.SpeciesImportService;
 import com.myplunt.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,6 +43,9 @@ class AdminSpeciesControllerTest {
     private AdminSpeciesService adminSpeciesService;
 
     @MockitoBean
+    private SpeciesImportService speciesImportService;
+
+    @MockitoBean
     private AdminJwtService adminJwtService;
 
     @MockitoBean
@@ -52,44 +58,48 @@ class AdminSpeciesControllerTest {
     private UserRepository userRepository;
 
     private final UUID speciesId = UUID.randomUUID();
-    private final String body = """
-            {"commonName":"Olive tree","scientificName":"Olea europaea","region":"Mediterranean",
-             "wateringFrequencyDays":10,"sunlightNeeds":"Full sun","common":true}""";
 
     @Test
-    void update_returnsTheEditedSpecies() {
+    void update_savesTheAdminsCorrections() {
         signedInAdmin();
-        UpdateSpeciesRequest request = new UpdateSpeciesRequest("Olive tree", "Olea europaea", "Mediterranean", 10, "Full sun", true);
-        when(adminSpeciesService.update(speciesId, request)).thenReturn(new SpeciesResponse(
-                speciesId, "Olive tree", "Olea europaea", 10, "Mediterranean", "Full sun", true, null));
+        var request = new UpdatePendingSpeciesRequest(List.of("Balkans"), 10, "Full shade");
+        when(adminSpeciesService.update(speciesId, request)).thenReturn(new PendingSpeciesResponse(
+                speciesId, "Silver fir", "Abies alba", List.of("Balkans"), 10, "Full shade", null, null, Instant.now()));
 
-        put(body).expectStatus().isOk()
-                .expectBody().jsonPath("$.scientificName").isEqualTo("Olea europaea");
+        restTestClient.put().uri("/v1/admin/species/pending/" + speciesId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer admin-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.sunlightNeeds").isEqualTo("Full shade");
     }
 
     @Test
-    void update_withABlankName_isABadRequest() {
+    void update_withWateringOutOfRange_isBadRequestAndChangesNothing() {
         signedInAdmin();
 
-        put(body.replace("\"Olive tree\"", "\" \"")).expectStatus().isBadRequest();
+        restTestClient.put().uri("/v1/admin/species/pending/" + speciesId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer admin-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new UpdatePendingSpeciesRequest(List.of("Balkans"), 0, "Full sun"))
+                .exchange()
+                .expectStatus().isBadRequest();
 
         verify(adminSpeciesService, never()).update(any(), any());
     }
 
     @Test
-    void update_ofASpeciesThatIsNotApproved_isNotFound() {
+    void update_ofASpeciesThatIsNotPending_isNotFound() {
         signedInAdmin();
         when(adminSpeciesService.update(eq(speciesId), any())).thenThrow(new NotFoundException("Species not found"));
 
-        put(body).expectStatus().isNotFound();
-    }
-
-    private RestTestClient.ResponseSpec put(String json) {
-        return restTestClient.put().uri("/v1/admin/species/" + speciesId)
+        restTestClient.put().uri("/v1/admin/species/pending/" + speciesId)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer admin-token")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(json)
-                .exchange();
+                .body(new UpdatePendingSpeciesRequest(List.of("Balkans"), 7, "Full sun"))
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
     private void signedInAdmin() {

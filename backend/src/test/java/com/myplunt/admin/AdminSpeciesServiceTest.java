@@ -2,9 +2,11 @@ package com.myplunt.admin;
 
 import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.admin.dto.PendingSpeciesResponse;
-import com.myplunt.admin.dto.UpdateSpeciesRequest;
+import com.myplunt.admin.dto.UpdatePendingSpeciesRequest;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
+import com.myplunt.region.Region;
+import com.myplunt.region.RegionService;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesService;
 import com.myplunt.storage.StorageService;
@@ -43,10 +45,13 @@ class AdminSpeciesServiceTest {
     @Mock
     private AuditLog auditLog;
 
+    @Mock
+    private RegionService regionService;
+
     private final UUID adminId = UUID.randomUUID();
 
     private AdminSpeciesService service() {
-        return new AdminSpeciesService(speciesService, storageService, auditLog);
+        return new AdminSpeciesService(speciesService, storageService, auditLog, regionService);
     }
 
     private Species species(String commonName, String scientificName) {
@@ -60,7 +65,7 @@ class AdminSpeciesServiceTest {
     void getPendingSpecies_mapsEachSpeciesWithItsSubmitterAndPicture() {
         Instant submittedAt = Instant.parse("2026-10-11T09:30:00Z");
         Species olive = species("Olive tree", "Olea europaea");
-        ReflectionTestUtils.setField(olive, "region", "Mediterranean");
+        olive.setRegions(List.of(new Region("Balkans", "balkans", null, 10), new Region("Southern Europe", "southern-europe", null, 11)));
         ReflectionTestUtils.setField(olive, "sunlightNeeds", "Full sun");
         ReflectionTestUtils.setField(olive, "imageKey", "species/olive/seed.jpg");
         ReflectionTestUtils.setField(olive, "submittedBy", new User("plantdad", "plantdad@example.com", "hashed"));
@@ -73,9 +78,9 @@ class AdminSpeciesServiceTest {
         List<PendingSpeciesResponse> pending = service().getPendingSpecies();
 
         assertThat(pending).containsExactly(
-                new PendingSpeciesResponse(olive.getId(), "Olive tree", "Olea europaea", "Mediterranean", 14, "Full sun",
+                new PendingSpeciesResponse(olive.getId(), "Olive tree", "Olea europaea", List.of("Balkans", "Southern Europe"), 14, "Full sun",
                         "https://storage.test/olive", "plantdad", submittedAt),
-                new PendingSpeciesResponse(sage.getId(), "Common sage", "Salvia officinalis", null, 14, null,
+                new PendingSpeciesResponse(sage.getId(), "Common sage", "Salvia officinalis", List.of(), 14, null,
                         null, null, null));
     }
 
@@ -117,44 +122,38 @@ class AdminSpeciesServiceTest {
     }
 
     @Test
-    void update_changesEveryFieldOfTheApprovedSpecies() {
-        Species olive = species("Olive", "Olea europa");
-        when(speciesService.findApproved(olive.getId())).thenReturn(olive);
+    void rejectAll_deletesOnlySpeciesNoUserSubmittedAndOnlyImportedPictures() {
+        Species imported = species("Aloe", "Aloe vera");
+        ReflectionTestUtils.setField(imported, "imageKey", "species/1/imported.jpg");
+        Species seeded = species("Olive tree", "Olea europaea");
+        ReflectionTestUtils.setField(seeded, "imageKey", "species/2/seed.jpg");
+        Species fromUser = species("Common sage", "Salvia officinalis");
+        ReflectionTestUtils.setField(fromUser, "submittedBy", new User("plantdad", "plantdad@example.com", "hashed"));
+        when(speciesService.findPending()).thenReturn(List.of(imported, seeded, fromUser));
 
-        service().update(olive.getId(),
-                new UpdateSpeciesRequest("Olive tree", "Olea europaea", "Mediterranean", 10, "Full sun", true));
+        service().rejectAll(adminId);
 
-        assertThat(olive.getCommonName()).isEqualTo("Olive tree");
-        assertThat(olive.getScientificName()).isEqualTo("Olea europaea");
-        assertThat(olive.getRegion()).isEqualTo("Mediterranean");
-        assertThat(olive.getWateringFrequencyDays()).isEqualTo(10);
-        assertThat(olive.getSunlightNeeds()).isEqualTo("Full sun");
-        assertThat(olive.isCommon()).isTrue();
-        verify(speciesService).toResponse(olive);
+        verify(speciesService).delete(imported);
+        verify(speciesService).delete(seeded);
+        verify(speciesService, never()).delete(fromUser);
+        verify(storageService).deleteObject("species/1/imported.jpg");
+        verify(storageService, never()).deleteObject("species/2/seed.jpg");
     }
 
     @Test
-    void update_withAScientificNameAnotherSpeciesHas_isAConflictAndChangesNothing() {
-        Species olive = species("Olive tree", "Olea europaea");
-        when(speciesService.findApproved(olive.getId())).thenReturn(olive);
-        when(speciesService.scientificNameTaken("Salvia officinalis", olive.getId())).thenReturn(true);
+    void update_correctsTheCareDetailsAndReplacesTheRegions() {
+        Species fir = species("Silver fir", "Abies alba");
+        fir.setRegions(List.of(new Region("Southern Europe", "southern-europe", null, 11)));
+        Region balkans = new Region("Balkans", "balkans", null, 10);
+        Region central = new Region("Central Europe", "central-europe", null, 8);
+        when(speciesService.findPending(fir.getId())).thenReturn(fir);
+        when(regionService.findSpeciesRegions(List.of("Central Europe", "Balkans"))).thenReturn(List.of(central, balkans));
 
-        assertThatThrownBy(() -> service().update(olive.getId(),
-                new UpdateSpeciesRequest("Olive tree", "Salvia officinalis", null, 14, null, false)))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("409");
-        assertThat(olive.getScientificName()).isEqualTo("Olea europaea");
-    }
+        PendingSpeciesResponse response = service().update(fir.getId(),
+                new UpdatePendingSpeciesRequest(List.of("Central Europe", "Balkans"), 10, " "));
 
-    @Test
-    void update_withARegionOffTheList_isABadRequestAndChangesNothing() {
-        Species olive = species("Olive tree", "Olea europaea");
-        when(speciesService.findApproved(olive.getId())).thenReturn(olive);
-
-        assertThatThrownBy(() -> service().update(olive.getId(),
-                new UpdateSpeciesRequest("Olive tree", "Olea europaea", "s", 14, "Full sun", false)))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("400");
-        assertThat(olive.getRegion()).isNull();
+        assertThat(response.regions()).containsExactly("Central Europe", "Balkans");
+        assertThat(fir.getSunlightNeeds()).isNull();
+        assertThat(fir.getWateringFrequencyDays()).isEqualTo(10);
     }
 }

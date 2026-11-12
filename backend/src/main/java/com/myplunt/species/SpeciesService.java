@@ -1,3 +1,4 @@
+
 package com.myplunt.species;
 
 import com.myplunt.common.exception.NotFoundException;
@@ -26,7 +27,16 @@ public class SpeciesService {
     @Transactional(readOnly = true)
     public List<SpeciesResponse> getApprovedSpecies() {
         return speciesRepository.findByApprovedTrueOrderByCommonNameAsc().stream()
-                .map(this::toResponse)
+                .map(species -> new SpeciesResponse(
+                        species.getId(),
+                        species.getCommonName(),
+                        species.getScientificName(),
+                        species.getWateringFrequencyDays(),
+                        species.getRegionNames(),
+                        species.getSunlightNeeds(),
+                        species.isCommon(),
+                        // Signing is local (no call to storage), so one per species is cheap.
+                        species.getImageKey() == null ? null : storageService.createReadUrl(species.getImageKey())))
                 .toList();
     }
 

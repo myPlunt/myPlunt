@@ -49,7 +49,7 @@ class SpeciesControllerTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         List<SpeciesResponse> species =
                 List.of(new SpeciesResponse(
-                        UUID.randomUUID(), "Monstera", "Monstera deliciosa", 7, "Central America",
+                        UUID.randomUUID(), "Monstera", "Monstera deliciosa", 7, List.of("Central America"),
                         "Bright indirect", true, null));
         when(speciesService.getApprovedSpecies()).thenReturn(species);
 

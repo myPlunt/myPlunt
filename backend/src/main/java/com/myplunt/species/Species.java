@@ -1,5 +1,6 @@
 package com.myplunt.species;
 
+import com.myplunt.region.Region;
 import com.myplunt.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -8,10 +9,15 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -30,8 +36,12 @@ public class Species {
     @Column(name = "watering_frequency_days")
     private Integer wateringFrequencyDays;
 
-    @Column(name = "region")
-    private String region;
+    // Where the plant is native: every region it grows in, never a parent like Europe.
+    @ManyToMany
+    @JoinTable(name = "species_regions", joinColumns = @JoinColumn(name = "species_id"),
+            inverseJoinColumns = @JoinColumn(name = "region_id"))
+    @OrderBy("position")
+    private List<Region> regions = new ArrayList<>();
 
     @Column(name = "sunlight_needs")
     private String sunlightNeeds;
@@ -58,6 +68,13 @@ public class Species {
     public Species(String commonName, Integer wateringFrequencyDays) {
         this.commonName = commonName;
         this.wateringFrequencyDays = wateringFrequencyDays;
+    }
+
+    // An imported species: pending until an admin approves it.
+    public Species(String commonName, String scientificName, Integer wateringFrequencyDays, String sunlightNeeds) {
+        this(commonName, wateringFrequencyDays);
+        this.scientificName = scientificName;
+        this.sunlightNeeds = sunlightNeeds;
     }
 
     public UUID getId() {
@@ -94,8 +111,17 @@ public class Species {
         return wateringFrequencyDays;
     }
 
-    public String getRegion() {
-        return region;
+    public List<Region> getRegions() {
+        return regions;
+    }
+
+    public List<String> getRegionNames() {
+        return regions.stream().map(Region::getName).toList();
+    }
+
+    public void setRegions(List<Region> regions) {
+        this.regions.clear();
+        this.regions.addAll(regions);
     }
 
     public String getSunlightNeeds() {
@@ -104,6 +130,16 @@ public class Species {
 
     public String getImageKey() {
         return imageKey;
+    }
+
+    public void updateCare(List<Region> regions, Integer wateringFrequencyDays, String sunlightNeeds) {
+        setRegions(regions);
+        this.wateringFrequencyDays = wateringFrequencyDays;
+        this.sunlightNeeds = sunlightNeeds;
+    }
+
+    public void setImageKey(String imageKey) {
+        this.imageKey = imageKey;
     }
 
     public boolean isCommon() {

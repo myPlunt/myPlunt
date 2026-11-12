@@ -19,6 +19,8 @@ public final class ApiPaths {
         public static final String PENDING_SPECIES = SPECIES + "/pending";
         public static final String PENDING_SPECIES_BY_ID = PENDING_SPECIES + "/{id}";
         public static final String APPROVE_SPECIES = PENDING_SPECIES_BY_ID + "/approve";
+        public static final String IMPORT_SPECIES = SPECIES + "/import";
+        public static final String REGIONS = BASE + "/regions";
         public static final String JOBS = BASE + "/jobs";
         public static final String RESET_DB = JOBS + "/reset-db";
         public static final String SEND_WEATHER_ALERTS = JOBS + "/send-weather-alerts";

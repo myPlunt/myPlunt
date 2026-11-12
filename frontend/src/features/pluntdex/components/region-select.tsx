@@ -62,7 +62,8 @@ export function RegionSelect({ regions, selected, onSelect }: RegionSelectProps)
             className="max-h-[70%] w-full max-w-[360px] gap-2 rounded-2xl bg-background-element p-4"
             style={Shadow.card}>
             <Text className="type-subtitle-small text-text">Choose a region</Text>
-            <ScrollView accessibilityRole="radiogroup" className="grow-0">
+            {/* Stretched into the card's right padding, so the scroll bar sits there and not over the checkmarks. */}
+            <ScrollView accessibilityRole="radiogroup" className="-mr-4 grow-0" contentContainerClassName="pr-4">
               {[null, ...regions].map((region) => {
                 const name = region?.name ?? null;
                 const complete = region !== null && region.discovered === region.total;

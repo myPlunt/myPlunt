@@ -1,5 +1,6 @@
 package com.myplunt.species;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,15 +11,17 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface SpeciesRepository extends JpaRepository<Species, UUID> {
+    // Regions loaded in the same query, not one query per species.
+    @EntityGraph(attributePaths = "regions")
     List<Species> findByApprovedTrueOrderByCommonNameAsc();
+
+    boolean existsByScientificNameIgnoreCase(String scientificName);
 
     Optional<Species> findByIdAndApprovedTrue(UUID id);
 
     Optional<Species> findByIdAndApprovedFalse(UUID id);
 
-    boolean existsByScientificNameIgnoreCaseAndIdNot(String scientificName, UUID id);
-
-    @Query("select s from Species s left join fetch s.submittedBy where s.approved = false order by s.updatedAt asc")
+    @Query("select distinct s from Species s left join fetch s.submittedBy left join fetch s.regions where s.approved = false order by s.updatedAt asc")
     List<Species> findPendingWithSubmitter();
 
     // Native SQL: discovered_species has no entity. Discovering a species twice is a no-op.

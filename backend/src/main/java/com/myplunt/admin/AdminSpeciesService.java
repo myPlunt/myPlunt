@@ -1,9 +1,10 @@
 package com.myplunt.admin;
 
 import com.myplunt.admin.dto.PendingSpeciesResponse;
-import com.myplunt.admin.dto.UpdateSpeciesRequest;
+import com.myplunt.admin.dto.UpdatePendingSpeciesRequest;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
+import com.myplunt.region.RegionService;
 import com.myplunt.species.Species;
 import com.myplunt.species.SpeciesOptions;
 import com.myplunt.species.SpeciesService;
@@ -26,11 +27,14 @@ public class AdminSpeciesService {
     private final SpeciesService speciesService;
     private final StorageService storageService;
     private final AuditLog auditLog;
+    private final RegionService regionService;
 
-    public AdminSpeciesService(SpeciesService speciesService, StorageService storageService, AuditLog auditLog) {
+    public AdminSpeciesService(SpeciesService speciesService, StorageService storageService, AuditLog auditLog,
+                               RegionService regionService) {
         this.speciesService = speciesService;
         this.storageService = storageService;
         this.auditLog = auditLog;
+        this.regionService = regionService;
     }
 
     public List<SpeciesResponse> getApprovedSpecies() {
@@ -39,18 +43,33 @@ public class AdminSpeciesService {
 
     @Transactional(readOnly = true)
     public List<PendingSpeciesResponse> getPendingSpecies() {
-        return speciesService.findPending().stream()
-                .map(species -> new PendingSpeciesResponse(
-                        species.getId(),
-                        species.getCommonName(),
-                        species.getScientificName(),
-                        species.getRegion(),
-                        species.getWateringFrequencyDays(),
-                        species.getSunlightNeeds(),
-                        species.getImageKey() == null ? null : storageService.createReadUrl(species.getImageKey()),
-                        species.getSubmittedBy() == null ? null : species.getSubmittedBy().getUsername(),
-                        species.getUpdatedAt()))
-                .toList();
+        return speciesService.findPending().stream().map(this::toResponse).toList();
+    }
+
+    // Only pending species: approved ones are already in users' gardens.
+    @Transactional
+    public PendingSpeciesResponse update(UUID id, UpdatePendingSpeciesRequest request) {
+        Species species = speciesService.findPending(id);
+        species.updateCare(regionService.findSpeciesRegions(request.regions()), request.wateringFrequencyDays(),
+                blankToNull(request.sunlightNeeds()));
+        return toResponse(species);
+    }
+
+    private PendingSpeciesResponse toResponse(Species species) {
+        return new PendingSpeciesResponse(
+                species.getId(),
+                species.getCommonName(),
+                species.getScientificName(),
+                species.getRegionNames(),
+                species.getWateringFrequencyDays(),
+                species.getSunlightNeeds(),
+                species.getImageKey() == null ? null : storageService.createReadUrl(species.getImageKey()),
+                species.getSubmittedBy() == null ? null : species.getSubmittedBy().getUsername(),
+                species.getUpdatedAt());
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     // Plants read the species live: a new watering applies right away to plants without their own.
@@ -85,6 +104,22 @@ public class AdminSpeciesService {
         Species species = speciesService.findPending(id);
         speciesService.delete(species);
         record(AuditEvent.SPECIES_REJECTED, species, adminId);
+    }
+
+    // Only species no user submitted, so clearing a bad import never loses a user's submission.
+    // Imported pictures belong to their species alone, so they go with it; seeded ones stay (see reject).
+    @Transactional
+    public void rejectAll(UUID adminId) {
+        for (Species species : speciesService.findPending()) {
+            if (species.getSubmittedBy() != null) {
+                continue;
+            }
+            speciesService.delete(species);
+            record(AuditEvent.SPECIES_REJECTED, species, adminId);
+            if (species.getImageKey() != null && species.getImageKey().contains("/imported.")) {
+                storageService.deleteObject(species.getImageKey());
+            }
+        }
     }
 
     // Names are logged too: a rejected species no longer exists to look its id up.
