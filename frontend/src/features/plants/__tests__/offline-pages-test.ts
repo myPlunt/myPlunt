@@ -22,7 +22,7 @@ function plant(id: string, lastWateredAt: string | null = null): GardenPlant {
 }
 
 function gardenOf(...plants: GardenPlant[]): Garden {
-  return { rooms: [{ id: 'balcony', name: 'Balcony', plants }] };
+  return { rooms: [{ id: 'balcony', name: 'Balcony', outdoor: false, plants }] };
 }
 
 beforeEach(() => {

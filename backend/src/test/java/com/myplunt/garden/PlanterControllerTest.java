@@ -68,13 +68,13 @@ class PlanterControllerTest {
     void create_returnsTheCreatedPlanterForTheSignedInUser() {
         UUID ownerId = authenticateAsJane();
         UUID planterId = UUID.randomUUID();
-        when(planterService.create(eq(ownerId), eq(new CreatePlanterRequest("Balcony"))))
-                .thenReturn(new PlanterResponse(planterId, "Balcony"));
+        when(planterService.create(eq(ownerId), eq(new CreatePlanterRequest("Balcony", false))))
+                .thenReturn(new PlanterResponse(planterId, "Balcony", false));
 
-        post(new CreatePlanterRequest("  Balcony  "))
+        post(new CreatePlanterRequest("  Balcony  ", false))
                 .expectStatus().isCreated()
                 .expectBody(PlanterResponse.class)
-                .isEqualTo(new PlanterResponse(planterId, "Balcony"));
+                .isEqualTo(new PlanterResponse(planterId, "Balcony", false));
     }
 
     @Test
@@ -91,24 +91,24 @@ class PlanterControllerTest {
         when(planterService.create(any(), any()))
                 .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT, "You already have a planter called Balcony"));
 
-        post(new CreatePlanterRequest("Balcony")).expectStatus().isEqualTo(HttpStatus.CONFLICT);
+        post(new CreatePlanterRequest("Balcony", false)).expectStatus().isEqualTo(HttpStatus.CONFLICT);
     }
 
     @Test
     void rename_returnsTheRenamedPlanter() {
         UUID ownerId = authenticateAsJane();
         UUID planterId = UUID.randomUUID();
-        when(planterService.rename(ownerId, planterId, new UpdatePlanterRequest("Kitchen")))
-                .thenReturn(new PlanterResponse(planterId, "Kitchen"));
+        when(planterService.rename(ownerId, planterId, new UpdatePlanterRequest("Kitchen", null)))
+                .thenReturn(new PlanterResponse(planterId, "Kitchen", false));
 
         restTestClient.put().uri("/v1/planters/{planterId}", planterId)
                 .header("Authorization", "Bearer access-token")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new UpdatePlanterRequest("Kitchen"))
+                .body(new UpdatePlanterRequest("Kitchen", null))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(PlanterResponse.class)
-                .isEqualTo(new PlanterResponse(planterId, "Kitchen"));
+                .isEqualTo(new PlanterResponse(planterId, "Kitchen", false));
     }
 
     @Test

@@ -46,7 +46,7 @@ beforeEach(() => {
   mockedUseRouter.mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
   mockedUseProfile.mockReturnValue({ refresh: jest.fn(), user: jane, error: null, isLoading: false, retry });
   jest.mocked(useGarden).mockReturnValue({
-    garden: { rooms: [{ id: 'r1', name: 'Balcony', plants: [] }] },
+    garden: { rooms: [{ id: 'r1', name: 'Balcony', outdoor: false, plants: [] }] },
     error: null,
     isLoading: false,
     retry: jest.fn(),

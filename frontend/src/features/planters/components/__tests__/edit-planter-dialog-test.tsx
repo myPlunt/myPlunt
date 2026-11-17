@@ -24,7 +24,7 @@ afterEach(() => {
 function renderDialog(plantCount = 2) {
   return render(
     <EditPlanterDialog
-      planter={{ id: 'balcony', name: 'Balcony', plantCount }}
+      planter={{ id: 'balcony', name: 'Balcony', outdoor: false, plantCount }}
       onClose={onClose}
       onChanged={onChanged}
     />,
@@ -40,8 +40,30 @@ describe('EditPlanterDialog', () => {
     await user.type(screen.getByLabelText('Planter name'), ' Sunny balcony ');
     await user.press(screen.getByRole('button', { name: 'Save' }));
 
-    expect(renamePlanter).toHaveBeenCalledWith('balcony', { name: 'Sunny balcony' });
+    expect(renamePlanter).toHaveBeenCalledWith('balcony', { name: 'Sunny balcony', outdoor: false });
     expect(onChanged).toHaveBeenCalled();
+  });
+
+  it('moves the planter outdoors without renaming it', async () => {
+    renamePlanter.mockResolvedValue({ id: 'balcony', name: 'Balcony', outdoor: true });
+    await renderDialog();
+
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await user.press(screen.getByRole('switch', { name: 'Outdoor' }));
+    await user.press(screen.getByRole('button', { name: 'Save' }));
+
+    expect(renamePlanter).toHaveBeenCalledWith('balcony', { name: 'Balcony', outdoor: true });
+    expect(onChanged).toHaveBeenCalled();
+  });
+
+  it('tells the user when the name is longer than 30 characters and blocks saving', async () => {
+    await renderDialog();
+
+    await user.clear(screen.getByLabelText('Planter name'));
+    await user.type(screen.getByLabelText('Planter name'), 'A'.repeat(31));
+
+    expect(screen.getByText('Name must be at most 30 characters.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
   it('shows the backend message when the name is already taken', async () => {

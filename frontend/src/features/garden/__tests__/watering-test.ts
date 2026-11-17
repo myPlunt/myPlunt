@@ -28,7 +28,7 @@ function plant(name: string, due: Date = new Date(2026, 9, 16), wateringFrequenc
 }
 
 function room(id: string | null, plants: GardenPlant[]): Room {
-  return { id, name: id ?? 'Other plants', plants };
+  return { id, name: id ?? 'Other plants', outdoor: false, plants };
 }
 
 describe('daysUntilWatering', () => {

@@ -58,7 +58,7 @@ const garden: Garden = {
   rooms: [
     {
       id: 'r1',
-      name: 'Living room',
+      name: 'Living room', outdoor: false,
       plants: [
         {
           id: 'p1',

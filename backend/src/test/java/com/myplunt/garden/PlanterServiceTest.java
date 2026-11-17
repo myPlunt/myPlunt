@@ -48,9 +48,9 @@ class PlanterServiceTest {
             return planter;
         });
 
-        PlanterResponse response = planterService().create(userId, new CreatePlanterRequest("Balcony"));
+        PlanterResponse response = planterService().create(userId, new CreatePlanterRequest("Balcony", false));
 
-        assertThat(response).isEqualTo(new PlanterResponse(planterId, "Balcony"));
+        assertThat(response).isEqualTo(new PlanterResponse(planterId, "Balcony", false));
         ArgumentCaptor<Planter> saved = ArgumentCaptor.forClass(Planter.class);
         verify(planterRepository).save(saved.capture());
         assertThat(saved.getValue().getOwnerId()).isEqualTo(userId);
@@ -61,7 +61,7 @@ class PlanterServiceTest {
     void create_throwsConflictWhenTheOwnerAlreadyHasAPlanterWithThatName() {
         when(planterRepository.existsByOwnerIdAndNameIgnoreCase(userId, "Balcony")).thenReturn(true);
 
-        assertThatThrownBy(() -> planterService().create(userId, new CreatePlanterRequest("Balcony")))
+        assertThatThrownBy(() -> planterService().create(userId, new CreatePlanterRequest("Balcony", false)))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.CONFLICT);
@@ -69,25 +69,38 @@ class PlanterServiceTest {
     }
 
     @Test
-    void rename_changesTheNameOfTheOwnersPlanter() {
-        Planter planter = new Planter(userId, "balcony");
+    // An older app sends no outdoor flag: renaming mustn't move the planter indoors.
+    void rename_changesTheNameOfTheOwnersPlanterAndKeepsItOutdoor() {
+        Planter planter = new Planter(userId, "balcony", true);
         ReflectionTestUtils.setField(planter, "id", planterId);
         when(planterRepository.findByIdAndOwnerId(planterId, userId)).thenReturn(Optional.of(planter));
         when(planterRepository.save(planter)).thenReturn(planter);
 
-        PlanterResponse response = planterService().rename(userId, planterId, new UpdatePlanterRequest("Balcony"));
+        PlanterResponse response = planterService().rename(userId, planterId, new UpdatePlanterRequest("Balcony", null));
 
-        assertThat(response).isEqualTo(new PlanterResponse(planterId, "Balcony"));
+        assertThat(response).isEqualTo(new PlanterResponse(planterId, "Balcony", true));
         verify(planterRepository).existsByOwnerIdAndNameIgnoreCaseAndIdNot(userId, "Balcony", planterId);
+    }
+
+    @Test
+    void rename_movesThePlanterOutdoors() {
+        Planter planter = new Planter(userId, "Balcony", false);
+        ReflectionTestUtils.setField(planter, "id", planterId);
+        when(planterRepository.findByIdAndOwnerId(planterId, userId)).thenReturn(Optional.of(planter));
+        when(planterRepository.save(planter)).thenReturn(planter);
+
+        PlanterResponse response = planterService().rename(userId, planterId, new UpdatePlanterRequest("Balcony", true));
+
+        assertThat(response).isEqualTo(new PlanterResponse(planterId, "Balcony", true));
     }
 
     @Test
     void rename_throwsConflictWhenAnotherPlanterHasThatName() {
         when(planterRepository.findByIdAndOwnerId(planterId, userId))
-                .thenReturn(Optional.of(new Planter(userId, "Balcony")));
+                .thenReturn(Optional.of(new Planter(userId, "Balcony", false)));
         when(planterRepository.existsByOwnerIdAndNameIgnoreCaseAndIdNot(userId, "Kitchen", planterId)).thenReturn(true);
 
-        assertThatThrownBy(() -> planterService().rename(userId, planterId, new UpdatePlanterRequest("Kitchen")))
+        assertThatThrownBy(() -> planterService().rename(userId, planterId, new UpdatePlanterRequest("Kitchen", null)))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.CONFLICT);
@@ -96,7 +109,7 @@ class PlanterServiceTest {
 
     @Test
     void delete_removesTheOwnersPlanter() {
-        Planter planter = new Planter(userId, "Balcony");
+        Planter planter = new Planter(userId, "Balcony", false);
         when(planterRepository.findByIdAndOwnerId(planterId, userId)).thenReturn(Optional.of(planter));
 
         planterService().delete(userId, planterId);

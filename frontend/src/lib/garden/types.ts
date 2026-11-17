@@ -6,6 +6,8 @@ export interface Garden {
 export interface Room {
   id: string | null;
   name: string;
+  /** Always false for the group without an id. */
+  outdoor: boolean;
   plants: GardenPlant[];
 }
 

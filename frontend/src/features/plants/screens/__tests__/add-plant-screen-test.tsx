@@ -31,8 +31,8 @@ const mockedUseGarden = jest.mocked(useGarden);
 const mockedUseSpecies = jest.mocked(useSpecies);
 const garden = {
   rooms: [
-    { id: 'balcony', name: 'Balcony', plants: [] },
-    { id: null, name: 'Other plants', plants: [] },
+    { id: 'balcony', name: 'Balcony', outdoor: false, plants: [] },
+    { id: null, name: 'Other plants', outdoor: false, plants: [] },
   ],
 };
 const back = jest.fn();

@@ -62,7 +62,7 @@ beforeEach(() => {
   jest.mocked(usePlanterActions).mockReturnValue({ createPlanter: jest.fn(), renamePlanter: jest.fn(), deletePlanter: jest.fn() });
   jest.mocked(useSpecies).mockReturnValue({ species: [], error: null, retry: jest.fn() });
   jest.mocked(useGarden).mockReturnValue({
-    garden: { rooms: [{ id: 'balcony', name: 'Balcony', plants: [] }] },
+    garden: { rooms: [{ id: 'balcony', name: 'Balcony', outdoor: false, plants: [] }] },
     error: null,
     isLoading: false,
     retry: jest.fn(),

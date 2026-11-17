@@ -32,9 +32,9 @@ public class PlanterService {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, "You already have a planter called " + request.name());
         }
-        Planter saved = planterRepository.save(new Planter(ownerId, request.name()));
+        Planter saved = planterRepository.save(new Planter(ownerId, request.name(), request.outdoor()));
         auditLog.recorded(AuditEvent.PLANTER_CREATED, ownerId, ownerId, Map.of("planter_id", saved.getId()));
-        return new PlanterResponse(saved.getId(), saved.getName());
+        return new PlanterResponse(saved.getId(), saved.getName(), saved.isOutdoor());
     }
 
     @Transactional
@@ -46,9 +46,12 @@ public class PlanterService {
                     HttpStatus.CONFLICT, "You already have a planter called " + request.name());
         }
         planter.setName(request.name());
+        if (request.outdoor() != null) {
+            planter.setOutdoor(request.outdoor());
+        }
         Planter saved = planterRepository.save(planter);
         auditLog.recorded(AuditEvent.PLANTER_RENAMED, ownerId, ownerId, Map.of("planter_id", planterId));
-        return new PlanterResponse(saved.getId(), saved.getName());
+        return new PlanterResponse(saved.getId(), saved.getName(), saved.isOutdoor());
     }
 
     // Its plants stay: plants.planter_id is ON DELETE SET NULL.

@@ -19,7 +19,7 @@ jest.mock('@/lib/auth/token-storage', () => ({
 
 const mockedGardenService = jest.mocked(gardenService);
 const mockedTokenStorage = jest.mocked(tokenStorage);
-const garden = { rooms: [{ id: 'r1', name: 'Balcony', plants: [] }] };
+const garden = { rooms: [{ id: 'r1', name: 'Balcony', outdoor: false, plants: [] }] };
 
 beforeEach(() => {
   mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
@@ -111,7 +111,7 @@ describe('without a connection', () => {
       wateringStreak: 0,
       photoUrl: null,
     };
-    mockedGardenService.getGarden.mockResolvedValue({ rooms: [{ id: 'r1', name: 'Balcony', plants: [pinky] }] });
+    mockedGardenService.getGarden.mockResolvedValue({ rooms: [{ id: 'r1', name: 'Balcony', outdoor: false, plants: [pinky] }] });
     const visit = await renderWithStore();
     await waitFor(() => expect(visit.result.current.garden.isLoading).toBe(false));
     await visit.unmount();

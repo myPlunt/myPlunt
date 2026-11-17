@@ -48,7 +48,7 @@ export function AddPlantScreen({ initialSpecies }: { initialSpecies?: Pick<Speci
     }
   }
 
-  const planters = garden?.rooms.flatMap((room) => (room.id ? [{ id: room.id, name: room.name }] : [])) ?? null;
+  const planters = garden?.rooms.flatMap((room) => (room.id ? [{ id: room.id, name: room.name, outdoor: room.outdoor }] : [])) ?? null;
 
   return (
     <NotebookPage title="Add your new plant">

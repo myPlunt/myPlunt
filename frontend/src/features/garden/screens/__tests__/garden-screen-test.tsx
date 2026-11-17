@@ -63,11 +63,11 @@ const garden: Garden = {
   rooms: [
     {
       id: 'balcony',
-      name: 'Balcony',
+      name: 'Balcony', outdoor: false,
       plants: [plant('george', 'George', 2, 'Geranium', 'https://storage.test/george.jpg'), plant('pinky', 'Pinky', 0)],
     },
-    { id: 'living', name: 'Living room', plants: [] },
-    { id: 'kitchen', name: 'Kitchen windowsill', plants: [plant('basil', 'Basil', -1), plant('minty', 'Minty', 1)] },
+    { id: 'living', name: 'Living room', outdoor: false, plants: [] },
+    { id: 'kitchen', name: 'Kitchen windowsill', outdoor: false, plants: [plant('basil', 'Basil', -1), plant('minty', 'Minty', 1)] },
   ],
 };
 
@@ -128,7 +128,7 @@ describe('GardenScreen', () => {
   });
 
   it('marks only a plant whose watering made offline is still waiting to sync', async () => {
-    mockGarden({ garden: { rooms: [{ id: 'balcony', name: 'Balcony', plants: [{ ...plant('pinky', 'Pinky', 4), waitingToSync: true }, plant('george', 'George', 2)] }] } });
+    mockGarden({ garden: { rooms: [{ id: 'balcony', name: 'Balcony', outdoor: false, plants: [{ ...plant('pinky', 'Pinky', 4), waitingToSync: true }, plant('george', 'George', 2)] }] } });
     await render(<GardenScreen />);
 
     expect(screen.getAllByText('Not synced yet')).toHaveLength(1);

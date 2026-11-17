@@ -208,7 +208,7 @@ export function GardenScreen() {
 
         {editingRoom?.id && (
           <EditPlanterDialog
-            planter={{ id: editingRoom.id, name: editingRoom.name, plantCount: editingRoom.plants.length }}
+            planter={{ id: editingRoom.id, name: editingRoom.name, outdoor: editingRoom.outdoor, plantCount: editingRoom.plants.length }}
             onClose={() => setEditingRoom(null)}
             onChanged={() => {
               setEditingRoom(null);

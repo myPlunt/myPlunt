@@ -58,11 +58,11 @@ public class GardenService {
         List<Planter> planters = planterRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId);
         for (Planter planter : planters) {
             rooms.add(new RoomResponse(
-                    planter.getId(), planter.getName(), plantsByRoom.getOrDefault(planter.getId(), List.of())));
+                    planter.getId(), planter.getName(), planter.isOutdoor(), plantsByRoom.getOrDefault(planter.getId(), List.of())));
         }
         reportPlantsInUnknownPlanters(ownerId, plantsByRoom, planters);
         if (plantsByRoom.containsKey(null)) {
-            rooms.add(new RoomResponse(null, UNASSIGNED_ROOM_NAME, plantsByRoom.get(null)));
+            rooms.add(new RoomResponse(null, UNASSIGNED_ROOM_NAME, false, plantsByRoom.get(null)));
         }
         return new GardenResponse(rooms);
     }
