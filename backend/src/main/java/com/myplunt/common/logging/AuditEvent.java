@@ -17,6 +17,9 @@ public enum AuditEvent {
     LOCATION_UPDATED,
     ONBOARDING_COMPLETED,
     NOTIFICATION_SETTINGS_UPDATED,
+    // Only the id is logged: the account's email and username are gone with it.
+    ACCOUNT_DELETED,
+    ACCOUNT_DELETION_REJECTED,
     FRIEND_REQUEST_SENT,
     FRIEND_REQUEST_ACCEPTED,
     FRIEND_REQUEST_DECLINED,
