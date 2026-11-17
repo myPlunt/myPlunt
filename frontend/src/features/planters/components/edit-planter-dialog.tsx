@@ -8,6 +8,7 @@ import { Shadow } from '@/constants/theme';
 import { usePlanterActions } from '@/features/planters/use-planter-actions';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logAction, logFailedUi } from '@/lib/logger';
+import { PLANTER_NAME_MAX_LENGTH, PLANTER_NAME_TOO_LONG } from '@/lib/planter/types';
 
 interface EditPlanterDialogProps {
   planter: { id: string; name: string; outdoor: boolean; plantCount: number };
@@ -26,7 +27,8 @@ export function EditPlanterDialog({ planter, onClose, onChanged }: EditPlanterDi
   const [error, setError] = useState<string | null>(null);
 
   const trimmed = name.trim();
-  const canSave = trimmed !== '' && (trimmed !== planter.name || outdoor !== planter.outdoor);
+  const isTooLong = trimmed.length > PLANTER_NAME_MAX_LENGTH;
+  const canSave = trimmed !== '' && !isTooLong && (trimmed !== planter.name || outdoor !== planter.outdoor);
 
   function close() {
     if (!isBusy) onClose();
@@ -119,7 +121,7 @@ export function EditPlanterDialog({ planter, onClose, onChanged }: EditPlanterDi
                   label="Planter name"
                   value={name}
                   onChangeText={setName}
-                  error={nameError ?? undefined}
+                  error={isTooLong ? PLANTER_NAME_TOO_LONG : (nameError ?? undefined)}
                   autoCapitalize="words"
                   returnKeyType="done"
                   onSubmitEditing={() => canSave && save()}

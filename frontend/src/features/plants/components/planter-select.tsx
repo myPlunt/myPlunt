@@ -10,7 +10,7 @@ import { usePlanterActions } from '@/features/planters/use-planter-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logFailedUi } from '@/lib/logger';
-import type { Planter } from '@/lib/planter/types';
+import { PLANTER_NAME_MAX_LENGTH, PLANTER_NAME_TOO_LONG, type Planter } from '@/lib/planter/types';
 
 const NO_PLANTER_LABEL = 'Other plants';
 
@@ -30,6 +30,10 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
   const [outdoor, setOutdoor] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const isTooLong = newName.trim().length > PLANTER_NAME_MAX_LENGTH;
+  const nameError = isTooLong ? PLANTER_NAME_TOO_LONG : addError;
+  const canAdd = newName.trim() !== '' && !isTooLong;
 
   const selected = planters.find((planter) => planter.id === selectedId) ?? null;
 
@@ -129,13 +133,13 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
                   autoFocus
                   autoCapitalize="words"
                   returnKeyType="done"
-                  onSubmitEditing={() => newName.trim() !== '' && add()}
+                  onSubmitEditing={() => canAdd && add()}
                   className={`rounded-[10px] border-[1.5px] bg-background-element px-4 text-text ${
-                    addError ? 'border-error' : 'border-input-border'
+                    nameError ? 'border-error' : 'border-input-border'
                   }`}
                   style={[{ height: boxHeight(1) }, singleLineInputText]}
                 />
-                {addError && <Text className="type-caption text-error">{addError}</Text>}
+                {nameError && <Text className="type-caption text-error">{nameError}</Text>}
                 <View className="flex-row items-center gap-3">
                 <View className="flex-1">
                   <Text className="type-body-medium text-text">Outdoor</Text>
@@ -157,7 +161,7 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
                     />
                   </View>
                   <View className="flex-1">
-                    <Button label="Add" loading={isSaving} disabled={newName.trim() === ''} onPress={add} />
+                    <Button label="Add" loading={isSaving} disabled={!canAdd} onPress={add} />
                   </View>
                 </View>
               </View>

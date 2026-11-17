@@ -56,6 +56,16 @@ describe('EditPlanterDialog', () => {
     expect(onChanged).toHaveBeenCalled();
   });
 
+  it('tells the user when the name is longer than 30 characters and blocks saving', async () => {
+    await renderDialog();
+
+    await user.clear(screen.getByLabelText('Planter name'));
+    await user.type(screen.getByLabelText('Planter name'), 'A'.repeat(31));
+
+    expect(screen.getByText('Name must be at most 30 characters.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
   it('shows the backend message when the name is already taken', async () => {
     renamePlanter.mockRejectedValue(
       new ApiError(409, 'Conflict', { detail: 'You already have a planter called Kitchen' }),
