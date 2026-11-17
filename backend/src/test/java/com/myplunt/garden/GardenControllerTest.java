@@ -51,6 +51,7 @@ class GardenControllerTest {
         GardenResponse garden = new GardenResponse(List.of(new RoomResponse(
                 UUID.randomUUID(),
                 "Balcony",
+                false,
                 List.of(new GardenPlantResponse(
                         UUID.randomUUID(),
                         "George",

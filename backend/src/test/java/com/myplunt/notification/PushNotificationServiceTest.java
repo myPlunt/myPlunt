@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -143,7 +144,7 @@ class PushNotificationServiceTest {
                 new PushToken("ExponentPushToken[a]", USER_ID, "Europe/Amsterdam"),
                 new PushToken("ExponentPushToken[b]", neighbour, "Europe/Amsterdam")));
         when(userService.notificationSettings(any())).thenReturn(ALL_ON);
-        when(plantService.getLivingPlants(any())).thenReturn(List.of(plant("Monty")));
+        when(plantService.hasLivingOutdoorPlants(any())).thenReturn(true);
         when(userService.findUser(USER_ID)).thenReturn(Optional.of(user));
         when(userService.findUser(neighbour)).thenReturn(Optional.of(other));
         when(openWeatherClient.next24Hours(52.22, 6.89)).thenReturn(new OpenWeatherClient.Forecast(-1.4, 6, 12));
@@ -155,6 +156,20 @@ class PushNotificationServiceTest {
         verify(expoPushClient).send(List.of(
                 new ExpoPushMessage("ExponentPushToken[a]", "Frost is coming 🥶", body, "/garden"),
                 new ExpoPushMessage("ExponentPushToken[b]", "Frost is coming 🥶", body, "/garden")));
+    }
+
+    // Weather can't hurt a plant that's inside, so no forecast is fetched either.
+    @Test
+    void sendWeatherAlerts_skipsUsersWithoutOutdoorPlants() {
+        when(openWeatherClient.isEnabled()).thenReturn(true);
+        when(pushTokenRepository.findAll()).thenReturn(List.of(new PushToken("ExponentPushToken[a]", USER_ID, "Europe/Amsterdam")));
+        when(userService.notificationSettings(any())).thenReturn(ALL_ON);
+        when(plantService.hasLivingOutdoorPlants(USER_ID)).thenReturn(false);
+
+        service().sendWeatherAlerts(NINE_IN_AMSTERDAM);
+
+        verify(openWeatherClient, never()).next24Hours(anyDouble(), anyDouble());
+        verify(notificationRepository, never()).save(any());
     }
 
     @Test

@@ -160,7 +160,6 @@ public class PushNotificationService {
         send(messages);
     }
 
-    // shortcut: no indoor/outdoor flag on plants, so every user with plants is warned; filter once plants have one.
     public void sendWeatherAlerts(Instant now) {
         sendWeatherAlerts(zone -> now.atZone(zone).getHour() == REMINDER_HOUR, false);
     }
@@ -182,7 +181,7 @@ public class PushNotificationService {
             UUID userId = pushToken.getUserId();
             if (!isTime.test(ZoneId.of(pushToken.getTimeZone()))
                     || !wantsWeatherAlerts(userId)
-                    || plantService.getLivingPlants(userId).isEmpty()) {
+                    || !plantService.hasLivingOutdoorPlants(userId)) {
                 continue;
             }
             User user = userService.findUser(userId).orElse(null);

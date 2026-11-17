@@ -40,7 +40,7 @@ class GardenServiceTest {
     }
 
     private Planter planter(String name) {
-        Planter planter = new Planter(ownerId, name);
+        Planter planter = new Planter(ownerId, name, false);
         ReflectionTestUtils.setField(planter, "id", UUID.randomUUID());
         return planter;
     }

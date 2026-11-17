@@ -212,7 +212,7 @@ class PlantServiceTest {
     @Test
     void getDetails_returnsThePlantWithItsPlanterSpeciesWateringAndPhoto() {
         Plant vera = ownPlant("Vera");
-        Planter balcony = new Planter(userId, "Balcony");
+        Planter balcony = new Planter(userId, "Balcony", false);
         ReflectionTestUtils.setField(balcony, "id", UUID.randomUUID());
         Species monstera = new Species("Monstera", 7);
         ReflectionTestUtils.setField(monstera, "id", UUID.randomUUID());
@@ -261,7 +261,7 @@ class PlantServiceTest {
         vera.setWateringEveryDays(4);
         vera.setNotes("Old notes");
         UUID planterId = UUID.randomUUID();
-        when(planterService.findPlanter(userId, planterId)).thenReturn(Optional.of(new Planter(userId, "Balcony")));
+        when(planterService.findPlanter(userId, planterId)).thenReturn(Optional.of(new Planter(userId, "Balcony", false)));
         Species pothos = approvedSpecies("Pothos", 10);
         when(plantRepository.save(vera)).thenReturn(vera);
 

@@ -24,14 +24,18 @@ public class Planter {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
+    private boolean outdoor;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
     protected Planter() {}
 
-    public Planter(UUID ownerId, String name) {
+    public Planter(UUID ownerId, String name, boolean outdoor) {
         this.ownerId = ownerId;
         this.name = name;
+        this.outdoor = outdoor;
     }
 
     public UUID getId() {
@@ -48,6 +52,14 @@ public class Planter {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public boolean isOutdoor() {
+        return outdoor;
+    }
+
+    public void setOutdoor(boolean outdoor) {
+        this.outdoor = outdoor;
     }
 
     public Instant getCreatedAt() {

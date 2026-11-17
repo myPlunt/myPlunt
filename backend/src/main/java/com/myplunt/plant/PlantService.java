@@ -177,6 +177,10 @@ public class PlantService {
         return plantRepository.findByOwnerIdAndAliveTrueOrderByCreatedAtAsc(ownerId);
     }
 
+    public boolean hasLivingOutdoorPlants(UUID ownerId) {
+        return plantRepository.hasLivingOutdoorPlants(ownerId);
+    }
+
     @Transactional(readOnly = true)
     public Map<UUID, Instant> getLastWateredAt(List<UUID> plantIds) {
         if (plantIds.isEmpty()) {
