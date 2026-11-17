@@ -9,6 +9,7 @@ import com.myplunt.storage.StorageService;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.CompleteOnboardingRequest;
+import com.myplunt.user.dto.DeleteAccountRequest;
 import com.myplunt.user.dto.NotificationSettings;
 import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
@@ -232,6 +233,22 @@ public class UserService {
         userRepository.save(user);
         auditLog.recorded(AuditEvent.AVATAR_REMOVED, userId, userId, Map.of("photo_key", oldKey));
         deleteAvatarFile(userId, oldKey);
+    }
+
+    // Files first: if storage fails nothing in the database is gone yet, and if the database then fails a
+    // retry finds no files and finishes. Either way no file is left that no row points at. The rest of the
+    // user's rows go with the users row (ON DELETE CASCADE, V1 and V5); the logs table is kept on purpose.
+    @Transactional
+    public void deleteAccount(UUID userId, DeleteAccountRequest request) {
+        User user = loadUser(userId);
+        // 403, not 401: the frontend treats 401 as an expired session.
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            auditLog.rejected(AuditEvent.ACCOUNT_DELETION_REJECTED, userId, "wrong_password", Map.of());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Current password is incorrect");
+        }
+        storageService.deleteUserFiles(userId);
+        userRepository.delete(user);
+        auditLog.recorded(AuditEvent.ACCOUNT_DELETED, userId, userId, Map.of());
     }
 
     // Flushed so the user no longer points at the file before it's gone.

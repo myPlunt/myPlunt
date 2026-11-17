@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import * as authService from '@/features/auth/auth-service';
 import { useAuthActions } from '@/features/auth/use-auth-actions';
+import { ApiError } from '@/lib/auth/api-client';
 import { tokenStorage } from '@/lib/auth/token-storage';
 import { AuthStoreProvider, useAuthStore } from '@/stores/auth-store';
 import { OnboardingStoreProvider, useOnboardingStore } from '@/stores/onboarding-store';
@@ -90,4 +91,31 @@ it('does not flip the store when login fails', async () => {
   });
 
   expect(result.current.store.status).toBe('unauthenticated');
+});
+
+it('deleteAccount signs the user out once the account is gone', async () => {
+  mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
+  mockedAuthService.deleteAccount.mockResolvedValue(undefined);
+  const { result } = await renderWithStore();
+  await waitFor(() => expect(result.current.store.status).toBe('authenticated'));
+
+  await act(async () => {
+    await result.current.actions.deleteAccount({ currentPassword: 'password123' });
+  });
+
+  expect(mockedAuthService.deleteAccount).toHaveBeenCalledWith({ currentPassword: 'password123' });
+  expect(result.current.store.status).toBe('unauthenticated');
+});
+
+it('deleteAccount keeps the user signed in when the password is wrong', async () => {
+  mockedTokenStorage.getTokens.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
+  mockedAuthService.deleteAccount.mockRejectedValue(new ApiError(403, 'Current password is incorrect'));
+  const { result } = await renderWithStore();
+  await waitFor(() => expect(result.current.store.status).toBe('authenticated'));
+
+  await act(async () => {
+    await expect(result.current.actions.deleteAccount({ currentPassword: 'wrong' })).rejects.toThrow();
+  });
+
+  expect(result.current.store.status).toBe('authenticated');
 });

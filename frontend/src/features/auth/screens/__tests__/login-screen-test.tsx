@@ -12,7 +12,7 @@ const login = jest.fn();
 const user = userEvent.setup();
 
 beforeEach(() => {
-  mockedUseAuthActions.mockReturnValue({ login, register: jest.fn(), logout: jest.fn() });
+  mockedUseAuthActions.mockReturnValue({ login, register: jest.fn(), logout: jest.fn(), deleteAccount: jest.fn() });
 });
 
 afterEach(() => {

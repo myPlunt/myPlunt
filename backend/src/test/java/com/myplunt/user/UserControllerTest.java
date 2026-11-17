@@ -3,6 +3,7 @@ package com.myplunt.user;
 import com.myplunt.auth.JwtService;
 import com.myplunt.config.SecurityConfig;
 import com.myplunt.user.dto.ChangeEmailRequest;
+import com.myplunt.user.dto.DeleteAccountRequest;
 import com.myplunt.user.dto.NotificationSettings;
 import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -25,6 +27,8 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -220,5 +224,48 @@ class UserControllerTest {
                 .body(new NotificationSettings(true, null, true, true, true, true))
                 .exchange()
                 .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void deleteMe_deletesTheAccount() {
+        UUID id = authenticateAsJane();
+        DeleteAccountRequest request = new DeleteAccountRequest("password123");
+
+        restTestClient.method(HttpMethod.DELETE).uri("/v1/users/me")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(userService).deleteAccount(id, request);
+    }
+
+    @Test
+    void deleteMe_rejectsBlankPassword() {
+        authenticateAsJane();
+
+        restTestClient.method(HttpMethod.DELETE).uri("/v1/users/me")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new DeleteAccountRequest(" "))
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        verify(userService, never()).deleteAccount(any(), any());
+    }
+
+    @Test
+    void deleteMe_propagatesForbiddenFromService() {
+        authenticateAsJane();
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Current password is incorrect"))
+                .when(userService).deleteAccount(any(), any());
+
+        restTestClient.method(HttpMethod.DELETE).uri("/v1/users/me")
+                .header("Authorization", "Bearer access-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new DeleteAccountRequest("wrong"))
+                .exchange()
+                .expectStatus().isForbidden();
     }
 }

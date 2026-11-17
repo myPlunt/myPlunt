@@ -1,3 +1,4 @@
+import { ApiError } from '@/lib/auth/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
@@ -17,6 +18,17 @@ export function useAuthActions() {
       await authService.register(details);
       onboarding.start();
       setAuthenticated();
+    },
+
+    async deleteAccount(request: Parameters<typeof authService.deleteAccount>[0]) {
+      try {
+        await authService.deleteAccount(request);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) setUnauthenticated();
+        throw err;
+      }
+      onboarding.finish();
+      setUnauthenticated();
     },
 
     async logout() {

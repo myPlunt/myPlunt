@@ -6,6 +6,7 @@ import com.myplunt.storage.StorageService;
 import com.myplunt.storage.dto.PhotoCategory;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.CompleteOnboardingRequest;
+import com.myplunt.user.dto.DeleteAccountRequest;
 import com.myplunt.user.dto.NotificationSettings;
 import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
@@ -224,5 +225,31 @@ class UserServiceTest {
         assertThat(userService().searchUsers(id, "  ")).isEmpty();
         assertThat(userService().searchUsers(id, "a".repeat(31))).isEmpty();
         verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void deleteAccount_deletesFilesThenTheUserAndLogsIt() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(passwordEncoder.matches("password123", "hashed")).thenReturn(true);
+
+        userService().deleteAccount(id, new DeleteAccountRequest("password123"));
+
+        var order = org.mockito.Mockito.inOrder(storageService, userRepository);
+        order.verify(storageService).deleteUserFiles(id);
+        order.verify(userRepository).delete(jane);
+        verify(auditLog).recorded(AuditEvent.ACCOUNT_DELETED, id, id, Map.of());
+    }
+
+    @Test
+    void deleteAccount_rejectsWrongPasswordAndDeletesNothing() {
+        when(userRepository.findById(id)).thenReturn(Optional.of(jane));
+        when(passwordEncoder.matches("wrong", "hashed")).thenReturn(false);
+
+        assertThatThrownBy(() -> userService().deleteAccount(id, new DeleteAccountRequest("wrong")))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN));
+        verify(storageService, never()).deleteUserFiles(any());
+        verify(userRepository, never()).delete(any());
+        verify(auditLog).rejected(AuditEvent.ACCOUNT_DELETION_REJECTED, id, "wrong_password", Map.of());
     }
 }

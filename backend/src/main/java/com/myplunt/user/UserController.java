@@ -3,6 +3,7 @@ package com.myplunt.user;
 import com.myplunt.constants.ApiPaths;
 import com.myplunt.user.dto.ChangeEmailRequest;
 import com.myplunt.user.dto.CompleteOnboardingRequest;
+import com.myplunt.user.dto.DeleteAccountRequest;
 import com.myplunt.user.dto.NotificationSettings;
 import com.myplunt.user.dto.UpdateAvatarRequest;
 import com.myplunt.user.dto.UpdateLocationRequest;
@@ -73,6 +74,13 @@ public class UserController {
     public NotificationSettings updateNotificationSettings(
             @AuthenticationPrincipal User principal, @Valid @RequestBody NotificationSettings request) {
         return userService.updateNotificationSettings(principal.getId(), request);
+    }
+
+    @DeleteMapping(ApiPaths.Users.ME)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMe(
+            @AuthenticationPrincipal User principal, @Valid @RequestBody DeleteAccountRequest request) {
+        userService.deleteAccount(principal.getId(), request);
     }
 
     @DeleteMapping(ApiPaths.Users.ME_AVATAR)

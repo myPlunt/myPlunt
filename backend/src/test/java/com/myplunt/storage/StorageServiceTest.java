@@ -15,11 +15,15 @@ import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -27,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -152,5 +157,36 @@ class StorageServiceTest {
                 .hasMessageContaining("404");
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void deleteUserFiles_deletesConfirmedAndPendingFilesOfThatUserOnly() {
+        UUID userId = UUID.randomUUID();
+        String plantPhoto = "plants/" + userId + "/a.jpg";
+        String secondPage = "plants/" + userId + "/b.jpg";
+        String pendingAvatar = "pending/avatars/" + userId + "/c.jpg";
+        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenAnswer(invocation -> {
+            ListObjectsV2Request request = invocation.getArgument(0);
+            if (request.prefix().equals("plants/" + userId + "/")) {
+                return request.continuationToken() == null
+                        ? ListObjectsV2Response.builder().contents(S3Object.builder().key(plantPhoto).build())
+                                .nextContinuationToken("next").build()
+                        : ListObjectsV2Response.builder().contents(S3Object.builder().key(secondPage).build()).build();
+            }
+            if (request.prefix().equals("pending/avatars/" + userId + "/")) {
+                return ListObjectsV2Response.builder().contents(S3Object.builder().key(pendingAvatar).build()).build();
+            }
+            return ListObjectsV2Response.builder().build();
+        });
 
+        storageService().deleteUserFiles(userId);
+
+        ArgumentCaptor<Consumer<DeleteObjectRequest.Builder>> deletes = ArgumentCaptor.forClass(Consumer.class);
+        verify(s3Client, times(3)).deleteObject(deletes.capture());
+        List<String> deletedKeys = deletes.getAllValues().stream().map(consumer -> {
+            DeleteObjectRequest.Builder builder = DeleteObjectRequest.builder();
+            consumer.accept(builder);
+            return builder.build().key();
+        }).toList();
+        assertThat(deletedKeys).containsExactlyInAnyOrder(plantPhoto, secondPage, pendingAvatar);
+    }
 }

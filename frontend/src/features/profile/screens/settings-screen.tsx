@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,10 +10,12 @@ import { LinkCard } from '@/components/ui/link-card';
 import { Toggle } from '@/components/ui/toggle';
 import { useAuthActions } from '@/features/auth/use-auth-actions';
 import { ChangeEmailForm } from '@/features/profile/components/change-email-form';
+import { DeleteAccountDialog } from '@/features/profile/components/delete-account-dialog';
 import { NotificationSettingsCard } from '@/features/profile/components/notification-settings-card';
 import { useProfile } from '@/features/profile/use-profile';
 import { Shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { logAction } from '@/lib/logger';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { useWeatherVisualsStore } from '@/stores/weather-visuals-store';
 
@@ -23,6 +26,7 @@ export function SettingsScreen() {
   const { user, error, isLoading, retry } = useProfile();
   const onboarding = useOnboardingStore();
   const weatherVisuals = useWeatherVisualsStore();
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   function retakeTour() {
     onboarding.start();
@@ -96,8 +100,21 @@ export function SettingsScreen() {
             />
             <Text className="type-subtitle-small text-error">Log out</Text>
           </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Delete account"
+            onPress={() => {
+              logAction('account_delete_started');
+              setIsDeletingAccount(true);
+            }}
+            className="flex-row items-center gap-3 self-start py-2 active:opacity-60">
+            <SymbolView name={{ ios: 'trash', android: 'delete', web: 'delete' }} tintColor={theme.error} size={22} />
+            <Text className="type-subtitle-small text-error">Delete account</Text>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
+      {isDeletingAccount && <DeleteAccountDialog onClose={() => setIsDeletingAccount(false)} />}
     </View>
   );
 }

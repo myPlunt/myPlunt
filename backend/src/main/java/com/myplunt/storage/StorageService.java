@@ -13,11 +13,15 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -159,6 +163,30 @@ public class StorageService {
 
     public void deleteObject(String key) {
         s3Client.deleteObject(r -> r.bucket(bucket).key(key));
+    }
+
+    // Every file the user ever uploaded, confirmed or still pending: all keys carry their id (buildKey).
+    // One delete per file, not DeleteObjects: an account holds few photos, and it's the call R2 already takes.
+    public void deleteUserFiles(UUID userId) {
+        for (PhotoCategory category : PhotoCategory.values()) {
+            String base = "%s/%s/".formatted(categorySegment(category), userId);
+            String folder = prefix.isBlank() ? base : prefix + "/" + base;
+            listKeys(folder).forEach(this::deleteObject);
+            listKeys(PENDING_PREFIX + folder).forEach(this::deleteObject);
+        }
+    }
+
+    // All keys first, then the deletes, so deleting never shifts the pages still to be read.
+    private List<String> listKeys(String keyPrefix) {
+        List<String> keys = new ArrayList<>();
+        String token = null;
+        do {
+            ListObjectsV2Response page = s3Client.listObjectsV2(ListObjectsV2Request.builder()
+                    .bucket(bucket).prefix(keyPrefix).continuationToken(token).build());
+            page.contents().forEach(object -> keys.add(object.key()));
+            token = page.nextContinuationToken();
+        } while (token != null);
+        return keys;
     }
 
     private String buildKey(PhotoCategory category, UUID userId, String extension) {
