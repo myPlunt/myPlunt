@@ -1,15 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import * as authService from '@/features/auth/auth-service';
-import { publicFetch } from '@/lib/auth/api-client';
+import { ApiError, apiFetch, publicFetch } from '@/lib/auth/api-client';
 import { tokenStorage } from '@/lib/auth/token-storage';
 import { cachedFetch } from '@/lib/offline/cache';
 
-jest.mock('@/lib/auth/api-client', () => ({ publicFetch: jest.fn() }));
+jest.mock('@/lib/auth/api-client', () => ({
+  ...jest.requireActual('@/lib/auth/api-client'),
+  apiFetch: jest.fn(),
+  publicFetch: jest.fn(),
+}));
 jest.mock('@/lib/auth/token-storage', () => ({
   tokenStorage: { getTokens: jest.fn(), setTokens: jest.fn(), clearTokens: jest.fn() },
 }));
 
+const mockedApiFetch = jest.mocked(apiFetch);
 const mockedPublicFetch = jest.mocked(publicFetch);
 const mockedTokenStorage = jest.mocked(tokenStorage);
 
@@ -78,5 +83,31 @@ describe('logout', () => {
     await authService.logout();
 
     expect(await AsyncStorage.getAllKeys()).toEqual([]);
+  });
+});
+
+describe('deleteAccount', () => {
+  it('deletes the account, then forgets the session and everything saved for offline', async () => {
+    await saveForOffline();
+    mockedApiFetch.mockResolvedValue(undefined);
+
+    await authService.deleteAccount({ currentPassword: 'password123' });
+
+    expect(mockedApiFetch).toHaveBeenCalledWith(
+      '/v1/users/me',
+      expect.objectContaining({ method: 'DELETE', body: { currentPassword: 'password123' } }),
+    );
+    expect(mockedTokenStorage.clearTokens).toHaveBeenCalled();
+    expect(await AsyncStorage.getAllKeys()).toEqual([]);
+  });
+
+  it('keeps the session and offline data when the backend refuses', async () => {
+    await saveForOffline();
+    mockedApiFetch.mockRejectedValue(new ApiError(403, 'Current password is incorrect'));
+
+    await expect(authService.deleteAccount({ currentPassword: 'wrong' })).rejects.toThrow();
+
+    expect(mockedTokenStorage.clearTokens).not.toHaveBeenCalled();
+    expect(await AsyncStorage.getAllKeys()).not.toEqual([]);
   });
 });

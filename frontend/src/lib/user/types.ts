@@ -35,6 +35,10 @@ export interface NotificationSettings {
   plantSitting: boolean;
 }
 
+export interface DeleteAccountRequest {
+  currentPassword: string;
+}
+
 export interface ChangeEmailRequest {
   email: string;
   currentPassword: string;
