@@ -46,8 +46,8 @@ const species = [
   { id: 'basil', commonName: 'Sweet basil', scientificName: 'Ocimum basilicum', wateringFrequencyDays: null, regions: [], sunlightNeeds: null, common: false, imageUrl: null },
 ];
 const planters = [
-  { id: 'balcony', name: 'Balcony' },
-  { id: 'kitchen', name: 'Kitchen windowsill' },
+  { id: 'balcony', name: 'Balcony', outdoor: false },
+  { id: 'kitchen', name: 'Kitchen windowsill', outdoor: false },
 ];
 
 beforeEach(() => {

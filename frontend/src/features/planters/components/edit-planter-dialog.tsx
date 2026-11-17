@@ -3,13 +3,14 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, View } from 're
 
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
+import { Toggle } from '@/components/ui/toggle';
 import { Shadow } from '@/constants/theme';
 import { usePlanterActions } from '@/features/planters/use-planter-actions';
 import { ApiError, describeError } from '@/lib/auth/api-client';
 import { logAction, logFailedUi } from '@/lib/logger';
 
 interface EditPlanterDialogProps {
-  planter: { id: string; name: string; plantCount: number };
+  planter: { id: string; name: string; outdoor: boolean; plantCount: number };
   onClose: () => void;
   onChanged: () => void;
 }
@@ -18,13 +19,14 @@ interface EditPlanterDialogProps {
 export function EditPlanterDialog({ planter, onClose, onChanged }: EditPlanterDialogProps) {
   const { renamePlanter, deletePlanter } = usePlanterActions();
   const [name, setName] = useState(planter.name);
+  const [outdoor, setOutdoor] = useState(planter.outdoor);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const trimmed = name.trim();
-  const canSave = trimmed !== '' && trimmed !== planter.name;
+  const canSave = trimmed !== '' && (trimmed !== planter.name || outdoor !== planter.outdoor);
 
   function close() {
     if (!isBusy) onClose();
@@ -45,7 +47,7 @@ export function EditPlanterDialog({ planter, onClose, onChanged }: EditPlanterDi
     setError(null);
     setIsBusy(true);
     try {
-      await renamePlanter(planter.id, { name: trimmed });
+      await renamePlanter(planter.id, { name: trimmed, outdoor });
       onChanged();
     } catch (err) {
       logFailedUi('planter_rename_failed_ui', err, { planter_id: planter.id });
@@ -122,6 +124,13 @@ export function EditPlanterDialog({ planter, onClose, onChanged }: EditPlanterDi
                   returnKeyType="done"
                   onSubmitEditing={() => canSave && save()}
                 />
+                <View className="flex-row items-center gap-3">
+                  <View className="flex-1">
+                    <Text className="type-body-medium text-text">Outdoor</Text>
+                    <Text className="type-caption text-text-secondary">Get weather alerts for its plants.</Text>
+                  </View>
+                  <Toggle label="Outdoor" checked={outdoor} onChange={setOutdoor} />
+                </View>
                 {error && <Text className="type-body-medium text-error">{error}</Text>}
                 <View className="flex-row justify-center gap-3">
                   <Button

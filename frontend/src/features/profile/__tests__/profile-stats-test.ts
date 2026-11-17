@@ -33,8 +33,8 @@ function species(id: string): Species {
 it('counts plants across rooms, discoveries still in the list, and the top streak', () => {
   const garden = {
     rooms: [
-      { id: 'r1', name: 'Balcony', plants: [plant('a', 3), plant('b', 9)] },
-      { id: null, name: 'Other plants', plants: [plant('c', 0)] },
+      { id: 'r1', name: 'Balcony', outdoor: false, plants: [plant('a', 3), plant('b', 9)] },
+      { id: null, name: 'Other plants', outdoor: false, plants: [plant('c', 0)] },
     ],
   };
   // "gone" was discovered but is no longer an approved species, so it isn't counted (like the PluntDex).

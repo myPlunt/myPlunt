@@ -26,7 +26,7 @@ export function EditPlantScreen({ plantId }: { plantId: string }) {
     }
   }
 
-  const planters = garden?.rooms.flatMap((room) => (room.id ? [{ id: room.id, name: room.name }] : [])) ?? null;
+  const planters = garden?.rooms.flatMap((room) => (room.id ? [{ id: room.id, name: room.name, outdoor: room.outdoor }] : [])) ?? null;
 
   return (
     <NotebookPage title="Edit your plant">

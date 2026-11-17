@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { Toggle } from '@/components/ui/toggle';
 import { Shadow, singleLineInputText } from '@/constants/theme';
 import { boxHeight, oneLine } from '@/features/plants/components/notebook-paper';
 import { usePlanterActions } from '@/features/planters/use-planter-actions';
@@ -26,6 +27,7 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
   const [isOpen, setIsOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
+  const [outdoor, setOutdoor] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -35,6 +37,7 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
     setIsOpen(false);
     setIsAdding(false);
     setNewName('');
+    setOutdoor(false);
     setAddError(null);
   }
 
@@ -47,7 +50,7 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
     setAddError(null);
     setIsSaving(true);
     try {
-      const planter = await createPlanter({ name: newName });
+      const planter = await createPlanter({ name: newName, outdoor });
       onAdded(planter);
       choose(planter.id);
     } catch (err) {
@@ -133,6 +136,13 @@ export function PlanterSelect({ planters, selectedId, onSelect, onAdded }: Plant
                   style={[{ height: boxHeight(1) }, singleLineInputText]}
                 />
                 {addError && <Text className="type-caption text-error">{addError}</Text>}
+                <View className="flex-row items-center gap-3">
+                <View className="flex-1">
+                  <Text className="type-body-medium text-text">Outdoor</Text>
+                  <Text className="type-caption text-text-secondary">Get weather alerts for its plants.</Text>
+                </View>
+                <Toggle label="Outdoor" checked={outdoor} onChange={setOutdoor} />
+              </View>
                 <View className="flex-row gap-3">
                   <View className="flex-1">
                     <Button
