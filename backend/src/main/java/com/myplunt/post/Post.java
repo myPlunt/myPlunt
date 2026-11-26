@@ -69,6 +69,12 @@ public class Post {
         this.body = comment;
     }
 
+    // photo may be null when the plant was created without one.
+    public Post(UUID userId, Plant plant, PlantPhoto photo) {
+        this(userId, plant, NEW_PLANT);
+        this.photo = photo;
+    }
+
     public Post(UUID userId, String question, String photoKey) {
         this(userId, (Plant) null, QUESTION);
         this.body = question;
