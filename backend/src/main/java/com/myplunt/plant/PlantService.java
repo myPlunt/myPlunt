@@ -96,12 +96,11 @@ public class PlantService {
 
         Plant saved = plantRepository.save(plant);
         markDiscovered(ownerId, species);
-        if (request.photoKey() != null) {
-            plantPhotoRepository.save(new PlantPhoto(saved, ownerId, request.photoKey(), Instant.now()));
-        }
+        PlantPhoto firstPhoto = request.photoKey() == null ? null
+                : plantPhotoRepository.save(new PlantPhoto(saved, ownerId, request.photoKey(), Instant.now()));
         boolean shareToFeed = Boolean.TRUE.equals(request.shareToFeed());
         if (shareToFeed) {
-            eventPublisher.publishEvent(new PlantSharedEvent(ownerId, saved));
+            eventPublisher.publishEvent(new PlantSharedEvent(ownerId, saved, firstPhoto));
         }
         Map<String, Object> details = new LinkedHashMap<>();
         details.put("plant_id", saved.getId());

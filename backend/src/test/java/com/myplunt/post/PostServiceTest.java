@@ -149,17 +149,36 @@ class PostServiceTest {
     }
 
     @Test
-    void onPlantShared_savesANewPlantPost() {
+    void getFeed_showsANewPlantPostsFirstPhotoNotThePlantsNewest() {
+        User me = withId(new User("me", "me@example.com", "hashed"), UUID.randomUUID());
+        Plant vera = withId(new Plant(me.getId(), "Vera"), UUID.randomUUID());
+        PlantPhoto first = new PlantPhoto(vera, me.getId(), "plants/vera-day-1.jpg", null);
+        Post post = withId(new Post(me.getId(), vera, first), UUID.randomUUID());
+        when(postRepository.findFeed(eq(me.getId()), any(), any())).thenReturn(List.of(post));
+        when(userService.loadUsers(anyList())).thenReturn(List.of(me));
+        when(plantService.getPhotoUrls(anyList())).thenReturn(Map.of(vera.getId(), "https://storage.test/day-30.jpg"));
+        when(storageService.createReadUrl("plants/vera-day-1.jpg")).thenReturn("https://storage.test/day-1.jpg");
+
+        assertThat(postService().getFeed(me.getId())).singleElement().satisfies(response -> {
+            assertThat(response.type()).isEqualTo(Post.NEW_PLANT);
+            assertThat(response.photoUrl()).isEqualTo("https://storage.test/day-1.jpg");
+        });
+    }
+
+    @Test
+    void onPlantShared_savesANewPlantPostWithItsFirstPhoto() {
         UUID userId = UUID.randomUUID();
         Plant vera = withId(new Plant(userId, "Vera"), UUID.randomUUID());
+        PlantPhoto first = new PlantPhoto(vera, userId, "plants/vera-day-1.jpg", null);
 
-        postService().onPlantShared(new PlantSharedEvent(userId, vera));
+        postService().onPlantShared(new PlantSharedEvent(userId, vera, first));
 
         ArgumentCaptor<Post> saved = ArgumentCaptor.forClass(Post.class);
         verify(postRepository).save(saved.capture());
         assertThat(saved.getValue().getPostType()).isEqualTo(Post.NEW_PLANT);
         assertThat(saved.getValue().getUserId()).isEqualTo(userId);
         assertThat(saved.getValue().getPlant()).isSameAs(vera);
+        assertThat(saved.getValue().getPhoto()).isSameAs(first);
     }
 
     @Test

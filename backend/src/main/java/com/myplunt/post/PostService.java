@@ -78,7 +78,7 @@ public class PostService {
     // Runs inside PlantService's transaction, so a failed post also undoes the plant.
     @EventListener
     public void onPlantShared(PlantSharedEvent event) {
-        postRepository.save(new Post(event.ownerId(), event.plant(), Post.NEW_PLANT));
+        postRepository.save(new Post(event.ownerId(), event.plant(), event.photo()));
     }
 
     @EventListener
@@ -267,8 +267,8 @@ public class PostService {
                 .toList();
     }
 
-    // A question shows its own photo, a photo post the photo that was shared, and a new plant
-    // the plant's current one (latestPhotoUrl).
+    // A question shows its own photo, a photo post or new plant the photo it was shared with, and a
+    // new plant shared without a photo the plant's current one (latestPhotoUrl).
     private PostResponse toResponse(
             Post post,
             User author,
