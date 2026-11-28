@@ -1,5 +1,6 @@
 package com.myplunt.friend;
 
+import com.myplunt.care.CareDelegationService;
 import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
@@ -44,6 +45,7 @@ public class FriendService {
     private final PostService postService;
     private final PushNotificationService pushNotificationService;
     private final AuditLog auditLog;
+    private final CareDelegationService careDelegationService;
 
     public FriendService(
             FriendshipRepository friendshipRepository,
@@ -53,7 +55,8 @@ public class FriendService {
             SpeciesService speciesService,
             PostService postService,
             PushNotificationService pushNotificationService,
-            AuditLog auditLog) {
+            AuditLog auditLog,
+            CareDelegationService careDelegationService) {
         this.friendshipRepository = friendshipRepository;
         this.userService = userService;
         this.gardenService = gardenService;
@@ -62,6 +65,7 @@ public class FriendService {
         this.postService = postService;
         this.pushNotificationService = pushNotificationService;
         this.auditLog = auditLog;
+        this.careDelegationService = careDelegationService;
     }
 
     @Transactional(readOnly = true)
@@ -160,6 +164,7 @@ public class FriendService {
     @Transactional
     public void remove(UUID userId, UUID friendId) {
         friendshipRepository.delete(acceptedFriendship(userId, friendId));
+        careDelegationService.endBetween(userId, friendId);
         auditLog.recorded(AuditEvent.FRIEND_REMOVED, userId, userId, Map.of("other_user_id", friendId));
     }
 

@@ -34,4 +34,22 @@ class CareDelegationServiceTest {
 
         assertThat(new CareDelegationService(careDelegationRepository).sittingFor(sitterId, now)).containsExactly(rafaelId);
     }
+
+    @Test
+    void endBetween_endsPendingAndActiveStaysInBothDirections() {
+        UUID janeId = UUID.randomUUID();
+        UUID tomId = UUID.randomUUID();
+        Instant now = Instant.now();
+        CareDelegation janeAskedTom = new CareDelegation(UUID.randomUUID(), janeId, tomId, now, now.plus(Duration.ofDays(3)));
+        janeAskedTom.setStatus(CareDelegation.ACTIVE);
+        CareDelegation tomAskedJane = new CareDelegation(UUID.randomUUID(), tomId, janeId, now, now.plus(Duration.ofDays(3)));
+        List<String> live = List.of(CareDelegation.PENDING, CareDelegation.ACTIVE);
+        when(careDelegationRepository.findByDelegatedByAndDelegatedToAndStatusIn(janeId, tomId, live)).thenReturn(List.of(janeAskedTom));
+        when(careDelegationRepository.findByDelegatedByAndDelegatedToAndStatusIn(tomId, janeId, live)).thenReturn(List.of(tomAskedJane));
+
+        new CareDelegationService(careDelegationRepository).endBetween(janeId, tomId);
+
+        assertThat(janeAskedTom.getStatus()).isEqualTo(CareDelegation.ENDED);
+        assertThat(tomAskedJane.getStatus()).isEqualTo(CareDelegation.ENDED);
+    }
 }

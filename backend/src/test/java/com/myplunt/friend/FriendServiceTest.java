@@ -1,5 +1,6 @@
 package com.myplunt.friend;
 
+import com.myplunt.care.CareDelegationService;
 import com.myplunt.common.exception.NotFoundException;
 import com.myplunt.common.logging.AuditEvent;
 import com.myplunt.common.logging.AuditLog;
@@ -69,6 +70,9 @@ class FriendServiceTest {
     @Mock
     private AuditLog auditLog;
 
+    @Mock
+    private CareDelegationService careDelegationService;
+
     private final UUID janeId = UUID.randomUUID();
     private final UUID tomId = UUID.randomUUID();
 
@@ -80,7 +84,7 @@ class FriendServiceTest {
     }
 
     private FriendService friendService() {
-        return new FriendService(friendshipRepository, userService, gardenService, plantService, speciesService, postService, pushNotificationService, auditLog);
+        return new FriendService(friendshipRepository, userService, gardenService, plantService, speciesService, postService, pushNotificationService, auditLog, careDelegationService);
     }
 
     private void assertConflict(String message) {
@@ -230,6 +234,7 @@ class FriendServiceTest {
         friendService().remove(janeId, tomId);
 
         verify(friendshipRepository).delete(friends);
+        verify(careDelegationService).endBetween(janeId, tomId);
         verify(auditLog).recorded(AuditEvent.FRIEND_REMOVED, janeId, janeId, Map.of("other_user_id", tomId));
     }
 
@@ -241,6 +246,7 @@ class FriendServiceTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("You're not friends with this user");
         verify(friendshipRepository, never()).delete(any());
+        verifyNoInteractions(careDelegationService);
     }
 
     // Tom sent the request here, so it also checks the friendship counts whoever asked.

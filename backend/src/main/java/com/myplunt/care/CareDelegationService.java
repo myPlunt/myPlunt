@@ -23,6 +23,16 @@ public class CareDelegationService {
                 plantId, sitterId, CareDelegation.ACTIVE, Instant.now());
     }
 
+    // Both directions, pending included: once they aren't friends neither may look after the other's plants.
+    @Transactional
+    public void endBetween(UUID userId, UUID otherId) {
+        List<String> live = List.of(CareDelegation.PENDING, CareDelegation.ACTIVE);
+        careDelegationRepository.findByDelegatedByAndDelegatedToAndStatusIn(userId, otherId, live)
+                .forEach(d -> d.setStatus(CareDelegation.ENDED));
+        careDelegationRepository.findByDelegatedByAndDelegatedToAndStatusIn(otherId, userId, live)
+                .forEach(d -> d.setStatus(CareDelegation.ENDED));
+    }
+
     @Transactional(readOnly = true)
     public List<UUID> sittingFor(UUID sitterId, Instant now) {
         return careDelegationRepository.findByDelegatedToAndStatusInOrderByActiveFromAsc(sitterId, List.of(CareDelegation.ACTIVE))
